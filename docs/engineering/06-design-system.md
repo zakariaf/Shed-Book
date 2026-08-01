@@ -693,10 +693,17 @@ double contrastRatio(Color a, Color b) {
   return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
-/// The brightest ink a palette can put on screen — the quantity §4.3's
+/// The brightest ink a palette normally puts on screen — the quantity §4.3's
 /// "red-shift drops luminance as well as hue" rule is about.
+///
+/// AMENDED 2026-08-01 (N09-T03): body text only. See the note below.
 double peakLuminance(ShedPalette p) => [
       p.tokens.textNumeric, p.tokens.textPrimary,
+    ].map(relativeLuminance).reduce(math.max);
+
+/// The brightest status mark, asserted separately so §4.3's deliberate
+/// exception stays visible and stays BOUNDED.
+double peakStatusLuminance(ShedPalette p) => [
       p.tokens.statusReady, p.tokens.statusAttention, p.tokens.statusLoss,
     ].map(relativeLuminance).reduce(math.max);
 
@@ -704,6 +711,30 @@ double peakLuminance(ShedPalette p) => [
 /// edits nSurface04 without editing the native config, this test must fail.
 const Color launchSurface = Color(0xFF0B0D0E);
 ```
+
+**Amended 2026-08-01 (N09-T03) — `peakLuminance` measures body text, not status marks.**
+
+The version above previously read:
+
+> ~~`p.tokens.textNumeric, p.tokens.textPrimary, p.tokens.statusReady, p.tokens.statusAttention,
+> p.tokens.statusLoss`~~
+
+Struck with its reason: **that version cannot pass against §4.3's own table.** `amber`'s `statusLoss`
+is `#FFE0A3` at L 0.772, and the ceiling is 0.70 × `night`'s peak of 1.000 = 0.700. The palette was
+not wrong; the assertion was measuring the wrong quantity.
+
+The collision is between two rules in this document, and §4.3 already resolves it against itself. Its
+rule 1 says *"in a one-hue palette, urgency is luminance"* — loss is **deliberately** the brightest
+token, because the colour channel is nearly gone and the luminance channel is what is left to spend
+on the thing that needs a shepherd's attention. Then its own arithmetic two paragraphs later computes
+the drop as *"1.000 → 0.618"*, and **0.618 is amber's `textNumeric`, not its `statusLoss` at 0.772**.
+§4.3 was already measuring body text. §3.5's list was the stale half.
+
+Relaxing the 0.70 factor was the other way out and is the edit-the-gate-to-make-it-green anti-pattern
+`13` names by name. **The factor is untouched.** The exception is bounded rather than waived:
+`peakStatusLuminance` is asserted separately, so a status mark still may not exceed `night`'s body-text
+peak — past that point a night-shift palette is emitting more light than the palette it exists to be
+dimmer than.
 
 **Every ratio printed in §4 was computed with exactly this formula on 2026-07-27** and is reproduced by the test above. If a number in this document and the test disagree, the test is right and the document is stale — which is the only reason it is safe to print sixty ratios in prose at all.
 

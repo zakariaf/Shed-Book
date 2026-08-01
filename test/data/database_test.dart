@@ -38,11 +38,10 @@ const Map<String, String> kNotStruckable = <String, String>{
 
 void main() {
   test('every table mixes in Identified and carries struck and struck_at', () {
-    // Correctly VACUOUS today and it says so: @DriftDatabase's table list is
-    // empty until N07-T03 lands the flock cluster, and the list grows one
-    // cluster per task precisely so the tree compiles at every commit. What this
-    // case holds NOW is the shape of the check and the two exclusion lists, so
-    // T03 through T06 have something that fails when a table forgets a mixin.
+    // Vacuous at N07-T02 and live from N07-T03: the table list grows one cluster
+    // per task precisely so the tree compiles at every commit, and this sweeps
+    // whatever is in it. The two exclusion lists carry a reason per entry,
+    // because an exclusion without one becomes a habit.
     final AppDatabase db = testDatabase();
 
     for (final TableInfo<Table, dynamic> table in db.allTables) {
@@ -100,11 +99,18 @@ void main() {
     expect(testDatabase(seedOnCreate: false).seedOnCreate, isFalse);
   });
 
-  test('the table list is still empty, and grows one cluster per task', () {
-    // Pinned so the growth is visible in a diff rather than assumed. N07-T03
-    // raises this to the flock cluster; N07-T06 completes it. Twenty-three at
-    // once would fail build_runner for four commits.
+  test('the table list grows one cluster per task', () {
+    // Pinned so the growth is visible in a diff rather than assumed. It was
+    // empty at N07-T02, is the flock cluster at N07-T03, and N07-T06 completes
+    // it. Twenty-three at once would fail build_runner for four commits.
     final AppDatabase db = testDatabase();
-    expect(db.allTables, isEmpty);
+
+    expect(db.allTables.map((TableInfo<Table, dynamic> t) => t.actualTableName).toSet(), <String>{
+      'seasons',
+      'ewes',
+      'ewe_seasons',
+      'ewe_touches',
+      'ewe_observations',
+    });
   });
 }

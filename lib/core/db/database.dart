@@ -1,4 +1,13 @@
 import 'package:drift/drift.dart';
+import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/tables/flock.dart';
+import 'package:shed_book/core/db/tables/seasons.dart';
+// The generated part file references these by bare name, so the library that
+// owns the part has to import them. Adding one here is what a new converter on
+// a new column costs.
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/time/partial_date.dart';
 
 part 'database.g.dart';
 
@@ -14,7 +23,16 @@ const int kSchemaVersion = 1;
 /// that do not exist yet, `build_runner` would fail, and it would stay failing
 /// until T06 — which is precisely the defect the fourteen-into-eight re-cut
 /// existed to remove.
-@DriftDatabase(tables: <Type>[])
+@DriftDatabase(
+  tables: <Type>[
+    // N07-T03 — the flock cluster.
+    Seasons,
+    Ewes,
+    EweSeasons,
+    EweTouches,
+    EweObservations,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e, {this.seedOnCreate = true, this.schemaVersionOverride = kSchemaVersion});
 

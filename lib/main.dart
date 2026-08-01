@@ -1,15 +1,38 @@
-// The real entry point is `01-architecture.md` §6's ~20 lines — awaits nothing,
-// installs the error handlers, calls runApp() — and it is written in **N11**
-// together with `lib/app.dart` and `ShedBookApp`.
+// lib/main.dart — twenty lines, and nothing awaited.
 //
-// Until then this file exists for exactly one reason: `flutter build apk
-// --debug` needs an entry point, and N00-T01's Definition of Done already
-// asserts that build completes. Deleting the file breaks it; leaving
-// `flutter create`'s sample means `flutter analyze --fatal-infos` fails on demo
-// code the moment N01-T02 lands the strict block.
+// NOTHING IS AWAITED HERE (#21). An `await` before `runApp` is a frame the
+// shepherd spends looking at the platform's launch colour, and every candidate
+// for it — opening the database, resolving a directory, reading settings —
+// belongs after the first frame. `01 §5.5`.
 //
-// `lib/app.dart` is deliberately NOT created here. `ShedBookApp` is N11's, and
-// a placeholder would be a second file N11 has to delete.
-import 'package:flutter/widgets.dart';
+// There is no runZonedGuarded (#14): `PlatformDispatcher.instance.onError`
+// supersedes it, and a zone/binding mismatch is a documented footgun
+// (flutter#94123).
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/app.dart';
+import 'package:shed_book/core/log/local_log.dart';
 
-void main() => runApp(const SizedBox.shrink());
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Framework errors: build, layout, paint.
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details); // keeps the console output in debug
+    LocalLog.instance.flutterError(details);
+  };
+
+  // 2. Everything outside the Flutter call stack: async gaps, platform channels.
+  PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
+    LocalLog.instance.write('uncaught', error, stack);
+    // HANDLED — do not kill the app. Returning false lets the process die with a
+    // lamb half-recorded; the record is already committed and the shepherd needs
+    // the screen back, not a crash.
+    return true;
+  };
+
+  // 3. ErrorWidget.builder — N11-T04, with the panel it renders.
+
+  runApp(const ProviderScope(child: ShedBookApp()));
+}

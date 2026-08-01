@@ -21,6 +21,23 @@ const String _styles = 'android/app/src/main/res/values/styles.xml';
 const String _stylesNight = 'android/app/src/main/res/values-night/styles.xml';
 const String _stylesV31 = 'android/app/src/main/res/values-v31/styles.xml';
 const String _manifest = 'android/app/src/main/AndroidManifest.xml';
+const String _launchStoryboard = 'ios/Runner/Base.lproj/LaunchScreen.storyboard';
+const String _mainStoryboard = 'ios/Runner/Base.lproj/Main.storyboard';
+const String _plist = 'ios/Runner/Info.plist';
+
+/// The root view's `backgroundColor` as (red, green, blue) floats.
+///
+/// **The storyboard stores components, not a hex**, so the comparison has to be
+/// numeric and tolerant: 0x0A / 255 is 0.039215686…, and Xcode writes six
+/// decimal places. Anything tighter than 1/255 fails on rounding rather than on
+/// the colour.
+(double, double, double) _storyboardColour(String path) {
+  final RegExpMatch? m = RegExp(
+    r'<color key="backgroundColor" red="([\d.]+)" green="([\d.]+)" blue="([\d.]+)"',
+  ).firstMatch(File(path).readAsStringSync());
+  expect(m, isNotNull, reason: 'no sRGB backgroundColor in $path');
+  return (double.parse(m!.group(1)!), double.parse(m.group(2)!), double.parse(m.group(3)!));
+}
 
 /// `nSurface04`'s six hex digits, read out of the Dart source.
 ///
@@ -164,6 +181,58 @@ void main() {
         isNot(contains('android.permission.INTERNET')),
         reason: 'G1: the shipped app has no internet permission',
       );
+    });
+  });
+
+  group('ios', () {
+    test('both storyboards paint the ruled page colour', () {
+      // TWO STORYBOARDS, AND THE SECOND IS THE ONE PEOPLE FORGET.
+      // LaunchScreen is what iOS shows before the engine starts; Main is what
+      // the scene shows for the instant between the engine starting and
+      // Flutter's first frame. A white Main.storyboard is a one-frame flash that
+      // never appears on a simulator warm-launch.
+      final String hex = _dartPageColour();
+      final double r = int.parse(hex.substring(0, 2), radix: 16) / 255.0;
+      final double g = int.parse(hex.substring(2, 4), radix: 16) / 255.0;
+      final double b = int.parse(hex.substring(4, 6), radix: 16) / 255.0;
+
+      for (final String path in <String>[_launchStoryboard, _mainStoryboard]) {
+        final (double sr, double sg, double sb) = _storyboardColour(path);
+        expect(sr, closeTo(r, 1 / 255), reason: '$path red');
+        expect(sg, closeTo(g, 1 / 255), reason: '$path green');
+        expect(sb, closeTo(b, 1 / 255), reason: '$path blue');
+      }
+    });
+
+    test('Info.plist pins the dark appearance and names both storyboards', () {
+      // UILaunchStoryboardName and UIMainStoryboardFile are DIFFERENT KEYS
+      // NAMING DIFFERENT STORYBOARDS, and losing either is a flash rather than a
+      // crash.
+      final String plist = File(_plist).readAsStringSync();
+
+      expect(plist, contains('<key>UIUserInterfaceStyle</key>'));
+      expect(
+        RegExp(r'<key>UIUserInterfaceStyle</key>\s*<string>Dark</string>').hasMatch(plist),
+        isTrue,
+        reason: 'the app follows the system appearance and can go light',
+      );
+      expect(plist, contains('<key>UILaunchStoryboardName</key>'));
+      expect(plist, contains('<key>UIMainStoryboardFile</key>'));
+    });
+
+    test('Info.plist carries no ATS exception', () {
+      // G5's text half, and the gate job greps for it too. An app with no
+      // network code does not need one, and its presence would be a claim that
+      // something wants to talk.
+      expect(File(_plist).readAsStringSync(), isNot(contains('NSAppTransportSecurity')));
+    });
+
+    test('the template launch image is gone', () {
+      // The generated storyboard centres a LaunchImage on white. Leaving it
+      // means a logo appears and then vanishes — which is the splash this
+      // product does not have.
+      final String storyboard = File(_launchStoryboard).readAsStringSync();
+      expect(storyboard, isNot(contains('LaunchImage')));
     });
   });
 }

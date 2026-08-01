@@ -175,14 +175,14 @@ because it ran nothing.
 | `'stepByStep is the only migration strategy and no step runs a destructive statement'` | **anchor.** `AppDatabase(connection).migration.onUpgrade` is the generated composition and never a hand-written `(m, from, to)` that calls `createAll`; and for every derived `from`→`to` pair, every table name in `sqlite_schema` at `from` is still present at `to`, and every column of each of those tables, read off `PRAGMA table_info`, is still present at `to`. At v1 the pair list is empty and the assertion runs against v1 alone. |
 | `'the pair list is derived from kSchemaVersion and never typed'` | the enumeration holds exactly `kSchemaVersion * (kSchemaVersion - 1) ~/ 2` entries — the closed form, so adding v2 cannot leave a hand-typed list behind |
 | `'onCreate creates every table and seeds only when seedOnCreate is true'` | two opens against `NativeDatabase.memory()`, `seedOnCreate: true` then `false`; the second has the full schema and **no** season row. The restore path depends on this (`04 §7`), and a phantom "2026 lambing" nobody created is the failure it prevents. |
-| `'check_policy exits 1 on a planted DROP COLUMN under lib/core/db/'` | runs `dart run tool/check_policy.dart` as a process over a temp tree carrying one planted violation; asserts a non-zero exit and `db.destructive_ddl` in the output; deletes the fixture. Watch it fail once by hand before automating it. |
+| `'check_policy exits 1 on a planted DROP COLUMN under lib/core/db/'` | runs `dart tool/check_policy.dart` as a process over a temp tree carrying one planted violation; asserts a non-zero exit and `db.destructive_ddl` in the output; deletes the fixture. Watch it fail once by hand before automating it. |
 | `'migrations.dart carries all five rules'` | the file exists and its doc comment names each of the five. This is the one place a text assertion is correct, because the property *is* the prose. |
 
 ### 5.5 Verification, in order
 
 ```bash
 fvm flutter test test/drift/migrations_test.dart   # the anchor and its four companions
-dart run tool/check_policy.dart                    # db.destructive_ddl still exits 0 on the real tree
+dart tool/check_policy.dart                    # db.destructive_ddl still exits 0 on the real tree
 make check                                         # gate, format, analyze --fatal-infos
 make test                                          # whole suite, randomised, plus the UK-zone run
 ```
@@ -209,7 +209,7 @@ make test                                          # whole suite, randomised, pl
 
 ```bash
 fvm flutter test test/drift/migrations_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 git status --short          # nothing generated moved: this task adds no schema version

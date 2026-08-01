@@ -43,7 +43,10 @@ installs `HttpClient.findProxyFromEnvironment`.
 | `make gen` | `make gen` | **not yet measurable** — there is no database, so `drift_dev make-migrations` has nothing to do. N08 re-checks it |
 
 So on a warm pub cache **`make test` is the first target that needs the network**, and `make check`
-never does: its four steps are the two Python validators, `dart format` and `flutter analyze`.
+never does: its five steps are `dart tool/check_policy.dart`, the two Python validators, `dart format`
+and `flutter analyze`. The gate is spelled without `run` for exactly that reason — `dart run` does an
+implicit `pub get` and executes the package's build hooks, and was measured failing on a cold cache
+with the network away at a pub.dev advisories fetch. Without `run` it exits 0 on the same tree.
 
 The hook fetches from `https://github.com/simolus3/sqlite3.dart/releases/download/…` and verifies
 the file against a sha256 compiled into the package, failing with *"Hash of downloaded file … is …,

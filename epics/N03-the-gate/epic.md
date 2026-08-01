@@ -30,7 +30,7 @@ planted, watched to fire and un-planted inside the commit that adds it.
 
 Two dependencies make this epic possible now and not earlier. `pubspec.lock` is committed (N00-T03,
 decision #5), so G2 has a real lockfile to read on a fresh clone. `.github/workflows/ci.yml` and the
-`Makefile` already name `dart run tool/check_policy.dart` (N01-T05, N01-T06) — this epic is what
+`Makefile` already name `dart tool/check_policy.dart` (N01-T05, N01-T06) — this epic is what
 makes that line succeed, which is why N01 and N02 leave the `gate` job's policy step red and N03-T01
 is the commit that turns it green.
 
@@ -87,7 +87,7 @@ predecessor precisely.
 
    | Job | What runs | What it proves for this epic |
    |---|---|---|
-   | `gate` | toolchain pin equals `.fvmrc` · `flutter pub get` · `dart run tool/check_policy.dart` · `dart format --output=none --set-exit-if-changed .` · `flutter analyze --fatal-infos --fatal-warnings` · the `NSAppTransportSecurity` text check | The gate runs on a machine that is not yours, from a clean checkout, against the committed `pubspec.lock`. **G2 and G3 both live in this one step**, so a green `gate` is the epic's product working, not a proxy for it |
+   | `gate` | toolchain pin equals `.fvmrc` · `flutter pub get` · `dart tool/check_policy.dart` · `dart format --output=none --set-exit-if-changed .` · `flutter analyze --fatal-infos --fatal-warnings` · the `NSAppTransportSecurity` text check | The gate runs on a machine that is not yours, from a clean checkout, against the committed `pubspec.lock`. **G2 and G3 both live in this one step**, so a green `gate` is the epic's product working, not a proxy for it |
    | `test` | `flutter test -P ci-fast --test-randomize-ordering-seed random --coverage` · `TZ=Europe/London flutter test --tags uk-zone` · `TZ=Pacific/Chatham flutter test test/domain --exclude-tags uk-zone` | Every rule in the table has a case that watches it fire. The randomised ordering is what proves the planted-violation cases do not leak temp directories into each other. The two zone commands pass trivially here — `test/domain/` does not exist until N04 — and that is expected, not a skipped job |
 
    `codegen` (N08) and `android` (N31) do not exist yet, so this epic's PR shows two checks, not four.
@@ -120,7 +120,7 @@ in this epic is of a different kind and it is real:
   bare `Uri.parse(` and a bare `strftime`/`datetime`; decision #47 already excludes the last pair for
   exactly this reason.
 - **A *"no `http` in `pubspec.lock`"* rule is unsatisfiable and must never be written.** `http 1.6.0`
-  sits on two regular edges — `flutter_local_notifications → timezone → http` and
+  sits on four regular edges — `flutter_local_notifications → timezone → http` and
   `wakelock_plus → package_info_plus → http` — so the rule is permanently red and gets deleted by
   whoever meets it. Four research notes wrote it. Decision-record §3.4 #1 records why it is banned;
   N03-T03 puts that reason in the source, not only in a document.
@@ -143,23 +143,23 @@ in this epic is of a different kind and it is real:
 - [ ] the five §12 questions in `.github/pull_request_template.md` are answered in the PR body
 - [ ] the pipelines are green: `gate` · `test`
 - [ ] `main` is green after the merge, and the next epic's branch is cut from the merged `main`
-- [ ] `dart run tool/check_policy.dart` exits **0** on the tree and **1** on every planted violation, naming the rule id
+- [ ] `dart tool/check_policy.dart` exits **0** on the tree and **1** on every planted violation, naming the rule id
 - [ ] `tool/policy_allowlist.txt` has exactly **four** `[exempt]` lines (R56) and each has its reason in the commit that added it
 - [ ] every rule id in the table has a proving case, and the inventory assertion in `test/policy/gate_rules_test.dart` holds that true for the next epic as well
 
 ## Demoable on merge
 
-`dart run tool/check_policy.dart` exits 0 on the tree; plant any violation and it exits 1
+`dart tool/check_policy.dart` exits 0 on the tree; plant any violation and it exits 1
 naming the rule id. Every rule in the table has been watched to fire in the commit that added it.
 
 Two runnable demonstrations, in order:
 
 ```bash
-dart run tool/check_policy.dart ; echo "exit=$?"      # policy ok, exit=0
+dart tool/check_policy.dart ; echo "exit=$?"      # policy ok, exit=0
 
 mkdir -p lib/features/flock
 printf "import 'package:drift/drift.dart';\n" > lib/features/flock/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"      # POLICY [layer.features] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"      # POLICY [layer.features] …, exit=1
 rm lib/features/flock/_plant.dart
 ```
 

@@ -284,7 +284,7 @@ fvm flutter test test/data/entitlement_test.dart
 fvm flutter test test/policy/entitlement_is_never_revoked_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone         # the 14-day bound case must appear in the count
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 grep -rn "unlocked" lib/ | grep -v "lib/core/db/tables/" # no false, no Constant(false)
 git diff --stat -- drift_schemas/ lib/core/db/           # nothing
 make check

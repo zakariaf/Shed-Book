@@ -254,7 +254,7 @@ fvm flutter test test/domain/withdrawal/disagreement_test.dart
 fvm flutter test test/domain/withdrawal
 TZ=Europe/London fvm flutter test --tags uk-zone
 TZ=Pacific/Chatham fvm flutter test test/domain --exclude-tags uk-zone
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make check
 make test
 ```

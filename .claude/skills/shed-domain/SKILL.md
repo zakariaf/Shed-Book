@@ -119,7 +119,7 @@ Read `references/statistics.md` **when you add, change or debug a statistic** �
 
 - [ ] No file under `lib/domain/` imports Flutter, drift, Riverpod, sqlite3, intl, `AppLocalizations`, `lib/data/**`, `lib/core/db/**` — or `package:clock` (R24).
 - [ ] Every function needing the current time takes `Instant now`; `DateTime.now(` still appears only in `lib/core/time/app_clock.dart`.
-- [ ] `dart run tool/check_policy.dart` passes, with rows added to it rather than a second scanning script.
+- [ ] `dart tool/check_policy.dart` passes, with rows added to it rather than a second scanning script.
 - [ ] Every new time-carrying field is classified `Instant` or `LocalDate` in 05 §2.2 before its column exists; no `dateTime()` column anywhere.
 - [ ] Every measurement is `Grams` or `MilliCelsius`, converted with `round()`, with no `unit` column and a boundary test at `x.5`.
 - [ ] Every statistic returns a `StatResult` whose `definition` came from `lib/domain/stats/definitions.dart`, with a real denominator or a `notComputableReason` — never 0 for unknown.

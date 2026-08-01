@@ -225,7 +225,7 @@ fvm flutter test test/data/lambing_repository_test.dart
 grep -rn "onLongPress\|Timer.periodic\|Slider(" lib/features/lambing/    # expect: nothing
 grep -rn "care_events\|careEvents" lib/features/lambing/                 # reads only, never a feed
 git diff --name-only main -- drift_schemas/ lib/core/db/tables/          # expect: nothing
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

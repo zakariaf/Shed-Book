@@ -298,7 +298,7 @@ wires.
 ```bash
 fvm flutter test test/features/unlock_test.dart
 fvm flutter test test/features/tap_budget_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 grep -rni "\bpending\b" lib/features/settings/           # nothing
 grep -rnE "PurchaseDetails|ProductDetails|PurchaseStatus|PurchaseParam|InAppPurchase" lib/features/   # nothing
 grep -rn "CircularProgressIndicator\|showDialog(\|showSnackBar(\|showMaterialBanner(" lib/features/settings/   # nothing

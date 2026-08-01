@@ -79,8 +79,8 @@ Non-negotiable, and each is a thing an agent gets wrong:
   can resolve `analyzer ≥ 13.1.0`. That single fact is why `freezed`, `riverpod_generator`,
   `riverpod_lint`, `import_lint` and `custom_lint` are **unresolvable**, not merely unwanted — adding
   one produces a solver failure, not a lint.
-- **`http 1.6.0` is in `pubspec.lock`, legitimately**, on two regular edges:
-  `flutter_local_notifications → timezone → http` and `wakelock_plus → package_info_plus → http`.
+- **`http 1.6.0` is in `pubspec.lock`, legitimately**, on four regular edges:
+  `flutter_local_notifications → timezone → http`, `wakelock_plus → package_info_plus → http`, `file_selector → file_selector_platform_interface → http` and `image_picker → image_picker_platform_interface → http`.
   A *"no `http` in `pubspec.lock`"* gate is **unsatisfiable** and must never be written — satisfying
   it means deleting reminders and the wakelock. G2's claim is narrower and true: no package enters
   the graph unreviewed. Do not "fix" the two documented `[transitive]` lines.
@@ -164,6 +164,6 @@ read `references/gate-failures.md`.**
 - [ ] Every new lockfile entry has an allowlist line in the correct section, transitive ones with the
       reason on the line.
 - [ ] `pubspec.lock` is committed and its diff has been read.
-- [ ] `make check` passes — `dart run tool/check_policy.dart`, `dart format --set-exit-if-changed`,
+- [ ] `make check` passes — `dart tool/check_policy.dart`, `dart format --set-exit-if-changed`,
       `flutter analyze --fatal-infos --fatal-warnings`.
 - [ ] No gate file, rule table, exit code or allowlist was edited to make any of the above pass.

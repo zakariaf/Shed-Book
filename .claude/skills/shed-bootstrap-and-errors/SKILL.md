@@ -93,7 +93,7 @@ Four layers, one colour, and **the first two have no Dart-side fix** — by the 
 
 ## Done when
 
-- [ ] `lib/main.dart` matches `01 §6.1` — no `async`, no suspension, no `overrides`, no `retry:`, three handlers before `runApp()` — and `dart run tool/check_policy.dart` exits 0.
+- [ ] `lib/main.dart` matches `01 §6.1` — no `async`, no suspension, no `overrides`, no `retry:`, three handlers before `runApp()` — and `dart tool/check_policy.dart` exits 0.
 - [ ] `NightErrorPanel` renders with no `MaterialApp`, `Theme`, `Directionality` or `MediaQuery` ancestor, proved by a widget test that pumps it bare.
 - [ ] `LocalLog` accepts records before its directory is known and flushes them on `attachTo()`, proved by a unit test; it never writes an exception message.
 - [ ] `shedFailureFrom` is tested for `SQLITE_FULL`, `SQLITE_IOERR`, `SQLITE_CORRUPT` and a `DriftRemoteException` wrapper, and no `userMessage` names a cause the result code does not prove.

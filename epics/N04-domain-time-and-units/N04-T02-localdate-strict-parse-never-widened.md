@@ -214,7 +214,7 @@ Zone-agnostic, with one deliberate exception noted below. No `@Tags`.
 dart analyze lib/domain/time/local_date.dart      # the §5.3.1 check — run this FIRST
 fvm flutter test test/domain/time/local_date_test.dart
 TZ=Pacific/Chatham fvm flutter test test/domain/time/local_date_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

@@ -253,7 +253,7 @@ one warning naming `01:30` and `02:30` — is **DST-3**, and it lives in
 fvm flutter test test/policy/one_clock_test.dart
 fvm flutter test test/domain/time/wall_time_test.dart test/core/time/app_clock_test.dart
 TZ=Pacific/Chatham fvm flutter test test/domain/time test/core/time
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 
 # 05 §2.8's two shell greps, run before you push
 grep -rn --include='*.dart' --exclude='*.g.dart' 'DateTime\.now(' lib/ \

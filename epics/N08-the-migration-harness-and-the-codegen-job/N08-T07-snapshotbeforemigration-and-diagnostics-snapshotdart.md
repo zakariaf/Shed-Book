@@ -209,7 +209,7 @@ Future<File> snapshotDatabase() async {
 fvm flutter test test/data/diagnostics_snapshot_test.dart
 TZ=Europe/London fvm flutter test test/data/snapshot_ambiguous_hour_test.dart
 fvm flutter test test/drift/                 # the migration tier still green with a snapshot in the open path
-dart run tool/check_policy.dart              # .copy( ban and the magic-size rule
+dart tool/check_policy.dart              # .copy( ban and the magic-size rule
 make check
 make test
 ```
@@ -240,7 +240,7 @@ make test
 fvm flutter test test/data/diagnostics_snapshot_test.dart
 TZ=Europe/London fvm flutter test test/data/snapshot_ambiguous_hour_test.dart
 fvm flutter test test/drift/
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

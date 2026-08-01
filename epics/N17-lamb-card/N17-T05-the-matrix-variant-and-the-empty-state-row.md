@@ -196,7 +196,7 @@ fvm flutter test test/design
 grep -rn "kPumpableVariants" test/ | grep -v "support/harness.dart"   # iterations only, no second table
 grep -rn "expect(kPumpableVariants.length, [0-9]" test/               # expect: nothing
 grep -rn "CircularProgressIndicator" lib/features/                    # expect: nothing
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

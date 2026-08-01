@@ -278,7 +278,7 @@ default zone. If they differ, something is deriving a date from an instant at re
 fvm flutter test test/features/season_summary_test.dart
 fvm flutter test test/policy/every_statistic_carries_its_definition_test.dart
 grep -rn '?? 0' lib/features/season/ || echo 'clean'
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
 make check
 make test

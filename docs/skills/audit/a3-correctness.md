@@ -56,7 +56,7 @@ reference** (`§9.1.1`, `§6.1.1`, `§8.5.5`) or a **standards citation** (WCAG 
 `flutter_riverpod 2.6.1` exact · `build_runner ">=2.15.0 <2.15.2"` · `intl: any` · Flutter 3.44.8 /
 Dart 3.12.2 · `drift 2.34.2` / `drift_dev 2.34.5` · `pdf 3.13.0` · `share_plus 13.3.0` ·
 `archive 4.0.9` · `flutter_lints 6.0.0` · `mocktail 1.0.5` · `in_app_purchase_storekit ≥ 0.4.8` ·
-`http 1.6.0` on two regular edges. **No version from memory.** `record`'s "renamed in 5.0.0" and
+`http 1.6.0` on four regular edges. **No version from memory.** `record`'s "renamed in 5.0.0" and
 `kVoiceNoteMaxSeconds = 60` are both quoted from `08 §4` (60 is 08's explicit "ship 60 until the
 owner answers §7.1 #18"), not invented; `TolerantFileComparator` tolerance `0.005` is `12 §8.3`'s.
 

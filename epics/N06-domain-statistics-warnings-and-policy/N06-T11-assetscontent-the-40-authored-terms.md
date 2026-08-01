@@ -186,7 +186,7 @@ Say so in the test's comment, so nobody deletes it later as a duplicate.
 ```bash
 fvm flutter test test/policy/content_scan_test.dart
 fvm flutter gen-l10n && git diff --stat -- lib/l10n/   # regenerate, read the diff, commit it
-dart run tool/check_policy.dart                        # copy.vet_advice now walks assets/content/
+dart tool/check_policy.dart                        # copy.vet_advice now walks assets/content/
 make check
 make test
 ```

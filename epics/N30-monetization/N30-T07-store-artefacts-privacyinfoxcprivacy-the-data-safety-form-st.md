@@ -302,7 +302,7 @@ someone's memory** (`11 §9.3`, §11, `13 §7.1`):
 
 ```bash
 fvm flutter test test/policy/store_artefacts_test.dart
-dart run tool/check_policy.dart                          # copy.tier3_claim over docs/store/
+dart tool/check_policy.dart                          # copy.tier3_claim over docs/store/
 plutil -lint ios/Runner/PrivacyInfo.xcprivacy            # valid plist, on a Mac
 plutil -p ios/Runner/PrivacyInfo.xcprivacy               # read it; two dicts, two codes
 grep -n "PrivacyInfo.xcprivacy" ios/Runner.xcodeproj/project.pbxproj    # in Copy Bundle Resources

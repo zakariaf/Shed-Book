@@ -250,7 +250,7 @@ row's own time is rendered. Do not invent a case to fill the row.
 
 ```bash
 printf 'import "package:pdf/widgets.dart" as pw;\nfinal d = pw.Document();\n' > lib/data/_scratch.dart
-dart run tool/check_policy.dart ; echo "exit=$?"    # POLICY [export.pdf_document] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"    # POLICY [export.pdf_document] …, exit=1
 rm lib/data/_scratch.dart
 ```
 

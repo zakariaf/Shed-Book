@@ -33,7 +33,7 @@ device by any route* — is **false**: the share sheet and the system photo pick
 Also never in our own prose: **"offline-first"** (Shed Book is offline-**only**; the Flutter
 offline-first pattern is cache-over-network and is banned outright), *"a lost phone is lost data"*
 unqualified, *"verified"*/*"secure"* about the backup checksum. A *"no `http` in `pubspec.lock`"* gate is
-**unsatisfiable** and must never be written — `http 1.6.0` sits on two load-bearing regular edges. The
+**unsatisfiable** and must never be written — `http 1.6.0` sits on four load-bearing regular edges. The
 gates are G1 (permission set on the shipped `.aab`), G2 (dependency allowlist), G3 (import scan).
 
 ### 2. The 3am test floor
@@ -131,7 +131,7 @@ checksum, "compliance record", "official record", "recommended dose", "should".
 | Codegen range | `build_runner` `">=2.15.0 <2.15.2"` — it does **not** resolve at `^2.15.2` |
 | Architecture | Two-layer MVVM (UI + Data), pure-Dart domain of top-level functions; feature-first, single package |
 | Enforcement | **One** gate: `tool/check_policy.dart`, one rule table, one allowlist, one exit code |
-| Commands | `make gen` · `make check` · `make test` · `dart run tool/check_policy.dart` · `python3 tool/validate_skills.py` |
+| Commands | `make gen` · `make check` · `make test` · `dart tool/check_policy.dart` · `python3 tool/validate_skills.py` |
 
 Never edit `tool/check_policy.dart`, its rule table or its exit code to make a build pass; never add a
 line to `tool/policy_allowlist.txt` or `android/expected_permissions.txt` to silence a gate. If a gate is

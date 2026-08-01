@@ -83,7 +83,7 @@ and a diff. Concretely, on the merged branch:
 
 ```bash
 fvm flutter test test/domain test/policy        # green, several hundred cases, no Flutter binding
-dart run tool/check_policy.dart                 # exits 0; the rule table now has copy.vet_advice
+dart tool/check_policy.dart                 # exits 0; the rule table now has copy.vet_advice
                                                 # and copy.disclaimer_retyped in it
 ```
 

@@ -264,7 +264,7 @@ DST case is written there.
 
 ```bash
 fvm flutter test test/policy/primitives_are_private_test.dart
-dart run tool/check_policy.dart          # prints `policy ok`; G2 + G3
+dart tool/check_policy.dart          # prints `policy ok`; G2 + G3
 make check
 make test
 ```

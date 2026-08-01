@@ -253,4 +253,4 @@ scales**, so a shepherd who learns one has learned all three.
 - [ ] Undo renders in the row's own margin, with its window stated in seconds.
 - [ ] Struck rows appear in every list and in the CSV with `struck` / `struck_at` set — or, while P1
       is unruled, the task was stopped and P1 named rather than a schema invented.
-- [ ] `dart run tool/check_policy.dart` is clean; any new rule is a row in that one gate.
+- [ ] `dart tool/check_policy.dart` is clean; any new rule is a row in that one gate.

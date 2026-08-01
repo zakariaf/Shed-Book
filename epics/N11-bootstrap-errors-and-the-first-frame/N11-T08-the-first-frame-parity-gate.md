@@ -228,7 +228,7 @@ the cross-platform group below.
 ```bash
 fvm flutter test test/design/first_frame_parity_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
-dart run tool/check_policy.dart          # prints `policy ok`
+dart tool/check_policy.dart          # prints `policy ok`
 make check
 make test
 ```
@@ -245,7 +245,7 @@ mv ios/Runner/Base.lproj/Main.storyboard.bak ios/Runner/Base.lproj/Main.storyboa
 
 # And the cheap one, on the other platform.
 sed -i.bak 's/#FF0A0A0B/#FF0B0D0E/' android/app/src/main/res/values/colors.xml
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 # expect: exit 1, launch.colour_parity, naming colors.xml
 mv android/app/src/main/res/values/colors.xml.bak android/app/src/main/res/values/colors.xml
 ```

@@ -1402,7 +1402,7 @@ Almost none of it. This is worth stating explicitly, because "prove the app is o
 
 Two tests must **never** be written:
 
-1. **"`pubspec.lock` contains no `http`."** It is unsatisfiable. `flutter_local_notifications → timezone → http ^1.6.0` and `wakelock_plus → package_info_plus → http ^1.6.0` are two regular edges (decision-record §3.4). A gate that cannot pass gets deleted, and the real gates get deleted alongside it.
+1. **"`pubspec.lock` contains no `http`."** It is unsatisfiable. `flutter_local_notifications → timezone → http`, `wakelock_plus → package_info_plus → http`, `file_selector → file_selector_platform_interface → http` and `image_picker → image_picker_platform_interface → http` are four regular edges (decision-record §3.4, measured 2026-08-01). A gate that cannot pass gets deleted, and the real gates get deleted alongside it.
 2. **A duplicate of any `check_policy` rule.** §1.4. If it can be asserted by reading source text, it is the gate's job.
 
 The one thing this document adds is a negative rule with teeth: **no test may install `HttpOverrides.global`.** Decision #122 rejected the runtime guard as a belt over a manifest brace that already makes sockets impossible on Android; a test that installs it implies the app does, and the next reader will add it to `main()`.

@@ -294,7 +294,7 @@ fvm flutter test test/policy/disclaimer_is_defined_once_test.dart
 grep -rn "hintText\|TextField\|TextFormField\|EditableText" lib/features/treatments/
 grep -rn "draft\|isDirty\|save" lib/features/treatments/ lib/l10n/app_en.arb
 grep -rn "as entered by you\|statutory medicine" lib/features/ lib/l10n/
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

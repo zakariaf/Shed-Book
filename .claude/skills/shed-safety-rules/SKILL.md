@@ -173,4 +173,4 @@ the value, `shed-drift-schema` the columns). Two consequences you own:
       `lib/data/**` → `lib/domain/validation/**` import, no save blocked by a warning.
 - [ ] Every event time written carries the quad; every event time rendered carries its provenance
       label; no table gained an edit verb without the quad.
-- [ ] `dart run tool/check_policy.dart` is clean and the safety-rule tests in `test/policy/` pass.
+- [ ] `dart tool/check_policy.dart` is clean and the safety-rule tests in `test/policy/` pass.

@@ -1,5 +1,5 @@
 // `CLAUDE.md` names five project commands — make gen, make check, make test,
-// dart run tool/check_policy.dart, python3 tool/validate_skills.py — and until
+// dart tool/check_policy.dart, python3 tool/validate_skills.py — and until
 // N01-T05 none of them existed. The two Python validators were declared project
 // commands that nothing ran, which is critique gap G4.
 @Tags(<String>['policy'])
@@ -66,7 +66,7 @@ void main() {
     expect(check, isNotEmpty, reason: 'the Makefile has no check target');
 
     // Subsequence, not equality. N01-T05 takes option C from that task's §5.3:
-    // every line here EXCEPT `dart run tool/check_policy.dart`, which N03 adds
+    // every line here EXCEPT `dart tool/check_policy.dart`, which N03 adds
     // in the same commit that makes the script exist — so `main` is never red
     // for a whole epic over a script that is not there yet.
     int cursor = 0;

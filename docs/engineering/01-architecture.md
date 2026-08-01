@@ -365,7 +365,7 @@ It subsumes four gates that the research notes proposed separately: layer rules,
 // tool/check_policy.dart
 //
 // The single source-and-dependency gate for Shed Book.
-//   dart run tool/check_policy.dart
+//   dart tool/check_policy.dart
 // Exit codes: 0 clean · 1 violations · 2 the gate could not run (still a failure).
 //
 // Dependency-free by decision (00-tech-decisions #9, #10): every analyzer plugin
@@ -670,16 +670,23 @@ Exactly four exemptions exist on day one and all four are principled (R56): `app
 ### 3.3 How it runs
 
 ```bash
-dart run tool/check_policy.dart          # < 1 s, no Flutter needed
+dart tool/check_policy.dart          # ~2.5 s, no Flutter needed, no network
+
+# NOT `dart run`. Measured 2026-08-01 (N03-T01): the `run` subcommand performs
+# an implicit `pub get` and executes the package's build hooks, so on a cold
+# hook cache with the network away it fails at a pub.dev advisories fetch —
+# which is precisely the failure decision #9/#10 exist to prevent. Without
+# `run` it exits 0 on the same tree. The ~2.5 s is JIT startup; the walk itself
+# is milliseconds.
 ```
 
 It is run from the repository root — `Directory('lib')`, `Directory('test')` and `File('pubspec.lock')` are all relative — and it must run **before** `flutter pub get` has been forgotten, because a missing lockfile is exit 2.
 
 - **CI**, every push and PR, on `ubuntu-latest`, as its own step before the test job, so a layer violation fails in seconds rather than after the suite. It runs after `flutter pub get` (it reads `pubspec.lock`) and before `dart format` and `flutter analyze`, so the cheapest failure reports first. See [`13-build-ci-release.md`](13-build-ci-release.md).
 - **Pre-push hook**, `.git/hooks/pre-push`, one line. Optional locally; not optional in CI.
-- **`make check`** runs this first, then `dart format --set-exit-if-changed`, then `flutter analyze --fatal-infos`. Cheapest failure first: the gate is sub-second, `analyze` is tens of seconds.
+- **`make check`** runs this first, then the two document validators, then `dart format --set-exit-if-changed`, then `flutter analyze --fatal-infos`. Cheapest failure first: the gate is ~2.5 s (~~sub-second~~ — struck 2026-08-01, measured), `analyze` is tens of seconds.
 
-**Anti-patterns.** Adding a second scanning script (decision #10 — put the row in this table instead). Weakening a rule because it produced a false positive (add a line to `[exempt]` with a reason; an exemption is reviewable, a deleted rule is invisible). Banning bare `strftime` or `datetime` — they false-positive on legitimate SQL and get weakened, which is why decision #47 excludes them. Making the gate depend on a package: the moment it needs `pub get` it can fail for reasons that are not violations.
+**Anti-patterns.** Spelling the invocation `dart run` — see the comment above; it reintroduces the dependency the script does not have. Adding a second scanning script (decision #10 — put the row in this table instead). Weakening a rule because it produced a false positive (add a line to `[exempt]` with a reason; an exemption is reviewable, a deleted rule is invisible). Banning bare `strftime` or `datetime` — they false-positive on legitimate SQL and get weakened, which is why decision #47 excludes them. Making the gate depend on a package: the moment it needs `pub get` it can fail for reasons that are not violations.
 
 ---
 
@@ -1335,7 +1342,7 @@ Tick all of these before calling the architecture finished. Each one is either m
 - [ ] The tree in §2.2 exists, including empty `test/policy/` and `drift_schemas/`.
 - [ ] `lib/data/models.dart` re-exports all 23 row types and only row types — no `AppDatabase`, no `Value`, no companions.
 - [ ] `lib/data/models.dart` compiles, which means `PenOccupancies`, `EweTouches`, `EweSummaries` and `AppSettings` all carry `@DataClassName` in 03. Grep the generated `database.g.dart` for `class PenOccupancie`, `class EweTouche` and `class EweSummarie` — zero hits.
-- [ ] `dart run tool/check_policy.dart` exits 0 on a clean tree and **exits 1 on a deliberately planted violation of each of the eight rules** (write those eight throwaway files once, confirm eight failures, delete them).
+- [ ] `dart tool/check_policy.dart` exits 0 on a clean tree and **exits 1 on a deliberately planted violation of each of the eight rules** (write those eight throwaway files once, confirm eight failures, delete them).
 - [ ] The gate exits **2**, not 0, when `pubspec.lock` or `tool/policy_allowlist.txt` is missing.
 - [ ] The gate scans `test/` as well as `lib/`: plant `tester.container` in a throwaway test file and confirm `rp3.tester_container` fires. It does not scan `tool/`.
 - [ ] Planting `HttpClient(`, `Socket.connect(` and `Image.network(` in a `lib/` file each fails the build — G3 is not satisfied by the package-import scan alone.

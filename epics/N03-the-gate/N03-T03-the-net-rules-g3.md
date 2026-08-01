@@ -12,7 +12,7 @@
 The import scan: no `dart:io` `HttpClient`, no `package:http`, no socket, no
 `WebSocket`, no `Uri.parse` reaching a scheme we do not ship, anywhere under `lib/`. **And the
 recorded reason a *"no `http` in `pubspec.lock`"* rule is unsatisfiable and must never be written** —
-`http 1.6.0` sits on two load-bearing regular edges, so such a rule would be permanently red and would
+`http 1.6.0` sits on four load-bearing regular edges, so such a rule would be permanently red and would
 be deleted by the first person who met it.
 
 G3 is one of the three mechanical gates behind the product's central public claim. The permitted
@@ -99,7 +99,7 @@ And the text rows, with the comment that is the reason they exist:
 /// our own source cannot reach a network API; without these rows it is not proved.
 ///
 /// There is no rule that reads pubspec.lock for `http`, and there must never be
-/// one. http 1.6.0 sits on two REGULAR edges — flutter_local_notifications →
+/// one. http 1.6.0 sits on four REGULAR edges — flutter_local_notifications →
 /// timezone → http, and wakelock_plus → package_info_plus → http. Such a rule is
 /// permanently red, so it gets deleted by whoever meets it first, and then there
 /// is no gate at all. The claim G2 makes is narrower and true: no package enters
@@ -207,7 +207,7 @@ No case is time-shaped; the gate reads text and never reads a clock.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -217,7 +217,7 @@ Then watch the two halves of G3 fire against the real tree:
 mkdir -p lib/data lib/features/export
 printf "import 'package:http/http.dart';\n" > lib/data/_plant.dart
 printf "void f() { Image.network('x'); }\n"  > lib/features/export/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
 rm lib/data/_plant.dart lib/features/export/_plant.dart
 grep -c 'pubspec.lock' tool/check_policy.dart      # 1 — the lockfile reader, not a net rule
 make check

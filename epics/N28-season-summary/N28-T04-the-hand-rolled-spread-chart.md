@@ -274,7 +274,7 @@ fvm flutter test test/design/tap_target_test.dart
 fvm flutter test test/design/semantics_gate_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
 git diff --exit-code -- pubspec.yaml pubspec.lock tool/policy_allowlist.txt
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make check
 make test
 ```

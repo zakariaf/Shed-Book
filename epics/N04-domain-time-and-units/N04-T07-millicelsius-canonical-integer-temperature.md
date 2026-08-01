@@ -188,7 +188,7 @@ fvm flutter test test/domain/units test/domain/units_test.dart      # T06 still 
 TZ=Pacific/Chatham fvm flutter test test/domain/temperature_test.dart
 dart analyze lib/domain/units/milli_celsius.dart
 grep -rn 'temperature' lib/core/db/ || echo 'no temperature column — correct, open question 11'
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

@@ -78,7 +78,7 @@ task reaches none of those layers**: it is a `tool/` and `test/policy/` change a
 | 1 | `tool/check_policy.dart` | **New.** The header comment, the empty rule tables, the roots, the skip predicate, the allowlist parser and the driver. Zero dependencies beyond `dart:io` — the moment it needs `pub get` it can fail for reasons that are not violations (01 §3.3) |
 | 2 | `tool/policy_allowlist.txt` | **New.** Four sections — `[dependencies]`, `[dev_dependencies]`, `[transitive]`, `[exempt]` — with the four R56 exempt lines and nothing else. The three dependency sections stay empty until N03-T04 fills them |
 | 3 | `test/policy/gate_rules_test.dart` | **New.** The temp-tree harness every later task reuses, plus the clean-tree and generated-file cases |
-| 4 | `Makefile` | **No change.** N01-T05 already made `dart run tool/check_policy.dart` the first line of `check`. This commit is what makes that line exit 0 |
+| 4 | `Makefile` | ~~**No change.**~~ **Amended 2026-08-01: this commit adds the line.** N01-T05 took its own §5.3 option C and left `check` without the gate, so that `main` was not red for two whole epics over a script that did not exist — `test/policy/makefile_test.dart` was written to accept both states and to assert the gate is **first** whenever it is present. The line lands here, in the commit that makes it exit 0. The spelling is `dart tool/check_policy.dart`, **not** `dart run`: see §5.3 |
 | 5 | `.github/workflows/ci.yml` | **No change here.** N01-T06 authored the `Policy gate (G2 + G3)` step from `13 §4.3`; N03-T07 asserts its position and adds the inventory assertion |
 
 ### 5.2 The signatures
@@ -94,7 +94,7 @@ other documents add rows against those exact shapes.
 // tool/check_policy.dart
 //
 // The single source-and-dependency gate for Shed Book.
-//   dart run tool/check_policy.dart
+//   dart tool/check_policy.dart
 // Exit codes: 0 clean · 1 violations · 2 the gate could not run (still a failure).
 //
 // Dependency-free by decision (00-tech-decisions #9, #10): every analyzer plugin
@@ -216,6 +216,15 @@ bool _isGenerated(String path) =>
   (decision #46); `night_error_panel.dart` hard-codes `#0B0D0E` because it renders outside any
   `Theme`; `primitives.dart` is by definition the file that holds the raw hexes; `palettes.dart` is
   the one file allowed to import it.
+- **`dart run` is the wrong invocation, and it is the one every document printed.** Measured
+  2026-08-01: the `run` subcommand performs an implicit `pub get` and executes the package's build
+  hooks, so on a cold hook cache with the network away it fails at a **pub.dev advisories fetch** —
+  which is exactly the failure decision #9/#10 exist to prevent, *"the moment it needs `pub get` it
+  can fail for reasons that are not violations."* `dart tool/check_policy.dart` exits 0 on the same
+  cold, network-blocked tree. The spelling is corrected in `01 §3.2`/`§3.3`, `CONVENTIONS §1`,
+  `13 §1.3`/`§4.3`, `CLAUDE.md`, twelve skills and every backlog file, and the decision record's §6
+  carries it as a correction. `01 §3.3`'s *"< 1 s"* is also wrong: it is **~2.5 s**, nearly all of it
+  JIT startup.
 - **The test file is scanned.** `test/policy/gate_rules_test.dart` lives under a walked root. It is
   harmless today because the table is empty, and it stays harmless for most later rows because they
   are scoped `lib/` — but the harness must plant its violations **into the temp tree**, never as a
@@ -258,7 +267,7 @@ reads a clock. The first `uk-zone` case in the project is N04's.
 - **Offline** — no network path may be added. G2 (the dependency allowlist) and G3 (the import scan) stay green, and the permission set never changes without G0's recorded evidence. Concretely here: the script imports `dart:io` and nothing else, so the gate itself can never be the thing that opens a socket, and it needs no `pub get` to run.
 - **One script** — decision #10. Not a second scanner, not an analyzer plugin, not a `RegExp` inside a `test()` (12 §1.4). Every rule any of the fourteen documents adds is a row in one of the two tables in this file.
 - **The two files that may never be edited to green a build** (`CLAUDE.md`) are `tool/policy_allowlist.txt` and `android/expected_permissions.txt`. This commit authors the first of them. If a gate is genuinely wrong, say so and stop.
-- **Vocabulary** — one word per concept (`CLAUDE.md`). The banned words are banned in the commit message too: no `draft`, no `save()`, no `sync`, no `Error` as a failure name. The failure type here is `PolicyConfigError`… which is exactly the banned spelling — so it is not a *failure* type, it is a configuration exception, and if that reads as a dodge, name it `PolicyConfigProblem` and move on. Do not name it `PolicyError` and call the rule satisfied.
+- **Vocabulary** — one word per concept (`CLAUDE.md`). The banned words are banned in the commit message too: no `draft`, no `save()`, no `sync`, no `Error` as a failure name. The failure type here is `PolicyConfigError`… which is exactly the banned spelling. **Ruled 2026-08-01: it is `PolicyConfigProblem`.** The dodge was offered and declined — a type whose name a gate in this very file would ban is not a name to ship because it reads better. Do not name it `PolicyError` and call the rule satisfied.
 
 ## 7. Definition of Done
 
@@ -274,16 +283,16 @@ reads a clock. The first `uk-zone` case in the project is N04's.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
 In full, in the order that finds a problem soonest:
 
 ```bash
-dart run tool/check_policy.dart ; echo "exit=$?"        # policy ok, exit=0
+dart tool/check_policy.dart ; echo "exit=$?"        # policy ok, exit=0
 mv tool/policy_allowlist.txt tool/_parked.txt
-dart run tool/check_policy.dart ; echo "exit=$?"        # POLICY … is missing, exit=2
+dart tool/check_policy.dart ; echo "exit=$?"        # POLICY … is missing, exit=2
 mv tool/_parked.txt tool/policy_allowlist.txt
 fvm flutter test test/policy/gate_rules_test.dart
 make check

@@ -24,7 +24,8 @@ mechanisms are **shed-safety-rules**. For depth on a finding, load the owning sk
 ## 1. Run the gates before you read a line
 
 ```bash
-dart run tool/check_policy.dart     # sub-second, no Flutter. "policy ok" or exit 1.
+dart tool/check_policy.dart     # ~2.5 s, no Flutter, no network. "policy ok" or exit 1.
+                                # NEVER `dart run` — that adds an implicit pub get.
 make check                          # check_policy → dart format --set-exit-if-changed → analyze --fatal-infos --fatal-warnings
 ```
 
@@ -118,12 +119,12 @@ in a PR that does not also change `pubspec.yaml`.
   `DERIVED FROM 3 STROKES` are **not exempt stamps**: each carries meaning nothing else on its line
   carries, so each meets the 18px floor rather than `--t-stamp:14px`.
 - **Refuse, do not debate:** tag OCR or voice tag entry returning (the voice *note* ships), any "no
-  `http` in `pubspec.lock`" gate (unsatisfiable — `http 1.6.0` sits on two regular edges), a Save
+  `http` in `pubspec.lock`" gate (unsatisfiable — `http 1.6.0` sits on four regular edges), a Save
   button, a draft, an `isDirty`, or any wording resembling *"your data never leaves your phone"*.
 
 ## Done when
 
-- [ ] `dart run tool/check_policy.dart` and `make check` were run, and no finding restates what they prove.
+- [ ] `dart tool/check_policy.dart` and `make check` were run, and no finding restates what they prove.
 - [ ] The diff was read in the §2 order; every never-wave-through file was read line by line, including
       the reason for each new `[exempt]` line and the five-part audit behind each new dependency (§2.17).
 - [ ] All five §12 questions and — for anything reaching `lib/features/quick_entry/` — the Quick Entry

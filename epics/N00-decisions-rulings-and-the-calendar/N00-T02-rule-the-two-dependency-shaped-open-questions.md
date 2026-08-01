@@ -11,7 +11,7 @@
 
 Two open questions expire the moment `pubspec.yaml` closes in T03: **in-app PDF printing**
 (the `printing` package pulls `http`, which the offline contract has to answer for in prose even
-though `http` already sits on two load-bearing regular edges) and the **voice-note cap**
+though `http` already sits on four load-bearing regular edges) and the **voice-note cap**
 (`kVoiceNoteMaxSeconds`, which decides whether `record`'s configuration is a constant or a setting).
 Rule both in the decision record with their reasons, and strike the open rows per the amendment
 rule.
@@ -110,7 +110,7 @@ const int kVoiceNoteMaxSeconds = 60;
   N01-T01 and the file is written in N15 with the rest of the media seam. Creating it here puts a file
   in a tree that does not exist yet and gives N01-T01 something to prune that it should not have to
   think about. This task rules the value; it does not write the constant.
-- **The printing question is not "is `http` in the lockfile".** It already is, on two regular edges —
+- **The printing question is not "is `http` in the lockfile".** It already is, on four regular edges —
   `flutter_local_notifications → timezone → http ^1.6.0` and `wakelock_plus → package_info_plus → http
   ^1.6.0` (decision-record §3.4 #1). `13`'s Definition of done is explicit: *"No gate anywhere asserts
   'no `http` in `pubspec.lock`' — that gate is unsatisfiable and must not exist."* The question is

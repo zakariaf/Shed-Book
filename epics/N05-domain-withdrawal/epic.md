@@ -47,7 +47,7 @@ functions, and the only proof it can offer is a test.
   not blank.
 - A stored clear date that disagrees with today's arithmetic produces a `Warning` carrying both
   dates, and nothing anywhere can apply it.
-- `dart run tool/check_policy.dart` is green with **no new line in `tool/policy_allowlist.txt`**.
+- `dart tool/check_policy.dart` is green with **no new line in `tool/policy_allowlist.txt`**.
 
 Not demoable: anything with a screen. If you want to see it, read the test names — that is what
 this epic is for.
@@ -107,7 +107,7 @@ One epic, one branch, one pull request, one merge — then delete the branch and
 
    | Job | What it runs on this branch | What a green tick actually proves |
    |---|---|---|
-   | `gate` | toolchain pin equals `.fvmrc` · `pub get` · `dart run tool/check_policy.dart` (**G2** dependency allowlist + **G3** import scan) · `dart format --set-exit-if-changed` · `analyze --fatal-infos --fatal-warnings` | That `lib/domain/withdrawal/` and `lib/domain/validation/` import no Flutter, no drift, no Riverpod, no `intl` and **no `package:clock`** (`layer.domain`, R24) — the property that makes "did you test the boundary?" a compile-time question — and that no new `[exempt]` line was added to buy a green build |
+   | `gate` | toolchain pin equals `.fvmrc` · `pub get` · `dart tool/check_policy.dart` (**G2** dependency allowlist + **G3** import scan) · `dart format --set-exit-if-changed` · `analyze --fatal-infos --fatal-warnings` | That `lib/domain/withdrawal/` and `lib/domain/validation/` import no Flutter, no drift, no Riverpod, no `intl` and **no `package:clock`** (`layer.domain`, R24) — the property that makes "did you test the boundary?" a compile-time question — and that no new `[exempt]` line was added to buy a green build |
    | `test` | `-P ci-fast` in randomised order · the whole suite again under `TZ=Europe/London --tags uk-zone` · `test/domain` under `TZ=Pacific/Chatham --exclude-tags uk-zone` · coverage archived, never gated | That the clear date is 168 absolute hours and not 167 in the target zone, and that nothing in the zone-agnostic tier smuggled in a whole-hour assumption. The randomised seed is printed: a failure reproduces with `--test-randomize-ordering-seed=<seed>` |
 
    `codegen` does not exist yet (N08-T06 writes it) and `android` does not exist yet (N31-T03 writes

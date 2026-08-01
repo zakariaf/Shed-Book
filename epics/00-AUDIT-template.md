@@ -257,7 +257,7 @@ make test                                         # -P ci-fast + TZ=Europe/Londo
 ```
 
 <Any task-specific command, with the exact output that proves the claim — e.g.
-`dart run tool/check_policy.dart` exits 1 naming `withdrawal.no_default` on the planted violation.>
+`dart tool/check_policy.dart` exits 1 naming `withdrawal.no_default` on the planted violation.>
 
 ## 9. Close out — required, in this order, before the commit
 

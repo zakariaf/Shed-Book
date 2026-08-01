@@ -272,7 +272,7 @@ A rule nobody has watched fire is indistinguishable from a broken rule:
 
 ```bash
 printf 'const x = "\\r\\n";\n' > lib/data/_scratch.dart
-dart run tool/check_policy.dart ; echo "exit=$?"    # POLICY [export.csv_bytes] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"    # POLICY [export.csv_bytes] …, exit=1
 rm lib/data/_scratch.dart
 ```
 

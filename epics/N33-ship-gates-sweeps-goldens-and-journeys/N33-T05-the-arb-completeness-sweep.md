@@ -233,7 +233,7 @@ const kNotInTheArb = <String>[
 ```bash
 fvm flutter test test/policy/arb_completeness_test.dart
 fvm flutter test test/policy/vocab_labels_are_complete_test.dart
-dart run tool/check_policy.dart          # "policy ok" or exit 1
+dart tool/check_policy.dart          # "policy ok" or exit 1
 TZ=Europe/London fvm flutter test --tags uk-zone
 make check
 make test
@@ -243,11 +243,11 @@ Prove the reader and the rules, reverting each:
 
 ```bash
 # 1. Put a banned phrase in an ARB message value.
-dart run tool/check_policy.dart          # expect: exit 1, naming the message id
+dart tool/check_policy.dart          # expect: exit 1, naming the message id
 # 2. Put Text('Ready') in a features file.
-dart run tool/check_policy.dart          # expect: exit 1, copy.literal_text, with the line
+dart tool/check_policy.dart          # expect: exit 1, copy.literal_text, with the line
 # 3. Put "ewes" in termEwePlural — the legitimate case.
-dart run tool/check_policy.dart          # expect: exit 0. If it is 1, the skip is wrong
+dart tool/check_policy.dart          # expect: exit 0. If it is 1, the skip is wrong
 git checkout -- lib/
 ```
 

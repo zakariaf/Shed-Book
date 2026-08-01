@@ -1,0 +1,13 @@
+# One ecosystem, and deliberately not pub.
+#
+# A plugin bump can change the merged Android manifest or an iOS privacy
+# manifest — the two artefacts the offline claim rests on — so pub updates go
+# through `flutter pub outdated` read by a human, never a bot that opens a green
+# pull request. decision-record §5 is also the only source of a version number
+# in this project, and a bot cannot amend a decision record.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

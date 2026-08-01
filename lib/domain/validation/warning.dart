@@ -22,6 +22,28 @@ final class Warning {
   final String? fieldPath;
 }
 
-/// The first of eleven. N06-T02 adds the other ten, additively — its
-/// *"eleven members"* assertion is correctly red until then.
-enum WarningCode { timeDoesNotExistLocally }
+/// **An export vocabulary, not an implementation detail.**
+///
+/// The CSV carries a `warnings` column of joined **codes**, never localised
+/// messages, so renaming a member after N21 breaks every export ever written.
+/// The eleven members and their order are `CONVENTIONS` §2.6's and 05 §7.5's,
+/// spelled exactly.
+///
+/// All eleven land here at N05-T05 rather than one now and ten at N06-T02. That
+/// was the choice with the smaller failure mode: writing one member and ten
+/// later makes an export vocabulary that is defined twice, and writing all
+/// eleven is mechanical and free. N06-T02 finds this enum complete and adds
+/// `Reviewed<T>` and `test/policy/warning_has_no_writer_test.dart` beside it.
+enum WarningCode {
+  birthTypeLambCountMismatch,
+  lambingBeforeSeasonStart,
+  lambingInFuture,
+  lambingLongBeforeCapture,
+  implausibleBirthWeight,
+  timeDoesNotExistLocally,
+  fosterToSelf,
+  deathBeforeBirth,
+  duplicateActiveTag,
+  clearDateDisagrees,
+  localDateDisagrees,
+}

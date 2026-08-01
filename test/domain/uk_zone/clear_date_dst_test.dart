@@ -27,6 +27,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/wall_time.dart';
+import 'package:shed_book/domain/validation/treatment_checks.dart';
+import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/domain/withdrawal/clear_date.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
@@ -149,6 +151,28 @@ void main() {
     );
     expect(r.elapsesAt.local, DateTime(2026, 10, 29, 19));
     expect(r.date, LocalDate(2026, 10, 30));
+  });
+
+  test('a clear date recorded by civil-day arithmetic across the spring-forward '
+      'disagrees by exactly one day and is not corrected', () {
+    // The disagreement's real-world origin story, in the zone where it happens.
+    // 2 April is what the civil-day bug would have written for this treatment;
+    // the arithmetic now produces 3 April. One warning, both dates in it, and 2
+    // April is still what the caller holds afterwards — because a clear date is
+    // a record of what the app told the user on the day, and it may already have
+    // been printed into a medicine book handed to a vet.
+    final LocalDate whatTheBugWrote = LocalDate(2026, 4, 2);
+
+    final List<Warning> warnings = checkClearDate(
+      administeredAt: Instant.fromDateTime(DateTime(2026, 3, 26, 20)),
+      days: 7,
+      storedClearDate: whatTheBugWrote,
+    );
+
+    expect(warnings.single.code, WarningCode.clearDateDisagrees);
+    expect(warnings.single.message, contains('2026-04-02'));
+    expect(warnings.single.message, contains('2026-04-03'));
+    expect(whatTheBugWrote.daysUntil(LocalDate(2026, 4, 3)), 1);
   });
 
   test('a treatment administered in the ambiguous hour on 25 October 2026 '

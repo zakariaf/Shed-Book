@@ -2,6 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
 import 'package:shed_book/core/db/tables/lambing.dart';
+import 'package:shed_book/core/db/tables/pens.dart';
+import 'package:shed_book/core/db/tables/treatments.dart';
 import 'package:shed_book/core/db/tables/seasons.dart';
 // The generated part file references these by bare name, so the library that
 // owns the part has to import them. Adding one here is what a new converter on
@@ -36,6 +38,12 @@ const int kSchemaVersion = 1;
     // N07-T04 — the lambing cluster.
     Lambings,
     Lambs,
+    // N07-T05 — the pen and treatment clusters.
+    Treatments,
+    TreatmentWithdrawals,
+    Pens,
+    PenOccupancies,
+    PenOccupancyLambs,
   ],
 )
 class AppDatabase extends _$AppDatabase {

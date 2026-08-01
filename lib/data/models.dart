@@ -12,4 +12,15 @@ library;
 
 // N07-T03 — the flock cluster. EweTouch is a cache row and is deliberately
 // absent: nothing outside lib/data/ has a reason to see one.
-export 'package:shed_book/core/db/database.dart' show Ewe, EweObservation, EweSeason, Season;
+export 'package:shed_book/core/db/database.dart'
+    show
+        Ewe,
+        EweObservation,
+        EweSeason,
+        Lamb,
+        Lambing,
+        Pen,
+        PenOccupancy,
+        Season,
+        Treatment,
+        TreatmentWithdrawal;

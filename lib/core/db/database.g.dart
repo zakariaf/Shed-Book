@@ -5043,6 +5043,2905 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
   }
 }
 
+class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treatment> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TreatmentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentsTable.$converterupdatedAt);
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _productNameMeta = const VerificationMeta('productName');
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+    'product_name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 120),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _doseTextMeta = const VerificationMeta('doseText');
+  @override
+  late final GeneratedColumn<String> doseText = GeneratedColumn<String>(
+    'dose_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _routeMeta = const VerificationMeta('route');
+  @override
+  late final GeneratedColumn<String> route = GeneratedColumn<String>(
+    'route',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _batchNoMeta = const VerificationMeta('batchNo');
+  @override
+  late final GeneratedColumn<String> batchNo = GeneratedColumn<String>(
+    'batch_no',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> administeredAt = GeneratedColumn<int>(
+    'administered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentsTable.$converteradministeredAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> capturedAt = GeneratedColumn<int>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentsTable.$convertercapturedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> originalEffective =
+      GeneratedColumn<int>(
+        'original_effective',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($TreatmentsTable.$converteroriginalEffectiven);
+  static const VerificationMeta _timeSourceMeta = const VerificationMeta('timeSource');
+  @override
+  late final GeneratedColumn<String> timeSource = GeneratedColumn<String>(
+    'time_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> voidedAt = GeneratedColumn<int>(
+    'voided_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($TreatmentsTable.$convertervoidedAtn);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    season,
+    ewe,
+    lamb,
+    productName,
+    doseText,
+    route,
+    batchNo,
+    administeredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    voidedAt,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'treatments';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Treatment> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    } else if (isInserting) {
+      context.missing(_seasonMeta);
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+        _productNameMeta,
+        productName.isAcceptableOrUnknown(data['product_name']!, _productNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productNameMeta);
+    }
+    if (data.containsKey('dose_text')) {
+      context.handle(
+        _doseTextMeta,
+        doseText.isAcceptableOrUnknown(data['dose_text']!, _doseTextMeta),
+      );
+    }
+    if (data.containsKey('route')) {
+      context.handle(_routeMeta, route.isAcceptableOrUnknown(data['route']!, _routeMeta));
+    }
+    if (data.containsKey('batch_no')) {
+      context.handle(_batchNoMeta, batchNo.isAcceptableOrUnknown(data['batch_no']!, _batchNoMeta));
+    }
+    if (data.containsKey('time_source')) {
+      context.handle(
+        _timeSourceMeta,
+        timeSource.isAcceptableOrUnknown(data['time_source']!, _timeSourceMeta),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Treatment map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Treatment(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $TreatmentsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $TreatmentsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      season: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season'],
+      )!,
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      productName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_name'],
+      )!,
+      doseText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dose_text'],
+      ),
+      route: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}route'],
+      ),
+      batchNo: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}batch_no'],
+      ),
+      administeredAt: $TreatmentsTable.$converteradministeredAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}administered_at'],
+        )!,
+      ),
+      capturedAt: $TreatmentsTable.$convertercapturedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}captured_at'])!,
+      ),
+      originalEffective: $TreatmentsTable.$converteroriginalEffectiven.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}original_effective'],
+        ),
+      ),
+      timeSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_source'],
+      )!,
+      voidedAt: $TreatmentsTable.$convertervoidedAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}voided_at']),
+      ),
+      note: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}note']),
+    );
+  }
+
+  @override
+  $TreatmentsTable createAlias(String alias) {
+    return $TreatmentsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteradministeredAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercapturedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteroriginalEffective = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converteroriginalEffectiven = NullAwareTypeConverter.wrap(
+    $converteroriginalEffective,
+  );
+  static TypeConverter<Instant, int> $convertervoidedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $convertervoidedAtn = NullAwareTypeConverter.wrap(
+    $convertervoidedAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class Treatment extends DataClass implements Insertable<Treatment> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+  final int season;
+  final int? ewe;
+  final int? lamb;
+  final String productName;
+  final String? doseText;
+
+  /// **Forward reference, deferred to N07-T06** (`VocabTerms`, `RESTRICT`).
+  final String? route;
+  final String? batchNo;
+
+  /// One of the three documented exceptions to the `occurred_at` column-name
+  /// rule, alongside `pen_occupancies.entered_at` and
+  /// `foster_events.effective_at` (R37).
+  final Instant administeredAt;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final String timeSource;
+
+  /// Decision #69: undo for a treatment is a **soft void**.
+  final Instant? voidedAt;
+  final String? note;
+  const Treatment({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.season,
+    this.ewe,
+    this.lamb,
+    required this.productName,
+    this.doseText,
+    this.route,
+    this.batchNo,
+    required this.administeredAt,
+    required this.capturedAt,
+    this.originalEffective,
+    required this.timeSource,
+    this.voidedAt,
+    this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($TreatmentsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($TreatmentsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    map['season'] = Variable<int>(season);
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    map['product_name'] = Variable<String>(productName);
+    if (!nullToAbsent || doseText != null) {
+      map['dose_text'] = Variable<String>(doseText);
+    }
+    if (!nullToAbsent || route != null) {
+      map['route'] = Variable<String>(route);
+    }
+    if (!nullToAbsent || batchNo != null) {
+      map['batch_no'] = Variable<String>(batchNo);
+    }
+    {
+      map['administered_at'] = Variable<int>(
+        $TreatmentsTable.$converteradministeredAt.toSql(administeredAt),
+      );
+    }
+    {
+      map['captured_at'] = Variable<int>($TreatmentsTable.$convertercapturedAt.toSql(capturedAt));
+    }
+    if (!nullToAbsent || originalEffective != null) {
+      map['original_effective'] = Variable<int>(
+        $TreatmentsTable.$converteroriginalEffectiven.toSql(originalEffective),
+      );
+    }
+    map['time_source'] = Variable<String>(timeSource);
+    if (!nullToAbsent || voidedAt != null) {
+      map['voided_at'] = Variable<int>($TreatmentsTable.$convertervoidedAtn.toSql(voidedAt));
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  TreatmentsCompanion toCompanion(bool nullToAbsent) {
+    return TreatmentsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      season: Value(season),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      productName: Value(productName),
+      doseText: doseText == null && nullToAbsent ? const Value.absent() : Value(doseText),
+      route: route == null && nullToAbsent ? const Value.absent() : Value(route),
+      batchNo: batchNo == null && nullToAbsent ? const Value.absent() : Value(batchNo),
+      administeredAt: Value(administeredAt),
+      capturedAt: Value(capturedAt),
+      originalEffective: originalEffective == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalEffective),
+      timeSource: Value(timeSource),
+      voidedAt: voidedAt == null && nullToAbsent ? const Value.absent() : Value(voidedAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory Treatment.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Treatment(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      season: serializer.fromJson<int>(json['season']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      productName: serializer.fromJson<String>(json['productName']),
+      doseText: serializer.fromJson<String?>(json['doseText']),
+      route: serializer.fromJson<String?>(json['route']),
+      batchNo: serializer.fromJson<String?>(json['batchNo']),
+      administeredAt: serializer.fromJson<Instant>(json['administeredAt']),
+      capturedAt: serializer.fromJson<Instant>(json['capturedAt']),
+      originalEffective: serializer.fromJson<Instant?>(json['originalEffective']),
+      timeSource: serializer.fromJson<String>(json['timeSource']),
+      voidedAt: serializer.fromJson<Instant?>(json['voidedAt']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'season': serializer.toJson<int>(season),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'productName': serializer.toJson<String>(productName),
+      'doseText': serializer.toJson<String?>(doseText),
+      'route': serializer.toJson<String?>(route),
+      'batchNo': serializer.toJson<String?>(batchNo),
+      'administeredAt': serializer.toJson<Instant>(administeredAt),
+      'capturedAt': serializer.toJson<Instant>(capturedAt),
+      'originalEffective': serializer.toJson<Instant?>(originalEffective),
+      'timeSource': serializer.toJson<String>(timeSource),
+      'voidedAt': serializer.toJson<Instant?>(voidedAt),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  Treatment copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    int? season,
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    String? productName,
+    Value<String?> doseText = const Value.absent(),
+    Value<String?> route = const Value.absent(),
+    Value<String?> batchNo = const Value.absent(),
+    Instant? administeredAt,
+    Instant? capturedAt,
+    Value<Instant?> originalEffective = const Value.absent(),
+    String? timeSource,
+    Value<Instant?> voidedAt = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+  }) => Treatment(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    season: season ?? this.season,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    productName: productName ?? this.productName,
+    doseText: doseText.present ? doseText.value : this.doseText,
+    route: route.present ? route.value : this.route,
+    batchNo: batchNo.present ? batchNo.value : this.batchNo,
+    administeredAt: administeredAt ?? this.administeredAt,
+    capturedAt: capturedAt ?? this.capturedAt,
+    originalEffective: originalEffective.present ? originalEffective.value : this.originalEffective,
+    timeSource: timeSource ?? this.timeSource,
+    voidedAt: voidedAt.present ? voidedAt.value : this.voidedAt,
+    note: note.present ? note.value : this.note,
+  );
+  Treatment copyWithCompanion(TreatmentsCompanion data) {
+    return Treatment(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      season: data.season.present ? data.season.value : this.season,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      productName: data.productName.present ? data.productName.value : this.productName,
+      doseText: data.doseText.present ? data.doseText.value : this.doseText,
+      route: data.route.present ? data.route.value : this.route,
+      batchNo: data.batchNo.present ? data.batchNo.value : this.batchNo,
+      administeredAt: data.administeredAt.present ? data.administeredAt.value : this.administeredAt,
+      capturedAt: data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      originalEffective: data.originalEffective.present
+          ? data.originalEffective.value
+          : this.originalEffective,
+      timeSource: data.timeSource.present ? data.timeSource.value : this.timeSource,
+      voidedAt: data.voidedAt.present ? data.voidedAt.value : this.voidedAt,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Treatment(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('productName: $productName, ')
+          ..write('doseText: $doseText, ')
+          ..write('route: $route, ')
+          ..write('batchNo: $batchNo, ')
+          ..write('administeredAt: $administeredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('voidedAt: $voidedAt, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    season,
+    ewe,
+    lamb,
+    productName,
+    doseText,
+    route,
+    batchNo,
+    administeredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    voidedAt,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Treatment &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.season == this.season &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.productName == this.productName &&
+          other.doseText == this.doseText &&
+          other.route == this.route &&
+          other.batchNo == this.batchNo &&
+          other.administeredAt == this.administeredAt &&
+          other.capturedAt == this.capturedAt &&
+          other.originalEffective == this.originalEffective &&
+          other.timeSource == this.timeSource &&
+          other.voidedAt == this.voidedAt &&
+          other.note == this.note);
+}
+
+class TreatmentsCompanion extends UpdateCompanion<Treatment> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<int> season;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<String> productName;
+  final Value<String?> doseText;
+  final Value<String?> route;
+  final Value<String?> batchNo;
+  final Value<Instant> administeredAt;
+  final Value<Instant> capturedAt;
+  final Value<Instant?> originalEffective;
+  final Value<String> timeSource;
+  final Value<Instant?> voidedAt;
+  final Value<String?> note;
+  const TreatmentsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.season = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.doseText = const Value.absent(),
+    this.route = const Value.absent(),
+    this.batchNo = const Value.absent(),
+    this.administeredAt = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.voidedAt = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  TreatmentsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    required int season,
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    required String productName,
+    this.doseText = const Value.absent(),
+    this.route = const Value.absent(),
+    this.batchNo = const Value.absent(),
+    required Instant administeredAt,
+    required Instant capturedAt,
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.voidedAt = const Value.absent(),
+    this.note = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       season = Value(season),
+       productName = Value(productName),
+       administeredAt = Value(administeredAt),
+       capturedAt = Value(capturedAt);
+  static Insertable<Treatment> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? season,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<String>? productName,
+    Expression<String>? doseText,
+    Expression<String>? route,
+    Expression<String>? batchNo,
+    Expression<int>? administeredAt,
+    Expression<int>? capturedAt,
+    Expression<int>? originalEffective,
+    Expression<String>? timeSource,
+    Expression<int>? voidedAt,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (season != null) 'season': season,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (productName != null) 'product_name': productName,
+      if (doseText != null) 'dose_text': doseText,
+      if (route != null) 'route': route,
+      if (batchNo != null) 'batch_no': batchNo,
+      if (administeredAt != null) 'administered_at': administeredAt,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (originalEffective != null) 'original_effective': originalEffective,
+      if (timeSource != null) 'time_source': timeSource,
+      if (voidedAt != null) 'voided_at': voidedAt,
+      if (note != null) 'note': note,
+    });
+  }
+
+  TreatmentsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<int>? season,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<String>? productName,
+    Value<String?>? doseText,
+    Value<String?>? route,
+    Value<String?>? batchNo,
+    Value<Instant>? administeredAt,
+    Value<Instant>? capturedAt,
+    Value<Instant?>? originalEffective,
+    Value<String>? timeSource,
+    Value<Instant?>? voidedAt,
+    Value<String?>? note,
+  }) {
+    return TreatmentsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      season: season ?? this.season,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      productName: productName ?? this.productName,
+      doseText: doseText ?? this.doseText,
+      route: route ?? this.route,
+      batchNo: batchNo ?? this.batchNo,
+      administeredAt: administeredAt ?? this.administeredAt,
+      capturedAt: capturedAt ?? this.capturedAt,
+      originalEffective: originalEffective ?? this.originalEffective,
+      timeSource: timeSource ?? this.timeSource,
+      voidedAt: voidedAt ?? this.voidedAt,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $TreatmentsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $TreatmentsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (doseText.present) {
+      map['dose_text'] = Variable<String>(doseText.value);
+    }
+    if (route.present) {
+      map['route'] = Variable<String>(route.value);
+    }
+    if (batchNo.present) {
+      map['batch_no'] = Variable<String>(batchNo.value);
+    }
+    if (administeredAt.present) {
+      map['administered_at'] = Variable<int>(
+        $TreatmentsTable.$converteradministeredAt.toSql(administeredAt.value),
+      );
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<int>(
+        $TreatmentsTable.$convertercapturedAt.toSql(capturedAt.value),
+      );
+    }
+    if (originalEffective.present) {
+      map['original_effective'] = Variable<int>(
+        $TreatmentsTable.$converteroriginalEffectiven.toSql(originalEffective.value),
+      );
+    }
+    if (timeSource.present) {
+      map['time_source'] = Variable<String>(timeSource.value);
+    }
+    if (voidedAt.present) {
+      map['voided_at'] = Variable<int>($TreatmentsTable.$convertervoidedAtn.toSql(voidedAt.value));
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TreatmentsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('productName: $productName, ')
+          ..write('doseText: $doseText, ')
+          ..write('route: $route, ')
+          ..write('batchNo: $batchNo, ')
+          ..write('administeredAt: $administeredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('voidedAt: $voidedAt, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TreatmentWithdrawalsTable extends TreatmentWithdrawals
+    with TableInfo<$TreatmentWithdrawalsTable, TreatmentWithdrawal> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TreatmentWithdrawalsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentWithdrawalsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($TreatmentWithdrawalsTable.$converterupdatedAt);
+  static const VerificationMeta _treatmentMeta = const VerificationMeta('treatment');
+  @override
+  late final GeneratedColumn<int> treatment = GeneratedColumn<int>(
+    'treatment',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES treatments (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _targetMeta = const VerificationMeta('target');
+  @override
+  late final GeneratedColumn<String> target = GeneratedColumn<String>(
+    'target',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _daysMeta = const VerificationMeta('days');
+  @override
+  late final GeneratedColumn<int> days = GeneratedColumn<int>(
+    'days',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<LocalDate?, String> clearDate =
+      GeneratedColumn<String>(
+        'clear_date',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      ).withConverter<LocalDate?>($TreatmentWithdrawalsTable.$converterclearDaten);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    treatment,
+    target,
+    kind,
+    days,
+    clearDate,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'treatment_withdrawals';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TreatmentWithdrawal> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('treatment')) {
+      context.handle(
+        _treatmentMeta,
+        treatment.isAcceptableOrUnknown(data['treatment']!, _treatmentMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_treatmentMeta);
+    }
+    if (data.containsKey('target')) {
+      context.handle(_targetMeta, target.isAcceptableOrUnknown(data['target']!, _targetMeta));
+    } else if (isInserting) {
+      context.missing(_targetMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('days')) {
+      context.handle(_daysMeta, days.isAcceptableOrUnknown(data['days']!, _daysMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {treatment, target},
+  ];
+  @override
+  TreatmentWithdrawal map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TreatmentWithdrawal(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $TreatmentWithdrawalsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $TreatmentWithdrawalsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      treatment: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}treatment'],
+      )!,
+      target: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}target'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      days: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}days']),
+      clearDate: $TreatmentWithdrawalsTable.$converterclearDaten.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}clear_date'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $TreatmentWithdrawalsTable createAlias(String alias) {
+    return $TreatmentWithdrawalsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<LocalDate, String> $converterclearDate = const LocalDateConverter();
+  static TypeConverter<LocalDate?, String?> $converterclearDaten = NullAwareTypeConverter.wrap(
+    $converterclearDate,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithdrawal> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+  final int treatment;
+
+  /// `'meat'` | `'milk'`. One product routinely prints different figures.
+  final String target;
+
+  /// `'days'` | `'not_applicable'`.
+  final String kind;
+
+  /// **NO DEFAULT. NO clientDefault.** The app physically cannot write this row
+  /// without the user having typed a number off the bottle. Spec §12.1 enforced
+  /// by the schema, not by a code review — and N07-T08's snapshot assertion is
+  /// what keeps it that way.
+  final int? days;
+
+  /// The **one** stored derived value (decision #50). Computed exactly once at
+  /// write time by `clearDateFor()`; its inputs live alongside it for ever.
+  ///
+  /// A record of what the app TOLD the user and printed into the medicine-book
+  /// PDF — **not a cache**. When it disagrees with a fresh computation, that is
+  /// `clearDateDisagrees`: shown, never applied.
+  final LocalDate? clearDate;
+  const TreatmentWithdrawal({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.treatment,
+    required this.target,
+    required this.kind,
+    this.days,
+    this.clearDate,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>(
+        $TreatmentWithdrawalsTable.$convertercreatedAt.toSql(createdAt),
+      );
+    }
+    {
+      map['updated_at'] = Variable<int>(
+        $TreatmentWithdrawalsTable.$converterupdatedAt.toSql(updatedAt),
+      );
+    }
+    map['treatment'] = Variable<int>(treatment);
+    map['target'] = Variable<String>(target);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || days != null) {
+      map['days'] = Variable<int>(days);
+    }
+    if (!nullToAbsent || clearDate != null) {
+      map['clear_date'] = Variable<String>(
+        $TreatmentWithdrawalsTable.$converterclearDaten.toSql(clearDate),
+      );
+    }
+    return map;
+  }
+
+  TreatmentWithdrawalsCompanion toCompanion(bool nullToAbsent) {
+    return TreatmentWithdrawalsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      treatment: Value(treatment),
+      target: Value(target),
+      kind: Value(kind),
+      days: days == null && nullToAbsent ? const Value.absent() : Value(days),
+      clearDate: clearDate == null && nullToAbsent ? const Value.absent() : Value(clearDate),
+    );
+  }
+
+  factory TreatmentWithdrawal.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TreatmentWithdrawal(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      treatment: serializer.fromJson<int>(json['treatment']),
+      target: serializer.fromJson<String>(json['target']),
+      kind: serializer.fromJson<String>(json['kind']),
+      days: serializer.fromJson<int?>(json['days']),
+      clearDate: serializer.fromJson<LocalDate?>(json['clearDate']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'treatment': serializer.toJson<int>(treatment),
+      'target': serializer.toJson<String>(target),
+      'kind': serializer.toJson<String>(kind),
+      'days': serializer.toJson<int?>(days),
+      'clearDate': serializer.toJson<LocalDate?>(clearDate),
+    };
+  }
+
+  TreatmentWithdrawal copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    int? treatment,
+    String? target,
+    String? kind,
+    Value<int?> days = const Value.absent(),
+    Value<LocalDate?> clearDate = const Value.absent(),
+  }) => TreatmentWithdrawal(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    treatment: treatment ?? this.treatment,
+    target: target ?? this.target,
+    kind: kind ?? this.kind,
+    days: days.present ? days.value : this.days,
+    clearDate: clearDate.present ? clearDate.value : this.clearDate,
+  );
+  TreatmentWithdrawal copyWithCompanion(TreatmentWithdrawalsCompanion data) {
+    return TreatmentWithdrawal(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      treatment: data.treatment.present ? data.treatment.value : this.treatment,
+      target: data.target.present ? data.target.value : this.target,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      days: data.days.present ? data.days.value : this.days,
+      clearDate: data.clearDate.present ? data.clearDate.value : this.clearDate,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TreatmentWithdrawal(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('treatment: $treatment, ')
+          ..write('target: $target, ')
+          ..write('kind: $kind, ')
+          ..write('days: $days, ')
+          ..write('clearDate: $clearDate')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, uid, createdAt, updatedAt, treatment, target, kind, days, clearDate);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TreatmentWithdrawal &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.treatment == this.treatment &&
+          other.target == this.target &&
+          other.kind == this.kind &&
+          other.days == this.days &&
+          other.clearDate == this.clearDate);
+}
+
+class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<int> treatment;
+  final Value<String> target;
+  final Value<String> kind;
+  final Value<int?> days;
+  final Value<LocalDate?> clearDate;
+  const TreatmentWithdrawalsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.treatment = const Value.absent(),
+    this.target = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.days = const Value.absent(),
+    this.clearDate = const Value.absent(),
+  });
+  TreatmentWithdrawalsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    required int treatment,
+    required String target,
+    required String kind,
+    this.days = const Value.absent(),
+    this.clearDate = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       treatment = Value(treatment),
+       target = Value(target),
+       kind = Value(kind);
+  static Insertable<TreatmentWithdrawal> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? treatment,
+    Expression<String>? target,
+    Expression<String>? kind,
+    Expression<int>? days,
+    Expression<String>? clearDate,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (treatment != null) 'treatment': treatment,
+      if (target != null) 'target': target,
+      if (kind != null) 'kind': kind,
+      if (days != null) 'days': days,
+      if (clearDate != null) 'clear_date': clearDate,
+    });
+  }
+
+  TreatmentWithdrawalsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<int>? treatment,
+    Value<String>? target,
+    Value<String>? kind,
+    Value<int?>? days,
+    Value<LocalDate?>? clearDate,
+  }) {
+    return TreatmentWithdrawalsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      treatment: treatment ?? this.treatment,
+      target: target ?? this.target,
+      kind: kind ?? this.kind,
+      days: days ?? this.days,
+      clearDate: clearDate ?? this.clearDate,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $TreatmentWithdrawalsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $TreatmentWithdrawalsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (treatment.present) {
+      map['treatment'] = Variable<int>(treatment.value);
+    }
+    if (target.present) {
+      map['target'] = Variable<String>(target.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (days.present) {
+      map['days'] = Variable<int>(days.value);
+    }
+    if (clearDate.present) {
+      map['clear_date'] = Variable<String>(
+        $TreatmentWithdrawalsTable.$converterclearDaten.toSql(clearDate.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TreatmentWithdrawalsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('treatment: $treatment, ')
+          ..write('target: $target, ')
+          ..write('kind: $kind, ')
+          ..write('days: $days, ')
+          ..write('clearDate: $clearDate')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PensTable extends Pens with TableInfo<$PensTable, Pen> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PensTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PensTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PensTable.$converterupdatedAt);
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($PensTable.$converterstruckAtn);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 24),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _isActiveMeta = const VerificationMeta('isActive');
+  @override
+  late final GeneratedColumn<bool> isActive = GeneratedColumn<bool>(
+    'is_active',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("is_active" IN (0, 1))'),
+    defaultValue: const Constant(true),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    struck,
+    struckAt,
+    label,
+    sortOrder,
+    isActive,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pens';
+  @override
+  VerificationContext validateIntegrity(Insertable<Pen> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('label')) {
+      context.handle(_labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    if (data.containsKey('is_active')) {
+      context.handle(
+        _isActiveMeta,
+        isActive.isAcceptableOrUnknown(data['is_active']!, _isActiveMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {label},
+  ];
+  @override
+  Pen map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Pen(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $PensTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $PensTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $PensTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      isActive: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_active'],
+      )!,
+    );
+  }
+
+  @override
+  $PensTable createAlias(String alias) {
+    return $PensTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class Pen extends DataClass implements Insertable<Pen> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final String label;
+  final int sortOrder;
+  final bool isActive;
+  const Pen({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.struck,
+    this.struckAt,
+    required this.label,
+    required this.sortOrder,
+    required this.isActive,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($PensTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($PensTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($PensTable.$converterstruckAtn.toSql(struckAt));
+    }
+    map['label'] = Variable<String>(label);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_active'] = Variable<bool>(isActive);
+    return map;
+  }
+
+  PensCompanion toCompanion(bool nullToAbsent) {
+    return PensCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      label: Value(label),
+      sortOrder: Value(sortOrder),
+      isActive: Value(isActive),
+    );
+  }
+
+  factory Pen.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Pen(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      label: serializer.fromJson<String>(json['label']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isActive: serializer.fromJson<bool>(json['isActive']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'label': serializer.toJson<String>(label),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isActive': serializer.toJson<bool>(isActive),
+    };
+  }
+
+  Pen copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    String? label,
+    int? sortOrder,
+    bool? isActive,
+  }) => Pen(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    label: label ?? this.label,
+    sortOrder: sortOrder ?? this.sortOrder,
+    isActive: isActive ?? this.isActive,
+  );
+  Pen copyWithCompanion(PensCompanion data) {
+    return Pen(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      label: data.label.present ? data.label.value : this.label,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isActive: data.isActive.present ? data.isActive.value : this.isActive,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Pen(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, uid, createdAt, updatedAt, struck, struckAt, label, sortOrder, isActive);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Pen &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.label == this.label &&
+          other.sortOrder == this.sortOrder &&
+          other.isActive == this.isActive);
+}
+
+class PensCompanion extends UpdateCompanion<Pen> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<String> label;
+  final Value<int> sortOrder;
+  final Value<bool> isActive;
+  const PensCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.label = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+  });
+  PensCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    required String label,
+    this.sortOrder = const Value.absent(),
+    this.isActive = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       label = Value(label);
+  static Insertable<Pen> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<String>? label,
+    Expression<int>? sortOrder,
+    Expression<bool>? isActive,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (label != null) 'label': label,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isActive != null) 'is_active': isActive,
+    });
+  }
+
+  PensCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<String>? label,
+    Value<int>? sortOrder,
+    Value<bool>? isActive,
+  }) {
+    return PensCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      label: label ?? this.label,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isActive: isActive ?? this.isActive,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>($PensTable.$convertercreatedAt.toSql(createdAt.value));
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>($PensTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>($PensTable.$converterstruckAtn.toSql(struckAt.value));
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isActive.present) {
+      map['is_active'] = Variable<bool>(isActive.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PensCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isActive: $isActive')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PenOccupanciesTable extends PenOccupancies
+    with TableInfo<$PenOccupanciesTable, PenOccupancy> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PenOccupanciesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PenOccupanciesTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PenOccupanciesTable.$converterupdatedAt);
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($PenOccupanciesTable.$converterstruckAtn);
+  static const VerificationMeta _penMeta = const VerificationMeta('pen');
+  @override
+  late final GeneratedColumn<int> pen = GeneratedColumn<int>(
+    'pen',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES pens (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE RESTRICT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> enteredAt = GeneratedColumn<int>(
+    'entered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PenOccupanciesTable.$converterenteredAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> capturedAt = GeneratedColumn<int>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($PenOccupanciesTable.$convertercapturedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> originalEffective =
+      GeneratedColumn<int>(
+        'original_effective',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($PenOccupanciesTable.$converteroriginalEffectiven);
+  static const VerificationMeta _timeSourceMeta = const VerificationMeta('timeSource');
+  @override
+  late final GeneratedColumn<String> timeSource = GeneratedColumn<String>(
+    'time_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> exitedAt = GeneratedColumn<int>(
+    'exited_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($PenOccupanciesTable.$converterexitedAtn);
+  static const VerificationMeta _exitReasonMeta = const VerificationMeta('exitReason');
+  @override
+  late final GeneratedColumn<String> exitReason = GeneratedColumn<String>(
+    'exit_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    struck,
+    struckAt,
+    pen,
+    season,
+    ewe,
+    enteredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    exitedAt,
+    exitReason,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pen_occupancies';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PenOccupancy> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('pen')) {
+      context.handle(_penMeta, pen.isAcceptableOrUnknown(data['pen']!, _penMeta));
+    } else if (isInserting) {
+      context.missing(_penMeta);
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    } else if (isInserting) {
+      context.missing(_seasonMeta);
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('time_source')) {
+      context.handle(
+        _timeSourceMeta,
+        timeSource.isAcceptableOrUnknown(data['time_source']!, _timeSourceMeta),
+      );
+    }
+    if (data.containsKey('exit_reason')) {
+      context.handle(
+        _exitReasonMeta,
+        exitReason.isAcceptableOrUnknown(data['exit_reason']!, _exitReasonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PenOccupancy map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PenOccupancy(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $PenOccupanciesTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $PenOccupanciesTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $PenOccupanciesTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      pen: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}pen'])!,
+      season: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season'],
+      )!,
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      enteredAt: $PenOccupanciesTable.$converterenteredAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}entered_at'])!,
+      ),
+      capturedAt: $PenOccupanciesTable.$convertercapturedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}captured_at'])!,
+      ),
+      originalEffective: $PenOccupanciesTable.$converteroriginalEffectiven.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}original_effective'],
+        ),
+      ),
+      timeSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_source'],
+      )!,
+      exitedAt: $PenOccupanciesTable.$converterexitedAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}exited_at']),
+      ),
+      exitReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exit_reason'],
+      ),
+    );
+  }
+
+  @override
+  $PenOccupanciesTable createAlias(String alias) {
+    return $PenOccupanciesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  static TypeConverter<Instant, int> $converterenteredAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercapturedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteroriginalEffective = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converteroriginalEffectiven = NullAwareTypeConverter.wrap(
+    $converteroriginalEffective,
+  );
+  static TypeConverter<Instant, int> $converterexitedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterexitedAtn = NullAwareTypeConverter.wrap(
+    $converterexitedAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final int pen;
+  final int season;
+  final int? ewe;
+
+  /// The event time. One of the three documented exceptions to the
+  /// `occurred_at` column-name rule (R37).
+  final Instant enteredAt;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final String timeSource;
+  final Instant? exitedAt;
+
+  /// The stored keys of `PenExitReason`. **Not optional when `exited_at` is
+  /// set** — the paired CHECK below is what makes `exitPen`'s `required reason`
+  /// storable rather than merely conventional.
+  final String? exitReason;
+  const PenOccupancy({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.struck,
+    this.struckAt,
+    required this.pen,
+    required this.season,
+    this.ewe,
+    required this.enteredAt,
+    required this.capturedAt,
+    this.originalEffective,
+    required this.timeSource,
+    this.exitedAt,
+    this.exitReason,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($PenOccupanciesTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($PenOccupanciesTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($PenOccupanciesTable.$converterstruckAtn.toSql(struckAt));
+    }
+    map['pen'] = Variable<int>(pen);
+    map['season'] = Variable<int>(season);
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    {
+      map['entered_at'] = Variable<int>($PenOccupanciesTable.$converterenteredAt.toSql(enteredAt));
+    }
+    {
+      map['captured_at'] = Variable<int>(
+        $PenOccupanciesTable.$convertercapturedAt.toSql(capturedAt),
+      );
+    }
+    if (!nullToAbsent || originalEffective != null) {
+      map['original_effective'] = Variable<int>(
+        $PenOccupanciesTable.$converteroriginalEffectiven.toSql(originalEffective),
+      );
+    }
+    map['time_source'] = Variable<String>(timeSource);
+    if (!nullToAbsent || exitedAt != null) {
+      map['exited_at'] = Variable<int>($PenOccupanciesTable.$converterexitedAtn.toSql(exitedAt));
+    }
+    if (!nullToAbsent || exitReason != null) {
+      map['exit_reason'] = Variable<String>(exitReason);
+    }
+    return map;
+  }
+
+  PenOccupanciesCompanion toCompanion(bool nullToAbsent) {
+    return PenOccupanciesCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      pen: Value(pen),
+      season: Value(season),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      enteredAt: Value(enteredAt),
+      capturedAt: Value(capturedAt),
+      originalEffective: originalEffective == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalEffective),
+      timeSource: Value(timeSource),
+      exitedAt: exitedAt == null && nullToAbsent ? const Value.absent() : Value(exitedAt),
+      exitReason: exitReason == null && nullToAbsent ? const Value.absent() : Value(exitReason),
+    );
+  }
+
+  factory PenOccupancy.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PenOccupancy(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      pen: serializer.fromJson<int>(json['pen']),
+      season: serializer.fromJson<int>(json['season']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      enteredAt: serializer.fromJson<Instant>(json['enteredAt']),
+      capturedAt: serializer.fromJson<Instant>(json['capturedAt']),
+      originalEffective: serializer.fromJson<Instant?>(json['originalEffective']),
+      timeSource: serializer.fromJson<String>(json['timeSource']),
+      exitedAt: serializer.fromJson<Instant?>(json['exitedAt']),
+      exitReason: serializer.fromJson<String?>(json['exitReason']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'pen': serializer.toJson<int>(pen),
+      'season': serializer.toJson<int>(season),
+      'ewe': serializer.toJson<int?>(ewe),
+      'enteredAt': serializer.toJson<Instant>(enteredAt),
+      'capturedAt': serializer.toJson<Instant>(capturedAt),
+      'originalEffective': serializer.toJson<Instant?>(originalEffective),
+      'timeSource': serializer.toJson<String>(timeSource),
+      'exitedAt': serializer.toJson<Instant?>(exitedAt),
+      'exitReason': serializer.toJson<String?>(exitReason),
+    };
+  }
+
+  PenOccupancy copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    int? pen,
+    int? season,
+    Value<int?> ewe = const Value.absent(),
+    Instant? enteredAt,
+    Instant? capturedAt,
+    Value<Instant?> originalEffective = const Value.absent(),
+    String? timeSource,
+    Value<Instant?> exitedAt = const Value.absent(),
+    Value<String?> exitReason = const Value.absent(),
+  }) => PenOccupancy(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    pen: pen ?? this.pen,
+    season: season ?? this.season,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    enteredAt: enteredAt ?? this.enteredAt,
+    capturedAt: capturedAt ?? this.capturedAt,
+    originalEffective: originalEffective.present ? originalEffective.value : this.originalEffective,
+    timeSource: timeSource ?? this.timeSource,
+    exitedAt: exitedAt.present ? exitedAt.value : this.exitedAt,
+    exitReason: exitReason.present ? exitReason.value : this.exitReason,
+  );
+  PenOccupancy copyWithCompanion(PenOccupanciesCompanion data) {
+    return PenOccupancy(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      pen: data.pen.present ? data.pen.value : this.pen,
+      season: data.season.present ? data.season.value : this.season,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      enteredAt: data.enteredAt.present ? data.enteredAt.value : this.enteredAt,
+      capturedAt: data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      originalEffective: data.originalEffective.present
+          ? data.originalEffective.value
+          : this.originalEffective,
+      timeSource: data.timeSource.present ? data.timeSource.value : this.timeSource,
+      exitedAt: data.exitedAt.present ? data.exitedAt.value : this.exitedAt,
+      exitReason: data.exitReason.present ? data.exitReason.value : this.exitReason,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PenOccupancy(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('pen: $pen, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('enteredAt: $enteredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('exitedAt: $exitedAt, ')
+          ..write('exitReason: $exitReason')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    struck,
+    struckAt,
+    pen,
+    season,
+    ewe,
+    enteredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    exitedAt,
+    exitReason,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PenOccupancy &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.pen == this.pen &&
+          other.season == this.season &&
+          other.ewe == this.ewe &&
+          other.enteredAt == this.enteredAt &&
+          other.capturedAt == this.capturedAt &&
+          other.originalEffective == this.originalEffective &&
+          other.timeSource == this.timeSource &&
+          other.exitedAt == this.exitedAt &&
+          other.exitReason == this.exitReason);
+}
+
+class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<int> pen;
+  final Value<int> season;
+  final Value<int?> ewe;
+  final Value<Instant> enteredAt;
+  final Value<Instant> capturedAt;
+  final Value<Instant?> originalEffective;
+  final Value<String> timeSource;
+  final Value<Instant?> exitedAt;
+  final Value<String?> exitReason;
+  const PenOccupanciesCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.pen = const Value.absent(),
+    this.season = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.enteredAt = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.exitedAt = const Value.absent(),
+    this.exitReason = const Value.absent(),
+  });
+  PenOccupanciesCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    required int pen,
+    required int season,
+    this.ewe = const Value.absent(),
+    required Instant enteredAt,
+    required Instant capturedAt,
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.exitedAt = const Value.absent(),
+    this.exitReason = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       pen = Value(pen),
+       season = Value(season),
+       enteredAt = Value(enteredAt),
+       capturedAt = Value(capturedAt);
+  static Insertable<PenOccupancy> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<int>? pen,
+    Expression<int>? season,
+    Expression<int>? ewe,
+    Expression<int>? enteredAt,
+    Expression<int>? capturedAt,
+    Expression<int>? originalEffective,
+    Expression<String>? timeSource,
+    Expression<int>? exitedAt,
+    Expression<String>? exitReason,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (pen != null) 'pen': pen,
+      if (season != null) 'season': season,
+      if (ewe != null) 'ewe': ewe,
+      if (enteredAt != null) 'entered_at': enteredAt,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (originalEffective != null) 'original_effective': originalEffective,
+      if (timeSource != null) 'time_source': timeSource,
+      if (exitedAt != null) 'exited_at': exitedAt,
+      if (exitReason != null) 'exit_reason': exitReason,
+    });
+  }
+
+  PenOccupanciesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<int>? pen,
+    Value<int>? season,
+    Value<int?>? ewe,
+    Value<Instant>? enteredAt,
+    Value<Instant>? capturedAt,
+    Value<Instant?>? originalEffective,
+    Value<String>? timeSource,
+    Value<Instant?>? exitedAt,
+    Value<String?>? exitReason,
+  }) {
+    return PenOccupanciesCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      pen: pen ?? this.pen,
+      season: season ?? this.season,
+      ewe: ewe ?? this.ewe,
+      enteredAt: enteredAt ?? this.enteredAt,
+      capturedAt: capturedAt ?? this.capturedAt,
+      originalEffective: originalEffective ?? this.originalEffective,
+      timeSource: timeSource ?? this.timeSource,
+      exitedAt: exitedAt ?? this.exitedAt,
+      exitReason: exitReason ?? this.exitReason,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $PenOccupanciesTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $PenOccupanciesTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>(
+        $PenOccupanciesTable.$converterstruckAtn.toSql(struckAt.value),
+      );
+    }
+    if (pen.present) {
+      map['pen'] = Variable<int>(pen.value);
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (enteredAt.present) {
+      map['entered_at'] = Variable<int>(
+        $PenOccupanciesTable.$converterenteredAt.toSql(enteredAt.value),
+      );
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<int>(
+        $PenOccupanciesTable.$convertercapturedAt.toSql(capturedAt.value),
+      );
+    }
+    if (originalEffective.present) {
+      map['original_effective'] = Variable<int>(
+        $PenOccupanciesTable.$converteroriginalEffectiven.toSql(originalEffective.value),
+      );
+    }
+    if (timeSource.present) {
+      map['time_source'] = Variable<String>(timeSource.value);
+    }
+    if (exitedAt.present) {
+      map['exited_at'] = Variable<int>(
+        $PenOccupanciesTable.$converterexitedAtn.toSql(exitedAt.value),
+      );
+    }
+    if (exitReason.present) {
+      map['exit_reason'] = Variable<String>(exitReason.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PenOccupanciesCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('pen: $pen, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('enteredAt: $enteredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('exitedAt: $exitedAt, ')
+          ..write('exitReason: $exitReason')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PenOccupancyLambsTable extends PenOccupancyLambs
+    with TableInfo<$PenOccupancyLambsTable, PenOccupancyLamb> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PenOccupancyLambsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _occupancyMeta = const VerificationMeta('occupancy');
+  @override
+  late final GeneratedColumn<int> occupancy = GeneratedColumn<int>(
+    'occupancy',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES pen_occupancies (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [occupancy, lamb];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pen_occupancy_lambs';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PenOccupancyLamb> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('occupancy')) {
+      context.handle(
+        _occupancyMeta,
+        occupancy.isAcceptableOrUnknown(data['occupancy']!, _occupancyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occupancyMeta);
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    } else if (isInserting) {
+      context.missing(_lambMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {occupancy, lamb};
+  @override
+  PenOccupancyLamb map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PenOccupancyLamb(
+      occupancy: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}occupancy'],
+      )!,
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb'])!,
+    );
+  }
+
+  @override
+  $PenOccupancyLambsTable createAlias(String alias) {
+    return $PenOccupancyLambsTable(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+}
+
+class PenOccupancyLamb extends DataClass implements Insertable<PenOccupancyLamb> {
+  final int occupancy;
+  final int lamb;
+  const PenOccupancyLamb({required this.occupancy, required this.lamb});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['occupancy'] = Variable<int>(occupancy);
+    map['lamb'] = Variable<int>(lamb);
+    return map;
+  }
+
+  PenOccupancyLambsCompanion toCompanion(bool nullToAbsent) {
+    return PenOccupancyLambsCompanion(occupancy: Value(occupancy), lamb: Value(lamb));
+  }
+
+  factory PenOccupancyLamb.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PenOccupancyLamb(
+      occupancy: serializer.fromJson<int>(json['occupancy']),
+      lamb: serializer.fromJson<int>(json['lamb']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'occupancy': serializer.toJson<int>(occupancy),
+      'lamb': serializer.toJson<int>(lamb),
+    };
+  }
+
+  PenOccupancyLamb copyWith({int? occupancy, int? lamb}) =>
+      PenOccupancyLamb(occupancy: occupancy ?? this.occupancy, lamb: lamb ?? this.lamb);
+  PenOccupancyLamb copyWithCompanion(PenOccupancyLambsCompanion data) {
+    return PenOccupancyLamb(
+      occupancy: data.occupancy.present ? data.occupancy.value : this.occupancy,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PenOccupancyLamb(')
+          ..write('occupancy: $occupancy, ')
+          ..write('lamb: $lamb')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(occupancy, lamb);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PenOccupancyLamb && other.occupancy == this.occupancy && other.lamb == this.lamb);
+}
+
+class PenOccupancyLambsCompanion extends UpdateCompanion<PenOccupancyLamb> {
+  final Value<int> occupancy;
+  final Value<int> lamb;
+  final Value<int> rowid;
+  const PenOccupancyLambsCompanion({
+    this.occupancy = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PenOccupancyLambsCompanion.insert({
+    required int occupancy,
+    required int lamb,
+    this.rowid = const Value.absent(),
+  }) : occupancy = Value(occupancy),
+       lamb = Value(lamb);
+  static Insertable<PenOccupancyLamb> custom({
+    Expression<int>? occupancy,
+    Expression<int>? lamb,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (occupancy != null) 'occupancy': occupancy,
+      if (lamb != null) 'lamb': lamb,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PenOccupancyLambsCompanion copyWith({
+    Value<int>? occupancy,
+    Value<int>? lamb,
+    Value<int>? rowid,
+  }) {
+    return PenOccupancyLambsCompanion(
+      occupancy: occupancy ?? this.occupancy,
+      lamb: lamb ?? this.lamb,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (occupancy.present) {
+      map['occupancy'] = Variable<int>(occupancy.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PenOccupancyLambsCompanion(')
+          ..write('occupancy: $occupancy, ')
+          ..write('lamb: $lamb, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5137,6 +8036,51 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_eweobs_lambing',
     'CREATE INDEX idx_eweobs_lambing ON ewe_observations (lambing)',
   );
+  late final $TreatmentsTable treatments = $TreatmentsTable(this);
+  late final $TreatmentWithdrawalsTable treatmentWithdrawals = $TreatmentWithdrawalsTable(this);
+  late final $PensTable pens = $PensTable(this);
+  late final $PenOccupanciesTable penOccupancies = $PenOccupanciesTable(this);
+  late final $PenOccupancyLambsTable penOccupancyLambs = $PenOccupancyLambsTable(this);
+  late final Index idxTreatmentEweTime = Index(
+    'idx_treatment_ewe_time',
+    'CREATE INDEX idx_treatment_ewe_time ON treatments (ewe, administered_at)',
+  );
+  late final Index idxTreatmentLambTime = Index(
+    'idx_treatment_lamb_time',
+    'CREATE INDEX idx_treatment_lamb_time ON treatments (lamb, administered_at)',
+  );
+  late final Index idxTreatmentSeasonTime = Index(
+    'idx_treatment_season_time',
+    'CREATE INDEX idx_treatment_season_time ON treatments (season, administered_at)',
+  );
+  late final Index idxTreatmentRoute = Index(
+    'idx_treatment_route',
+    'CREATE INDEX idx_treatment_route ON treatments (route)',
+  );
+  late final Index idxWithdrawalClear = Index(
+    'idx_withdrawal_clear',
+    'CREATE INDEX idx_withdrawal_clear ON treatment_withdrawals (clear_date)',
+  );
+  late final Index idxPenoccPenTime = Index(
+    'idx_penocc_pen_time',
+    'CREATE INDEX idx_penocc_pen_time ON pen_occupancies (pen, entered_at)',
+  );
+  late final Index idxPenoccEwe = Index(
+    'idx_penocc_ewe',
+    'CREATE INDEX idx_penocc_ewe ON pen_occupancies (ewe)',
+  );
+  late final Index idxPenoccSeason = Index(
+    'idx_penocc_season',
+    'CREATE INDEX idx_penocc_season ON pen_occupancies (season)',
+  );
+  late final Index idxPenoccOneOpen = Index(
+    'idx_penocc_one_open',
+    'CREATE UNIQUE INDEX idx_penocc_one_open ON pen_occupancies (pen) WHERE exited_at IS NULL',
+  );
+  late final Index idxPenocclambLamb = Index(
+    'idx_penocclamb_lamb',
+    'CREATE INDEX idx_penocclamb_lamb ON pen_occupancy_lambs (lamb)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5170,6 +8114,21 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxEweobsSeasonKind,
     idxEweobsKind,
     idxEweobsLambing,
+    treatments,
+    treatmentWithdrawals,
+    pens,
+    penOccupancies,
+    penOccupancyLambs,
+    idxTreatmentEweTime,
+    idxTreatmentLambTime,
+    idxTreatmentSeasonTime,
+    idxTreatmentRoute,
+    idxWithdrawalClear,
+    idxPenoccPenTime,
+    idxPenoccEwe,
+    idxPenoccSeason,
+    idxPenoccOneOpen,
+    idxPenocclambLamb,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5212,6 +8171,30 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('ewe_observations', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('treatments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('treatments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('treatments', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('treatment_withdrawals', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('pen_occupancies', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('pen_occupancies', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('pen_occupancy_lambs', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('pen_occupancy_lambs', kind: UpdateKind.delete)],
     ),
   ]);
 }
@@ -5295,6 +8278,37 @@ final class $$SeasonsTableReferences extends BaseReferences<_$AppDatabase, $Seas
     ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_eweObservationsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'seasons__id__treatments__season');
+
+  $$TreatmentsTableProcessedTableManager get treatmentsRefs {
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PenOccupanciesTable, List<PenOccupancy>> _penOccupanciesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.penOccupancies,
+    aliasName: 'seasons__id__pen_occupancies__season',
+  );
+
+  $$PenOccupanciesTableProcessedTableManager get penOccupanciesRefs {
+    final manager = $$PenOccupanciesTableTableManager(
+      $_db,
+      $_db.penOccupancies,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_penOccupanciesRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 }
@@ -5407,6 +8421,44 @@ class $$SeasonsTableFilterComposer extends Composer<_$AppDatabase, $SeasonsTable
           $$EweObservationsTableFilterComposer(
             $db: $db,
             $table: $db.eweObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> penOccupanciesRefs(
+    Expression<bool> Function($$PenOccupanciesTableFilterComposer f) f,
+  ) {
+    final $$PenOccupanciesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -5577,6 +8629,46 @@ class $$SeasonsTableAnnotationComposer extends Composer<_$AppDatabase, $SeasonsT
     );
     return f(composer);
   }
+
+  Expression<T> treatmentsRefs<T extends Object>(
+    Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
+  ) {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> penOccupanciesRefs<T extends Object>(
+    Expression<T> Function($$PenOccupanciesTableAnnotationComposer a) f,
+  ) {
+    final $$PenOccupanciesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$SeasonsTableTableManager
@@ -5592,7 +8684,13 @@ class $$SeasonsTableTableManager
           $$SeasonsTableUpdateCompanionBuilder,
           (Season, $$SeasonsTableReferences),
           Season,
-          PrefetchHooks Function({bool lambingsRefs, bool eweSeasonsRefs, bool eweObservationsRefs})
+          PrefetchHooks Function({
+            bool lambingsRefs,
+            bool eweSeasonsRefs,
+            bool eweObservationsRefs,
+            bool treatmentsRefs,
+            bool penOccupanciesRefs,
+          })
         > {
   $$SeasonsTableTableManager(_$AppDatabase db, $SeasonsTable table)
     : super(
@@ -5670,13 +8768,21 @@ class $$SeasonsTableTableManager
           withReferenceMapper: (p0) =>
               p0.map((e) => (e.readTable(table), $$SeasonsTableReferences(db, table, e))).toList(),
           prefetchHooksCallback:
-              ({lambingsRefs = false, eweSeasonsRefs = false, eweObservationsRefs = false}) {
+              ({
+                lambingsRefs = false,
+                eweSeasonsRefs = false,
+                eweObservationsRefs = false,
+                treatmentsRefs = false,
+                penOccupanciesRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (lambingsRefs) db.lambings,
                     if (eweSeasonsRefs) db.eweSeasons,
                     if (eweObservationsRefs) db.eweObservations,
+                    if (treatmentsRefs) db.treatments,
+                    if (penOccupanciesRefs) db.penOccupancies,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -5711,6 +8817,26 @@ class $$SeasonsTableTableManager
                               referencedItems.where((e) => e.season == item.id),
                           typedResults: items,
                         ),
+                      if (treatmentsRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, Treatment>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._treatmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
+                      if (penOccupanciesRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, PenOccupancy>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._penOccupanciesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).penOccupanciesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -5731,7 +8857,13 @@ typedef $$SeasonsTableProcessedTableManager =
       $$SeasonsTableUpdateCompanionBuilder,
       (Season, $$SeasonsTableReferences),
       Season,
-      PrefetchHooks Function({bool lambingsRefs, bool eweSeasonsRefs, bool eweObservationsRefs})
+      PrefetchHooks Function({
+        bool lambingsRefs,
+        bool eweSeasonsRefs,
+        bool eweObservationsRefs,
+        bool treatmentsRefs,
+        bool penOccupanciesRefs,
+      })
     >;
 typedef $$EwesTableCreateCompanionBuilder =
     EwesCompanion Function({
@@ -5828,6 +8960,35 @@ final class $$EwesTableReferences extends BaseReferences<_$AppDatabase, $EwesTab
     ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_eweObservationsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'ewes__id__treatments__ewe');
+
+  $$TreatmentsTableProcessedTableManager get treatmentsRefs {
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PenOccupanciesTable, List<PenOccupancy>> _penOccupanciesRefsTable(
+    _$AppDatabase db,
+  ) =>
+      MultiTypedResultKey.fromTable(db.penOccupancies, aliasName: 'ewes__id__pen_occupancies__ewe');
+
+  $$PenOccupanciesTableProcessedTableManager get penOccupanciesRefs {
+    final manager = $$PenOccupanciesTableTableManager(
+      $_db,
+      $_db.penOccupancies,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_penOccupanciesRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 }
@@ -5960,6 +9121,44 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
           $$EweObservationsTableFilterComposer(
             $db: $db,
             $table: $db.eweObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> penOccupanciesRefs(
+    Expression<bool> Function($$PenOccupanciesTableFilterComposer f) f,
+  ) {
+    final $$PenOccupanciesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -6154,6 +9353,46 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
     );
     return f(composer);
   }
+
+  Expression<T> treatmentsRefs<T extends Object>(
+    Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
+  ) {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> penOccupanciesRefs<T extends Object>(
+    Expression<T> Function($$PenOccupanciesTableAnnotationComposer a) f,
+  ) {
+    final $$PenOccupanciesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$EwesTableTableManager
@@ -6174,6 +9413,8 @@ class $$EwesTableTableManager
             bool eweSeasonsRefs,
             bool eweTouchesRefs,
             bool eweObservationsRefs,
+            bool treatmentsRefs,
+            bool penOccupanciesRefs,
           })
         > {
   $$EwesTableTableManager(_$AppDatabase db, $EwesTable table)
@@ -6260,6 +9501,8 @@ class $$EwesTableTableManager
                 eweSeasonsRefs = false,
                 eweTouchesRefs = false,
                 eweObservationsRefs = false,
+                treatmentsRefs = false,
+                penOccupanciesRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
@@ -6268,6 +9511,8 @@ class $$EwesTableTableManager
                     if (eweSeasonsRefs) db.eweSeasons,
                     if (eweTouchesRefs) db.eweTouches,
                     if (eweObservationsRefs) db.eweObservations,
+                    if (treatmentsRefs) db.treatments,
+                    if (penOccupanciesRefs) db.penOccupancies,
                   ],
                   addJoins: null,
                   getPrefetchedDataCallback: (items) async {
@@ -6312,6 +9557,26 @@ class $$EwesTableTableManager
                               referencedItems.where((e) => e.ewe == item.id),
                           typedResults: items,
                         ),
+                      if (treatmentsRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, Treatment>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._treatmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (penOccupanciesRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, PenOccupancy>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._penOccupanciesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).penOccupanciesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -6337,6 +9602,8 @@ typedef $$EwesTableProcessedTableManager =
         bool eweSeasonsRefs,
         bool eweTouchesRefs,
         bool eweObservationsRefs,
+        bool treatmentsRefs,
+        bool penOccupanciesRefs,
       })
     >;
 typedef $$LambingsTableCreateCompanionBuilder =
@@ -7131,6 +10398,36 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     if (item == null) return manager;
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
+
+  static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'lambs__id__treatments__lamb');
+
+  $$TreatmentsTableProcessedTableManager get treatmentsRefs {
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$PenOccupancyLambsTable, List<PenOccupancyLamb>>
+  _penOccupancyLambsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.penOccupancyLambs,
+    aliasName: 'lambs__id__pen_occupancy_lambs__lamb',
+  );
+
+  $$PenOccupancyLambsTableProcessedTableManager get penOccupancyLambsRefs {
+    final manager = $$PenOccupancyLambsTableTableManager(
+      $_db,
+      $_db.penOccupancyLambs,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_penOccupancyLambsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
@@ -7249,6 +10546,44 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
           ),
     );
     return composer;
+  }
+
+  Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> penOccupancyLambsRefs(
+    Expression<bool> Function($$PenOccupancyLambsTableFilterComposer f) f,
+  ) {
+    final $$PenOccupancyLambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancyLambs,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupancyLambsTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancyLambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -7471,6 +10806,46 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
     );
     return composer;
   }
+
+  Expression<T> treatmentsRefs<T extends Object>(
+    Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
+  ) {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> penOccupancyLambsRefs<T extends Object>(
+    Expression<T> Function($$PenOccupancyLambsTableAnnotationComposer a) f,
+  ) {
+    final $$PenOccupancyLambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancyLambs,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupancyLambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancyLambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$LambsTableTableManager
@@ -7486,7 +10861,13 @@ class $$LambsTableTableManager
           $$LambsTableUpdateCompanionBuilder,
           (Lamb, $$LambsTableReferences),
           Lamb,
-          PrefetchHooks Function({bool lambing, bool birthDam, bool becameEwe})
+          PrefetchHooks Function({
+            bool lambing,
+            bool birthDam,
+            bool becameEwe,
+            bool treatmentsRefs,
+            bool penOccupancyLambsRefs,
+          })
         > {
   $$LambsTableTableManager(_$AppDatabase db, $LambsTable table)
     : super(
@@ -7582,64 +10963,95 @@ class $$LambsTableTableManager
               ),
           withReferenceMapper: (p0) =>
               p0.map((e) => (e.readTable(table), $$LambsTableReferences(db, table, e))).toList(),
-          prefetchHooksCallback: ({lambing = false, birthDam = false, becameEwe = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (lambing) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.lambing,
-                                referencedTable: $$LambsTableReferences._lambingTable(db),
-                                referencedColumn: $$LambsTableReferences._lambingTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (birthDam) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.birthDam,
-                                referencedTable: $$LambsTableReferences._birthDamTable(db),
-                                referencedColumn: $$LambsTableReferences._birthDamTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (becameEwe) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.becameEwe,
-                                referencedTable: $$LambsTableReferences._becameEweTable(db),
-                                referencedColumn: $$LambsTableReferences._becameEweTable(db).id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                lambing = false,
+                birthDam = false,
+                becameEwe = false,
+                treatmentsRefs = false,
+                penOccupancyLambsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (treatmentsRefs) db.treatments,
+                    if (penOccupancyLambsRefs) db.penOccupancyLambs,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (lambing) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lambing,
+                                    referencedTable: $$LambsTableReferences._lambingTable(db),
+                                    referencedColumn: $$LambsTableReferences._lambingTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (birthDam) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.birthDam,
+                                    referencedTable: $$LambsTableReferences._birthDamTable(db),
+                                    referencedColumn: $$LambsTableReferences._birthDamTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (becameEwe) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.becameEwe,
+                                    referencedTable: $$LambsTableReferences._becameEweTable(db),
+                                    referencedColumn: $$LambsTableReferences._becameEweTable(db).id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (treatmentsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, Treatment>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._treatmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                      if (penOccupancyLambsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, PenOccupancyLamb>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._penOccupancyLambsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).penOccupancyLambsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -7656,7 +11068,13 @@ typedef $$LambsTableProcessedTableManager =
       $$LambsTableUpdateCompanionBuilder,
       (Lamb, $$LambsTableReferences),
       Lamb,
-      PrefetchHooks Function({bool lambing, bool birthDam, bool becameEwe})
+      PrefetchHooks Function({
+        bool lambing,
+        bool birthDam,
+        bool becameEwe,
+        bool treatmentsRefs,
+        bool penOccupancyLambsRefs,
+      })
     >;
 typedef $$EweSeasonsTableCreateCompanionBuilder =
     EweSeasonsCompanion Function({
@@ -8873,6 +12291,2271 @@ typedef $$EweObservationsTableProcessedTableManager =
       EweObservation,
       PrefetchHooks Function({bool ewe, bool season, bool lambing})
     >;
+typedef $$TreatmentsTableCreateCompanionBuilder =
+    TreatmentsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      required int season,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      required String productName,
+      Value<String?> doseText,
+      Value<String?> route,
+      Value<String?> batchNo,
+      required Instant administeredAt,
+      required Instant capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<Instant?> voidedAt,
+      Value<String?> note,
+    });
+typedef $$TreatmentsTableUpdateCompanionBuilder =
+    TreatmentsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<int> season,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<String> productName,
+      Value<String?> doseText,
+      Value<String?> route,
+      Value<String?> batchNo,
+      Value<Instant> administeredAt,
+      Value<Instant> capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<Instant?> voidedAt,
+      Value<String?> note,
+    });
+
+final class $$TreatmentsTableReferences
+    extends BaseReferences<_$AppDatabase, $TreatmentsTable, Treatment> {
+  $$TreatmentsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('treatments__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager get season {
+    final $_column = $_itemColumn<int>('season')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $EwesTable _eweTable(_$AppDatabase db) => db.ewes.createAlias('treatments__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('treatments__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$TreatmentWithdrawalsTable, List<TreatmentWithdrawal>>
+  _treatmentWithdrawalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.treatmentWithdrawals,
+    aliasName: 'treatments__id__treatment_withdrawals__treatment',
+  );
+
+  $$TreatmentWithdrawalsTableProcessedTableManager get treatmentWithdrawalsRefs {
+    final manager = $$TreatmentWithdrawalsTableTableManager(
+      $_db,
+      $_db.treatmentWithdrawals,
+    ).filter((f) => f.treatment.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_treatmentWithdrawalsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$TreatmentsTableFilterComposer extends Composer<_$AppDatabase, $TreatmentsTable> {
+  $$TreatmentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get productName =>
+      $composableBuilder(column: $table.productName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get doseText =>
+      $composableBuilder(column: $table.doseText, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get route =>
+      $composableBuilder(column: $table.route, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get batchNo =>
+      $composableBuilder(column: $table.batchNo, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get administeredAt => $composableBuilder(
+    column: $table.administeredAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get originalEffective =>
+      $composableBuilder(
+        column: $table.originalEffective,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get voidedAt => $composableBuilder(
+    column: $table.voidedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnFilters(column));
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> treatmentWithdrawalsRefs(
+    Expression<bool> Function($$TreatmentWithdrawalsTableFilterComposer f) f,
+  ) {
+    final $$TreatmentWithdrawalsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatmentWithdrawals,
+      getReferencedColumn: (t) => t.treatment,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentWithdrawalsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatmentWithdrawals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$TreatmentsTableOrderingComposer extends Composer<_$AppDatabase, $TreatmentsTable> {
+  $$TreatmentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productName =>
+      $composableBuilder(column: $table.productName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get doseText =>
+      $composableBuilder(column: $table.doseText, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get route =>
+      $composableBuilder(column: $table.route, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get batchNo =>
+      $composableBuilder(column: $table.batchNo, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get administeredAt => $composableBuilder(
+    column: $table.administeredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get originalEffective => $composableBuilder(
+    column: $table.originalEffective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get voidedAt =>
+      $composableBuilder(column: $table.voidedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TreatmentsTableAnnotationComposer extends Composer<_$AppDatabase, $TreatmentsTable> {
+  $$TreatmentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get productName =>
+      $composableBuilder(column: $table.productName, builder: (column) => column);
+
+  GeneratedColumn<String> get doseText =>
+      $composableBuilder(column: $table.doseText, builder: (column) => column);
+
+  GeneratedColumn<String> get route =>
+      $composableBuilder(column: $table.route, builder: (column) => column);
+
+  GeneratedColumn<String> get batchNo =>
+      $composableBuilder(column: $table.batchNo, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get administeredAt =>
+      $composableBuilder(column: $table.administeredAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get originalEffective =>
+      $composableBuilder(column: $table.originalEffective, builder: (column) => column);
+
+  GeneratedColumn<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get voidedAt =>
+      $composableBuilder(column: $table.voidedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> treatmentWithdrawalsRefs<T extends Object>(
+    Expression<T> Function($$TreatmentWithdrawalsTableAnnotationComposer a) f,
+  ) {
+    final $$TreatmentWithdrawalsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.treatmentWithdrawals,
+      getReferencedColumn: (t) => t.treatment,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentWithdrawalsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatmentWithdrawals,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$TreatmentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TreatmentsTable,
+          Treatment,
+          $$TreatmentsTableFilterComposer,
+          $$TreatmentsTableOrderingComposer,
+          $$TreatmentsTableAnnotationComposer,
+          $$TreatmentsTableCreateCompanionBuilder,
+          $$TreatmentsTableUpdateCompanionBuilder,
+          (Treatment, $$TreatmentsTableReferences),
+          Treatment,
+          PrefetchHooks Function({bool season, bool ewe, bool lamb, bool treatmentWithdrawalsRefs})
+        > {
+  $$TreatmentsTableTableManager(_$AppDatabase db, $TreatmentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$TreatmentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$TreatmentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TreatmentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<int> season = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<String> productName = const Value.absent(),
+                Value<String?> doseText = const Value.absent(),
+                Value<String?> route = const Value.absent(),
+                Value<String?> batchNo = const Value.absent(),
+                Value<Instant> administeredAt = const Value.absent(),
+                Value<Instant> capturedAt = const Value.absent(),
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<Instant?> voidedAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => TreatmentsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                season: season,
+                ewe: ewe,
+                lamb: lamb,
+                productName: productName,
+                doseText: doseText,
+                route: route,
+                batchNo: batchNo,
+                administeredAt: administeredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                voidedAt: voidedAt,
+                note: note,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                required int season,
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                required String productName,
+                Value<String?> doseText = const Value.absent(),
+                Value<String?> route = const Value.absent(),
+                Value<String?> batchNo = const Value.absent(),
+                required Instant administeredAt,
+                required Instant capturedAt,
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<Instant?> voidedAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => TreatmentsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                season: season,
+                ewe: ewe,
+                lamb: lamb,
+                productName: productName,
+                doseText: doseText,
+                route: route,
+                batchNo: batchNo,
+                administeredAt: administeredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                voidedAt: voidedAt,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$TreatmentsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({season = false, ewe = false, lamb = false, treatmentWithdrawalsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (treatmentWithdrawalsRefs) db.treatmentWithdrawals],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (season) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.season,
+                                    referencedTable: $$TreatmentsTableReferences._seasonTable(db),
+                                    referencedColumn: $$TreatmentsTableReferences
+                                        ._seasonTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (ewe) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.ewe,
+                                    referencedTable: $$TreatmentsTableReferences._eweTable(db),
+                                    referencedColumn: $$TreatmentsTableReferences._eweTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (lamb) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lamb,
+                                    referencedTable: $$TreatmentsTableReferences._lambTable(db),
+                                    referencedColumn: $$TreatmentsTableReferences._lambTable(db).id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (treatmentWithdrawalsRefs)
+                        await $_getPrefetchedData<Treatment, $TreatmentsTable, TreatmentWithdrawal>(
+                          currentTable: table,
+                          referencedTable: $$TreatmentsTableReferences
+                              ._treatmentWithdrawalsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TreatmentsTableReferences(db, table, p0).treatmentWithdrawalsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.treatment == item.id),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$TreatmentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TreatmentsTable,
+      Treatment,
+      $$TreatmentsTableFilterComposer,
+      $$TreatmentsTableOrderingComposer,
+      $$TreatmentsTableAnnotationComposer,
+      $$TreatmentsTableCreateCompanionBuilder,
+      $$TreatmentsTableUpdateCompanionBuilder,
+      (Treatment, $$TreatmentsTableReferences),
+      Treatment,
+      PrefetchHooks Function({bool season, bool ewe, bool lamb, bool treatmentWithdrawalsRefs})
+    >;
+typedef $$TreatmentWithdrawalsTableCreateCompanionBuilder =
+    TreatmentWithdrawalsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      required int treatment,
+      required String target,
+      required String kind,
+      Value<int?> days,
+      Value<LocalDate?> clearDate,
+    });
+typedef $$TreatmentWithdrawalsTableUpdateCompanionBuilder =
+    TreatmentWithdrawalsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<int> treatment,
+      Value<String> target,
+      Value<String> kind,
+      Value<int?> days,
+      Value<LocalDate?> clearDate,
+    });
+
+final class $$TreatmentWithdrawalsTableReferences
+    extends BaseReferences<_$AppDatabase, $TreatmentWithdrawalsTable, TreatmentWithdrawal> {
+  $$TreatmentWithdrawalsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $TreatmentsTable _treatmentTable(_$AppDatabase db) =>
+      db.treatments.createAlias('treatment_withdrawals__treatment__treatments__id');
+
+  $$TreatmentsTableProcessedTableManager get treatment {
+    final $_column = $_itemColumn<int>('treatment')!;
+
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_treatmentTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$TreatmentWithdrawalsTableFilterComposer
+    extends Composer<_$AppDatabase, $TreatmentWithdrawalsTable> {
+  $$TreatmentWithdrawalsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get days =>
+      $composableBuilder(column: $table.days, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<LocalDate?, LocalDate, String> get clearDate => $composableBuilder(
+    column: $table.clearDate,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  $$TreatmentsTableFilterComposer get treatment {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TreatmentWithdrawalsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TreatmentWithdrawalsTable> {
+  $$TreatmentWithdrawalsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get days =>
+      $composableBuilder(column: $table.days, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get clearDate =>
+      $composableBuilder(column: $table.clearDate, builder: (column) => ColumnOrderings(column));
+
+  $$TreatmentsTableOrderingComposer get treatment {
+    final $$TreatmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TreatmentWithdrawalsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TreatmentWithdrawalsTable> {
+  $$TreatmentWithdrawalsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get target =>
+      $composableBuilder(column: $table.target, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get days =>
+      $composableBuilder(column: $table.days, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<LocalDate?, String> get clearDate =>
+      $composableBuilder(column: $table.clearDate, builder: (column) => column);
+
+  $$TreatmentsTableAnnotationComposer get treatment {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TreatmentWithdrawalsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TreatmentWithdrawalsTable,
+          TreatmentWithdrawal,
+          $$TreatmentWithdrawalsTableFilterComposer,
+          $$TreatmentWithdrawalsTableOrderingComposer,
+          $$TreatmentWithdrawalsTableAnnotationComposer,
+          $$TreatmentWithdrawalsTableCreateCompanionBuilder,
+          $$TreatmentWithdrawalsTableUpdateCompanionBuilder,
+          (TreatmentWithdrawal, $$TreatmentWithdrawalsTableReferences),
+          TreatmentWithdrawal,
+          PrefetchHooks Function({bool treatment})
+        > {
+  $$TreatmentWithdrawalsTableTableManager(_$AppDatabase db, $TreatmentWithdrawalsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TreatmentWithdrawalsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TreatmentWithdrawalsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TreatmentWithdrawalsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<int> treatment = const Value.absent(),
+                Value<String> target = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int?> days = const Value.absent(),
+                Value<LocalDate?> clearDate = const Value.absent(),
+              }) => TreatmentWithdrawalsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                treatment: treatment,
+                target: target,
+                kind: kind,
+                days: days,
+                clearDate: clearDate,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                required int treatment,
+                required String target,
+                required String kind,
+                Value<int?> days = const Value.absent(),
+                Value<LocalDate?> clearDate = const Value.absent(),
+              }) => TreatmentWithdrawalsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                treatment: treatment,
+                target: target,
+                kind: kind,
+                days: days,
+                clearDate: clearDate,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$TreatmentWithdrawalsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({treatment = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (treatment) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.treatment,
+                                referencedTable: $$TreatmentWithdrawalsTableReferences
+                                    ._treatmentTable(db),
+                                referencedColumn: $$TreatmentWithdrawalsTableReferences
+                                    ._treatmentTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TreatmentWithdrawalsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TreatmentWithdrawalsTable,
+      TreatmentWithdrawal,
+      $$TreatmentWithdrawalsTableFilterComposer,
+      $$TreatmentWithdrawalsTableOrderingComposer,
+      $$TreatmentWithdrawalsTableAnnotationComposer,
+      $$TreatmentWithdrawalsTableCreateCompanionBuilder,
+      $$TreatmentWithdrawalsTableUpdateCompanionBuilder,
+      (TreatmentWithdrawal, $$TreatmentWithdrawalsTableReferences),
+      TreatmentWithdrawal,
+      PrefetchHooks Function({bool treatment})
+    >;
+typedef $$PensTableCreateCompanionBuilder =
+    PensCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      required String label,
+      Value<int> sortOrder,
+      Value<bool> isActive,
+    });
+typedef $$PensTableUpdateCompanionBuilder =
+    PensCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<String> label,
+      Value<int> sortOrder,
+      Value<bool> isActive,
+    });
+
+final class $$PensTableReferences extends BaseReferences<_$AppDatabase, $PensTable, Pen> {
+  $$PensTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$PenOccupanciesTable, List<PenOccupancy>> _penOccupanciesRefsTable(
+    _$AppDatabase db,
+  ) =>
+      MultiTypedResultKey.fromTable(db.penOccupancies, aliasName: 'pens__id__pen_occupancies__pen');
+
+  $$PenOccupanciesTableProcessedTableManager get penOccupanciesRefs {
+    final manager = $$PenOccupanciesTableTableManager(
+      $_db,
+      $_db.penOccupancies,
+    ).filter((f) => f.pen.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_penOccupanciesRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$PensTableFilterComposer extends Composer<_$AppDatabase, $PensTable> {
+  $$PensTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => ColumnFilters(column));
+
+  Expression<bool> penOccupanciesRefs(
+    Expression<bool> Function($$PenOccupanciesTableFilterComposer f) f,
+  ) {
+    final $$PenOccupanciesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.pen,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PensTableOrderingComposer extends Composer<_$AppDatabase, $PensTable> {
+  $$PensTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => ColumnOrderings(column));
+}
+
+class $$PensTableAnnotationComposer extends Composer<_$AppDatabase, $PensTable> {
+  $$PensTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isActive =>
+      $composableBuilder(column: $table.isActive, builder: (column) => column);
+
+  Expression<T> penOccupanciesRefs<T extends Object>(
+    Expression<T> Function($$PenOccupanciesTableAnnotationComposer a) f,
+  ) {
+    final $$PenOccupanciesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.pen,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PensTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PensTable,
+          Pen,
+          $$PensTableFilterComposer,
+          $$PensTableOrderingComposer,
+          $$PensTableAnnotationComposer,
+          $$PensTableCreateCompanionBuilder,
+          $$PensTableUpdateCompanionBuilder,
+          (Pen, $$PensTableReferences),
+          Pen,
+          PrefetchHooks Function({bool penOccupanciesRefs})
+        > {
+  $$PensTableTableManager(_$AppDatabase db, $PensTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$PensTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$PensTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$PensTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<String> label = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+              }) => PensCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                struck: struck,
+                struckAt: struckAt,
+                label: label,
+                sortOrder: sortOrder,
+                isActive: isActive,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                required String label,
+                Value<int> sortOrder = const Value.absent(),
+                Value<bool> isActive = const Value.absent(),
+              }) => PensCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                struck: struck,
+                struckAt: struckAt,
+                label: label,
+                sortOrder: sortOrder,
+                isActive: isActive,
+              ),
+          withReferenceMapper: (p0) =>
+              p0.map((e) => (e.readTable(table), $$PensTableReferences(db, table, e))).toList(),
+          prefetchHooksCallback: ({penOccupanciesRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (penOccupanciesRefs) db.penOccupancies],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (penOccupanciesRefs)
+                    await $_getPrefetchedData<Pen, $PensTable, PenOccupancy>(
+                      currentTable: table,
+                      referencedTable: $$PensTableReferences._penOccupanciesRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$PensTableReferences(db, table, p0).penOccupanciesRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.pen == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PensTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PensTable,
+      Pen,
+      $$PensTableFilterComposer,
+      $$PensTableOrderingComposer,
+      $$PensTableAnnotationComposer,
+      $$PensTableCreateCompanionBuilder,
+      $$PensTableUpdateCompanionBuilder,
+      (Pen, $$PensTableReferences),
+      Pen,
+      PrefetchHooks Function({bool penOccupanciesRefs})
+    >;
+typedef $$PenOccupanciesTableCreateCompanionBuilder =
+    PenOccupanciesCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      required int pen,
+      required int season,
+      Value<int?> ewe,
+      required Instant enteredAt,
+      required Instant capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<Instant?> exitedAt,
+      Value<String?> exitReason,
+    });
+typedef $$PenOccupanciesTableUpdateCompanionBuilder =
+    PenOccupanciesCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int> pen,
+      Value<int> season,
+      Value<int?> ewe,
+      Value<Instant> enteredAt,
+      Value<Instant> capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<Instant?> exitedAt,
+      Value<String?> exitReason,
+    });
+
+final class $$PenOccupanciesTableReferences
+    extends BaseReferences<_$AppDatabase, $PenOccupanciesTable, PenOccupancy> {
+  $$PenOccupanciesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PensTable _penTable(_$AppDatabase db) =>
+      db.pens.createAlias('pen_occupancies__pen__pens__id');
+
+  $$PensTableProcessedTableManager get pen {
+    final $_column = $_itemColumn<int>('pen')!;
+
+    final manager = $$PensTableTableManager(
+      $_db,
+      $_db.pens,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_penTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('pen_occupancies__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager get season {
+    final $_column = $_itemColumn<int>('season')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $EwesTable _eweTable(_$AppDatabase db) =>
+      db.ewes.createAlias('pen_occupancies__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$PenOccupancyLambsTable, List<PenOccupancyLamb>>
+  _penOccupancyLambsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.penOccupancyLambs,
+    aliasName: 'pen_occupancies__id__pen_occupancy_lambs__occupancy',
+  );
+
+  $$PenOccupancyLambsTableProcessedTableManager get penOccupancyLambsRefs {
+    final manager = $$PenOccupancyLambsTableTableManager(
+      $_db,
+      $_db.penOccupancyLambs,
+    ).filter((f) => f.occupancy.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_penOccupancyLambsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$PenOccupanciesTableFilterComposer extends Composer<_$AppDatabase, $PenOccupanciesTable> {
+  $$PenOccupanciesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get enteredAt => $composableBuilder(
+    column: $table.enteredAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get originalEffective =>
+      $composableBuilder(
+        column: $table.originalEffective,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get exitedAt => $composableBuilder(
+    column: $table.exitedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get exitReason =>
+      $composableBuilder(column: $table.exitReason, builder: (column) => ColumnFilters(column));
+
+  $$PensTableFilterComposer get pen {
+    final $$PensTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.pen,
+      referencedTable: $db.pens,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PensTableFilterComposer(
+            $db: $db,
+            $table: $db.pens,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> penOccupancyLambsRefs(
+    Expression<bool> Function($$PenOccupancyLambsTableFilterComposer f) f,
+  ) {
+    final $$PenOccupancyLambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancyLambs,
+      getReferencedColumn: (t) => t.occupancy,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupancyLambsTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancyLambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PenOccupanciesTableOrderingComposer extends Composer<_$AppDatabase, $PenOccupanciesTable> {
+  $$PenOccupanciesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get enteredAt =>
+      $composableBuilder(column: $table.enteredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get originalEffective => $composableBuilder(
+    column: $table.originalEffective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get exitedAt =>
+      $composableBuilder(column: $table.exitedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get exitReason =>
+      $composableBuilder(column: $table.exitReason, builder: (column) => ColumnOrderings(column));
+
+  $$PensTableOrderingComposer get pen {
+    final $$PensTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.pen,
+      referencedTable: $db.pens,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PensTableOrderingComposer(
+            $db: $db,
+            $table: $db.pens,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PenOccupanciesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PenOccupanciesTable> {
+  $$PenOccupanciesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get enteredAt =>
+      $composableBuilder(column: $table.enteredAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get originalEffective =>
+      $composableBuilder(column: $table.originalEffective, builder: (column) => column);
+
+  GeneratedColumn<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get exitedAt =>
+      $composableBuilder(column: $table.exitedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get exitReason =>
+      $composableBuilder(column: $table.exitReason, builder: (column) => column);
+
+  $$PensTableAnnotationComposer get pen {
+    final $$PensTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.pen,
+      referencedTable: $db.pens,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PensTableAnnotationComposer(
+            $db: $db,
+            $table: $db.pens,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> penOccupancyLambsRefs<T extends Object>(
+    Expression<T> Function($$PenOccupancyLambsTableAnnotationComposer a) f,
+  ) {
+    final $$PenOccupancyLambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.penOccupancyLambs,
+      getReferencedColumn: (t) => t.occupancy,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupancyLambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancyLambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$PenOccupanciesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PenOccupanciesTable,
+          PenOccupancy,
+          $$PenOccupanciesTableFilterComposer,
+          $$PenOccupanciesTableOrderingComposer,
+          $$PenOccupanciesTableAnnotationComposer,
+          $$PenOccupanciesTableCreateCompanionBuilder,
+          $$PenOccupanciesTableUpdateCompanionBuilder,
+          (PenOccupancy, $$PenOccupanciesTableReferences),
+          PenOccupancy,
+          PrefetchHooks Function({bool pen, bool season, bool ewe, bool penOccupancyLambsRefs})
+        > {
+  $$PenOccupanciesTableTableManager(_$AppDatabase db, $PenOccupanciesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PenOccupanciesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PenOccupanciesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PenOccupanciesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int> pen = const Value.absent(),
+                Value<int> season = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<Instant> enteredAt = const Value.absent(),
+                Value<Instant> capturedAt = const Value.absent(),
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<Instant?> exitedAt = const Value.absent(),
+                Value<String?> exitReason = const Value.absent(),
+              }) => PenOccupanciesCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                struck: struck,
+                struckAt: struckAt,
+                pen: pen,
+                season: season,
+                ewe: ewe,
+                enteredAt: enteredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                exitedAt: exitedAt,
+                exitReason: exitReason,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                required int pen,
+                required int season,
+                Value<int?> ewe = const Value.absent(),
+                required Instant enteredAt,
+                required Instant capturedAt,
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<Instant?> exitedAt = const Value.absent(),
+                Value<String?> exitReason = const Value.absent(),
+              }) => PenOccupanciesCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                struck: struck,
+                struckAt: struckAt,
+                pen: pen,
+                season: season,
+                ewe: ewe,
+                enteredAt: enteredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                exitedAt: exitedAt,
+                exitReason: exitReason,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$PenOccupanciesTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({pen = false, season = false, ewe = false, penOccupancyLambsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (penOccupancyLambsRefs) db.penOccupancyLambs],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (pen) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.pen,
+                                    referencedTable: $$PenOccupanciesTableReferences._penTable(db),
+                                    referencedColumn: $$PenOccupanciesTableReferences
+                                        ._penTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (season) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.season,
+                                    referencedTable: $$PenOccupanciesTableReferences._seasonTable(
+                                      db,
+                                    ),
+                                    referencedColumn: $$PenOccupanciesTableReferences
+                                        ._seasonTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (ewe) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.ewe,
+                                    referencedTable: $$PenOccupanciesTableReferences._eweTable(db),
+                                    referencedColumn: $$PenOccupanciesTableReferences
+                                        ._eweTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (penOccupancyLambsRefs)
+                        await $_getPrefetchedData<
+                          PenOccupancy,
+                          $PenOccupanciesTable,
+                          PenOccupancyLamb
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PenOccupanciesTableReferences
+                              ._penOccupancyLambsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PenOccupanciesTableReferences(db, table, p0).penOccupancyLambsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.occupancy == item.id),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$PenOccupanciesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PenOccupanciesTable,
+      PenOccupancy,
+      $$PenOccupanciesTableFilterComposer,
+      $$PenOccupanciesTableOrderingComposer,
+      $$PenOccupanciesTableAnnotationComposer,
+      $$PenOccupanciesTableCreateCompanionBuilder,
+      $$PenOccupanciesTableUpdateCompanionBuilder,
+      (PenOccupancy, $$PenOccupanciesTableReferences),
+      PenOccupancy,
+      PrefetchHooks Function({bool pen, bool season, bool ewe, bool penOccupancyLambsRefs})
+    >;
+typedef $$PenOccupancyLambsTableCreateCompanionBuilder =
+    PenOccupancyLambsCompanion Function({
+      required int occupancy,
+      required int lamb,
+      Value<int> rowid,
+    });
+typedef $$PenOccupancyLambsTableUpdateCompanionBuilder =
+    PenOccupancyLambsCompanion Function({Value<int> occupancy, Value<int> lamb, Value<int> rowid});
+
+final class $$PenOccupancyLambsTableReferences
+    extends BaseReferences<_$AppDatabase, $PenOccupancyLambsTable, PenOccupancyLamb> {
+  $$PenOccupancyLambsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $PenOccupanciesTable _occupancyTable(_$AppDatabase db) =>
+      db.penOccupancies.createAlias('pen_occupancy_lambs__occupancy__pen_occupancies__id');
+
+  $$PenOccupanciesTableProcessedTableManager get occupancy {
+    final $_column = $_itemColumn<int>('occupancy')!;
+
+    final manager = $$PenOccupanciesTableTableManager(
+      $_db,
+      $_db.penOccupancies,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_occupancyTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('pen_occupancy_lambs__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager get lamb {
+    final $_column = $_itemColumn<int>('lamb')!;
+
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$PenOccupancyLambsTableFilterComposer
+    extends Composer<_$AppDatabase, $PenOccupancyLambsTable> {
+  $$PenOccupancyLambsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$PenOccupanciesTableFilterComposer get occupancy {
+    final $$PenOccupanciesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.occupancy,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableFilterComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PenOccupancyLambsTableOrderingComposer
+    extends Composer<_$AppDatabase, $PenOccupancyLambsTable> {
+  $$PenOccupancyLambsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$PenOccupanciesTableOrderingComposer get occupancy {
+    final $$PenOccupanciesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.occupancy,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableOrderingComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PenOccupancyLambsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PenOccupancyLambsTable> {
+  $$PenOccupancyLambsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  $$PenOccupanciesTableAnnotationComposer get occupancy {
+    final $$PenOccupanciesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.occupancy,
+      referencedTable: $db.penOccupancies,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$PenOccupanciesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.penOccupancies,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PenOccupancyLambsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PenOccupancyLambsTable,
+          PenOccupancyLamb,
+          $$PenOccupancyLambsTableFilterComposer,
+          $$PenOccupancyLambsTableOrderingComposer,
+          $$PenOccupancyLambsTableAnnotationComposer,
+          $$PenOccupancyLambsTableCreateCompanionBuilder,
+          $$PenOccupancyLambsTableUpdateCompanionBuilder,
+          (PenOccupancyLamb, $$PenOccupancyLambsTableReferences),
+          PenOccupancyLamb,
+          PrefetchHooks Function({bool occupancy, bool lamb})
+        > {
+  $$PenOccupancyLambsTableTableManager(_$AppDatabase db, $PenOccupancyLambsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PenOccupancyLambsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PenOccupancyLambsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PenOccupancyLambsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> occupancy = const Value.absent(),
+                Value<int> lamb = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PenOccupancyLambsCompanion(occupancy: occupancy, lamb: lamb, rowid: rowid),
+          createCompanionCallback:
+              ({
+                required int occupancy,
+                required int lamb,
+                Value<int> rowid = const Value.absent(),
+              }) =>
+                  PenOccupancyLambsCompanion.insert(occupancy: occupancy, lamb: lamb, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$PenOccupancyLambsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({occupancy = false, lamb = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (occupancy) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.occupancy,
+                                referencedTable: $$PenOccupancyLambsTableReferences._occupancyTable(
+                                  db,
+                                ),
+                                referencedColumn: $$PenOccupancyLambsTableReferences
+                                    ._occupancyTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (lamb) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lamb,
+                                referencedTable: $$PenOccupancyLambsTableReferences._lambTable(db),
+                                referencedColumn: $$PenOccupancyLambsTableReferences
+                                    ._lambTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PenOccupancyLambsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PenOccupancyLambsTable,
+      PenOccupancyLamb,
+      $$PenOccupancyLambsTableFilterComposer,
+      $$PenOccupancyLambsTableOrderingComposer,
+      $$PenOccupancyLambsTableAnnotationComposer,
+      $$PenOccupancyLambsTableCreateCompanionBuilder,
+      $$PenOccupancyLambsTableUpdateCompanionBuilder,
+      (PenOccupancyLamb, $$PenOccupancyLambsTableReferences),
+      PenOccupancyLamb,
+      PrefetchHooks Function({bool occupancy, bool lamb})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8887,4 +14570,13 @@ class $AppDatabaseManager {
       $$EweTouchesTableTableManager(_db, _db.eweTouches);
   $$EweObservationsTableTableManager get eweObservations =>
       $$EweObservationsTableTableManager(_db, _db.eweObservations);
+  $$TreatmentsTableTableManager get treatments =>
+      $$TreatmentsTableTableManager(_db, _db.treatments);
+  $$TreatmentWithdrawalsTableTableManager get treatmentWithdrawals =>
+      $$TreatmentWithdrawalsTableTableManager(_db, _db.treatmentWithdrawals);
+  $$PensTableTableManager get pens => $$PensTableTableManager(_db, _db.pens);
+  $$PenOccupanciesTableTableManager get penOccupancies =>
+      $$PenOccupanciesTableTableManager(_db, _db.penOccupancies);
+  $$PenOccupancyLambsTableTableManager get penOccupancyLambs =>
+      $$PenOccupancyLambsTableTableManager(_db, _db.penOccupancyLambs);
 }

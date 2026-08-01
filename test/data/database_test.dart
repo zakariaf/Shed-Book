@@ -25,6 +25,10 @@ const Map<String, String> kNotIdentified = <String, String>{
   'search_docs': 'a cache — FTS5 contentless, rebuilt from the notes',
   'app_settings': 'a singleton — nothing to distinguish',
   'entitlements': 'a singleton',
+  // 03 §2.1 excludes "pure join tables" generically and names none. This is
+  // the one: two foreign keys and a composite primary key, no identity of its
+  // own, nothing to export that is not already in its parents.
+  'pen_occupancy_lambs': 'a pure join table — its identity is its two parents',
 };
 
 /// The four Identified tables that carry no strike, and why the act already has
@@ -115,6 +119,12 @@ void main() {
       // N07-T04 — the lambing cluster.
       'lambings',
       'lambs',
+      // N07-T05 — the pen and treatment clusters.
+      'treatments',
+      'treatment_withdrawals',
+      'pens',
+      'pen_occupancies',
+      'pen_occupancy_lambs',
     });
   });
 }

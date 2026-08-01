@@ -1,9 +1,61 @@
-# Miscellaneous
+# .gitignore — from 00-README §7.2.
+#
+# Read the OTHER direction first. This file decides what can never be committed
+# and — far more dangerously — what can never be LOST. Six of the paths a fresh
+# clone must carry look exactly like build output:
+#
+#   pubspec.lock · drift_schemas/drift_schema_v<N>.json ·
+#   lib/l10n/app_localizations*.dart · test/drift/generated/** ·
+#   test/features/goldens/*.png · test/fixtures/*.json
+#
+# `drift_schemas/` is the one 00-README §7.1 calls UNRECOVERABLE: it is the
+# migration tests' only baseline and there is no server-side copy of anybody's
+# phone. An ignore line for any directory named `generated` reads as tidy and
+# silently drops test/drift/generated; `*localizations*` drops the committed
+# gen-l10n output; a bare `*.json` drops drift_schemas AND test/fixtures. Every
+# one of those is invisible until somebody clones the repository months later.
+#
+# test/policy/tree_shape_test.dart asserts BOTH directions with
+# `git check-ignore`, which answers for every .gitignore in the repository
+# rather than for this one file. This is the file in this epic that is never
+# waved through.
+
+# ── The seven from 00-README §7.2 ───────────────────────────────────────────
+#
+# Every comment here is on its OWN line, and that is not a style choice. In a
+# .gitignore a `#` starts a comment only at the START of a line — a trailing
+# one is part of the pattern, so `.fvm/    # the SDK cache` is a rule that
+# matches nothing and ignores nothing, silently. The first draft of this file
+# had five such lines and `git check-ignore` in tree_shape_test.dart caught all
+# five.
+
+# The FVM SDK cache. `.fvmrc` is COMMITTED — one character apart, and the
+# failure is silent in both directions: ignore `.fvmrc` and CI's toolchain-pin
+# assert has nothing to read; commit `.fvm/` and you have added a Flutter SDK
+# to the repository.
+.fvm/
+.dart_tool/
+/build/
+# lcov.info is a CI artefact, never a committed file.
+/coverage/
+# Local only; regenerate from the keystore and its passwords.
+android/key.properties
+# The upload keystore itself.
+android/*.jks
+android/*.keystore
+# Obfuscation symbols — kept forever OFF the laptop, never in git.
+symbols-archive/
+
+# ── Editor and OS noise ─────────────────────────────────────────────────────
+.DS_Store
 *.class
 *.log
 *.pyc
 *.swp
-.DS_Store
+*.iml
+*.ipr
+*.iws
+.idea/
 .atom/
 .build/
 .buildlog/
@@ -11,38 +63,24 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
-
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
+# The .vscode folder holds launch configurations somebody may want committed.
 #.vscode/
 
-# Flutter/Dart/Pub related
+# ── Flutter / Dart build output ─────────────────────────────────────────────
 **/doc/api/
 **/ios/Flutter/.last_build_id
-.dart_tool/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
-/coverage/
-
-# Symbolication related
-app.*.symbols
-
-# Obfuscation related
-app.*.map.json
-
-# Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
 /android/app/release
 
-# FVM Version Cache
-.fvm/
+# ── Obfuscation and symbolication ───────────────────────────────────────────
+# Losing an obfuscation symbols directory makes every stack trace in every
+# diagnostics log a user ever sends for that build permanently unreadable. The
+# symbols are git-ignored above AND kept off the laptop under
+# symbols-archive/<name>+<build>/ — the ignore line exists so nobody solves the
+# second half by committing them.
+app.*.symbols
+app.*.map.json

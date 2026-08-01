@@ -58,7 +58,7 @@ final class ShedPalette {
 /// | `--row-pressed` | `surfacePressed` | a row under the thumb, 40 ms |
 /// | `--sheet` | `surfaceRaised` | the bottom sheet, the only overlay in the app |
 /// | `--slab` | `surfaceFill` | button fills — the only filled shapes |
-/// | `--slab-pressed` | `surfaceFillPressed` | **THE FIFTH SURFACE.** 06 §3.3 has four and indelible.md §2.2 has five. 06 §1 says a direction needing a token this system does not have adds the token, so it is added rather than folded into `surfacePressed`: a row under the thumb and a slab under the thumb are different hexes with different placement rules, and reusing one field for both silently makes them one colour |
+/// | `--slab-pressed` | `none` | **NOT REPRESENTED, and that is the honest answer rather than an oversight.** 06 §4's ramp has four surface steps and publishes no fifth hex. This field briefly existed, on the reading that indelible.md supplied the values; decision #95 overturned that reading (see primitives.dart's header, and P6 in the PR body), and a field with no authored value would have forced a hex to be invented here — which is exactly what two tiers exist to prevent. If a component in N10 genuinely needs a pressed slab distinct from a pressed row, the fix is a value in 06 §4, not a literal in a widget |
 /// | `--rule` | `outline` | **non-text only**, 3.52:1 |
 /// | `--ink-full` | `textPrimary` | |
 /// | `--ink-full` | `textNumeric` | the same ink. Indelible has no separate numeral colour — the tabular figure comes from the ROLE, not from a hue — and the field exists so a palette could shift it without touching a `TextStyle` |
@@ -101,7 +101,6 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
     required this.surfaceRaised,
     required this.surfacePressed,
     required this.surfaceFill,
-    required this.surfaceFillPressed,
     required this.outline,
     // ink
     required this.textNumeric,
@@ -130,7 +129,7 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
 
   final ShedPaletteId id;
   final bool highContrast;
-  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill, surfaceFillPressed, outline;
+  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill, outline;
   final Color textNumeric, textPrimary, textSecondary, textChrome;
   final Color statusReady, statusAttention, statusLoss, onStatus;
   final double tapMin, tapPrimary, tapHero, gapMin, gapDestructive;
@@ -158,7 +157,6 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
     surfaceRaised: surfaceRaised,
     surfacePressed: surfacePressed,
     surfaceFill: surfaceFill,
-    surfaceFillPressed: surfaceFillPressed,
     outline: outline,
     textNumeric: textNumeric,
     textPrimary: textPrimary,

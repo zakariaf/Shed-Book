@@ -364,7 +364,6 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
     required this.surfaceRaised,
     required this.surfacePressed,
     required this.surfaceFill,
-    required this.surfaceFillPressed,
     required this.outline,
     // ink
     required this.textNumeric,
@@ -393,8 +392,7 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
 
   final ShedPaletteId id;
   final bool highContrast;
-  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill,
-      surfaceFillPressed, outline;
+  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill, outline;
   final Color textNumeric, textPrimary, textSecondary, textChrome;
   final Color statusReady, statusAttention, statusLoss, onStatus;
   final double tapMin, tapPrimary, tapHero, gapMin, gapDestructive;
@@ -415,7 +413,6 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
         /* …every other field passed through verbatim… */
         surfaceBase: surfaceBase, surfaceRaised: surfaceRaised,
         surfacePressed: surfacePressed, surfaceFill: surfaceFill,
-        surfaceFillPressed: surfaceFillPressed,
         outline: outline, textNumeric: textNumeric, textPrimary: textPrimary,
         textSecondary: textSecondary, textChrome: textChrome,
         statusReady: statusReady, statusAttention: statusAttention,
@@ -468,16 +465,22 @@ The metric sentence survives unchanged and is the half this always got right: a 
 `CONVENTIONS §2.11` and `.claude/skills/indelible-page-and-screens/SKILL.md` §4 both said *"snaps
 every non-`Color` field"* and were amended in the same commit.
 
-**2 — `surfaceFillPressed`, the fifth surface.** This section had four surfaces; `indelible.md` §2.2
-has five, and `--slab-pressed` (`#2A2A2E`) had nowhere to go. §1's own rule applies — *"if a
-direction needs a token this system does not have, add the token to `ShedTokens`"* — so it is added
-rather than folded into `surfacePressed`. They are different hexes with different placement rules: a
-row under the thumb is `#131315`, a slab under the thumb is `#2A2A2E`, and the second is the only
-surface in the app on which `outline` and `textChrome` may not be drawn (2.54 and 4.16).
+**2 — a fifth surface was added and then withdrawn, in the same epic.** Recorded rather than erased,
+because the reasoning is the useful part.
 
-`10-accessibility-and-i18n.md` §11's acceptance row said *"no surface lighter than the palette's
-`surfaceFill`"*, which this change makes false — `surfaceFillPressed` is lighter by design. Amended
-in the same commit to name the brightest surface.
+`surfaceFillPressed` was added on the reading that `indelible.md` §2.2 supplied the palette values: it
+publishes five surfaces to this section's four, and `--slab-pressed` had nowhere to go. **Decision
+#95 overturned that reading** — it fixes the base surface at `#0B0D0E` and names `#000000` and
+`#121212` in its rejected column, so §3.2's ramp is the one the decision record backs and §4.2–§4.5
+is the only complete six-palette specification in the doc set. That ramp has four steps and publishes
+no fifth hex, so the field had no value to hold, and inventing one is precisely what the two tiers
+exist to prevent. It was removed in the same epic that added it; `ShedTokens` has four surfaces.
+
+This is one half of **P6**, which is carried into N09's pull request as open with both sides cited
+rather than settled on a task's authority. `indelible.md` is not struck here.
+
+If a component genuinely needs a pressed slab distinct from a pressed row, the fix is a fifth value
+in §4.2–§4.5 — not a literal in a widget, and not a field with nothing behind it.
 
 Usage is then greppable and palette-proof:
 
@@ -500,7 +503,7 @@ Widget build(BuildContext context) {
 
 | Prefix | Meaning | Examples |
 |---|---|---|
-| `surface*` | something the app paints *under* content | `surfaceBase`, `surfaceRaised`, `surfacePressed`, `surfaceFill`, `surfaceFillPressed` |
+| `surface*` | something the app paints *under* content | `surfaceBase`, `surfaceRaised`, `surfacePressed`, `surfaceFill` |
 | `text*` | something the app paints *as* glyphs | `textNumeric`, `textPrimary`, `textSecondary`, `textChrome` |
 | `status*` | a domain state, always paired with a shape and a word | `statusReady`, `statusAttention`, `statusLoss` |
 | `on*` | a foreground guaranteed legible on the named background | `onStatus` |

@@ -26,7 +26,7 @@ const String _frozenSchema = 'drift_schemas/drift_schema_v1.json';
 const List<String> _fieldNames = <String>[
   'id', 'highContrast', //
   'surfaceBase', 'surfaceRaised', 'surfacePressed', 'surfaceFill',
-  'surfaceFillPressed', 'outline',
+  'outline',
   'textNumeric', 'textPrimary', 'textSecondary', 'textChrome',
   'statusReady', 'statusAttention', 'statusLoss', 'onStatus',
   'tapMin', 'tapPrimary', 'tapHero', 'gapMin', 'gapDestructive',
@@ -38,7 +38,7 @@ const List<String> _fieldNames = <String>[
 List<Object?> _valuesOf(ShedTokens t) => <Object?>[
   t.id, t.highContrast, //
   t.surfaceBase, t.surfaceRaised, t.surfacePressed, t.surfaceFill,
-  t.surfaceFillPressed, t.outline,
+  t.outline,
   t.textNumeric, t.textPrimary, t.textSecondary, t.textChrome,
   t.statusReady, t.statusAttention, t.statusLoss, t.onStatus,
   t.tapMin, t.tapPrimary, t.tapHero, t.gapMin, t.gapDestructive,
@@ -60,7 +60,6 @@ ShedTokens _tokensAt(int seed, {ShedPaletteId id = ShedPaletteId.night, bool hc 
     surfaceRaised: c(2),
     surfacePressed: c(3),
     surfaceFill: c(4),
-    surfaceFillPressed: c(5),
     outline: c(6),
     textNumeric: c(7),
     textPrimary: c(8),
@@ -344,18 +343,28 @@ void main() {
       '--ink-full', '--ink-mid', '--ink-low', '--rule', '--madder-rule', '--madder-ink',
     ];
 
+    // Every one of the eleven is ACCOUNTED FOR — which is not the same as
+    // mapped. `--slab-pressed` deliberately maps to *(none)*: 06 §4's ramp has
+    // four surface steps and publishes no fifth hex, and decision #95 makes 06's
+    // ramp the one that ships (P6). A token with no home has to be VISIBLE in
+    // this table rather than absent from it, because absent reads as forgotten.
     for (final String token in indelibleTokens) {
-      expect(mapping.keys, contains(token), reason: '$token maps to no field');
-      expect(_fieldNames, contains(mapping[token]), reason: '${mapping[token]} is not a field');
+      expect(mapping.keys, contains(token), reason: '$token is not accounted for in the table');
     }
 
-    // The fifth surface is the one 06 §3.3 did not have. If this ever maps to
-    // the same field as --row-pressed, the two different hexes with two
-    // different placement rules have been collapsed into one.
+    for (final MapEntry<String, String> e in mapping.entries) {
+      if (e.value == 'none') {
+        continue;
+      }
+      expect(_fieldNames, contains(e.value), reason: '${e.value} is not a ShedTokens field');
+    }
+
     expect(
       mapping['--slab-pressed'],
-      isNot(mapping['--row-pressed']),
-      reason: 'a row under the thumb and a slab under the thumb are different surfaces',
+      'none',
+      reason:
+          'if a fifth surface is ever authored, 06 §4 supplies the hex — a field '
+          'with nothing behind it is what two tiers exist to prevent',
     );
   });
 }

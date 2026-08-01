@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
 import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
 import 'package:shed_book/core/ui/components/shed_countdown.dart';
@@ -55,7 +56,17 @@ Future<void> _pumpComponent(
   MaterialApp(
     theme: buildShedTheme(palette),
     home: MediaQuery(
-      data: MediaQueryData(textScaler: TextScaler.linear(scale), boldText: boldText),
+      // fromView(...).copyWith(...), NOT a fresh MediaQueryData.
+      //
+      // MEASURED: a bare `MediaQueryData(textScaler: ...)` REPLACES the ambient
+      // one, so `size` is Size.zero and every component that reads
+      // MediaQuery.sizeOf lays out at nothing. ShedBottomSheet's
+      // fillsViewport case is what found it — it measured 0.0 against a 337.5
+      // floor — but the fault was in this helper and silently affected every
+      // component pumped through it.
+      data: MediaQueryData.fromView(
+        tester.view,
+      ).copyWith(textScaler: TextScaler.linear(scale), boldText: boldText),
       child: Scaffold(body: Center(child: component)),
     ),
   ),
@@ -1529,5 +1540,124 @@ void main() {
       boldText: true,
     );
     expect(tester.takeException(), isNull, reason: 'ShedFieldRow overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T07 — ShedBottomSheet, the only overlay in the app
+  // -------------------------------------------------------------------------
+
+  ShedBottomSheet sheet({bool fillsViewport = false}) => ShedBottomSheet(
+    dismissLabel: 'CLOSE',
+    dismissSemanticLabel: 'Close',
+    fillsViewport: fillsViewport,
+    child: const SizedBox(height: 120, child: Text('chooser')),
+  );
+
+  testWidgets('ShedBottomSheet draws a 2 px top rule and no shadow', (WidgetTester tester) async {
+    // indelible.md §4.2: nothing casts a shadow. A shadow is the first thing a
+    // Material default puts back, and under a head torch it reads as a smudge
+    // rather than as depth.
+    await _pumpComponent(tester, sheet());
+    final DecoratedBox box = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShedBottomSheet), matching: find.byType(DecoratedBox)).first,
+    );
+    final BoxDecoration decoration = box.decoration as BoxDecoration;
+    final Border border = decoration.border! as Border;
+
+    expect(border.top.width, greaterThan(0));
+    expect(border.bottom, BorderSide.none);
+    expect(decoration.boxShadow, isNull);
+  });
+
+  testWidgets('the dismiss control is at least tapPrimary in both axes and sits top-right', (
+    WidgetTester tester,
+  ) async {
+    // The scrim is NOT a target — it carries no label and Switch Control cannot
+    // reach it — so the sheet's only way out has to be one.
+    await _pumpComponent(tester, sheet());
+
+    final Size size = tester.getSize(find.byType(ShedTapTarget));
+    expect(size.width, greaterThanOrEqualTo(72.0));
+    expect(size.height, greaterThanOrEqualTo(72.0));
+
+    final Rect dismiss = tester.getRect(find.byType(ShedTapTarget));
+    final Rect whole = tester.getRect(find.byType(ShedBottomSheet));
+    expect(whole.right - dismiss.right, lessThanOrEqualTo(16.0));
+    expect(dismiss.top - whole.top, lessThanOrEqualTo(16.0));
+  });
+
+  test('the dismiss label cannot be Cancel or Save', () {
+    // 07 §15.5 and indelible.md §11 test 7. "Cancel" is not a verb here — the
+    // sheet closes, it does not undo — and "Save" is banned everywhere.
+    for (final String banned in <String>['Cancel', 'Save']) {
+      expect(
+        () => ShedBottomSheet(
+          dismissLabel: banned,
+          dismissSemanticLabel: 'x',
+          child: const SizedBox.shrink(),
+        ),
+        throwsAssertionError,
+        reason: banned,
+      );
+    }
+  });
+
+  testWidgets('fillsViewport true asks for more than half the viewport', (
+    WidgetTester tester,
+  ) async {
+    // The assertion that isScrollControlled is actually doing its job: 60% is
+    // above Flutter's 9/16 default cap, so the keypad sheet does not fit
+    // without it.
+    await _pumpComponent(tester, sheet(fillsViewport: true));
+    final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
+    final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    expect(height, greaterThan(viewport * 9 / 16));
+    expect(ShedBottomSheet.viewportFraction, 0.6);
+  });
+
+  testWidgets('a chooser sheet is content-height', (WidgetTester tester) async {
+    await _pumpComponent(tester, sheet());
+    final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
+    final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    expect(height, lessThan(viewport * ShedBottomSheet.viewportFraction));
+  });
+
+  testWidgets('the sheet renders at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, sheet(), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('under reduce-motion the sheet is simply there', (WidgetTester tester) async {
+    // indelible.md §5.3: zero, not shorter. The sheet is at its final offset on
+    // the FIRST pump — no settle, no partial frame.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: const MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: Align(alignment: Alignment.bottomCenter, child: sheet()),
+          ),
+        ),
+      ),
+    );
+
+    final Rect first = tester.getRect(find.byType(ShedBottomSheet));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ShedBottomSheet)), first, reason: 'the sheet animated in');
   });
 }

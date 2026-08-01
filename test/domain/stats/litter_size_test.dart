@@ -4,7 +4,7 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/domain/stats/definitions.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
-import 'package:shed_book/domain/stats/season_stats.dart';
+import 'package:shed_book/domain/stats/litter_size.dart';
 
 SeasonCounts _counts({
   int? ewesPutToRam = 5,

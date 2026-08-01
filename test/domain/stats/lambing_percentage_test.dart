@@ -9,7 +9,8 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/domain/stats/definitions.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
-import 'package:shed_book/domain/stats/season_stats.dart';
+import 'package:shed_book/domain/stats/lambing_percentage.dart';
+import 'package:shed_book/domain/stats/litter_size.dart';
 
 /// 05 §6's toy season: 5 to the ram, 3 lambed, 6 born, 1 stillborn, 1 dead at
 /// two days. So born = 6, born alive = 5, reared = 4.

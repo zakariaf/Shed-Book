@@ -1699,8 +1699,10 @@ naming authority. They are listed so nobody mistakes silence for agreement.
    ruling is that it must land before the first snapshot; whether all four tables get an *edit verb*
    in v1 is a screens decision, and 07's "no quad, no edit verb" rule already covers the interim.
 3. **The open questions carried by every document** — the field night, the ziplock-bag capacitance
-   test, the exact price, the temperature field, the voice-note cap, the milk withdrawal UI, lambing
-   ease 5 vs 6. None is a name; none is settled here.
+   test, the exact price, the temperature field, the milk withdrawal UI, lambing ease 5 vs 6. None is
+   a name; none is settled here. The voice-note cap and in-app printing were on this list and are
+   not any more: both were ruled on 2026-08-01, before `pubspec.yaml` closed (decision-record §7.0
+   rows 16 and 18).
 4. **Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8** (07 §22 item 7). That
    is an SDK fact, not a naming ruling. 06 owns it; if the member does not exist, the *name* in this
    file changes with it and every other ruling stands.

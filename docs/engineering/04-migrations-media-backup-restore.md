@@ -691,7 +691,12 @@ await recorder.start(
 );
 ```
 
-> **Open, owner-blocked (§7.1 #18): the voice-note cap is 60 s or 120 s.** Implement it as a single constant `kVoiceNoteMaxSeconds` in `lib/data/media_limits.dart`, referenced everywhere including the storage-budget test, so the answer is a one-line change. The budget below is given at both values. Until the owner answers, ship 60 s: it is the lower storage figure and the recoverable mistake — raising a cap orphans nothing, lowering one makes existing recordings unreproducible.
+> **Ruled 2026-08-01 (decision-record §7.0 row 18, §7.1 item 18): the voice-note cap is 60 seconds.** One constant, `kVoiceNoteMaxSeconds` in `lib/data/media_limits.dart`, referenced everywhere including the storage-budget test — written in N15, not before, because `CONVENTIONS §1`'s tree does not exist until N01-T01. 60 s was chosen as the **recoverable** direction rather than the cheap one: raising a cap orphans nothing, lowering one makes recordings that already exist unreproducible. It is also the lower storage figure — ~240 KB per note at AAC-LC mono 32 kbps against ~480 KB at 120 s, on a typical-season media figure of ~290 MB. If the field night contradicts it, the amendment rule applies and the cost is one constant and one row.
+
+```dart
+// lib/data/media_limits.dart — written in N15, from this ruling
+const int kVoiceNoteMaxSeconds = 60;
+```
 
 Write `byte_size` into the row at capture so Settings ▸ Diagnostics can show "Photos: 187 MB (412 files)" without walking the filesystem.
 
@@ -766,14 +771,14 @@ Free-space figures need ~20 lines of platform channel (`StatFs.getAvailableBytes
 | Database, one 400-ewe season (~5,000 rows) | records only | **2–5 MB** |
 | Database, ten seasons (~50,000 rows) | | **20–50 MB** |
 | Photo, 2048 px longest edge, JPEG q80 | **estimate — measure it** | **500–900 KB** |
-| Voice note, AAC-LC mono 32 kbps, 60 s | | ~240 KB |
-| Voice note, 120 s | | ~480 KB |
+| Voice note, AAC-LC mono 32 kbps, **60 s — the ruled cap** | `kVoiceNoteMaxSeconds` | ~240 KB |
+| ~~Voice note, 120 s~~ | rejected 2026-08-01; kept so the ruling's cost is visible | ~480 KB |
 
 | Season scenario (400 ewes) | Media | Total |
 |---|---|---|
 | Conservative — 25 % of lambings get one photo | 100 × 700 KB | **~70 MB** |
-| Typical — every lambing gets a photo, 10 % a 120 s voice note | 400 × 700 KB + 40 × 480 KB | **~300 MB** |
-| Heavy — 3 photos per lambing, 25 % voice notes | 1200 × 700 KB + 100 × 480 KB | **~890 MB** |
+| Typical — every lambing gets a photo, 10 % a voice note | 400 × 700 KB + 40 × 240 KB | **~290 MB** |
+| Heavy — 3 photos per lambing, 25 % voice notes | 1200 × 700 KB + 100 × 240 KB | **~865 MB** |
 | **If you ever store the camera original** | 1200 × 3 MB | **~3.6 GB** |
 
 The last row is the failure case and it is entirely self-inflicted. **Downscale at capture; never keep the original.** The photo-size figures are extrapolated from note 08's measurements at 1600 px and must be re-measured at 2048 px on a real device before they are quoted anywhere user-facing.
@@ -1396,7 +1401,7 @@ Tick every line before calling this area finished.
 - [ ] `MediaStore` is the only place `getApplicationSupportDirectory()` is called outside `connection.dart`.
 - [ ] Nothing under `lib/features/**` constructs a `File`.
 - [ ] Photo output is asserted at ≤ 2048 px longest edge and ≤ 900 KB, **measured on a real device**, with the `minWidth`/`minHeight` semantics confirmed (§4.4).
-- [ ] Voice notes are AAC-LC `.m4a`, mono; `kVoiceNoteMaxSeconds` is one constant; the owner has answered §7.1 #18.
+- [ ] Voice notes are AAC-LC `.m4a`, mono; `kVoiceNoteMaxSeconds` is one constant and its value is **60**, per the ruling of 2026-08-01.
 - [ ] Row-then-media ordering is implemented, and the disk-full path leaves the record intact with a Retry affordance.
 - [ ] Both sweeps run post-frame, trash rather than delete, and un-flag a file that reappears.
 - [ ] `.trash` is purged at 30 days / 100 MB.
@@ -1486,4 +1491,3 @@ Tick every line before calling this area finished.
 - Photo size at 2048 px q80 on a real device (§4.7)
 - Android device-to-device transfer size behaviour, and `allowBackup="false"` versus D2D (§9.2)
 - `ZipFileEncoder` incremental-write behaviour in `package:archive/archive_io.dart` (§7.6)
-- The voice-note cap, 60 s or 120 s — owner question §7.1 #18 (§4.4)

@@ -178,11 +178,11 @@ These four are **closed**. Anything in the research notes that contradicts them 
 13. **Does a lamb kept as a breeding ewe become a `Ewe` row?** A v1 schema decision with v3 consequences (`Lambs.became_ewe`).
 14. **Does the developer account exist, and is it a personal account created after 13 Nov 2023?** If yes, Play's **12-tester / 14-day closed test** is on the critical path and must be scheduled *now*. Recruiting twelve shepherds doubles as the answer to item 1.
 15. Lambing ease: the spec's 5 points or SRUC's 6? Recommendation: stay at 5. Decide before any data exists.
-16. Must the PDF print from *inside* the app? Only that justifies re-admitting `printing` and its `http` dependency.
+16. ~~Must the PDF print from *inside* the app?~~ **Ruled 2026-08-01: no.** `printing` stays rejected, delivery stays share sheet → the OS Print action, and G3's `PdfGoogleFonts` / `networkImage` greps stay blocking (decision-record §7.0 row 16).
 17. Does the free tier cap reminders too? 15 ewes fits inside the 56-slot iOS budget; 400 does not.
-18. Voice note cap: 60 s or 120 s? Drives the storage budget.
+18. ~~Voice note cap: 60 s or 120 s?~~ **Ruled 2026-08-01: 60 s**, the recoverable direction — raising a cap orphans nothing, lowering one makes existing recordings unreproducible (decision-record §7.0 row 18).
 
-Items **3, 5, 6, 7 and 8** are settled in §5.1 and are struck from the open list. Thirteen remain.
+Items **3, 5, 6, 7 and 8** are settled in §5.1 and are struck from the open list. Items **16 and 18** were the two that expired when `pubspec.yaml` closed and were ruled on 2026-08-01, before it did. **Eleven remain.**
 
 Four more, surfaced by `CONVENTIONS.md` §7 and deliberately not closed by a naming authority: whether the retention story needs a **ewe status-history table** (R41 — a schema addition, irreversible after the first snapshot, needs the owner); the cost of adding the provenance quad to four tables (R37); the field-night list above; and whether `HapticFeedback.successNotification()` exists on 3.44.8 (an SDK fact, not a ruling).
 

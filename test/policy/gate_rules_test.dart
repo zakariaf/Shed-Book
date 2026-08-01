@@ -193,9 +193,189 @@ http             # via timezone AND via package_info_plus. Two regular edges.
     expect(walk(paths), orderedEquals(<String>[...paths]..sort()));
   });
 
-  test('policyRuleIds is empty in this commit', () {
-    // The inventory hook exists and is honest. N03-T07 turns it into an
-    // assertion with teeth: every id here has a case in this file.
-    expect(policyRuleIds, isEmpty);
+  group('the layer rules — CONVENTIONS §1.1', () {
+    /// One planted file, one expected rule id, exactly one message.
+    void plants(String title, {required String path, required String source, required String id}) {
+      test(title, () {
+        final List<String> violations = gateOn(<String, String>{path: source});
+        expect(violations, hasLength(1), reason: violations.join('\n'));
+        expect(violations.single, contains('[$id]'));
+        expect(violations.single, contains(path));
+      });
+    }
+
+    void allows(String title, Map<String, String> files) {
+      test(title, () => expect(gateOn(files), isEmpty));
+    }
+
+    plants(
+      'layer.domain — the domain takes now as a parameter, never package:clock',
+      path: 'lib/domain/withdrawal/clear_date.dart',
+      source: "import 'package:clock/clock.dart';\n",
+      id: 'layer.domain',
+    );
+
+    plants(
+      'layer.core_db — R16 reaches lib/core/, not lib/core/ui/',
+      path: 'lib/core/db/database.dart',
+      source: "import 'package:shed_book/core/ui/tokens.dart';\n",
+      id: 'layer.core_db',
+    );
+
+    plants(
+      'layer.data — a repository may not name a screen',
+      path: 'lib/data/flock_repository.dart',
+      source: "import '../features/flock/flock_screen.dart';\n",
+      id: 'layer.data',
+    );
+
+    plants(
+      'layer.data_no_material — the data tier has no widgets',
+      path: 'lib/data/lambing_repository.dart',
+      source: "import 'package:flutter/material.dart';\n",
+      id: 'layer.data_no_material',
+    );
+
+    // The anchor. The task title says layer.features_no_db; the id is
+    // CONVENTIONS §1.1's, which outranks a task title on any name.
+    plants(
+      'layer.features_no_db exits 1 on a planted drift import under lib/features/',
+      path: 'lib/features/flock/flock_screen.dart',
+      source: "import 'package:drift/drift.dart';\n",
+      id: 'layer.features',
+    );
+
+    plants(
+      'layer.sibling — one feature may not name another',
+      path: 'lib/features/lambing/foster_screen.dart',
+      source: "import '../flock/ewe_card_screen.dart';\n",
+      id: 'layer.sibling',
+    );
+
+    test('layer.sibling names both features and the remedy', () {
+      final List<String> violations = gateOn(<String, String>{
+        'lib/features/lambing/foster_screen.dart': "import '../flock/ewe_card_screen.dart';\n",
+      });
+      expect(
+        violations.single,
+        allOf(contains('"lambing"'), contains('"flock"'), contains('lib/data/')),
+      );
+    });
+
+    plants(
+      'layer.core_ui — a shared widget may not reach the data tier',
+      path: 'lib/core/ui/components/shed_pen_tile.dart',
+      source: "import 'package:shed_book/data/models.dart';\n",
+      id: 'layer.core_ui',
+    );
+
+    plants(
+      'layer.single_writer — package:sqlite3 outside lib/data/ and lib/core/db/',
+      path: 'lib/features/pens/pen_board_screen.dart',
+      source: "import 'package:sqlite3/sqlite3.dart';\n",
+      id: 'layer.single_writer',
+    );
+
+    plants(
+      'layer.root — main.dart may not reach the database',
+      path: 'lib/main.dart',
+      source: "import 'package:shed_book/core/db/database.dart';\n",
+      id: 'layer.root',
+    );
+
+    plants(
+      'layer.data_no_validation — spec §12.4 structural half',
+      path: 'lib/data/lambing_repository.dart',
+      source: "import 'package:shed_book/domain/validation/warning.dart';\n",
+      id: 'layer.data_no_validation',
+    );
+
+    allows('a legal domain import is legal', <String, String>{
+      'lib/domain/stats/losses.dart':
+          "import 'package:collection/collection.dart';\nimport 'dart:math';\n",
+    });
+
+    allows('data may reach the rest of the domain — only validation is closed', <String, String>{
+      'lib/data/treatment_repository.dart':
+          "import 'package:shed_book/domain/withdrawal/clear_date.dart';\n",
+    });
+
+    allows('routing may name a feature', <String, String>{
+      'lib/routing/routes.dart': "import '../features/flock/flock_screen.dart';\n",
+    });
+
+    allows('a feature may name itself', <String, String>{
+      'lib/features/flock/flock_screen.dart': "import 'widgets/ewe_row.dart';\n",
+    });
+
+    allows(
+      'no direction rule outside lib/ — the test tier may reach the database',
+      <String, String>{
+        'test/support/harness.dart': "import 'package:shed_book/core/db/database.dart';\n",
+      },
+    );
+
+    plants(
+      'export counts exactly as import does',
+      path: 'lib/data/models.dart',
+      source: "export '../features/flock/flock_screen.dart';\n",
+      id: 'layer.data',
+    );
+
+    test('the package: and relative spellings of one violation agree', () {
+      final List<String> viaPackage = gateOn(<String, String>{
+        'lib/data/flock_repository.dart':
+            "import 'package:shed_book/features/flock/screen.dart';\n",
+      });
+      final List<String> viaRelative = gateOn(<String, String>{
+        'lib/data/flock_repository.dart': "import '../features/flock/screen.dart';\n",
+      });
+      expect(viaPackage, hasLength(1));
+      expect(viaRelative, hasLength(1));
+      expect(viaPackage.single.split(']').first, viaRelative.single.split(']').first);
+    });
+
+    test('more .. than depth escapes lib/, resolves to no layer and is skipped', () {
+      // Recorded rather than guarded: the analyzer rejects such an import
+      // anyway, and clamping would hide the fact that it resolves nowhere.
+      expect(
+        gateOn(<String, String>{
+          'lib/data/flock_repository.dart': "import '../../../../elsewhere/thing.dart';\n",
+        }),
+        isEmpty,
+      );
+    });
+
+    test('_layers order is the rule — core/db resolves to core/db, not core/', () {
+      // If the list were sorted alphabetically, lib/core/db/ would resolve to
+      // lib/core/, which IS allowed to import lib/core/ui/, and R16 would
+      // disappear with no test failing. This is that test.
+      expect(
+        gateOn(<String, String>{
+          'lib/core/db/database.dart': "import 'package:shed_book/core/ui/tokens.dart';\n",
+        }).single,
+        contains('[layer.core_db]'),
+      );
+    });
+  });
+
+  test('policyRuleIds carries the ten layer rule ids', () {
+    // The inventory hook. N03-T07 turns it into an assertion with teeth: every
+    // id here has a case in this file.
+    expect(
+      policyRuleIds,
+      containsAll(<String>[
+        'layer.domain',
+        'layer.core_db',
+        'layer.data',
+        'layer.data_no_material',
+        'layer.features',
+        'layer.sibling',
+        'layer.core_ui',
+        'layer.single_writer',
+        'layer.root',
+        'layer.data_no_validation',
+      ]),
+    );
   });
 }

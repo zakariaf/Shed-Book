@@ -29,6 +29,8 @@
 
 import 'dart:io';
 
+const String _package = 'shed_book';
+
 /// Walked roots. `tool/` is deliberately absent: this file's own tables contain
 /// every banned literal, so scanning it would fail the build on itself.
 const List<String> _roots = <String>['lib', 'test'];
@@ -42,6 +44,118 @@ const Set<String> _allowlistSections = <String>{
   'exempt',
 };
 
+/// Most specific prefix first — [_layerOf] returns the first match.
+///
+/// **The order is the rule.** `lib/core/ui/` and `lib/core/db/` must both
+/// precede `lib/core/`, and `lib/` must be last. Sort this list alphabetically —
+/// a plausible tidy-up — and `lib/core/db/database.dart` resolves to layer
+/// `lib/core/`, which *is* allowed to import `lib/core/ui/`, so R16's carefully
+/// drawn line disappears with no test failing.
+const List<String> _layers = <String>[
+  'lib/core/db/',
+  'lib/core/ui/',
+  'lib/core/',
+  'lib/domain/',
+  'lib/data/',
+  'lib/features/',
+  'lib/routing/',
+  'lib/',
+];
+
+/// CONVENTIONS §1.1's eight layer rules, as amended. Copied, never re-derived.
+const Map<String, Set<String>> _mayImport = <String, Set<String>>{
+  'lib/domain/': <String>{'lib/domain/'},
+  'lib/core/db/': <String>{'lib/core/db/', 'lib/core/', 'lib/domain/'}, // R16
+  'lib/core/ui/': <String>{'lib/core/ui/', 'lib/domain/'},
+  'lib/core/': <String>{'lib/core/', 'lib/core/ui/', 'lib/core/db/', 'lib/domain/'},
+  'lib/data/': <String>{'lib/data/', 'lib/core/', 'lib/core/db/', 'lib/core/ui/', 'lib/domain/'},
+  'lib/features/': <String>{
+    'lib/features/',
+    'lib/data/',
+    'lib/domain/',
+    'lib/core/',
+    'lib/core/ui/',
+    'lib/routing/',
+  },
+  'lib/routing/': <String>{
+    'lib/routing/',
+    'lib/features/',
+    'lib/data/',
+    'lib/core/',
+    'lib/domain/',
+  },
+  'lib/': <String>{
+    'lib/',
+    'lib/core/',
+    'lib/core/ui/',
+    'lib/data/',
+    'lib/domain/',
+    'lib/features/',
+    'lib/routing/',
+  },
+};
+
+const Map<String, Set<String>> _bannedPackages = <String, Set<String>>{
+  // R24: package:clock is banned in the domain. A pure function that needs the
+  // current instant takes it as a parameter: timeSincePenned(enteredAt, now).
+  'lib/domain/': <String>{
+    'package:flutter/',
+    'package:drift/',
+    'package:sqlite3',
+    'package:flutter_riverpod/',
+    'package:riverpod/',
+    'package:intl/',
+    'package:clock/',
+  },
+  'lib/data/': <String>{'package:flutter/material.dart', 'package:flutter/cupertino.dart'},
+  'lib/core/ui/': <String>{'package:drift/', 'package:sqlite3'},
+  'lib/features/': <String>{'package:drift/', 'package:sqlite3'},
+  'lib/routing/': <String>{'package:drift/', 'package:sqlite3'},
+  'lib/': <String>{'package:drift/', 'package:sqlite3'},
+};
+
+/// Path-pair bans. Not expressible in [_mayImport], because `lib/data/` may
+/// import the rest of `lib/domain/` freely. R53 — spec §12.4's structural half,
+/// and the one rule in this table a reviewer may never wave through.
+const List<(String, String, String)> _bannedPathPairs = <(String, String, String)>[
+  ('layer.data_no_validation', 'lib/data/', 'lib/domain/validation/'),
+];
+
+/// The importing layer → the id its direction violation is reported under.
+///
+/// `01 §3.2`'s printed driver emits `layer.direction` and `layer.import`, and
+/// neither is one of CONVENTIONS §1.1's ten ids — so the inventory assertion
+/// would face ten ids with no proving case and two proving cases with no id.
+/// `lib/routing/` shares `layer.features` because §1.1 gives routing no id of
+/// its own, and the two-way routing↔features edge is deliberate.
+const Map<String, String> _directionRuleId = <String, String>{
+  'lib/domain/': 'layer.domain',
+  'lib/core/db/': 'layer.core_db',
+  'lib/core/ui/': 'layer.core_ui',
+  'lib/core/': 'layer.core_ui',
+  'lib/data/': 'layer.data',
+  'lib/features/': 'layer.features',
+  'lib/routing/': 'layer.features',
+  'lib/': 'layer.root',
+};
+
+/// Every layer rule id, in CONVENTIONS §1.1's order. Listed rather than derived
+/// from the maps above, because `layer.sibling`, `layer.single_writer` and
+/// `layer.data_no_validation` are emitted by code and not by a map entry, and
+/// an inventory that cannot see them is an inventory with holes.
+const List<String> _layerRuleIds = <String>[
+  'layer.domain',
+  'layer.core_db',
+  'layer.data',
+  'layer.data_no_material',
+  'layer.features',
+  'layer.sibling',
+  'layer.core_ui',
+  'layer.single_writer',
+  'layer.root',
+  'layer.data_no_validation',
+];
+
 /// (id, literal text, path prefix it applies under, why). An empty `under`
 /// means every scanned root — the driver never walks anything else.
 const List<(String, String, String, String)> _bannedText = <(String, String, String, String)>[];
@@ -53,12 +167,72 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
 /// Every rule id this script can emit, in declaration order. N03-T07's
 /// inventory assertion iterates this; a rule that is not here cannot be proved.
 Iterable<String> get policyRuleIds sync* {
+  yield* _layerRuleIds;
   for (final (String id, _, _, _) in _bannedText) {
     yield id;
   }
   for (final (String id, _, _, _) in _bannedPattern) {
     yield id;
   }
+}
+
+/// `import` and `export` alike. A re-export moves a symbol across a layer
+/// boundary exactly as an import does, which is what makes `lib/data/models.dart`
+/// (R20, the one file that re-exports every drift row type) a legal
+/// concentration point rather than a hole.
+///
+/// Configurable imports — `import '…' if (dart.library.io) '…'` — are not
+/// matched. There are none in this project and none is permitted.
+final RegExp _directive = RegExp(r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''', multiLine: true);
+
+/// Null for anything outside `lib/` — layer direction does not apply there. The
+/// test tier is allowed to reach the database.
+String? _layerOf(String path) {
+  for (final String layer in _layers) {
+    if (path.startsWith(layer)) {
+      return layer;
+    }
+  }
+  return null;
+}
+
+/// `'lib/features/flock/flock_screen.dart'` + `'../../data/models.dart'`
+///   → `'lib/data/models.dart'`.
+///
+/// `..` pops a segment and does not clamp at the root: a path with more `..`
+/// than depth escapes `lib/`, resolves to no layer and is skipped. The analyzer
+/// rejects such an import anyway, so this is recorded rather than guarded.
+String _resolveRelative(String from, String uri) {
+  final List<String> parts = from.split('/')..removeLast();
+  for (final String segment in uri.split('/')) {
+    if (segment.isEmpty || segment == '.') {
+      continue;
+    }
+    if (segment == '..') {
+      if (parts.isNotEmpty) {
+        parts.removeLast();
+      }
+    } else {
+      parts.add(segment);
+    }
+  }
+  return parts.join('/');
+}
+
+/// Which of CONVENTIONS §1.1's ids a banned **package** import is reported under.
+///
+/// Rule 8 is the writer ban and it is keyed on the package, not the layer:
+/// `package:sqlite3` anywhere outside `lib/data/` and `lib/core/db/` is
+/// `layer.single_writer`. Rule 4 is likewise keyed on the package. Everything
+/// else is the importing layer's own id.
+String _packageRuleId(String layer, String package) {
+  if (package.startsWith('package:sqlite3')) {
+    return 'layer.single_writer';
+  }
+  if (layer == 'lib/data/' && package.startsWith('package:flutter/')) {
+    return 'layer.data_no_material';
+  }
+  return _directionRuleId[layer]!;
 }
 
 /// 00-README §7.3: everything generated is named so you can see it, and the
@@ -139,9 +313,72 @@ List<String> runPolicy({String root = '.'}) {
       }
       violations.add('[$id] $path matches ${pattern.pattern} — $why');
     }
+
+    violations.addAll(_checkImports(path, source, exempt));
   }
 
   return violations..sort();
+}
+
+/// The layer rules, for one file. CONVENTIONS §1.1.
+List<String> _checkImports(String path, String source, Set<String> exempt) {
+  final List<String> violations = <String>[];
+  final String? layer = _layerOf(path);
+
+  for (final RegExpMatch match in _directive.allMatches(source)) {
+    String uri = match.group(1)!;
+
+    for (final String banned in <String>{...?_bannedPackages[layer]}) {
+      if (!uri.startsWith(banned) || exempt.contains('$path :: import:$uri')) {
+        continue;
+      }
+      violations.add('[${_packageRuleId(layer!, banned)}] $path ($layer) may not import $uri');
+    }
+
+    // No layer direction outside lib/.
+    if (layer == null) {
+      continue;
+    }
+
+    if (uri.startsWith('package:$_package/')) {
+      uri = 'lib/${uri.substring('package:$_package/'.length)}';
+    } else if (uri.startsWith('dart:') || uri.startsWith('package:')) {
+      // A package: URI that is not banned is legal — `package:collection` in
+      // the domain, for one — and never reaches the direction check.
+      continue;
+    } else {
+      uri = _resolveRelative(path, uri);
+    }
+
+    for (final (String id, String fromPrefix, String toPrefix) in _bannedPathPairs) {
+      if (path.startsWith(fromPrefix) && uri.startsWith(toPrefix)) {
+        violations.add('[$id] $path may not import $uri');
+      }
+    }
+
+    final String? to = _layerOf(uri);
+    if (to == null) {
+      continue;
+    }
+    if (!_mayImport[layer]!.contains(to)) {
+      violations.add('[${_directionRuleId[layer]}] $path ($layer) may not import $to  [$uri]');
+      continue;
+    }
+    // Rule 6 fires only when the IMPORTING file is under lib/features/, so
+    // routing may name all nine features and a feature still may not name a
+    // sibling. The asymmetry is deliberate (01 §3.1).
+    if (layer == 'lib/features/' && to == 'lib/features/') {
+      final String a = path.split('/')[2];
+      final String b = uri.split('/')[2];
+      if (a != b) {
+        violations.add(
+          '[layer.sibling] $path: feature "$a" may not import feature "$b" — '
+          'move the shared piece into lib/data/ or lib/domain/',
+        );
+      }
+    }
+  }
+  return violations;
 }
 
 /// Parses `<root>/tool/policy_allowlist.txt`.

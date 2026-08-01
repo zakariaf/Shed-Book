@@ -113,8 +113,23 @@ jobs:
       # as a reference to the schemaVersionOverride FIELD rather than to a
       # constant. The Makefile calls the three commands the wrapper composes and
       # says so; the artefacts are identical.
+      #
+      # FLUTTER and DART are overridden because the Makefile defaults them to
+      # `fvm flutter` / `fvm dart`, which is right on a developer's machine and
+      # absent here — subosito/flutter-action installs Flutter directly and
+      # there is no FVM on the runner. MEASURED 2026-08-01, the first time this
+      # job ever ran: `make: fvm: No such file or directory`, exit 127, 21s in.
+      # This is the ONLY step in the workflow that calls make; `gate` and `test`
+      # spell their commands out, which is why they were green in the same run.
+      #
+      # As command-line variables rather than an `env:` block, and that is not
+      # arbitrary. The Makefile spells them `?=`, which an environment variable
+      # does satisfy — but a command-line variable overrides `=` too, so this
+      # step keeps working if a later edit ever hardens those two lines. The
+      # override is also visible in the step's own log line, where the next
+      # person debugging this reads it without opening the Makefile.
       - name: Regenerate
-        run: make gen
+        run: make gen FLUTTER=flutter DART=dart
 
       # MEASURED: build_runner emits database.g.dart at drift's own width and the
       # project's format pass rewraps it, so a diff taken before formatting is a

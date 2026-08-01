@@ -15,7 +15,9 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -224,6 +226,267 @@ void main() {
 
     for (final String forbidden in <String>['riverpod', 'l10n', 'data/', 'drift']) {
       expect(imports, isNot(contains(forbidden)), reason: forbidden);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T02 — ShedSecondaryButton and ShedDestructiveButton
+  // -------------------------------------------------------------------------
+
+  const String secondaryFile = 'lib/core/ui/components/shed_secondary_button.dart';
+  const String destructiveFile = 'lib/core/ui/components/shed_destructive_button.dart';
+
+  ShedDestructiveButton striker(VoidCallback onConfirmed) => ShedDestructiveButton(
+    label: 'STRIKE',
+    confirmLabel: 'STRIKE — TAP AGAIN',
+    onConfirmed: onConfirmed,
+    semanticLabel: 'Strike this record',
+    confirmSemanticLabel: 'Strike this record, tap again to confirm',
+  );
+
+  testWidgets('ShedDestructiveButton requires two taps and is separated by '
+      'gapDestructive from any other target', (WidgetTester tester) async {
+    // THE ANCHOR, and the separation half is the one a screen cannot get wrong:
+    // the widget reserves the gap inside its OWN box, so a flush neighbour is
+    // geometrically impossible rather than merely discouraged.
+    int struck = 0;
+    await _pumpComponent(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          striker(() => struck++),
+          ShedPrimaryButton(label: 'NEIGHBOUR', onTap: () {}, semanticLabel: 'Neighbour'),
+        ],
+      ),
+    );
+
+    await tester.tap(find.text('STRIKE'));
+    await tester.pump();
+    expect(struck, 0, reason: 'the first tap arms and writes nothing');
+
+    await tester.tap(find.text('STRIKE — TAP AGAIN'));
+    await tester.pump();
+    expect(struck, 1);
+
+    final Rect target = tester.getRect(find.byType(ShedTapTarget).first);
+    final Rect neighbour = tester.getRect(find.byType(ShedPrimaryButton));
+    expect(
+      neighbour.top - target.bottom,
+      greaterThanOrEqualTo(32.0),
+      reason: 'gapDestructive is not reserved inside the widget box',
+    );
+  });
+
+  testWidgets('tapping ShedDestructiveButton twice in the same frame strikes once', (
+    WidgetTester tester,
+  ) async {
+    // 00-README §8 step 28's literal case: two taps with NO pump between them —
+    // the fast thumb, not the deliberate second press.
+    //
+    // MEASURED: it strikes EXACTLY ONCE, and that is pinned rather than left as
+    // `lessThanOrEqualTo(1)`, because a range hides which of the two answers the
+    // widget actually gives.
+    //
+    // One, not zero, and that is the right answer. setState mutates _state
+    // immediately, so the second tap sees `confirming` even though no frame was
+    // painted in between — the shepherd pressed twice, which IS the
+    // confirmation. Requiring them to have SEEN the changed label would need a
+    // minimum dwell, i.e. a timer, and this component bans timers for a stronger
+    // reason: a state that unwinds itself changes under a thumb already moving.
+    // A mistaken strike is recoverable — undo is a time-boxed strike in the
+    // row's own margin.
+    //
+    // What this case actually guards is TWO: a naive implementation that read
+    // the state from a rebuilt widget rather than from the State object would
+    // fire onConfirmed on both taps.
+    int struck = 0;
+    await _pumpComponent(tester, striker(() => struck++));
+
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+
+    expect(struck, 1, reason: 'a double tap must strike once — never twice, never zero');
+  });
+
+  testWidgets('the confirming state changes the label, not only the colour', (
+    WidgetTester tester,
+  ) async {
+    // Decision #106 in one assertion. Somebody who cannot tell the madder ink
+    // from the outline still reads a different word.
+    await _pumpComponent(tester, striker(() {}));
+    expect(find.text('STRIKE'), findsOneWidget);
+
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+    expect(find.text('STRIKE'), findsNothing);
+  });
+
+  testWidgets('confirming reverts on dispose and never on a timer', (WidgetTester tester) async {
+    // A state that unwinds after n seconds changes under a thumb already moving:
+    // the shepherd reads TAP AGAIN, commits to the press, and the control
+    // reverts between the decision and the contact.
+    await _pumpComponent(tester, striker(() {}));
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+
+    // Thirty seconds, still mounted: unchanged.
+    await tester.pump(const Duration(seconds: 30));
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+
+    // Pumped away and back: armed again.
+    await _pumpComponent(tester, const SizedBox.shrink());
+    await _pumpComponent(tester, striker(() {}));
+    expect(find.text('STRIKE'), findsOneWidget);
+
+    final String source = _declarations(destructiveFile);
+    expect(source, isNot(contains('Timer')));
+    expect(source, isNot(contains('Future.delayed')));
+  });
+
+  testWidgets('ShedDestructiveButton renders no filled surface behind the madder ink', (
+    WidgetTester tester,
+  ) async {
+    // indelible.md §7.13. A destructive control that fills is one that draws the
+    // eye, and this one is meant to be found only when looked for.
+    await _pumpComponent(tester, striker(() {}));
+
+    final Iterable<DecoratedBox> boxes = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(ShedDestructiveButton), matching: find.byType(DecoratedBox)),
+    );
+    for (final DecoratedBox box in boxes) {
+      expect((box.decoration as BoxDecoration).color, isNull, reason: 'a fill appeared');
+    }
+  });
+
+  testWidgets('ShedSecondaryButton is at least tapPrimary tall in both forms', (
+    WidgetTester tester,
+  ) async {
+    for (final ShedSecondaryButtonForm form in ShedSecondaryButtonForm.values) {
+      for (final double scale in <double>[1.0, 1.3, 2.0]) {
+        await _pumpComponent(
+          tester,
+          ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes', form: form),
+          scale: scale,
+        );
+        expect(
+          tester.getSize(find.byType(ShedSecondaryButton)).height,
+          greaterThanOrEqualTo(72.0),
+          reason: '$form at $scale',
+        );
+      }
+    }
+  });
+
+  testWidgets('ShedSecondaryButton renders at textScale 2.0 with boldText and every tap '
+      'surface carries a semanticLabel', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes'),
+      scale: 2.0,
+      boldText: true,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, 'Ewes');
+
+    handle.dispose();
+  });
+
+  testWidgets('the inStream form draws an underline and no border, and outlined draws a '
+      'border and no underline', (WidgetTester tester) async {
+    // The two forms are distinguishable with the colour channel removed.
+    BoxDecoration decorationOf(ShedSecondaryButtonForm form) {
+      final DecoratedBox box = tester.widget<DecoratedBox>(
+        find
+            .descendant(of: find.byType(ShedSecondaryButton), matching: find.byType(DecoratedBox))
+            .first,
+      );
+      return box.decoration as BoxDecoration;
+    }
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes'),
+    );
+    final BoxDecoration outlined = decorationOf(ShedSecondaryButtonForm.outlined);
+    expect(outlined.border, isA<Border>());
+    expect((outlined.border! as Border).top.width, greaterThan(0));
+    expect(outlined.color, isNotNull, reason: 'outlined carries a fill');
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(
+        label: 'EWES',
+        onTap: () {},
+        semanticLabel: 'Ewes',
+        form: ShedSecondaryButtonForm.inStream,
+      ),
+    );
+    final BoxDecoration inStream = decorationOf(ShedSecondaryButtonForm.inStream);
+    expect(inStream.color, isNull, reason: 'inStream carries no fill');
+    expect((inStream.border! as Border).top, BorderSide.none);
+    expect((inStream.border! as Border).bottom.width, greaterThan(0));
+  });
+
+  testWidgets('selected lifts the underline ink and leaves the siblings alone', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String label in <String>['ALL', 'EWES', 'LAMBS'])
+            ShedSecondaryButton(
+              label: label,
+              onTap: () {},
+              semanticLabel: label,
+              form: ShedSecondaryButtonForm.inStream,
+              selected: label == 'EWES',
+            ),
+        ],
+      ),
+    );
+
+    final ShedTokens t = buildShedTheme(nightPalette).extension<ShedTokens>()!;
+    final Iterable<Text> texts = tester.widgetList<Text>(
+      find.descendant(of: find.byType(ShedSecondaryButton), matching: find.byType(Text)),
+    );
+
+    expect(
+      texts.where((Text x) => x.style!.color == t.textPrimary).length,
+      1,
+      reason: 'exactly one sibling is selected',
+    );
+  });
+
+  test('neither file names delete, remove, splice or hidden', () {
+    // indelible.md §11 test 1, made mechanical: nothing in this product is
+    // deleted, and a component that says so teaches the wrong verb to every
+    // screen that reads it.
+    for (final String file in <String>[secondaryFile, destructiveFile]) {
+      final String source = _declarations(file).toLowerCase();
+      for (final String word in <String>['delete', 'remove', 'splice', 'hidden']) {
+        expect(source, isNot(contains(word)), reason: '$file says $word');
+      }
+    }
+  });
+
+  test('neither file calls showDialog( or constructs an AlertDialog', () {
+    // ui.show_dialog allowlists two Settings files and neither is here. The
+    // whole reason `confirming` is a STATE of this component is so a screen
+    // never needs a modal to get a confirmation.
+    for (final String file in <String>[secondaryFile, destructiveFile]) {
+      final String source = _declarations(file);
+      expect(source, isNot(contains('showDialog')), reason: file);
+      expect(source, isNot(contains('AlertDialog')), reason: file);
     }
   });
 }

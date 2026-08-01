@@ -671,6 +671,37 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
   ),
 ];
 
+/// The rules that read **declarations**, with comment lines dropped.
+///
+/// The line is between two kinds of rule, and it is not a convenience.
+///
+/// A rule about a banned **API or literal** — `time.dart_clock`,
+/// `gesture.dismissible`, `net.http_client` — scans every line, because a
+/// commented-out call is one keystroke from being real, and the way to satisfy
+/// it in a test or a doc comment is to split the needle across adjacent string
+/// literals. That discipline is applied in five files and it is cheap.
+///
+/// A rule about **vocabulary or naming** is different. This project's prose says
+/// "there is no draft state", "there is no `save(aggregate)` anywhere" and
+/// "`Error` is never a failure-type name" in dozens of doc comments, because
+/// saying so is how the rule survives contact with the next reader. A gate that
+/// cannot tell a name from prose about a name would turn every one of those
+/// sentences into a rewording exercise, and the sentences are the point.
+///
+/// Added 2026-08-01 (N04-T06), after `grams.dart`'s *"provisional pending open
+/// question 12"* tripped `copy.banned_word` on the ordinary English word.
+const Set<String> _declarationsOnly = <String>{
+  'copy.banned_word',
+  'type.error_name',
+  'db.save_verb',
+};
+
+/// [source] with every comment line removed. Line comments only: a `/* … */`
+/// block would need a real lexer, this project's style does not use them, and a
+/// gate that half-parses is worse than one that does not try.
+String _withoutComments(String source) =>
+    source.split('\n').where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
 /// A word-anchored pattern for one banned word, escaped.
 ///
 /// `\b` only applies where the neighbouring character is a word character, so
@@ -847,6 +878,8 @@ List<String> runPolicy({String root = '.'}) {
       continue;
     }
 
+    final String declarations = _withoutComments(source);
+
     for (final (String id, String text, String under, String why) in _bannedText) {
       if (!path.startsWith(under) || !source.contains(text)) {
         continue;
@@ -858,7 +891,8 @@ List<String> runPolicy({String root = '.'}) {
     }
 
     for (final (String id, RegExp pattern, String under, String why) in _bannedPattern) {
-      if (!path.startsWith(under) || !pattern.hasMatch(source)) {
+      final String haystack = _declarationsOnly.contains(id) ? declarations : source;
+      if (!path.startsWith(under) || !pattern.hasMatch(haystack)) {
         continue;
       }
       if (exempt.contains('$path :: $id')) {

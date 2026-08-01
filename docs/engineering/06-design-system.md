@@ -428,32 +428,9 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
   @override
   ShedTokens lerp(covariant ShedTokens? other, double t) {
     if (other == null) return this;
-    // Colours interpolate with Color.lerp. Metrics and identity NEVER do:
-    // a tap target that is 63.4 pt for 150 ms breaks the 60 pt contract for
-    // 150 ms, so every non-Color field snaps at the halfway point.
-    final ShedTokens m = t < 0.5 ? this : other;
-    return ShedTokens(
-      id: m.id, highContrast: m.highContrast, motion: m.motion,
-      photoTint: m.photoTint,
-      tapMin: m.tapMin, tapPrimary: m.tapPrimary, tapHero: m.tapHero,
-      gapMin: m.gapMin, gapDestructive: m.gapDestructive,
-      outlineWidth: m.outlineWidth, radiusControl: m.radiusControl,
-      bodySize: m.bodySize, numeralSize: m.numeralSize,
-      surfaceBase: Color.lerp(surfaceBase, other.surfaceBase, t)!,
-      surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
-      textNumeric: Color.lerp(textNumeric, other.textNumeric, t)!,
-      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
-      /* …the remaining Colors lerp identically… */
-      surfacePressed: Color.lerp(surfacePressed, other.surfacePressed, t)!,
-      surfaceFill: Color.lerp(surfaceFill, other.surfaceFill, t)!,
-      outline: Color.lerp(outline, other.outline, t)!,
-      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
-      textChrome: Color.lerp(textChrome, other.textChrome, t)!,
-      statusReady: Color.lerp(statusReady, other.statusReady, t)!,
-      statusAttention: Color.lerp(statusAttention, other.statusAttention, t)!,
-      statusLoss: Color.lerp(statusLoss, other.statusLoss, t)!,
-      onStatus: Color.lerp(onStatus, other.onStatus, t)!,
-    );
+    // Every field snaps, colours included: one operand or the other, never a
+    // third value. See the amendment note below.
+    return t < 0.5 ? this : other;
   }
 }
 
@@ -462,6 +439,48 @@ extension ShedTokensX on BuildContext {
   ShedTokens get tokens => Theme.of(this).extension<ShedTokens>()!;
 }
 ```
+
+**Amended 2026-08-01 (N09-T02), two changes, both narrowings.**
+
+**1 — `lerp` snaps the `Color` fields too.** The body above previously read:
+
+> ~~`surfaceBase: Color.lerp(surfaceBase, other.surfaceBase, t)!,`~~ and the same for the other
+> eleven `Color` fields — *"Colours interpolate with `Color.lerp`. Metrics and identity NEVER do."*
+
+Struck, with its reason: **a colour produced by interpolation is a colour nobody measured for
+contrast.** The entire claim of the two-tier structure is that every colour on screen is one somebody
+measured, and `Color.lerp` manufactures values outside that set — at `t = 0.5` between `night` and
+`deepRed`, `textChrome` lands on a hex that appears in no palette and in no row of §4's contrast
+tables. Indelible rule 4 does not have a "for 150 ms" exemption, and `00-README` §2.3's hierarchy
+prefers *unrepresentable* over *documented*.
+
+The cost is zero: §2.1 and §4.8 already pin `themeAnimationDuration: Duration.zero`, precisely
+because *"a 200 ms lerp between night and deep red drags every colour through a desaturated,
+low-contrast midpoint"* — so no intermediate `t` is ever produced in the running app. This change
+removes the possibility instead of relying on that setting staying where it is.
+
+The metric sentence survives unchanged and is the half this always got right: a tap target that is
+63.4 pt for 150 ms breaks the 60 pt contract for 150 ms.
+
+`CONVENTIONS §2.11` and `.claude/skills/indelible-page-and-screens/SKILL.md` §4 both said *"snaps
+every non-`Color` field"* and were amended in the same commit.
+
+**2 — a fifth surface was added and then withdrawn, in the same epic.** Recorded rather than erased,
+because the reasoning is the useful part.
+
+`surfaceFillPressed` was added on the reading that `indelible.md` §2.2 supplied the palette values: it
+publishes five surfaces to this section's four, and `--slab-pressed` had nowhere to go. **Decision
+#95 overturned that reading** — it fixes the base surface at `#0B0D0E` and names `#000000` and
+`#121212` in its rejected column, so §3.2's ramp is the one the decision record backs and §4.2–§4.5
+is the only complete six-palette specification in the doc set. That ramp has four steps and publishes
+no fifth hex, so the field had no value to hold, and inventing one is precisely what the two tiers
+exist to prevent. It was removed in the same epic that added it; `ShedTokens` has four surfaces.
+
+This is one half of **P6**, which is carried into N09's pull request as open with both sides cited
+rather than settled on a task's authority. `indelible.md` is not struck here.
+
+If a component genuinely needs a pressed slab distinct from a pressed row, the fix is a fifth value
+in §4.2–§4.5 — not a literal in a widget, and not a field with nothing behind it.
 
 Usage is then greppable and palette-proof:
 
@@ -674,10 +693,17 @@ double contrastRatio(Color a, Color b) {
   return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
-/// The brightest ink a palette can put on screen — the quantity §4.3's
+/// The brightest ink a palette normally puts on screen — the quantity §4.3's
 /// "red-shift drops luminance as well as hue" rule is about.
+///
+/// AMENDED 2026-08-01 (N09-T03): body text only. See the note below.
 double peakLuminance(ShedPalette p) => [
       p.tokens.textNumeric, p.tokens.textPrimary,
+    ].map(relativeLuminance).reduce(math.max);
+
+/// The brightest status mark, asserted separately so §4.3's deliberate
+/// exception stays visible and stays BOUNDED.
+double peakStatusLuminance(ShedPalette p) => [
       p.tokens.statusReady, p.tokens.statusAttention, p.tokens.statusLoss,
     ].map(relativeLuminance).reduce(math.max);
 
@@ -685,6 +711,30 @@ double peakLuminance(ShedPalette p) => [
 /// edits nSurface04 without editing the native config, this test must fail.
 const Color launchSurface = Color(0xFF0B0D0E);
 ```
+
+**Amended 2026-08-01 (N09-T03) — `peakLuminance` measures body text, not status marks.**
+
+The version above previously read:
+
+> ~~`p.tokens.textNumeric, p.tokens.textPrimary, p.tokens.statusReady, p.tokens.statusAttention,
+> p.tokens.statusLoss`~~
+
+Struck with its reason: **that version cannot pass against §4.3's own table.** `amber`'s `statusLoss`
+is `#FFE0A3` at L 0.772, and the ceiling is 0.70 × `night`'s peak of 1.000 = 0.700. The palette was
+not wrong; the assertion was measuring the wrong quantity.
+
+The collision is between two rules in this document, and §4.3 already resolves it against itself. Its
+rule 1 says *"in a one-hue palette, urgency is luminance"* — loss is **deliberately** the brightest
+token, because the colour channel is nearly gone and the luminance channel is what is left to spend
+on the thing that needs a shepherd's attention. Then its own arithmetic two paragraphs later computes
+the drop as *"1.000 → 0.618"*, and **0.618 is amber's `textNumeric`, not its `statusLoss` at 0.772**.
+§4.3 was already measuring body text. §3.5's list was the stale half.
+
+Relaxing the 0.70 factor was the other way out and is the edit-the-gate-to-make-it-green anti-pattern
+`13` names by name. **The factor is untouched.** The exception is bounded rather than waived:
+`peakStatusLuminance` is asserted separately, so a status mark still may not exceed `night`'s body-text
+peak — past that point a night-shift palette is emitting more light than the palette it exists to be
+dimmer than.
 
 **Every ratio printed in §4 was computed with exactly this formula on 2026-07-27** and is reproduced by the test above. If a number in this document and the test disagree, the test is right and the document is stale — which is the only reason it is safe to print sixty ratios in prose at all.
 
@@ -916,7 +966,20 @@ TextTheme buildShedTextTheme(ShedTokens t) {
 
 Bundle **Atkinson Hyperlegible Next** (SIL OFL 1.1, ~114 KB for the upright variable file, ships `tnum` — decision #98). Take it from the Google Fonts OFL distribution, commit `OFL.txt` beside it in `assets/fonts/`, and register it via `LicenseRegistry.addLicense`.
 
-**Verify on download, before the pubspec entry is written:** the exact byte count (it goes in the < 5 MB asset budget, decision #127) and the `wght` axis range reported by `fc-query` or `ttx -l`. The house style caps at w700 (§5.3) and the theme uses w500–w700, so the axis must cover at least 500–700; nothing in this document has confirmed the published range. Record both numbers in `docs/perf/measurements.md` with the download date.
+**Verified on download, 2026-08-01 (N09-T05), before the pubspec entry was written.** This paragraph previously said *"nothing in this document has confirmed the published range"* and gave the requirement as *"the axis must cover at least 500–700"*. It has now been read off the file:
+
+| | Recorded here | **Measured** |
+|---|---|---|
+| Byte count | ~114 KB | **114 552** bytes — 2.2% of decision #127's < 5 MB budget |
+| `wght` axis | *"must cover at least 500–700"*, range unconfirmed | **200 – 800**, default 400, one axis, seven named instances |
+| `tnum` | claimed by #98 | **present** — confirmed |
+| slashed zero | *"unverified"* | **absent**, and there is no `ss01`/`cv` variant either |
+
+Full readings, including the GSUB/GPOS feature lists and what is still **not** measured, are in `docs/perf/measurements.md`.
+
+**The axis is wider than this document assumed, and that matters for P7.** `indelible.md §3.3`'s 390 / 420 / 520 / 600 are all *reachable* on a 200–800 axis — the axis was never the obstacle. What rules them out is the mechanism they would need: `Text.build` merges `FontWeight.bold` for the Bold Text accessibility setting and does **not** touch `fontVariations`, so a weight set through `FontVariation('wght', 390)` silently ignores that setting, on exactly the users who turned it on. `FontVariation` is therefore banned outright under `lib/` and a test holds it. See N09-T05's commit for the ruling.
+
+Record any re-measurement in `docs/perf/measurements.md` with its date.
 
 ```yaml
 flutter:

@@ -531,7 +531,7 @@ final class FreeTierPolicy {
 
 | Name | File | Shape |
 |---|---|---|
-| `ShedTokens` | `tokens.dart` | `final class ShedTokens extends ThemeExtension<ShedTokens>`; flat; `copyWith({Duration? motion, bool? highContrast})`; `lerp` snaps every non-`Color` field at `t < 0.5` |
+| `ShedTokens` | `tokens.dart` | `final class ShedTokens extends ThemeExtension<ShedTokens>`; flat; `copyWith({Duration? motion, bool? highContrast})`; `lerp` snaps **every** field at `t < 0.5`, colours included — amended 2026-08-01 (N09-T02); see `06 §3.3` |
 | `ShedPalette` | `tokens.dart` | `{id, highContrast, name, colorScheme, tokens}` |
 | `ShedPaletteId` | `tokens.dart` | `{night, amber, deepRed}` with `key` (R35) |
 | `ShedThemeSet` | `theme.dart` | `typedef ShedThemeSet = ({ThemeData theme, ThemeData highContrast});` |
@@ -1927,6 +1927,6 @@ naming authority. They are listed so nobody mistakes silence for agreement.
    2026-08-01 before `pubspec.yaml` closed (§7.0 rows 16 and 18, no ruling number — neither is a
    name), and the temperature field, the milk withdrawal target and lambing ease 5 vs 6 the same day,
    before the schema freeze (**R75**, **R76**, **R78**).
-4. **Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8** (07 §22 item 7). That
+4. ~~**Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8**~~ — **CLOSED 2026-08-01 (N09-T09): it does**, along with `warningNotification()` and `errorNotification()`, read off the installed SDK (07 §22 item 7). That
    is an SDK fact, not a naming ruling. 06 owns it; if the member does not exist, the *name* in this
    file changes with it and every other ruling stands.

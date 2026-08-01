@@ -1161,7 +1161,7 @@ Tick every line before calling this area finished.
 - [ ] §7.1 #15 — lambing ease 5 or 6, and therefore 40 or 41 vocabulary messages.
 - [ ] §7.1 #18 — the voice-note cap, which bounds the Captions gap in §7.1.
 - [ ] **UNVERIFIED:** whether 3.44's in-framework accessibility evaluations are public API (§5.3).
-- [ ] **UNVERIFIED, owned by `06-design-system.md`:** whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8 (CONVENTIONS §7 item 4). If it does not, the commit haptic degrades to `heavyImpact()` and nothing in this document changes.
+- [x] **VERIFIED 2026-08-01 (N09-T09):** `HapticFeedback.successNotification()` — and `warningNotification()` and `errorNotification()` — exist on Flutter 3.44.8. Read off `packages/flutter/lib/src/services/haptic_feedback.dart` in the installed SDK. The `heavyImpact()` fallback is not needed and nothing in this document changes.
 
 **Cross-document defects this document raises — live**
 - [ ] `06-design-system.md` §3.5's `a11y.announce` row is `RegExp(r'SemanticsService\.announce')`, which does not match `SemanticsService.sendAnnouncement`. Widen it to `RegExp(r'SemanticsService\.(announce|sendAnnouncement)\b')` (§10, §11 row 2). Until it lands, §11 row 2 overstates what CI proves.

@@ -95,8 +95,8 @@ under `lib/` (`06-design-system.md §3.5`). So raw values go in `lib/core/ui/pri
 existing `s04`…`s32` scale is **too short for this grid**, extend it, and it is import-banned outside
 `lib/core/ui/` — and named metrics go on `ShedTokens` in `lib/core/ui/tokens.dart`, read through
 `context.tokens`, named per `06 §3.4`'s prefix scheme. **Add the token; never add a literal to a
-widget** (`06 §1`). `ShedTokens.lerp` snaps every non-`Color` field at t < 0.5, so a metric never
-interpolates through an illegal value.
+widget** (`06 §1`). `ShedTokens.lerp` snaps **every** field at t < 0.5 — colours included, amended 2026-08-01 (N09-T02,
+`06 §3.3`) — so neither a metric nor a colour ever interpolates through a value nobody measured.
 
 ## 5. Row heights (`indelible.md §4.4`) and the density that follows
 

@@ -1984,7 +1984,7 @@ Carried, not hidden.
 4. **The tolerant comparator's installation** (§8.3). `LocalFileComparator`'s basedir resolution and the interaction with `flutter_test_config.dart` must be confirmed by deliberately breaking a golden. Until that is done, a green golden run proves nothing.
 5. ~~**`glados` resolution** (§10.6).~~ **Closed 2026-08-01 — it does not resolve at any version and is struck from decision-record §5.2.** Nothing left to check; the property tier is the hand-rolled seeded generator alone.
 6. **Whether `SchemaVerifier` tolerates FTS5 shadow tables** ([`04-migrations-media-backup-restore.md`](04-migrations-media-backup-restore.md) §3.4). If it does not, the migration matrix is the test that tells you, in week one, with FTS5 in schema v1 and no real rows at risk. Do not paper over it by disabling the assertion.
-7. **`HapticFeedback.successNotification()`** (07 §22 item 7). If the member does not exist on Flutter 3.44.8, the commit-confirmation test asserts `heavyImpact()` instead. Owned by 06.
+7. ~~**`HapticFeedback.successNotification()`**~~ (07 §22 item 7). **CLOSED 2026-08-01 (N09-T09):** the member exists on 3.44.8, so the commit-confirmation test asserts it directly and the `heavyImpact()` branch is not written. Owned by 06.
 8. **Every tap-count budget is a desk estimate** until the field night happens (decision-record §7.1 item 1). CI holds the three numbers; it cannot tell you they are the right three.
 
 ---

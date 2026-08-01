@@ -359,6 +359,173 @@ http             # via timezone AND via package_info_plus. Two regular edges.
     });
   });
 
+  group('the net.* rules — G3, the import scan', () {
+    /// The twelve `_bannedEverywhere` prefixes, spelled here so a deletion from
+    /// the set is a failing case and not a quietly smaller gate. Two carry no
+    /// trailing slash on purpose: they are prefixes over a family.
+    const List<String> bannedPackageUris = <String>[
+      'package:http/http.dart',
+      'package:dio/dio.dart',
+      'package:connectivity_plus/connectivity_plus.dart',
+      'package:workmanager/workmanager.dart',
+      'package:battery_plus/battery_plus.dart',
+      'package:web_socket_channel/web_socket_channel.dart',
+      'package:firebase_core/firebase_core.dart',
+      'package:google_fonts/google_fonts.dart',
+      'package:printing/printing.dart',
+      'package:speech_to_text/speech_to_text.dart',
+      'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart',
+      'package:permission_handler/permission_handler.dart',
+    ];
+
+    test('net.http_import exits 1 on a planted package:http import, '
+        'and no rule scans pubspec.lock for http', () {
+      // Half one: the import is caught.
+      final List<String> violations = gateOn(<String, String>{
+        'lib/data/export_repository.dart': "import 'package:http/http.dart';\n",
+      });
+      expect(violations, hasLength(1), reason: violations.join('\n'));
+      expect(violations.single, contains('lib/data/export_repository.dart'));
+      expect(violations.single, contains('[layer.import]'));
+
+      // Half two, and it is the half that matters in three years. `http 1.6.0`
+      // sits on two regular edges, so a lockfile rule for it is permanently
+      // red and gets deleted by whoever meets it — leaving no gate at all.
+      expect(
+        policyRuleIds.where((String id) => id.startsWith('net.')),
+        isNotEmpty,
+        reason: 'G3 claims our source cannot reach a network API; no net.* row proves nothing',
+      );
+      for (final (String id, String under) in policyRuleScopes) {
+        expect(
+          under,
+          isNot(contains('pubspec.lock')),
+          reason:
+              'rule $id reads the lockfile. A "no http in pubspec.lock" rule is '
+              'UNSATISFIABLE — four research notes wrote it. G2 makes the narrower '
+              'true claim: no package enters the graph unreviewed',
+        );
+      }
+    });
+
+    void plantsText(
+      String title, {
+      required String path,
+      required String body,
+      required String id,
+    }) {
+      test(title, () {
+        final List<String> violations = gateOn(<String, String>{path: body});
+        expect(violations, hasLength(1), reason: violations.join('\n'));
+        expect(violations.single, contains('[$id]'));
+      });
+    }
+
+    plantsText(
+      'net.http_client',
+      path: 'lib/data/share_service.dart',
+      body: 'void f() { final c = HttpClient(); }\n',
+      id: 'net.http_client',
+    );
+    plantsText(
+      'net.socket',
+      path: 'lib/core/log/local_log.dart',
+      body: 'void f() { Socket.connect(h, p); }\n',
+      id: 'net.socket',
+    );
+    plantsText(
+      'net.socket also covers SecureSocket, by substring and on purpose',
+      path: 'lib/core/log/local_log.dart',
+      body: 'void f() { SecureSocket.connect(h, p); }\n',
+      id: 'net.socket',
+    );
+    plantsText(
+      'net.web_socket — dart:io WebSocket arrives on an import every file may make',
+      path: 'lib/data/notification_scheduler.dart',
+      body: "void f() { WebSocket.userAgent = 'x'; }\n",
+      id: 'net.web_socket',
+    );
+
+    test('WebSocket.connect( trips BOTH net rows, and that is correct', () {
+      // `WebSocket.connect(` contains `Socket.connect(`, so the two substring
+      // rows overlap on the one spelling that matters most. Recorded rather
+      // than narrowed: a socket call site reported twice is a socket call site
+      // reported, and narrowing either row to stop the overlap would cost the
+      // SecureSocket and RawSocket coverage that the same substring buys.
+      final List<String> violations = gateOn(<String, String>{
+        'lib/data/notification_scheduler.dart': 'void f() { WebSocket.connect(u); }\n',
+      });
+      expect(violations, hasLength(2));
+      expect(violations.map((String v) => v.split(']').first), <String>[
+        '[net.socket',
+        '[net.web_socket',
+      ]);
+    });
+    plantsText(
+      'net.image_network',
+      path: 'lib/core/ui/components/shed_photo.dart',
+      body: 'Widget b() => Image.network(u);\n',
+      id: 'net.image_network',
+    );
+    plantsText(
+      'net.pdf_fonts fires on the identifier, before the import is even added',
+      path: 'lib/features/export/pdf_builder.dart',
+      body: 'final f = PdfGoogleFonts.helvetica();\n',
+      id: 'net.pdf_fonts',
+    );
+    plantsText(
+      'net.sync_timer — no exemption, because the one ticker uses Future.delayed',
+      path: 'lib/core/time/ticker.dart',
+      body: 'void f() { Timer.periodic(d, cb); }\n',
+      id: 'net.sync_timer',
+    );
+
+    test('every _bannedEverywhere entry fires, and names its URI', () {
+      for (final String uri in bannedPackageUris) {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/data/export_repository.dart': "import '$uri';\n",
+        });
+        expect(violations, hasLength(1), reason: '$uri: ${violations.join("\n")}');
+        expect(violations.single, contains(uri));
+      }
+    });
+
+    test('dart:io itself is legal — the claim is about sockets, not the filesystem', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/data/media_store.dart': "import 'dart:io';\nFile f(String p) => File(p);\n",
+        }),
+        isEmpty,
+      );
+    });
+
+    test("the ticker's real shape needs no exemption", () {
+      expect(
+        gateOn(<String, String>{
+          'lib/core/time/ticker.dart': 'Future<void> f() => Future.delayed(d);\n',
+        }),
+        isEmpty,
+      );
+    });
+
+    test('test/ is scanned for the package half', () {
+      final List<String> violations = gateOn(<String, String>{
+        'test/support/fake_share_service.dart': "import 'package:dio/dio.dart';\n",
+      });
+      expect(violations, hasLength(1));
+      expect(violations.single, contains('[layer.import]'));
+    });
+
+    test('test/ is not scanned for the lib/-scoped rows', () {
+      // Widening a row's scope is a CONVENTIONS §6 ruling, not a keyboard
+      // decision, so the current scope is asserted rather than assumed.
+      expect(
+        gateOn(<String, String>{'test/support/harness.dart': 'Widget b() => Image.network(u);\n'}),
+        isEmpty,
+      );
+    });
+  });
+
   test('policyRuleIds carries the ten layer rule ids', () {
     // The inventory hook. N03-T07 turns it into an assertion with teeth: every
     // id here has a case in this file.

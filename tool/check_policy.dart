@@ -156,9 +156,89 @@ const List<String> _layerRuleIds = <String>[
   'layer.data_no_validation',
 ];
 
+/// G3 of the offline contract. Applies to **every scanned file**, in both roots,
+/// regardless of layer — a network dependency in the test tier is still in the
+/// graph. Reported under `layer.import`, which is the one import id that is not
+/// a direction rule.
+///
+/// `package:firebase_` and `package:google_mlkit_` carry **no trailing slash**:
+/// they are prefixes over a family of packages, not a single package root, and
+/// adding the slash silently unbans `firebase_core`.
+///
+/// `package:printing/` and `package:google_fonts/` are banned here *and* on G2's
+/// allowlist. That is not duplication: G2 stops the package entering the graph,
+/// G3 stops a source file importing it if it ever does — transitively, for
+/// instance, via a package that vendors it.
+const Set<String> _bannedEverywhere = <String>{
+  'package:http/',
+  'package:dio/',
+  'package:connectivity_plus/',
+  'package:workmanager/',
+  'package:battery_plus/',
+  'package:web_socket_channel/',
+  'package:firebase_',
+  'package:google_fonts/',
+  'package:printing/',
+  'package:speech_to_text/',
+  'package:google_mlkit_',
+  'package:permission_handler/',
+};
+
 /// (id, literal text, path prefix it applies under, why). An empty `under`
 /// means every scanned root — the driver never walks anything else.
-const List<(String, String, String, String)> _bannedText = <(String, String, String, String)>[];
+///
+/// **The `net.*` rows are not redundant with [_bannedEverywhere].** That set
+/// matches `package:` URIs, and the highest-risk socket APIs in this app do not
+/// arrive on one: `HttpClient`, `Socket` and `WebSocket` come from `dart:io`,
+/// which every file may legitimately import, and `Image.network` is in the
+/// Flutter SDK. G3 claims our own source cannot reach a network API; without
+/// these rows it is not proved.
+///
+/// **There is no rule that reads `pubspec.lock` for `http`, and there must never
+/// be one.** `http 1.6.0` sits on two REGULAR edges —
+/// `flutter_local_notifications → timezone → http`, and
+/// `wakelock_plus → package_info_plus → http`. Such a rule is permanently red,
+/// so it gets deleted by whoever meets it first, and then there is no gate at
+/// all. The claim G2 makes is narrower and true: no package enters the graph
+/// unreviewed. (00-tech-decisions §3.4 #1, 13 §2.4.) `test/policy/gate_rules_test.dart`
+/// holds that as an assertion, because a comment cannot stop a future row.
+///
+/// **There is no `Uri.parse(` row, and that is a decision.** A bare one would
+/// fire on the media store's relative paths, on the restore path and on
+/// `share_plus`'s file URIs — all legitimate, none a network path. `01 §3.3`
+/// names the anti-pattern: a rule that gets weakened is worse than one never
+/// written. If a scheme check is ever wanted it belongs where a URI is actually
+/// constructed, and that is one file.
+const List<(String, String, String, String)> _bannedText = <(String, String, String, String)>[
+  // 'Socket.connect(' also matches RawSocket.connect( and SecureSocket.connect(,
+  // because both contain it. Deliberate, and why the row carries the dot and the
+  // open paren rather than a bare `Socket`.
+  //
+  // 'HttpClient(' misses `HttpClient.new` and a torn-off constructor. Both are
+  // legal Dart and neither contains the literal. That is the honest limit of a
+  // text gate: G3 proves our source has no obvious network call site, not that
+  // it cannot possibly open a socket. What G3 does not prove is G1's job, and
+  // the split is the point (13 §2.5). Upgrade the claim's honesty, never the row.
+  ('net.http_client', 'HttpClient(', 'lib/', 'dart:io socket — G3'),
+  ('net.socket', 'Socket.connect(', 'lib/', 'dart:io socket — G3'),
+  ('net.web_socket', 'WebSocket.', 'lib/', 'dart:io socket — G3'),
+  ('net.image_network', 'Image.network(', 'lib/', 'no remote assets — G3'),
+  // Bans an identifier, not an import: PdfGoogleFonts is a class inside
+  // package:printing, and #83 keeps pdf and rejects printing exactly because
+  // the class is a one-line footgun. The row fires on a copied snippet before
+  // the import is even added.
+  ('net.pdf_fonts', 'PdfGoogleFonts', 'lib/', 'fetches fonts over HTTP — G3, #83'),
+  // No exemption, deliberately: R25's one ticker is built on Future.delayed
+  // precisely so this row needs no waiver (#66). A developer reaching for
+  // Timer.periodic at N12 is this row working, not this row being wrong.
+  (
+    'net.sync_timer',
+    'Timer.periodic(',
+    'lib/',
+    'per-row timers and refresh loops are both banned; the one ticker uses '
+        'Future.delayed so this rule needs no exemption — #66, #7',
+  ),
+];
 
 /// Same tuple, a pattern instead of a literal. `final`, not `const`: RegExp has
 /// no const constructor.
@@ -168,11 +248,27 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
 /// inventory assertion iterates this; a rule that is not here cannot be proved.
 Iterable<String> get policyRuleIds sync* {
   yield* _layerRuleIds;
+  yield 'layer.import';
   for (final (String id, _, _, _) in _bannedText) {
     yield id;
   }
   for (final (String id, _, _, _) in _bannedPattern) {
     yield id;
+  }
+}
+
+/// Every text and pattern rule as (id, the path prefix it applies under).
+///
+/// Exposed for one assertion and one only: **no rule's scope may be
+/// `pubspec.lock`.** A rule that reads the lockfile for `http` is unsatisfiable
+/// — see [_bannedText] — and a comment cannot stop a future contributor writing
+/// one. A test can.
+Iterable<(String, String)> get policyRuleScopes sync* {
+  for (final (String id, _, String under, _) in _bannedText) {
+    yield (id, under);
+  }
+  for (final (String id, _, String under, _) in _bannedPattern) {
+    yield (id, under);
   }
 }
 
@@ -328,11 +424,14 @@ List<String> _checkImports(String path, String source, Set<String> exempt) {
   for (final RegExpMatch match in _directive.allMatches(source)) {
     String uri = match.group(1)!;
 
-    for (final String banned in <String>{...?_bannedPackages[layer]}) {
+    for (final String banned in <String>{..._bannedEverywhere, ...?_bannedPackages[layer]}) {
       if (!uri.startsWith(banned) || exempt.contains('$path :: import:$uri')) {
         continue;
       }
-      violations.add('[${_packageRuleId(layer!, banned)}] $path ($layer) may not import $uri');
+      final String id = _bannedEverywhere.contains(banned)
+          ? 'layer.import'
+          : _packageRuleId(layer!, banned);
+      violations.add('[$id] $path (${layer ?? 'test'}) may not import $uri');
     }
 
     // No layer direction outside lib/.

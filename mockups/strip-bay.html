@@ -1,0 +1,2061 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-textscale="normal">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strip Bay — Shed Book design system mockup</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   STRIP BAY — Shed Book design tokens v1.0
+   Dark is the default and only base theme. Red-shift is a full
+   palette swap on [data-theme="red-shift"], never a filter.
+   All contrast ratios computed per WCAG 2.2 relative luminance.
+   Worst readable text pair: dark 5.25:1 · red-shift 4.89:1,
+   both --ink-3 on --strip-lift. --ink-3 is never placed on
+   --key-pressed (that pair computes to 4.45:1) — enforced in CSS
+   below, not merely asserted in prose.
+   ══════════════════════════════════════════════════════════════════ */
+
+:root {
+  color-scheme: dark;
+
+  /* ── SURFACES ──────────────────────────────────────────────────
+     Deliberately within 1.15:1 of each other. Rules separate them,
+     not luminance. The board reads as one flat black object.       */
+  --board:            #0C0D0E;   /* L 0.00398  the wall             */
+  --bay-well:         #101315;   /* L 0.00630  bay interior         */
+  --holder:           #16191B;   /* L 0.00945  holder + keypad key  */
+  --strip:            #1A1D20;   /* L 0.01203  strip face           */
+  --strip-lift:       #23272B;   /* L 0.01983  centre stage         */
+  --drawer:           #0F1113;   /* L 0.00549  drawer layer         */
+  --key-pressed:      #2E3338;   /* L 0.03234  90ms press state     */
+
+  /* ── INK ───────────────────────────────────────────────────────
+     Never pure white: halation blurs glyph edges for astigmatism.  */
+  --ink:              #E9E5DC;   /* 15.47:1 board · 13.47:1 strip   */
+  --ink-2:            #B9B4A8;   /*  9.41:1 board ·  8.19:1 strip   */
+  --ink-3:            #9E988E;   /*  6.80:1 board ·  5.25:1 lift    */
+  --ink-disabled:     #6E6960;   /*  3.57:1 — DISABLED CONTROLS ONLY */
+
+  /* ── STRIP BOOT (semantic hues) ────────────────────────────────
+     8pt left edge only. NEVER applied to type. Every boot is
+     redundant with a printed state word (rule R4).                 */
+  --edge-pen:         #6E7B8B;   /* 4.51:1 board · 3.92:1 strip · "IN PEN 4"    */
+  --edge-watch:       #C8892E;   /* 6.55:1 board · 5.70:1 strip · "OVER"/"DUE"  */
+  --edge-ready:       #4E8C55;   /* 4.82:1 board · 4.20:1 strip · "READY 31h"   */
+  --edge-withdrawal:  #96607D;   /* 3.95:1 board · 3.44:1 strip · "WITHDRAWAL"  */
+  --edge-filed:       #9A958A;   /* 6.52:1 board · 5.67:1 strip · "FILED 04:41" */
+  --edge-flag:        #C4453B;   /* 3.95:1 board · 3.44:1 strip · "CHECK"
+                                    ONE USE ONLY: unresolved contradiction.     */
+
+  /* ── RULES AND STRUCTURE ───────────────────────────────────────*/
+  --rule-bay:         #626A6E;   /* 3.53:1 — 2pt, load-bearing      */
+  --rule-strong:      #848C91;   /* 5.69:1 — 2pt, headers + frames  */
+  --rule-cell:        #363B3F;   /* 1.72:1 — 1pt, DECORATIVE ONLY   */
+  --bar-track:        #363B3F;
+  --bar-fill:         #B9B4A8;   /* 9.41:1                          */
+  --focus:            #E9E5DC;   /* 15.47:1 — never below 10:1      */
+
+  /* ── TYPE STACKS ───────────────────────────────────────────────*/
+  --font-tag:   "Roboto Condensed","Archivo Narrow","Oswald",
+                "Barlow Condensed","Arial Narrow",
+                "Helvetica Neue Condensed",system-ui,sans-serif;
+  --font-mono:  "IBM Plex Mono","Roboto Mono",ui-monospace,"SF Mono",
+                "DejaVu Sans Mono",Menlo,Consolas,monospace;
+  --font-prose: "Source Sans 3","Frutiger","Segoe UI",-apple-system,
+                "Helvetica Neue",system-ui,sans-serif;
+
+  /* ── TYPE SCALE (pt == px at 1x) ───────────────────────────────
+     HARD FLOOR: no token below 18. No exceptions anywhere.         */
+  --type-tag-xl:      44px;  --lh-tag-xl:      1.00;  /* tags, keypad digits  */
+  --type-tag-lg:      34px;  --lh-tag-lg:      1.00;  /* +N MORE, stat values */
+  --type-tag-md:      26px;  --lh-tag-md:      1.00;  /* sub-strip tags, DEL  */
+  --type-bay:         20px;  --lh-bay:         1.00;  /* bay labels           */
+  --type-mono-lg:     26px;  --lh-mono-lg:     1.10;  /* centre-stage timers  */
+  --type-mono:        22px;  --lh-mono:        1.15;  /* all times/durations  */
+  --type-mono-sm:     18px;  --lh-mono-sm:     1.20;  /* stamps, chart labels */
+  --type-prose-lg:    21px;  --lh-prose-lg:    1.40;  /* ewe-card summary     */
+  --type-prose:       19px;  --lh-prose:       1.45;  /* BODY                 */
+  --type-label:       18px;  --lh-label:       1.20;  /* state words, legends */
+
+  --wt-tag:    700;  --wt-mono:    400;  --wt-mono-md: 500;
+  --wt-prose:  400;  --wt-prose-b: 600;
+  --tr-tag:   -0.01em;  --tr-bay: 0.14em;  --tr-label: 0.08em;
+
+  /* Numerals: tabular + slashed zero for the mono face only.
+     Tags stay proportional — the fixed 96pt cell does the aligning. */
+  --num-mono: "tnum" 1, "zero" 1;
+  --num-tag:  "tnum" 0;
+
+  /* ── SPACE (4pt base — only these values exist) ────────────────*/
+  --s-0:   0px;  --s-2:   2px;  --s-4:   4px;  --s-8:   8px;
+  --s-12: 12px;  --s-16: 16px;  --s-20: 20px;  --s-24: 24px;
+  --s-32: 32px;  --s-40: 40px;  --s-48: 48px;  --s-64: 64px;  --s-96: 96px;
+
+  /* ── GEOMETRY ──────────────────────────────────────────────────
+     Zero radius everywhere. The drawer lip is the only soft edge.  */
+  --radius:           0px;
+  --radius-lip:       4px;
+
+  --stroke-hair:      1px;   /* cell division, decorative           */
+  --stroke-rule:      2px;   /* bay dividers, key separators        */
+  --stroke-heavy:     3px;   /* threshold tick, check tick          */
+  --stroke-frame:     4px;   /* focus ring, centre-stage frame      */
+  --stroke-tab:       6px;   /* clip-tab outline                    */
+  --stroke-boot:      8px;   /* the strip-holder left edge          */
+
+  /* ── LAYOUT (390 x 844 baseline) ───────────────────────────────*/
+  --frame-w:        390px;   --frame-h:        844px;
+  --inset-top:       59px;   --inset-bottom:    34px;
+  --rail-w:          88px;   --rail-key:        72px;
+  --board-w:        302px;   --board-content:  300px;
+  --board-header:    56px;   --board-viewport: 695px;
+
+  --bay-header:      28px;
+  --strip-h:         72px;   /* includes its own 2pt bottom rule    */
+  --substrip-h:      60px;   --substrip-inset: 24px;
+  --more-row-h:      60px;
+  --pen-empty-h:     24px;
+  --strip-lift-h:   144px;
+
+  /* Motor grid: 300pt divides four ways and only four ways.
+     NEVER five across — five 60pt cells is legal and wrong.        */
+  --grid-1:         300px;   --grid-2:         150px;
+  --grid-3:         100px;   --grid-4:          75px;
+
+  --key-h:           72px;   /* keypad key   100 x 72               */
+  --slab-h:         110px;   /* litter/ease  100 x 110              */
+  --check-h:         76px;   /* care check   150 x 76               */
+  --field-h:         76px;   /* text field   300 x 76               */
+  --tab-w:           56px;   --tab-h:  40px;  --tab-w-seen: 96px;
+  --hours-bar-h:      6px;   --hit-slop: 8px;
+  --target-min:      60px;   /* HARD MINIMUM. Nothing is smaller.   */
+
+  /* ── MOTION ────────────────────────────────────────────────────*/
+  --ease-mech:      cubic-bezier(0.2, 0, 0, 1);  /* no overshoot    */
+  --dur-press:       90ms;
+  --dur-lift:       140ms;
+  --dur-rise:       180ms;
+  --dur-file:       260ms;   /* the one expressive motion           */
+  --dur-close:      120ms;
+  --flash-caution: 1000ms;   /* 1 Hz                                */
+  --flash-warning:  500ms;   /* 2 Hz — under WCAG 2.3.1 threshold   */
+  --dim-unlit:       0.20;   /* unlit strips under the keypad       */
+  --dim-board:       0.35;   /* board behind a lifted strip         */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RED-SHIFT — a full palette, not a filter. All six hues collapse
+   to one ordinal luminance ramp (brighter = more urgent). Nothing
+   is lost: every boot was already redundant with a printed word.
+   Emitted luminance -41.4%. Blue-channel contribution -57.4%.
+   ══════════════════════════════════════════════════════════════════ */
+
+:root[data-theme="red-shift"] {
+  --board:            #0A0708;   /* L 0.00234                       */
+  --bay-well:         #0E0A0B;
+  --holder:           #140E0F;
+  --strip:            #181112;
+  --strip-lift:       #231819;
+  --drawer:           #0D0909;
+  --key-pressed:      #241818;
+
+  --ink:              #E0A896;   /* 9.75:1 board · 8.40:1 lift      */
+  --ink-2:            #C69080;   /* 7.36:1 board · 6.33:1 lift      */
+  --ink-3:            #B07C6C;   /* 5.68:1 board · 4.89:1 lift      */
+  --ink-disabled:     #6A483F;   /* disabled controls only          */
+
+  /* Ordinal urgency ramp. The bottom three sit below 3:1 ON PURPOSE
+     (rule R3: calm must not attract a dark-adapted eye). The three
+     that mean ACT NOW all clear 3:1. State words carry identity.   */
+  --edge-filed:       #3A2622;   /* 1.41:1 · "FILED 04:41"          */
+  --edge-pen:         #55352E;   /* 1.85:1 · "IN PEN 4"             */
+  --edge-withdrawal:  #6E453B;   /* 2.46:1 · "WITHDRAWAL"           */
+  --edge-ready:       #96604F;   /* 3.90:1 · "READY 31h"            */
+  --edge-watch:       #B87A63;   /* 5.73:1 · "OVER" / "DUE"         */
+  --edge-flag:        #E0A896;   /* 9.75:1 · "CHECK" + 2 Hz flash   */
+
+  --rule-bay:         #78594E;   /* 3.19:1                          */
+  --rule-strong:      #9A7263;   /* 4.74:1                          */
+  --rule-cell:        #2C1F1E;   /* decorative                      */
+  --bar-track:        #2C1F1E;
+  --bar-fill:         #C69080;   /* 7.36:1                          */
+  --focus:            #E0A896;   /* 9.75:1                          */
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LARGE TEXT — ~1.6x, the AX5 / fontScale 2.0 demonstration.
+   Type grows, structure grows with it, the 8pt boot and 6pt hours
+   bar do NOT (they are instruments, not type), the 3-across motor
+   grid drops to 2-across, and the strip goes two-line.
+   ══════════════════════════════════════════════════════════════════ */
+
+:root[data-textscale="large"] {
+  --type-tag-xl:      70px;
+  --type-tag-lg:      54px;
+  --type-tag-md:      42px;
+  --type-bay:         30px;
+  --type-mono-lg:     42px;
+  --type-mono:        34px;
+  --type-mono-sm:     29px;
+  --type-prose-lg:    34px;
+  --type-prose:       30px;
+  --type-label:       29px;
+
+  --bay-header:       46px;
+  --board-header:     92px;
+  --strip-h:         148px;
+  --substrip-h:      112px;
+  --more-row-h:      100px;
+  --pen-empty-h:      40px;
+  --strip-lift-h:    240px;
+  --key-h:           112px;
+  --slab-h:          176px;
+  --check-h:         124px;
+  --field-h:         124px;
+  --rail-w:          132px;
+  --rail-key:        116px;
+  --inset-top:        59px;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   REDUCE MOTION — all durations to zero EXCEPT the file-off, which
+   fades so the user still sees WHICH strip left the board. Flashing
+   stops entirely and is replaced by a double outline plus a live
+   printed elapsed count ("CHECK 12m"). Reduce-motion is not a
+   licence to lose information.
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press:       0ms;
+    --dur-lift:        0ms;
+    --dur-rise:        0ms;
+    --dur-close:       0ms;
+    --dur-file:      220ms;   /* opacity only, no transform         */
+    --flash-caution:   0ms;   /* 0 = static double outline + count  */
+    --flash-warning:   0ms;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   NO LIGHT THEME EXISTS. prefers-color-scheme: light is ignored on
+   purpose — there is nothing to fall back to and nothing to flash.
+   The OS launch background is --board so even the pre-launch frame
+   the system draws is #0C0D0E.
+   ══════════════════════════════════════════════════════════════════ */
+
+
+/* ============================================================
+   RESET
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; }
+html, body { max-width: 100%; overflow-x: hidden; }
+body {
+  margin: 0;
+  background: var(--board);
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--type-prose);
+  line-height: var(--lh-prose);
+  -webkit-font-smoothing: antialiased;
+}
+button {
+  font: inherit; color: inherit; background: none; border: 0;
+  margin: 0; padding: 0; text-align: left; cursor: pointer;
+  border-radius: var(--radius);
+}
+table { border-collapse: collapse; }
+h1, h2, h3, h4, p, ul, figure, figcaption { margin: 0; }
+:focus-visible {
+  outline: var(--stroke-frame) solid var(--focus);
+  outline-offset: var(--stroke-rule);
+}
+.vh {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ============================================================
+   TYPE UTILITIES — one rule, held everywhere.
+   Tags condensed · every duration monospaced · prose humanist.
+   ============================================================ */
+.t-tag {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  letter-spacing: var(--tr-tag); font-feature-settings: var(--num-tag);
+  line-height: var(--lh-tag-xl);
+}
+.t-mono {
+  font-family: var(--font-mono); font-weight: var(--wt-mono);
+  font-variant-numeric: tabular-nums slashed-zero;
+  font-feature-settings: var(--num-mono);
+}
+.t-label {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-label); line-height: var(--lh-label);
+  letter-spacing: var(--tr-label); text-transform: uppercase;
+}
+.t-bay {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-bay); line-height: var(--lh-bay);
+  letter-spacing: var(--tr-bay); text-transform: uppercase;
+}
+
+/* ============================================================
+   PAGE CHROME
+   ============================================================ */
+.wrap { max-width: 1500px; margin: 0 auto; padding: var(--s-32) var(--s-16) var(--s-96); }
+
+.masthead { border-top: var(--stroke-rule) solid var(--rule-strong); padding-top: var(--s-16); }
+.masthead .eyebrow {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-label); letter-spacing: var(--tr-bay);
+  text-transform: uppercase; color: var(--ink-3);
+}
+.masthead h1 {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: clamp(56px, 11vw, 132px); line-height: 0.92;
+  letter-spacing: var(--tr-tag); text-transform: uppercase;
+  margin: var(--s-8) 0 var(--s-4);
+}
+.masthead .subline {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm);
+  color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero;
+  border-bottom: var(--stroke-rule) solid var(--rule-bay);
+  padding-bottom: var(--s-12);
+}
+.thesis { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--s-24); margin-top: var(--s-24); }
+.thesis p { font-size: var(--type-prose-lg); line-height: var(--lh-prose-lg); color: var(--ink-2); }
+.thesis p strong { color: var(--ink); font-weight: var(--wt-prose-b); }
+
+.sechead {
+  display: flex; align-items: baseline; gap: var(--s-16);
+  border-top: var(--stroke-rule) solid var(--rule-bay);
+  margin-top: var(--s-64); padding-top: var(--s-8);
+}
+.sechead h2 {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-bay); letter-spacing: var(--tr-bay);
+  text-transform: uppercase; color: var(--ink-2);
+}
+.sechead .count {
+  margin-left: auto; font-family: var(--font-mono);
+  font-size: var(--type-mono-sm); color: var(--ink-3);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.sechead + .lede { color: var(--ink-3); max-width: 78ch; margin-top: var(--s-12); }
+
+/* ── nine axes table ── */
+.axes { width: 100%; margin-top: var(--s-24); }
+.axes th, .axes td {
+  border-top: var(--stroke-hair) solid var(--rule-cell);
+  padding: var(--s-12) var(--s-12) var(--s-12) 0; vertical-align: top; text-align: left;
+}
+.axes th {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-label); letter-spacing: var(--tr-label);
+  text-transform: uppercase; color: var(--ink);
+  width: 210px; white-space: nowrap;
+}
+.axes td { color: var(--ink-3); font-size: var(--type-prose); }
+@media (max-width: 700px) {
+  .axes th, .axes td { display: block; width: auto; white-space: normal; }
+  .axes td { border-top: 0; padding-top: 0; }
+}
+
+/* ── toggles: the rail softkey, used as page chrome ── */
+.toggles { display: flex; flex-wrap: wrap; gap: var(--s-16); margin-top: var(--s-24); }
+.tg {
+  min-height: 76px; min-width: 200px;
+  display: flex; flex-direction: column; justify-content: center; gap: var(--s-4);
+  padding: var(--s-12) var(--s-16);
+  border: var(--stroke-rule) solid var(--rule-bay);
+  background: var(--holder);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.tg:active { background: var(--key-pressed); }
+.tg[aria-pressed="true"] {
+  box-shadow: inset 0 0 0 var(--stroke-frame) var(--ink);
+  background: var(--strip-lift);
+}
+.tg .tg-name {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-label); letter-spacing: var(--tr-label);
+  text-transform: uppercase; color: var(--ink);
+}
+.tg .tg-state {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm);
+  color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero;
+}
+.tg[aria-pressed="true"] .tg-state { color: var(--ink-2); }
+.tg-note { color: var(--ink-3); font-size: var(--type-prose); max-width: 60ch; align-self: center; }
+
+/* ============================================================
+   TOKEN PANEL
+   ============================================================ */
+.panel { margin-top: var(--s-24); }
+.subhead {
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-label); letter-spacing: var(--tr-bay);
+  text-transform: uppercase; color: var(--ink-3);
+  border-top: var(--stroke-rule) solid var(--rule-bay);
+  padding-top: var(--s-8); margin-top: var(--s-40); margin-bottom: var(--s-16);
+  display: flex; justify-content: space-between; gap: var(--s-16);
+}
+.subhead .n { font-family: var(--font-mono); letter-spacing: 0; font-size: var(--type-mono-sm); }
+
+.swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s-2); }
+.sw { display: flex; align-items: stretch; gap: var(--s-12); background: var(--bay-well); padding: var(--s-8); }
+.sw .chip { flex: 0 0 64px; min-height: 64px; border: var(--stroke-hair) solid var(--rule-cell); }
+.sw .meta { display: flex; flex-direction: column; justify-content: center; gap: var(--s-2); min-width: 0; }
+.sw .tok {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink);
+  font-variant-numeric: tabular-nums slashed-zero; word-break: break-all;
+}
+.sw .val {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.sw .role { font-size: var(--type-label); color: var(--ink-2); font-family: var(--font-prose); }
+:root:not([data-theme="red-shift"]) .v-rs { display: none; }
+:root[data-theme="red-shift"] .v-dk { display: none; }
+
+.typescale { display: grid; gap: var(--s-2); }
+.ts-row {
+  display: grid; grid-template-columns: 190px 1fr; gap: var(--s-16);
+  align-items: baseline; background: var(--bay-well); padding: var(--s-12);
+}
+.ts-row .ts-meta {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+@media (max-width: 620px) { .ts-row { grid-template-columns: 1fr; } }
+
+.spacescale { display: grid; gap: var(--s-2); }
+.sp-row { display: grid; grid-template-columns: 96px 1fr; gap: var(--s-16); align-items: center; background: var(--bay-well); padding: var(--s-8) var(--s-12); }
+.sp-row .sp-name { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.sp-row .sp-bar { height: 20px; background: var(--bar-fill); }
+
+.geo { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: var(--s-16); }
+.geo-cell { background: var(--bay-well); padding: var(--s-16); }
+.geo-cell .demo { height: 72px; background: var(--strip); border: var(--stroke-rule) solid var(--rule-strong); margin-bottom: var(--s-12); }
+.geo-cell .demo.lip { border-radius: var(--radius-lip) var(--radius-lip) 0 0; }
+.geo-cell .cap { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.strokes { display: grid; gap: var(--s-12); }
+.stroke-row { display: grid; grid-template-columns: 190px 1fr; gap: var(--s-16); align-items: center; }
+.stroke-row .sl { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+
+.components { display: flex; flex-wrap: wrap; gap: var(--s-32); align-items: flex-start; }
+.comp { background: var(--board); }
+.comp > .comp-label {
+  font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3);
+  margin-bottom: var(--s-8); font-variant-numeric: tabular-nums slashed-zero;
+}
+.comp-stage { width: 302px; background: var(--board); padding: 0 1px; }
+.comp-stage.narrow { width: 190px; }
+
+/* ============================================================
+   THE PHONE FRAME — 390 x 844
+   ============================================================ */
+.frames { display: flex; flex-wrap: wrap; gap: var(--s-48) var(--s-32); justify-content: center; margin-top: var(--s-24); }
+.fig { width: var(--frame-w); max-width: 100%; }
+.frame {
+  width: var(--frame-w); height: var(--frame-h);
+  background: var(--board);
+  /* The phone edge is drawn OUTSIDE the box. A 2pt border would be inside it
+     and the frame's usable width would be 386, not 390 — which costs the board
+     4pt, drops the content column from 300 to 296, and wraps strips that the
+     grid says fit. With a shadow: 390 - 88 rail = 302 board, 300 content,
+     844 - 59 - 34 - 56 = 695 viewport. Every number in this document is then
+     literally true rather than nearly true. */
+  box-shadow: 0 0 0 var(--stroke-rule) var(--rule-strong);
+  display: flex; flex-direction: column; overflow: hidden;
+  font-family: var(--font-prose);
+}
+:root[data-textscale="large"] .frame { height: auto; min-height: var(--frame-h); overflow: visible; }
+
+.statusbar {
+  height: var(--inset-top); flex: 0 0 var(--inset-top);
+  display: flex; align-items: flex-end; justify-content: space-between;
+  padding: 0 var(--s-20) var(--s-8);
+  font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-2);
+  font-variant-numeric: tabular-nums slashed-zero;
+}
+.statusbar .sb-right { display: flex; align-items: center; gap: var(--s-8); }
+.statusbar .noserv { font-family: var(--font-tag); font-weight: var(--wt-tag); letter-spacing: var(--tr-label); font-size: var(--type-label); color: var(--ink-3); }
+.batt { display: inline-flex; align-items: center; gap: 1px; }
+.batt .cell { width: 26px; height: 13px; border: 1.5px solid var(--ink-2); padding: 1.5px; }
+.batt .lvl { display: block; height: 100%; width: 62%; background: var(--ink-2); }
+.batt .nub { width: 2px; height: 5px; background: var(--ink-2); }
+
+.homebar { height: var(--inset-bottom); flex: 0 0 var(--inset-bottom); display: flex; align-items: center; justify-content: center; }
+.homebar i { display: block; width: 140px; height: 5px; background: var(--ink-3); }
+
+.fbody { flex: 1 1 auto; min-height: 0; display: flex; position: relative; }
+:root[data-textscale="large"] .fbody { min-height: 620px; }
+
+.board { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; background: var(--board); }
+.bhead {
+  height: var(--board-header); flex: 0 0 var(--board-header);
+  display: flex; align-items: center; gap: var(--s-8);
+  padding: 0 var(--s-8); border-bottom: var(--stroke-rule) solid var(--rule-strong);
+}
+.bhead .morph { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-bay); letter-spacing: var(--tr-bay); text-transform: uppercase; color: var(--ink); }
+.bhead .clock { margin-left: auto; font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; white-space: nowrap; }
+.bhead .filed { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; white-space: nowrap; }
+:root[data-textscale="large"] .bhead { flex-wrap: wrap; height: auto; padding: var(--s-8); }
+:root[data-textscale="large"] .bhead .clock { margin-left: 0; flex-basis: 100%; }
+
+.bview { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 0 1px; scrollbar-width: none; }
+.bview::-webkit-scrollbar { width: 0; height: 0; }
+:root[data-textscale="large"] .bview { overflow: visible; }
+
+/* ── rail ───────────────────────────────────────────────── */
+.rail {
+  flex: 0 0 var(--rail-w); width: var(--rail-w);
+  border-left: var(--stroke-rule) solid var(--rule-strong);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 0 var(--s-8) var(--s-24); position: relative; z-index: 3;
+}
+.rkey {
+  width: var(--rail-key); height: var(--rail-key); min-height: 60px;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label);
+  letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink);
+  border-bottom: var(--stroke-rule) solid var(--rule-bay);
+  transition: background-color var(--dur-press) var(--ease-mech);
+  line-height: 1.05; padding: 2px;
+}
+.rkey:first-child { border-top: var(--stroke-rule) solid var(--rule-bay); }
+.rkey:active { background: var(--key-pressed); }
+.rkey.is-latched { background: var(--holder); box-shadow: inset 0 0 0 var(--stroke-frame) var(--ink); }
+.rkey.is-off { color: var(--ink-disabled); cursor: default; }
+
+/* ── bay ────────────────────────────────────────────────── */
+.bayh {
+  min-height: var(--bay-header); display: flex; align-items: center; gap: var(--s-8);
+  border-top: var(--stroke-rule) solid var(--rule-bay); padding: 2px var(--s-8) 2px 0;
+}
+/* line-height 1 on both children is load-bearing, not cosmetic: inheriting
+   the 1.45 prose leading pushed a 22px count to a 31.9px box and the bay
+   header to 38pt, which is what put the pen board over its 695pt budget.
+   20pt caps + 4 padding + 2 rule = 28. */
+.bayh .lbl { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-bay); line-height: var(--lh-bay); letter-spacing: var(--tr-bay); text-transform: uppercase; color: var(--ink-2); padding-left: var(--s-8); }
+.bayh .lbl.skip { color: var(--ink-3); }
+.bayh .cnt { margin-left: auto; font-family: var(--font-mono); font-size: var(--type-mono); line-height: 1; color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.bayh.strongtop { border-top-color: var(--rule-strong); }
+
+/* ── strip ──────────────────────────────────────────────── */
+.strip {
+  display: block; width: 100%; min-height: var(--strip-h);
+  background: var(--strip); border-bottom: var(--stroke-rule) solid var(--rule-bay);
+  position: relative; transition: background-color var(--dur-press) var(--ease-mech);
+}
+.strip:active { background: var(--key-pressed); }
+.strip.dim { opacity: var(--dim-unlit); }
+.strip.behind { opacity: var(--dim-board); }
+.strip.lift {
+  min-height: var(--strip-lift-h); background: var(--strip-lift);
+  box-shadow: inset 0 0 0 var(--stroke-frame) var(--rule-strong); border-bottom: 0;
+}
+.sbody {
+  display: flex; align-items: center; flex-wrap: wrap; row-gap: var(--s-4);
+  /* §4.4 — strip pitch is 72, not 74: the 2pt bay divider is the strip's own
+     bottom border and must cost no height, so it comes out of the body box. */
+  min-height: calc(var(--strip-h) - var(--hours-bar-h) - var(--stroke-rule));
+  padding: var(--s-4) var(--s-4) var(--s-4) 0;
+}
+.strip.lift .sbody { min-height: calc(var(--strip-lift-h) - var(--hours-bar-h)); align-items: flex-start; padding-top: var(--s-12); }
+.boot { flex: 0 0 var(--stroke-boot); width: var(--stroke-boot); align-self: stretch; background: transparent; }
+.s-pen  > .sbody > .boot { background: var(--edge-pen); }
+.s-ready > .sbody > .boot { background: var(--edge-ready); }
+.s-watch > .sbody > .boot { background: var(--edge-watch); }
+.s-rx    > .sbody > .boot { background: var(--edge-withdrawal); }
+.s-filed > .sbody > .boot { background: var(--edge-filed); }
+.s-flag  > .sbody > .boot { background: var(--edge-flag); animation: flashboot var(--flash-warning) steps(1, end) infinite; }
+@keyframes flashboot { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.35; } }
+
+.c-tag {
+  flex: 0 0 auto; min-width: 80px; padding-left: var(--s-8);
+  font-family: var(--font-tag); font-weight: var(--wt-tag);
+  font-size: var(--type-tag-xl); line-height: var(--lh-tag-xl);
+  letter-spacing: var(--tr-tag); font-feature-settings: var(--num-tag);
+  color: var(--ink);
+}
+.c-tag.sm { font-size: var(--type-tag-md); min-width: 64px; }
+.c-pen {
+  flex: 0 0 34px; align-self: stretch; display: flex; align-items: center; justify-content: center;
+  border-right: var(--stroke-hair) solid var(--rule-cell);
+  font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-md);
+  color: var(--ink-2); font-feature-settings: var(--num-tag);
+}
+/* §7.1 cell widths are FIXED; only the state cell flexes, and it flexes from
+   a zero basis. With `flex: 1 1 auto` the state cell's content became its base
+   size, so a long state string pushed the clip tab onto a second flex line and
+   the strip grew from 72 to 109 — the tab is the redundancy channel that must
+   never move. From zero it absorbs the remainder instead. */
+.c-state { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-right: var(--s-4); }
+.c-state .sw2 { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); line-height: var(--lh-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.c-state .sq { font-family: var(--font-mono); font-size: var(--type-mono-sm); line-height: var(--lh-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.c-lit { flex: 0 0 40px; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.c-lit .n { font-family: var(--font-mono); font-weight: var(--wt-mono-md); font-size: var(--type-mono); line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.c-lit .u { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); line-height: var(--lh-label); letter-spacing: var(--tr-label); color: var(--ink-3); }
+.c-time { flex: 0 0 46px; min-width: 0; text-align: right; padding-right: var(--s-4); font-family: var(--font-mono); font-size: var(--type-mono); line-height: var(--lh-mono); color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.c-time.wide { flex-basis: 70px; font-size: var(--type-mono-sm); }
+
+/* clip tab — 6pt outline, no fill, always a WORD */
+.tab {
+  flex: 0 0 auto; min-width: var(--tab-w); min-height: var(--tab-h); margin-left: var(--s-4); margin-right: calc(var(--s-4) * -1);
+  display: flex; align-items: center; justify-content: center;
+  border: var(--stroke-tab) solid var(--rule-strong); color: var(--ink);
+  font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label);
+  letter-spacing: 0.02em; text-transform: uppercase; text-align: center; line-height: 1;
+}
+.tab.t-over, .tab.t-due { border-color: var(--edge-watch); animation: flashboot var(--flash-caution) steps(1, end) infinite; }
+.tab.t-rx { border-color: var(--edge-withdrawal); }
+.tab.t-check { border-color: var(--edge-flag); animation: flashboot var(--flash-warning) steps(1, end) infinite; }
+.tab.t-seen { min-width: var(--tab-w-seen); border-color: var(--rule-strong); font-size: var(--type-mono-sm); font-family: var(--font-mono); letter-spacing: 0; text-transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .tab.t-over, .tab.t-due, .tab.t-check, .s-flag > .sbody > .boot { animation: none; }
+  .tab.t-over, .tab.t-due, .tab.t-check { box-shadow: inset 0 0 0 2px var(--board), inset 0 0 0 4px currentColor; }
+}
+
+/* hours bar — 300 x 6, track + fill + 3pt threshold tick */
+.hbar { display: block; position: relative; height: var(--hours-bar-h); background: var(--bar-track); }
+.hbar .hfill { position: absolute; inset: 0 auto 0 0; background: var(--bar-fill); }
+.hbar .htick { position: absolute; top: -2px; bottom: -2px; width: var(--stroke-heavy); background: var(--ink); }
+
+/* ── sub-strip ──────────────────────────────────────────── */
+.substrip {
+  display: block; width: calc(100% - var(--substrip-inset)); margin-left: var(--substrip-inset);
+  min-height: var(--substrip-h); background: var(--holder);
+  border-bottom: var(--stroke-hair) solid var(--rule-cell);
+  display: flex; align-items: center; gap: var(--s-8); padding: var(--s-8) var(--s-8) var(--s-8) var(--s-12);
+  flex-wrap: wrap; row-gap: var(--s-4);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.substrip:active { background: var(--key-pressed); }
+.substrip .ss-tag { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-md); line-height: 1; color: var(--ink); flex: 0 0 auto; font-feature-settings: var(--num-tag); }
+.substrip .ss-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.substrip .ss-l1 { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); line-height: var(--lh-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.substrip .ss-l2 { font-family: var(--font-mono); font-size: var(--type-mono-sm); line-height: var(--lh-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.substrip .ss-l2.prose { font-family: var(--font-prose); font-size: var(--type-prose); line-height: var(--lh-prose); color: var(--ink-2); text-transform: none; letter-spacing: 0; }
+.substrip .ss-r { flex: 0 0 auto; font-family: var(--font-mono); font-size: var(--type-mono); line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.substrip.lift { min-height: var(--strip-lift-h); background: var(--strip-lift); box-shadow: inset 0 0 0 var(--stroke-frame) var(--rule-strong); align-items: flex-start; }
+
+/* ── +N MORE row ────────────────────────────────────────── */
+.morerow {
+  display: flex; width: 100%; min-height: var(--more-row-h); align-items: center; gap: var(--s-12);
+  background: var(--bay-well); border-bottom: var(--stroke-rule) solid var(--rule-bay);
+  padding: var(--s-8) var(--s-8) var(--s-8) var(--s-16); flex-wrap: wrap; row-gap: var(--s-4);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.morerow:active { background: var(--key-pressed); }
+.morerow .mn { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-lg); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.morerow .mt { font-family: var(--font-mono); font-size: var(--type-mono); line-height: var(--lh-mono); color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+
+/* ── NEW strip — permanent, self-labelling, on every screen ── */
+.newstrip {
+  display: flex; width: 100%; min-height: var(--strip-h); align-items: center; gap: var(--s-12);
+  background: var(--strip); border-top: var(--stroke-rule) solid var(--rule-strong);
+  border-bottom: var(--stroke-rule) solid var(--rule-bay); padding: var(--s-8) var(--s-8) var(--s-8) var(--s-16);
+  flex-wrap: wrap; row-gap: var(--s-4);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.newstrip:active { background: var(--key-pressed); }
+.newstrip .nw { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-xl); line-height: 1; color: var(--ink); letter-spacing: var(--tr-tag); }
+.newstrip .nh { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); line-height: var(--lh-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-3); }
+
+/* ── empty pen slot — 300 x 24, no fill, not a target ──── */
+.penempty {
+  display: flex; min-height: var(--pen-empty-h); align-items: center; justify-content: space-between;
+  padding: 0 var(--s-8) 0 var(--s-12); border-bottom: var(--stroke-hair) solid var(--rule-cell);
+  font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label);
+  line-height: 1; letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-3);
+}
+/* Empty slots pair up 2 × 150 so the EMPTY bay keeps its header and the
+   pen board still closes at 660 of 695 pt. They are read-only, so the
+   2 × 150 division costs nothing — no target ever gets smaller. */
+.penrow { display: grid; grid-template-columns: repeat(2, 1fr); border-bottom: var(--stroke-hair) solid var(--rule-cell); }
+.penrow .penempty { border-bottom: 0; }
+.penrow .penempty + .penempty { border-left: var(--stroke-hair) solid var(--rule-cell); }
+
+/* ── keypad ─────────────────────────────────────────────── */
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--rule-bay); gap: var(--stroke-rule); }   /* 4x72 + 3x2 = 294 */
+.key {
+  min-height: var(--key-h); background: var(--holder);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-xl);
+  line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.key:active { background: var(--key-pressed); }
+.key.word { font-size: var(--type-tag-md); letter-spacing: var(--tr-label); }
+.key.small { font-size: var(--type-label); letter-spacing: var(--tr-label); text-align: center; padding: 2px; }
+.key.is-off { color: var(--ink-disabled); cursor: default; }
+.key.is-off:active { background: var(--holder); }
+
+.readout {
+  display: flex; align-items: center; gap: var(--s-12); min-height: var(--strip-h);
+  background: var(--bay-well); padding: var(--s-8) var(--s-12);
+  border-top: var(--stroke-rule) solid var(--rule-strong); flex-wrap: wrap;
+}
+.readout .typed { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-xl); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.readout .caret { width: var(--stroke-rule); height: 40px; background: var(--ink); }
+.readout .cnt { margin-left: auto; font-family: var(--font-mono); font-size: var(--type-mono); line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+
+/* ── slabs (segmented choice, 3+2 — never 5 across) ────── */
+.slabrow { display: grid; gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.slabrow.g3 { grid-template-columns: repeat(3, 1fr); }
+.slabrow.g2 { grid-template-columns: repeat(2, 1fr); }
+.slabrow.g2-13 { grid-template-columns: 1fr 2fr; }
+.slabrow.g4 { grid-template-columns: repeat(4, 1fr); }
+:root[data-textscale="large"] .slabrow.g3 { grid-template-columns: repeat(2, 1fr); }
+:root[data-textscale="large"] .slabrow.g4 { grid-template-columns: repeat(2, 1fr); }
+.slab {
+  min-height: var(--slab-h); background: var(--holder);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-4);
+  padding: var(--s-8) var(--s-4); text-align: center;
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.slab:active { background: var(--key-pressed); }
+.slab .num { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-xl); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.slab .word { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); line-height: 1.1; }
+.slab .stamp { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); min-height: calc(var(--type-mono-sm) * var(--lh-mono-sm)); font-variant-numeric: tabular-nums slashed-zero; }
+.slab.is-sel { background: var(--strip-lift); box-shadow: inset 0 0 0 var(--stroke-frame) var(--ink); }
+.slab.is-sel .word { color: var(--ink); }
+.slab.is-sel .stamp { color: var(--ink-2); }
+.slab.is-warn { box-shadow: inset 0 0 0 var(--stroke-frame) var(--edge-flag); }
+.slab.is-off { color: var(--ink-disabled); cursor: default; }
+.slab.is-off .num, .slab.is-off .word { color: var(--ink-disabled); }
+.slab.act { min-height: var(--field-h); }
+.slab.act .word { font-size: var(--type-bay); letter-spacing: var(--tr-bay); color: var(--ink); }
+
+/* ── care check — 150 x 76, 2-up ────────────────────────── */
+.checks { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+:root[data-textscale="large"] .checks { grid-template-columns: 1fr; }
+.check {
+  min-height: var(--check-h); background: var(--holder); display: flex; align-items: center; gap: var(--s-12);
+  padding: var(--s-8) var(--s-8) var(--s-8) var(--s-12);
+  transition: background-color var(--dur-press) var(--ease-mech);
+}
+.check:active { background: var(--key-pressed); }
+.check .box { flex: 0 0 36px; width: 36px; height: 36px; border: var(--stroke-rule) solid var(--rule-strong); display: flex; align-items: center; justify-content: center; }
+.check.on .box { background: var(--ink); border-color: var(--ink); color: var(--board); }
+.check .box svg { display: block; }
+.check .txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.check .cl { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink); line-height: 1.1; }
+.check .cs { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; min-height: 1px; }
+.check.undone .cs { color: var(--ink-3); }
+
+/* ── text field — 300 x 76 ──────────────────────────────── */
+.field { min-height: var(--field-h); padding: var(--s-8) var(--s-8) 0 var(--s-12); border-bottom: var(--stroke-rule) solid var(--rule-strong); display: flex; flex-direction: column; gap: var(--s-4); background: transparent; width: 100%; }
+.field .fl { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.field .fv { font-size: var(--type-prose); color: var(--ink); padding-bottom: var(--s-8); }
+.field .fv.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums slashed-zero; }
+.field .fv.empty { color: var(--ink-3); font-family: var(--font-mono); letter-spacing: 0.1em; }
+.field.dotted { border-bottom: var(--stroke-rule) dotted var(--rule-strong); }
+/* Two fields on the 2 x 150 division. NOT .slabrow — that container paints
+   --rule-bay as its gutter and a transparent .field would sit ON the rule,
+   putting --ink-2 at 2.67:1. Field faces are --board; only the 2pt gutters
+   are rule. */
+.fieldrow { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.fieldrow .field { background: var(--board); border-bottom: 0; }
+:root[data-textscale="large"] .fieldrow { grid-template-columns: 1fr; }
+.field .fhint { font-size: var(--type-prose); color: var(--ink-3); padding-bottom: var(--s-4); }
+.fcap { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); padding: var(--s-8) var(--s-12); }
+
+/* ── stepper — 300 x 148 ────────────────────────────────── */
+.stepper { border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.stepper .rdout { min-height: var(--field-h); padding: var(--s-8) var(--s-12); display: flex; flex-direction: column; gap: var(--s-4); background: transparent; }
+.stepper .rdout .sl { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.stepper .rdout .sv { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-lg); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.stepper .rdout .sv .unit { font-size: var(--type-label); letter-spacing: var(--tr-label); color: var(--ink-3); }
+.stepper .rdout .sv.empty { font-family: var(--font-mono); color: var(--ink-3); letter-spacing: 0.1em; font-size: var(--type-mono-lg); }
+.stepkeys { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--stroke-rule); background: var(--rule-bay); border-top: var(--stroke-rule) solid var(--rule-bay); }
+.stepkeys.two { grid-template-columns: repeat(2, 1fr); }   /* 2 × 150, not 2 of 4 × 75 */
+:root[data-textscale="large"] .stepkeys { grid-template-columns: repeat(2, 1fr); }
+.stepkey { min-height: var(--key-h); background: var(--holder); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-weight: var(--wt-mono-md); font-size: var(--type-mono); color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; transition: background-color var(--dur-press) var(--ease-mech); }
+.stepkey:active { background: var(--key-pressed); }
+
+/* ── countdown sub-strip ────────────────────────────────── */
+.countdown { width: calc(100% - var(--substrip-inset)); margin-left: var(--substrip-inset); background: var(--holder); border-bottom: var(--stroke-hair) solid var(--rule-cell); display: flex; }
+.countdown .cbody { flex: 1 1 auto; min-width: 0; padding: var(--s-8) var(--s-8) 0 var(--s-12); }
+.countdown .cr1 { display: flex; align-items: baseline; gap: var(--s-8); flex-wrap: wrap; }
+.countdown .cw { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.countdown .cd { margin-left: auto; font-family: var(--font-mono); font-weight: var(--wt-mono-md); font-size: var(--type-mono-lg); color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.countdown .cr2 { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); padding: var(--s-4) 0 var(--s-8); font-variant-numeric: tabular-nums slashed-zero; }
+.countdown .ctag { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-md); color: var(--ink); font-feature-settings: var(--num-tag); }
+
+/* ── drawer ─────────────────────────────────────────────── */
+.drawer {
+  position: absolute; left: 0; right: var(--rail-w); bottom: 0; z-index: 2;
+  max-height: 620px; overflow-y: auto; scrollbar-width: none;   /* §7.15 — never the whole screen */
+  background: var(--drawer); border-top: var(--stroke-rule) solid var(--rule-strong);
+  border-radius: var(--radius-lip) var(--radius-lip) 0 0;
+}
+.drawer::-webkit-scrollbar { width: 0; }
+:root[data-textscale="large"] .fbody { flex-wrap: wrap; }
+:root[data-textscale="large"] .board { flex: 1 1 200px; }
+:root[data-textscale="large"] .drawer { position: static; order: 3; flex: 1 0 100%; max-height: none; overflow: visible; border-radius: 0; }
+.drawer .lip { display: block; width: 96px; height: 4px; background: var(--edge-filed); margin: var(--s-4) auto 0; }
+.drawer .dhead { display: flex; align-items: center; gap: var(--s-8); min-height: 40px; padding: var(--s-4) var(--s-8) var(--s-4) var(--s-12); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.drawer .dhead .dt { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-bay); letter-spacing: var(--tr-bay); text-transform: uppercase; color: var(--ink); }
+.drawer .dhead .dm { margin-left: auto; font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+
+/* ── chart: a bay of read-only day-strips ──────────────── */
+.chartrow { display: grid; grid-template-columns: 52px 1fr 44px; gap: var(--s-8); align-items: center; min-height: 24px; padding: 0 var(--s-8) 0 var(--s-12); }
+:root[data-textscale="large"] .chartrow { grid-template-columns: 76px 1fr 64px; min-height: 40px; }
+.chartrow .cl { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.chartrow .ctrack { position: relative; height: 12px; background: var(--rule-cell); }
+.chartrow .cfill { position: absolute; inset: 0 auto 0 0; background: var(--bar-fill); }
+.chartrow .ctick { position: absolute; top: -3px; bottom: -3px; width: var(--stroke-heavy); background: var(--ink); }
+.chartrow .cv { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink); text-align: right; font-variant-numeric: tabular-nums slashed-zero; }
+.chartrow.zero .ctrack { background: transparent; }
+
+/* ── comparison gauge ───────────────────────────────────── */
+.gauge { min-height: var(--strip-h); background: var(--strip); border-bottom: var(--stroke-rule) solid var(--rule-bay); padding: var(--s-8) var(--s-12); display: flex; flex-direction: column; gap: var(--s-8); }
+.gauge .grow { display: flex; align-items: baseline; gap: var(--s-12); flex-wrap: wrap; }
+.gauge .gy { font-family: var(--font-mono); font-size: var(--type-mono); line-height: 1; color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+.gauge .gv { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-lg); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.gauge .gd { margin-left: auto; font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+.gauge .gtrack { position: relative; height: 6px; background: var(--bar-track); }
+.gauge .gfill { position: absolute; inset: 0 auto 0 0; background: var(--bar-fill); }
+.gauge .gtick { position: absolute; top: -3px; bottom: -3px; width: var(--stroke-heavy); background: var(--ink); }
+
+/* ── stat grid ──────────────────────────────────────────── */
+.statgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.stat { background: var(--drawer); min-height: var(--field-h); padding: var(--s-8) var(--s-12); display: flex; flex-direction: column; gap: var(--s-4); justify-content: center; }
+.stat .sk { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-3); }
+.stat .sv { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-lg); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+
+/* ── misc rows ──────────────────────────────────────────── */
+.prosebox { padding: var(--s-12); font-size: var(--type-prose); line-height: var(--lh-prose); color: var(--ink); }
+.prosebox.q { color: var(--ink-2); }
+.framedbox { margin: var(--s-12); border: var(--stroke-rule) solid var(--rule-strong); padding: var(--s-12); font-size: var(--type-prose); line-height: var(--lh-prose); color: var(--ink); }
+.framedbox.danger { border-color: var(--edge-flag); }
+.gapboard { height: var(--s-48); background: var(--board); }
+.summaryrow { min-height: var(--field-h); padding: var(--s-12); font-size: var(--type-prose-lg); line-height: var(--lh-prose-lg); color: var(--ink); border-bottom: var(--stroke-rule) solid var(--rule-bay); background: var(--board); }
+.timerow { min-height: 60px; display: flex; align-items: center; gap: var(--s-12); padding: var(--s-8) var(--s-8) var(--s-8) var(--s-12); border-bottom: var(--stroke-rule) solid var(--rule-bay); flex-wrap: wrap; }
+.timerow .tv { font-family: var(--font-mono); font-weight: var(--wt-mono-md); font-size: var(--type-mono-lg); color: var(--ink); font-variant-numeric: tabular-nums slashed-zero; }
+.timerow .auto { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); border: var(--stroke-rule) solid var(--rule-bay); padding: 2px var(--s-8); }
+.timerow .was { flex: 1 0 100%; font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+.timerow .chg { margin-left: auto; min-height: 60px; min-width: 92px; display: flex; align-items: center; justify-content: center; background: var(--holder); font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink); }
+.fixedhdr { background: var(--bay-well); border-top: var(--stroke-rule) solid var(--rule-strong); border-bottom: var(--stroke-rule) solid var(--rule-strong); padding: var(--s-12); }
+.fixedhdr .l1 { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink); line-height: 1.25; }
+.fixedhdr .l2 { font-size: var(--type-prose); color: var(--ink-2); margin-top: var(--s-4); }
+.damgrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+:root[data-textscale="large"] .damgrid { grid-template-columns: 1fr; }
+.dam { background: var(--holder); min-height: 110px; padding: var(--s-8) var(--s-12); display: flex; flex-direction: column; gap: var(--s-4); justify-content: center; }
+.dam.locked { box-shadow: inset 0 0 0 var(--stroke-rule) var(--rule-strong); cursor: default; }
+.dam .dk { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); }
+.dam .dv { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-tag-xl); line-height: 1; color: var(--ink); font-feature-settings: var(--num-tag); }
+.dam .dn { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+
+.exportrow { display: flex; width: 100%; min-height: 72px; align-items: center; gap: var(--s-12); padding: var(--s-8) var(--s-12); border-bottom: var(--stroke-rule) solid var(--rule-bay); background: var(--drawer); flex-wrap: wrap; transition: background-color var(--dur-press) var(--ease-mech); }
+.exportrow:active { background: var(--key-pressed); }
+.exportrow .ex { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.exportrow .e1 { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink); }
+.exportrow .e2 { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); font-variant-numeric: tabular-nums slashed-zero; }
+.exportrow .estamp { flex: 0 0 auto; display: flex; align-items: center; gap: var(--s-4); font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-2); font-variant-numeric: tabular-nums slashed-zero; }
+
+.setrow { display: flex; align-items: stretch; gap: var(--stroke-rule); background: var(--rule-bay); border-bottom: var(--stroke-rule) solid var(--rule-bay); }
+.setrow .sname { flex: 1 1 auto; min-width: 0; background: var(--drawer); display: flex; align-items: center; padding: var(--s-8) var(--s-12); font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink); }
+.setrow .sopt { flex: 0 0 96px; min-height: 72px; background: var(--holder); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-label); letter-spacing: var(--tr-label); text-transform: uppercase; color: var(--ink-2); text-align: center; transition: background-color var(--dur-press) var(--ease-mech); }
+.setrow .sopt:active { background: var(--key-pressed); }
+.setrow .sopt.on { background: var(--strip-lift); box-shadow: inset 0 0 0 var(--stroke-frame) var(--ink); color: var(--ink); }
+:root[data-textscale="large"] .setrow { flex-wrap: wrap; }
+:root[data-textscale="large"] .setrow .sname { flex-basis: 100%; }
+:root[data-textscale="large"] .setrow .sopt { flex: 1 0 40%; }
+
+/* ============================================================
+   PRESS-STATE INK FLOOR — §2.4 enforced, not asserted.
+   --ink-3 on --key-pressed computes to 4.45:1 and is the one
+   text pair in the dark palette that would fail 1.4.3. The
+   system's answer is that a pressed surface carries --ink-2 or
+   brighter and never --ink-3, so the pair cannot occur. This
+   rule is what makes "worst pair 5.25:1" a true statement
+   rather than a hopeful one.
+   ============================================================ */
+.strip:active .sq,
+.strip:active .c-lit .u,
+.substrip:active .ss-l2,
+.newstrip:active .nh,
+.slab:active .stamp,
+.check:active .cs,
+.check:active.undone .cs,
+.exportrow:active .e2,
+.tg:active .tg-state { color: var(--ink-2); }
+
+/* ── figure caption ─────────────────────────────────────── */
+.fig figcaption { margin-top: var(--s-12); }
+.fig .fnum { font-family: var(--font-tag); font-weight: var(--wt-tag); font-size: var(--type-bay); letter-spacing: var(--tr-bay); text-transform: uppercase; color: var(--ink); display: block; }
+.fig .fclock { font-family: var(--font-mono); font-size: var(--type-mono-sm); color: var(--ink-3); display: block; margin-top: var(--s-4); font-variant-numeric: tabular-nums slashed-zero; }
+.fig .fdesc { color: var(--ink-2); font-size: var(--type-prose); margin-top: var(--s-8); }
+
+@media (max-width: 430px) {
+  .frames { zoom: 0.82; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══════════════════════════════════════════════════════════════
+     1 · MASTHEAD
+     ══════════════════════════════════════════════════════════════ -->
+<header class="masthead">
+  <p class="eyebrow">Shed Book · design direction 1 of 3 · interactive mockup</p>
+  <h1>Strip&nbsp;Bay</h1>
+  <p class="subline">OFFLINE LAMBING NOTEBOOK · iOS + ANDROID · 390 × 844 · DARK IS THE ONLY BASE THEME · v1.0</p>
+
+  <div class="thesis">
+    <p><strong>A list is a filing decision; a shed is a place</strong>, and the shepherd already carries its map in their head. Air traffic control kept paper flight progress strips for forty years after everyone predicted their death, because position carries meaning: each aircraft is a strip in a holder, the arrangement <em>is</em> the mental picture, and controllers never search. Shed Book should be a strip bay — every animal in play is one horizontal strip in a labelled bay, and you never look <em>for</em> her, you look <em>at the wall</em>.</p>
+    <p>Two inversions make it beat the whiteboard it replaces. First, <strong>strips are never wiped, they are FILED</strong>: turning out slides a strip off the board into the book, and the board is clean by morning with not one record lost — the one thing paper genuinely cannot do, and the whole argument. Second, nuclear-control-room dark-board discipline: <strong>a bay with nothing wrong in it renders as flat black.</strong> On a quiet night the board is nearly empty, and that emptiness is the reading — the app telling you, in the strongest visual language available, go back to bed.</p>
+  </div>
+
+  <h2 class="vh">Position on the nine design axes</h2>
+  <table class="axes">
+    <caption class="vh">Strip Bay's position on each of the nine design axes</caption>
+    <tbody>
+      <tr><th scope="row">Navigation</th><td>One persistent board that morphs, plus a five-key edge rail that re-legends by context. No tabs, no home, no back stack. Secondary functions (medicine book, season, export) push up as a drawer over the board and never replace it. You never go anywhere; the board changes what it is showing you.</td></tr>
+      <tr><th scope="row">Density</th><td>Dense instrument panel — deliberately the densest of the three. Nine to twelve 72pt strips visible, each carrying tag, bay, hours-since, litter and flag state simultaneously. Every bay caps at five full strips plus a +N MORE strip, so the board never scrolls during an entry.</td></tr>
+      <tr><th scope="row">Typographic voice</th><td>Heavy condensed grotesque for identity, tabular monospace for duration. One rule, held everywhere: tags are condensed (a strip has fixed width and the tag must be enormous), every time and elapsed hour is monospaced so a column of timers scans as a shape rather than as prose. Prose reverts to humanist sans.</td></tr>
+      <tr><th scope="row">Geometry</th><td>Hard rectilinear — a rectangle inside a rectangle inside a rectangle: the strip, its holder, its bay. Zero radius anywhere except a 4pt drawer lip. Bay dividers are 2pt rules, not gaps.</td></tr>
+      <tr><th scope="row">Colour strategy</th><td>Semantic multi-hue coding on near-black, confined absolutely to an 8pt strip-holder left edge and never applied to type — the plastic strip boot, from ATC directional coding and raddle-crayon convention. Every coloured edge is redundant with a printed word, so red-shift collapses the hues to a luminance ramp and loses no information. An empty bay has no fill at all: black means fine.</td></tr>
+      <tr><th scope="row">Data representation</th><td>Spatial map plus bar-and-gauge. Position is the primary datum — which bay a strip sits in tells you its state before you read a character. Each strip carries a horizontal hours-penned fill bar with a tick at the user's own turn-out threshold, so time is a shape readable from three metres, not a number you have to parse.</td></tr>
+      <tr><th scope="row">Primary input</th><td>List-tap and two-tap move. Tap the strip, tap the destination bay. Never a drag — ATC's own digital-strip research shows the drag is exactly what fails under load, and gloves make it worse. Arranging bays uses four nudge keys. The keypad is the fallback for an animal not already on the board, never the front door.</td></tr>
+      <tr><th scope="row">Layout anchor</th><td>Right edge rail, mirrorable — five 72×72pt softkeys down the dominant-hand side, a better one-thumb reach than a bottom bar when the phone is held high over a pen. A tapped strip lifts out of its bay to centre stage at double height with its action row beneath, while the rest of the board holds at 35% so you never lose the shed.</td></tr>
+      <tr><th scope="row">Ornament level</th><td>Heavy borders and rules, all of it structural — holders, bays, clip tabs, threshold ticks. No glow, no gradient, no shadow, no texture, no icon, no illustration. Nothing that is not also a boundary.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="toggles">
+    <button type="button" class="tg" id="tg-theme" aria-pressed="false">
+      <span class="tg-name">Red-shift</span>
+      <span class="tg-state">OFF · DARK PALETTE</span>
+    </button>
+    <button type="button" class="tg" id="tg-scale" aria-pressed="false">
+      <span class="tg-name">Large text</span>
+      <span class="tg-state">OFF · 100%</span>
+    </button>
+    <p class="tg-note">Both toggles swap real CSS custom properties on the root element. Red-shift is a second full palette, not a filter — all six semantic hues collapse to one ordinal luminance ramp and nothing is lost, because every boot was already redundant with a printed word. Large text runs the whole system at ~160%: the strip goes two-line, the 3-across motor grid drops to 2-across, and the 8pt boot and 6pt hours bar do not scale, because they are instruments, not type.</p>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════════════════════════
+     2 · TOKEN PANEL
+     ══════════════════════════════════════════════════════════════ -->
+<section class="panel" aria-labelledby="tokens-h">
+  <div class="sechead">
+    <h2 id="tokens-h">The system in one block</h2>
+    <span class="count">TOKENS · TYPE · SPACE · GEOMETRY · COMPONENTS</span>
+  </div>
+  <p class="lede">Every value below is a CSS custom property on <code>:root</code>. Contrast ratios are computed per WCAG 2.2 relative luminance, not estimated. Worst readable text pair in the dark theme is <strong>5.25 : 1</strong> (ink-3 on strip-lift); worst in red-shift is <strong>4.89 : 1</strong> (ink-3 on strip-lift). Those two are only true because of a rule the stylesheet actually enforces: <strong>ink-3 is never placed on key-pressed</strong>, the one pair that computes to 4.45 : 1, so every pressed surface lifts its captions to ink-2 (6.17 : 1 dark, 6.32 : 1 red-shift) for the 90 ms it is down. Switch the Red-shift toggle above and every hex and ratio on this page changes with it.</p>
+
+  <h3 class="subhead"><span>Surfaces — separated by rules, not by luminance</span><span class="n">ratio = --ink on that surface</span></h3>
+  <div class="swatches">
+    <div class="sw"><i class="chip" style="background:var(--board)"></i><div class="meta"><span class="tok">--board</span><span class="val v-dk">#0C0D0E · L 0.00398 · 15.47:1</span><span class="val v-rs">#0A0708 · L 0.00234 · 9.75:1</span><span class="role">The wall. An empty bay is this and nothing else.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--bay-well)"></i><div class="meta"><span class="tok">--bay-well</span><span class="val v-dk">#101315 · L 0.00630 · 14.84:1</span><span class="val v-rs">#0E0A0B · L 0.00335 · 9.57:1</span><span class="role">Bay interior. +N MORE row, typed readout.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--holder)"></i><div class="meta"><span class="tok">--holder</span><span class="val v-dk">#16191B · L 0.00945 · 14.05:1</span><span class="val v-rs">#140E0F · L 0.00497 · 9.29:1</span><span class="role">Strip-holder recess; keypad key face.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--strip)"></i><div class="meta"><span class="tok">--strip</span><span class="val v-dk">#1A1D20 · L 0.01203 · 13.47:1</span><span class="val v-rs">#181112 · L 0.00639 · 9.05:1</span><span class="role">The strip face. Primary reading surface.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--strip-lift)"></i><div class="meta"><span class="tok">--strip-lift</span><span class="val v-dk">#23272B · L 0.01983 · 11.96:1</span><span class="val v-rs">#231819 · L 0.01081 · 8.40:1</span><span class="role">Centre stage; face of a selected slab.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--drawer)"></i><div class="meta"><span class="tok">--drawer</span><span class="val v-dk">#0F1113 · L 0.00549 · 15.05:1</span><span class="val v-rs">#0D0909 · L 0.00301 · 9.63:1</span><span class="role">The drawer layer over the board.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--key-pressed)"></i><div class="meta"><span class="tok">--key-pressed</span><span class="val v-dk">#2E3338 · L 0.03234 · 10.14:1</span><span class="val v-rs">#241818 · L 0.01094 · 8.38:1</span><span class="role">90 ms press state. Carries --ink only.</span></div></div>
+  </div>
+
+  <h3 class="subhead"><span>Ink — never pure white</span><span class="n">ratio vs --board</span></h3>
+  <div class="swatches">
+    <div class="sw"><i class="chip" style="background:var(--ink)"></i><div class="meta"><span class="tok">--ink</span><span class="val v-dk">#E9E5DC · 15.47:1 board · 13.47:1 strip</span><span class="val v-rs">#E0A896 · 9.75:1 board · 9.05:1 strip</span><span class="role">Tags, digits, all primary type. AAA.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--ink-2)"></i><div class="meta"><span class="tok">--ink-2</span><span class="val v-dk">#B9B4A8 · 9.41:1 board · 8.19:1 strip</span><span class="val v-rs">#C69080 · 7.36:1 board · 6.83:1 strip</span><span class="role">Bay labels, state words, bar fill. AAA.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--ink-3)"></i><div class="meta"><span class="tok">--ink-3</span><span class="val v-dk">#9E988E · 6.80:1 board · 5.25:1 lift</span><span class="val v-rs">#B07C6C · 5.68:1 board · 4.89:1 lift</span><span class="role">Captions, hints, counts. Floor for text. AA.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--ink-disabled)"></i><div class="meta"><span class="tok">--ink-disabled</span><span class="val v-dk">#6E6960 · 3.57:1 — exempt</span><span class="val v-rs">#6A483F · 2.49:1 — exempt</span><span class="role">DISABLED CONTROLS ONLY. Never readable content.</span></div></div>
+  </div>
+
+  <h3 class="subhead"><span>Strip boot — 8 pt left edge, never applied to type</span><span class="n">vs board · vs strip · printed word</span></h3>
+  <div class="swatches">
+    <div class="sw"><i class="chip" style="background:var(--edge-pen)"></i><div class="meta"><span class="tok">--edge-pen</span><span class="val v-dk">#6E7B8B · 4.51:1 · 3.92:1</span><span class="val v-rs">#55352E · 1.85:1 · 1.72:1</span><span class="role">Prints <b>IN PEN 4</b> — penned, under threshold.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--edge-watch)"></i><div class="meta"><span class="tok">--edge-watch</span><span class="val v-dk">#C8892E · 6.55:1 · 5.70:1</span><span class="val v-rs">#B87A63 · 5.73:1 · 5.32:1</span><span class="role">Prints <b>OVER 40m</b> / <b>DUE</b> — 1 Hz caution.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--edge-ready)"></i><div class="meta"><span class="tok">--edge-ready</span><span class="val v-dk">#4E8C55 · 4.82:1 · 4.20:1</span><span class="val v-rs">#96604F · 3.90:1 · 3.62:1</span><span class="role">Prints <b>READY 31h</b> — past the threshold.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--edge-withdrawal)"></i><div class="meta"><span class="tok">--edge-withdrawal</span><span class="val v-dk">#96607D · 3.95:1 · 3.44:1</span><span class="val v-rs">#6E453B · 2.46:1 · 2.29:1</span><span class="role">Prints <b>WITHDRAWAL</b>. Lifted from the brief's #7A4A63, which computed to 2.77:1 and failed 1.4.11.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--edge-filed)"></i><div class="meta"><span class="tok">--edge-filed</span><span class="val v-dk">#9A958A · 6.52:1 · 5.67:1</span><span class="val v-rs">#3A2622 · 1.41:1 · 1.31:1</span><span class="role">Prints <b>FILED 04:41</b> — off the board, into the book.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--edge-flag)"></i><div class="meta"><span class="tok">--edge-flag</span><span class="val v-dk">#C4453B · 3.95:1 · 3.44:1</span><span class="val v-rs">#E0A896 · 9.75:1 · 9.05:1</span><span class="role">Prints <b>CHECK</b>. ONE USE ONLY in the whole app: an unresolved contradiction.</span></div></div>
+  </div>
+
+  <h3 class="subhead"><span>Rules and structure</span><span class="n">load-bearing graphics clear 3:1 · WCAG 1.4.11</span></h3>
+  <div class="swatches">
+    <div class="sw"><i class="chip" style="background:var(--rule-bay)"></i><div class="meta"><span class="tok">--rule-bay</span><span class="val v-dk">#626A6E · 3.53:1</span><span class="val v-rs">#78594E · 3.19:1</span><span class="role">2 pt. Bay dividers are rules, not gaps.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--rule-strong)"></i><div class="meta"><span class="tok">--rule-strong</span><span class="val v-dk">#848C91 · 5.69:1</span><span class="val v-rs">#9A7263 · 4.74:1</span><span class="role">2 pt. Headers, frames, the locked cell.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--rule-cell)"></i><div class="meta"><span class="tok">--rule-cell</span><span class="val v-dk">#363B3F · 1.72:1</span><span class="val v-rs">#2C1F1E · 1.26:1</span><span class="role">1 pt. DECORATIVE ONLY — never the sole carrier of anything.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--bar-fill)"></i><div class="meta"><span class="tok">--bar-fill</span><span class="val v-dk">#B9B4A8 · 9.41:1</span><span class="val v-rs">#C69080 · 7.36:1</span><span class="role">Hours fill, depletion, chart bars.</span></div></div>
+    <div class="sw"><i class="chip" style="background:var(--focus)"></i><div class="meta"><span class="tok">--focus</span><span class="val v-dk">#E9E5DC · 15.47:1</span><span class="val v-rs">#E0A896 · 9.75:1</span><span class="role">4 pt ring at 2 pt offset. Never below 10:1.</span></div></div>
+  </div>
+
+  <h3 class="subhead"><span>Type scale — hard floor of 18 pt, no exceptions anywhere</span><span class="n">3 faces · 1 job each</span></h3>
+  <div class="typescale">
+    <div class="ts-row"><span class="ts-meta">--type-tag-xl · 44/1.00 · 700</span><span class="t-tag" style="font-size:var(--type-tag-xl)">412 128 305</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-tag-lg · 34/1.00 · 700</span><span class="t-tag" style="font-size:var(--type-tag-lg)">+2 MORE · 187%</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-tag-md · 26/1.00 · 700</span><span class="t-tag" style="font-size:var(--type-tag-md)">L1 L2 L3 · DEL</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-bay · 20/1.00 · 700 · +0.14em</span><span class="t-bay">WITHDRAWAL · READY</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-mono-lg · 26/1.10 · 500</span><span class="t-mono" style="font-size:var(--type-mono-lg);font-weight:var(--wt-mono-md)">03:20 · 9 DAYS</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-mono · 22/1.15 · 400</span><span class="t-mono" style="font-size:var(--type-mono)">31h 26h 18h 9h 4h</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-mono-sm · 18/1.20 · 400</span><span class="t-mono" style="font-size:var(--type-mono-sm)">SEEN 04:12 · B0X4471</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-prose-lg · 21/1.40 · 400</span><span style="font-size:var(--type-prose-lg)">3 seasons · avg 2.0 · assisted twice</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-prose · 19/1.45 · 400 · BODY</span><span style="font-size:var(--type-prose)">Read it from the bottle label.</span></div>
+    <div class="ts-row"><span class="ts-meta">--type-label · 18/1.20 · 700 · +0.08em</span><span class="t-label">IN PEN 4 · CHECK · NEW</span></div>
+  </div>
+  <p class="lede" style="margin-top:var(--s-16)">At arm's length (600&nbsp;mm) a 44&nbsp;pt Roboto Condensed cap subtends <strong>29.7 arcminutes</strong> — 1.35× the ISO 9241-303 preferred band and 1.85× its minimum. At one metre across a pen it is 17.8′, still above the ISO minimum but below preferred, which is exactly why the hours <em>bar</em>, not the number, is what carries duration at distance. Numerals: tags are proportional (a tag is a name, and the fixed 96 pt cell does the aligning); every time, duration, weight and count is tabular with a slashed zero, because <code>0</code>/<code>O</code> confusion in a batch number is a safety issue.</p>
+
+  <h3 class="subhead"><span>Space — 4 pt base, only these values exist</span><span class="n">no 6 · no 10 · no 14</span></h3>
+  <div class="spacescale">
+    <div class="sp-row"><span class="sp-name">--s-2</span><span class="sp-bar" style="width:2px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-4</span><span class="sp-bar" style="width:4px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-8</span><span class="sp-bar" style="width:8px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-12</span><span class="sp-bar" style="width:12px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-16</span><span class="sp-bar" style="width:16px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-20</span><span class="sp-bar" style="width:20px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-24</span><span class="sp-bar" style="width:24px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-32</span><span class="sp-bar" style="width:32px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-40</span><span class="sp-bar" style="width:40px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-48</span><span class="sp-bar" style="width:48px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-64</span><span class="sp-bar" style="width:64px"></span></div>
+    <div class="sp-row"><span class="sp-name">--s-96</span><span class="sp-bar" style="width:96px"></span></div>
+  </div>
+
+  <h3 class="subhead"><span>Radii and strokes</span><span class="n">zero radius everywhere except one 4 pt lip</span></h3>
+  <div class="geo">
+    <div class="geo-cell"><div class="demo"></div><div class="cap">--radius: 0px<br>Strip, holder, bay, key, slab, tab, field, check — everything.</div></div>
+    <div class="geo-cell"><div class="demo lip"></div><div class="cap">--radius-lip: 4px<br>The drawer's top two corners. The only soft edge in the product, so you can tell the drawer is a different object.</div></div>
+  </div>
+  <div class="strokes" style="margin-top:var(--s-16)">
+    <div class="stroke-row"><span class="sl">--stroke-hair · 1px · rule-cell</span><i style="display:block;height:1px;background:var(--rule-cell)"></i></div>
+    <div class="stroke-row"><span class="sl">--stroke-rule · 2px · rule-bay</span><i style="display:block;height:2px;background:var(--rule-bay)"></i></div>
+    <div class="stroke-row"><span class="sl">--stroke-heavy · 3px · ink</span><i style="display:block;height:3px;background:var(--ink)"></i></div>
+    <div class="stroke-row"><span class="sl">--stroke-frame · 4px · ink</span><i style="display:block;height:4px;background:var(--ink)"></i></div>
+    <div class="stroke-row"><span class="sl">--stroke-tab · 6px · boot colour</span><i style="display:block;height:6px;background:var(--edge-watch)"></i></div>
+    <div class="stroke-row"><span class="sl">--stroke-boot · 8px · boot colour</span><i style="display:block;height:8px;background:var(--edge-ready)"></i></div>
+  </div>
+
+  <h3 class="subhead"><span>Core components at real size</span><span class="n">300 pt content width · every target ≥ 60 × 60</span></h3>
+  <div class="components">
+
+    <div class="comp">
+      <p class="comp-label">Strip · 300 × 72 — the atom. Boot / tag / state / litter / time / clip tab / hours bar.</p>
+      <div class="comp-stage">
+        <div class="bayh"><span class="lbl">Ready</span><span class="cnt">2</span></div>
+        <button type="button" class="strip s-ready" aria-label="Ewe 412, ready 31 hours, 3 lambs, over threshold">
+          <span class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">31h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">31h</span><span class="tab t-over">Over</span></span>
+          <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+        </button>
+        <div class="bayh"><span class="lbl">Pens</span><span class="cnt">1</span></div>
+        <button type="button" class="strip s-pen" aria-label="Ewe 128, in pen 1, 9 hours, 2 lambs">
+          <span class="sbody"><i class="boot"></i><span class="c-tag">128</span><span class="c-state"><span class="sw2">In pen 1</span><span class="sq">9h</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">9h</span></span>
+          <span class="hbar"><i class="hfill" style="width:18.8%"></i><i class="htick" style="left:50%"></i></span>
+        </button>
+        <div class="bayh"><span class="lbl">Check</span><span class="cnt">1</span></div>
+        <button type="button" class="strip s-flag" aria-label="Ewe 412, check, unresolved contradiction, 12 minutes">
+          <span class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Twin vs 3</span><span class="sq">04:07</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-check">Check</span></span>
+          <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+        </button>
+        <div class="bayh"><span class="lbl">Seen</span><span class="cnt">1</span></div>
+        <button type="button" class="strip s-watch" aria-label="Lamb 3 of 412, navel dip overdue, acknowledged at 04:12, still due">
+          <span class="sbody"><i class="boot"></i><span class="c-tag sm">L3/412</span><span class="c-state"><span class="sw2">Navel dip</span><span class="sq">over 40m</span></span><span class="tab t-seen">Seen 04:12</span></span>
+          <span class="hbar"><i class="hfill" style="width:100%"></i></span>
+        </button>
+        <p class="comp-label" style="margin-top:var(--s-8)">Acknowledge is visibly not clear: the tab widens to 96 × 40, the flash stops, the word becomes SEEN 04:12 — and the reminder stays due.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Sub-strip 276 × 60 · +N MORE 300 × 60 · NEW strip · empty pen slot 300 × 24</p>
+      <div class="comp-stage">
+        <button type="button" class="substrip"><span class="ss-tag">L1</span><span class="ss-main"><span class="ss-l1">Ewe · alive</span><span class="ss-l2">born 03:20</span></span><span class="ss-r">4.1</span></button>
+        <button type="button" class="substrip"><span class="ss-tag">L3</span><span class="ss-main"><span class="ss-l1">Ram · dead</span><span class="ss-l2">recorded 04:07</span></span></button>
+        <button type="button" class="morerow"><span class="mn">+2 more</span><span class="mt">91 · 128</span></button>
+        <button type="button" class="newstrip"><span class="nw">New</span><span class="nh">Tap or type a tag</span></button>
+        <div class="penempty"><span>Pen 2</span><span>Empty</span></div>
+        <div class="penempty"><span>Pen 6</span><span>Empty</span></div>
+        <p class="comp-label" style="margin-top:var(--s-8)">The +N MORE row prints the tags it is hiding, so nothing is ever concealed. An empty pen slot is 24 pt, read-only, and expands to 72 pt only while a move is in flight.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Segmented choice slab · 100 × 110 · 3 + 2, never 5 across</p>
+      <div class="comp-stage">
+        <div class="slabrow g3">
+          <button type="button" class="slab is-sel"><span class="num">3</span><span class="word">Triplet</span><span class="stamp">04:02</span></button>
+          <button type="button" class="slab is-warn"><span class="num">2</span><span class="word">Twin</span><span class="stamp">was 04:01</span></button>
+          <button type="button" class="slab"><span class="num">1</span><span class="word">Single</span><span class="stamp"></span></button>
+        </div>
+        <div class="slabrow g2-13">
+          <button type="button" class="slab"><span class="num">4</span><span class="word">Quad</span><span class="stamp"></span></button>
+          <button type="button" class="slab"><span class="num">5+</span><span class="word">More</span><span class="stamp"></span></button>
+        </div>
+        <p class="comp-label" style="margin-top:var(--s-8)">Selected prints the write time — the timestamp is the confirmation, which is why there is no toast and no Save. A superseded slab keeps its WAS 04:01 stamp: nothing is silently corrected.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Care check 150 × 76 · number stepper 300 × 148 · rail softkey 72 × 72 · keypad key 100 × 72</p>
+      <div class="comp-stage">
+        <div class="checks">
+          <button type="button" class="check on"><span class="box"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3 12.5 L9.5 19 L21 5.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg></span><span class="txt"><span class="cl">Colostrum</span><span class="cs">04:03</span></span></button>
+          <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Navel dipped</span><span class="cs"></span></span></button>
+          <button type="button" class="check undone"><span class="box"></span><span class="txt"><span class="cl">Stomach tubed</span><span class="cs">undone 04:09</span></span></button>
+          <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Warmed</span><span class="cs"></span></span></button>
+        </div>
+        <div class="stepper">
+          <div class="rdout"><span class="sl">Birth weight · L1</span><span class="sv">4.1 <span class="unit">kg</span></span></div>
+          <div class="stepkeys">
+            <button type="button" class="stepkey">−0.5</button>
+            <button type="button" class="stepkey">−0.1</button>
+            <button type="button" class="stepkey">+0.1</button>
+            <button type="button" class="stepkey">+0.5</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--s-16);margin-top:var(--s-16);align-items:flex-start">
+          <div class="rail" style="flex:0 0 88px;border-left:0;padding-bottom:0;justify-content:flex-start">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey is-latched">Move</button>
+            <button type="button" class="rkey is-off">Out</button>
+          </div>
+          <div class="keypad" style="flex:1">
+            <button type="button" class="key">7</button>
+            <button type="button" class="key">8</button>
+            <button type="button" class="key">9</button>
+            <button type="button" class="key word">Del</button>
+            <button type="button" class="key">0</button>
+            <button type="button" class="key small">Create</button>
+          </div>
+        </div>
+        <p class="comp-label" style="margin-top:var(--s-8)">No hold-to-repeat on DEL or on a stepper — a repeat that fires on hold is a long-press action in disguise, and long-press-only actions are banned. Coarse + fine keys replace acceleration.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Text field 300 × 76 · and the withdrawal-days variant — the only dotted rule in the entire app</p>
+      <div class="comp-stage">
+        <div class="field"><span class="fl">Product name</span><span class="fv">Alamycin LA</span></div>
+        <div class="field"><span class="fl">Batch number</span><span class="fv mono">B0X4471</span></div>
+        <div class="field dotted">
+          <span class="fl">Withdrawal days</span>
+          <span class="fv empty">______</span>
+          <span class="fhint">Read it from the bottle label</span>
+        </div>
+        <p class="fcap">No default · as entered by you</p>
+        <p class="comp-label">This app has nothing to offer here; the number must come from you. No autocomplete, no recent values, no per-product memory, and REPEAT LAST TREATMENT copies everything except this field — because a different bottle is a different bottle.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Time row 300 × 60 — the two honest states. Safety rule 12.5.</p>
+      <div class="comp-stage">
+        <div class="timerow"><span class="tv">03:20</span><span class="auto">Auto</span><button type="button" class="chg">Change</button></div>
+        <div class="timerow"><span class="tv">04:11</span><span class="auto">Edited</span><button type="button" class="chg">Change</button><span class="was">Was 03:20 auto</span></div>
+        <p class="comp-label" style="margin-top:var(--s-8)">A time the app captured prints the word AUTO. A time a human moved prints the word EDITED and, on its own line and forever, the stamp it superseded — <em>WAS 03:20 AUTO</em>. The original is never overwritten, both stamps stay visible, and there is no third state where you cannot tell which of the two you are looking at. This is the same shape as the superseded slab above (<em>WAS 04:01</em>) and the unchecked-after-checked care box (<em>UNDONE 04:09</em>): in this product a correction is a new row, never an erasure.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Countdown 276 × 72 · clip tabs 56 × 40 · comparison gauge 300 × 72</p>
+      <div class="comp-stage">
+        <div class="countdown s-rx" style="display:flex">
+          <i class="boot" style="background:var(--edge-withdrawal)"></i>
+          <div class="cbody">
+            <div class="cr1"><span class="ctag">77</span><span class="cw">Withdrawal</span><span class="cd">9 days</span></div>
+            <div class="cr2">Clear on 12 Aug 2026 · as entered by you</div>
+            <div class="hbar" style="margin:0 -8px 0 -12px"><i class="hfill" style="width:22%"></i></div>
+          </div>
+        </div>
+        <div style="display:flex;gap:var(--s-8);padding:var(--s-16) 0;flex-wrap:wrap">
+          <span class="tab t-check" style="margin:0">Check</span>
+          <span class="tab t-over" style="margin:0">Over</span>
+          <span class="tab t-due" style="margin:0">Due</span>
+          <span class="tab t-rx" style="margin:0">Rx</span>
+          <span class="tab t-seen" style="margin:0">Seen 04:12</span>
+        </div>
+        <div class="gauge">
+          <div class="grow"><span class="gy">2026</span><span class="gv">187%</span></div>
+          <div class="gtrack"><i class="gfill" style="width:93.5%"></i><i class="gtick" style="left:86%"></i></div>
+        </div>
+        <div class="gauge">
+          <div class="grow"><span class="gy">2025</span><span class="gv">172%</span><span class="gd">+15 pts on 2025</span></div>
+          <div class="gtrack"><i class="gfill" style="width:86%"></i></div>
+        </div>
+        <p class="comp-label" style="margin-top:var(--s-8)">The delta is a word and a number. No colour, no arrow, no judgement — the app does not tell a shepherd whether 187% is good.</p>
+      </div>
+    </div>
+
+    <div class="comp">
+      <p class="comp-label">Chart — the lambing spread as a bay of fourteen 300 × 24 read-only day-strips</p>
+      <div class="comp-stage">
+        <div class="bayh"><span class="lbl">Lambing spread · 2026</span><span class="cnt">67</span></div>
+        <div role="img" aria-label="Lambing spread, 2026, 14 days. Day 1: 2 lambings. Day 2: 5. Day 3: 9. Day 4: 14, the peak. Day 5: 11. Day 6: 8. Day 7: 6. Day 8: 4. Day 9: 3. Day 10: 2. Day 11: 1. Day 12: 1. Day 13: none. Day 14: 1. Total 67 lambings.">
+          <div class="chartrow"><span class="cl">D1</span><span class="ctrack"><i class="cfill" style="width:14.3%"></i></span><span class="cv">2</span></div>
+          <div class="chartrow"><span class="cl">D2</span><span class="ctrack"><i class="cfill" style="width:35.7%"></i></span><span class="cv">5</span></div>
+          <div class="chartrow"><span class="cl">D3</span><span class="ctrack"><i class="cfill" style="width:64.3%"></i></span><span class="cv">9</span></div>
+          <div class="chartrow"><span class="cl">D4</span><span class="ctrack"><i class="cfill" style="width:100%"></i><i class="ctick" style="right:0"></i></span><span class="cv">14</span></div>
+          <div class="chartrow"><span class="cl">D5</span><span class="ctrack"><i class="cfill" style="width:78.6%"></i></span><span class="cv">11</span></div>
+          <div class="chartrow"><span class="cl">D6</span><span class="ctrack"><i class="cfill" style="width:57.1%"></i></span><span class="cv">8</span></div>
+          <div class="chartrow"><span class="cl">D7</span><span class="ctrack"><i class="cfill" style="width:42.9%"></i></span><span class="cv">6</span></div>
+          <div class="chartrow"><span class="cl">D8</span><span class="ctrack"><i class="cfill" style="width:28.6%"></i></span><span class="cv">4</span></div>
+          <div class="chartrow"><span class="cl">D9</span><span class="ctrack"><i class="cfill" style="width:21.4%"></i></span><span class="cv">3</span></div>
+          <div class="chartrow"><span class="cl">D10</span><span class="ctrack"><i class="cfill" style="width:14.3%"></i></span><span class="cv">2</span></div>
+          <div class="chartrow"><span class="cl">D11</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+          <div class="chartrow"><span class="cl">D12</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+          <div class="chartrow zero"><span class="cl">D13</span><span class="ctrack"></span><span class="cv">0</span></div>
+          <div class="chartrow"><span class="cl">D14</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+        </div>
+        <button type="button" class="slab act" style="width:100%"><span class="word">Show days</span></button>
+        <p class="comp-label" style="margin-top:var(--s-8)">Because the type floor is 18 pt, fourteen vertical bars across 300 pt cannot carry legible labels — so the chart is a bay. D13 = 0 renders with no bar at all: black means fine, even in a chart. The 24 pt rows are read-only and therefore exempt from the 60 pt target rule; SHOW DAYS (300 × 72) turns them into tappable strips, so a small readout becomes interactive without ever shipping a small target.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <h3 class="subhead"><span>Deliberately absent</span><span class="n">listed so nobody adds them back</span></h3>
+  <p class="lede">Save button · OK/Cancel dialog · modal · toast · snackbar · banner · FAB · pill · capsule · rounded card · tab bar · nav bar · back chevron · title bar · spinner · skeleton · progress bar · empty-state illustration · tooltip · coach mark · onboarding · rating prompt · ad — and every gesture except <em>tap</em>. No swipe, no drag, no long-press, no pinch, no force touch, no shake, no double-tap. The words <em>Save, Cancel, Submit, Confirm, Are you sure, Loading, Oops, Welcome, Got it, Upgrade</em> and <em>Sync</em> appear nowhere in this product. The rail key that leaves a mode — keypad up, foster in flight, drawer open, strip lifted — is always <strong>CLOSE</strong> and never <em>CANCEL</em>, because a Cancel implies something was pending, and nothing here is ever pending: the write already happened.</p>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════
+     3 · THE TWELVE SCREENS
+     ══════════════════════════════════════════════════════════════ -->
+<section class="panel" aria-labelledby="screens-h">
+  <div class="sechead">
+    <h2 id="screens-h">The twelve screens</h2>
+    <span class="count">390 × 844 · NO SERVICE · ONE NIGHT, NOT ONE INSTANT</span>
+  </div>
+  <p class="lede">The twelve screens are <strong>one night, not one instant</strong>, because the product is used at 4am for entry and at breakfast for read-back. Screens 1–4, 7 and 9 are at <strong>04:00</strong>; screens 5–6 at <strong>06:15</strong>; screens 8 and 10–12 at <strong>09:40</strong>, Monday 3 August 2026. Every number in the dataset resolves against that clock: 412 lambed at 03:20, was penned at 21:00 on Saturday and is therefore 31 h in; the navel dip for her third lamb went overdue 40 minutes ago. The status bar reads <em>No Service</em> on every frame, because the shed has none and never will. Longer screens scroll inside their own frame exactly as they would on glass — the board itself never scrolls, which is enforced by arithmetic in the <span style="white-space:nowrap">SHED</span> and <span style="white-space:nowrap">PENS</span> morphs.</p>
+
+  <div class="frames">
+
+    <!-- ── 01 · FLOCK ─────────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:00</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Find</span><span class="clock">04:00 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="bayh strongtop"><span class="lbl">In the pens</span><span class="cnt">4</span></div>
+              <button type="button" class="strip s-ready" aria-label="Ewe 412, ready, 31 hours penned, 3 lambs, over threshold">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready 31h</span><span class="sq">pen 4</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-over">Over</span></span>
+                <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-ready" aria-label="Ewe 305, ready, 26 hours penned, 3 lambs including a fostered lamb, over threshold">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">305</span><span class="c-state"><span class="sw2">Ready 26h</span><span class="sq">pen 5</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-over">Over</span></span>
+                <span class="hbar"><i class="hfill" style="width:54.2%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="morerow" aria-label="Two more in the pens: ewe 91 and ewe 128"><span class="mn">+2 more</span><span class="mt">91 · 128</span></button>
+
+              <div class="bayh"><span class="lbl">Under treatment</span><span class="cnt">2</span></div>
+              <button type="button" class="strip s-rx" aria-label="Ewe 77, under withdrawal, 9 days, clear on 12 August 2026">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">77</span><span class="c-state"><span class="sw2">Withdrawal</span><span class="sq">Alamycin</span></span><span class="c-time wide">12 Aug</span><span class="tab t-rx">Rx</span></span>
+                <span class="hbar"><i class="hfill" style="width:22%"></i></span>
+              </button>
+              <button type="button" class="strip s-rx" aria-label="Ewe 219, under withdrawal, 1 day, clear on 4 August 2026">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">219</span><span class="c-state"><span class="sw2">Withdrawal</span><span class="sq">Footbath</span></span><span class="c-time wide">4 Aug</span><span class="tab t-rx">Rx</span></span>
+                <span class="hbar"><i class="hfill" style="width:89%"></i></span>
+              </button>
+
+              <div class="bayh"><span class="lbl">Not yet lambed</span><span class="cnt">2</span></div>
+              <button type="button" class="morerow" aria-label="Two not yet lambed: ewe 219 scanned for twins, and ewe 340"><span class="mn">+2 more</span><span class="mt">219 · 340</span></button>
+
+              <div class="bayh"><span class="lbl">Barren</span><span class="cnt">1</span></div>
+              <button type="button" class="strip" aria-label="Ewe 12, barren, no boot — she is not asking for anything">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">12</span><span class="c-state"><span class="sw2">Barren</span><span class="sq">scanned 14 Feb</span></span></span>
+              </button>
+
+              <button type="button" class="newstrip"><span class="nw">New</span><span class="nh">Tap or type a tag</span></button>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, find context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">File</button>
+            <button type="button" class="rkey is-latched">Find</button>
+            <button type="button" class="rkey">Book</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">01 · Flock</span>
+        <span class="fclock">FIND morph · 04:00 Mon 3 Aug</span>
+        <p class="fdesc">The brief's filter chips <em>are</em> the bays — there is no chip row and no "All" view, because a view containing everything contains no information. 219 appears in two bays because she is genuinely in two states, and the design says so rather than picking one; 12 is barren so she carries no boot at all, since a barren ewe is not asking for anything.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 02 · EWE CARD ──────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:12</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">412</span><span class="clock">04:12 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="strip s-ready lift" aria-label="Ewe 412 lifted to centre stage: ready, 31 hours in pen 4, 3 lambs">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">In pen 4</span><span class="sq">since 21:00</span></span><span class="c-time">31h</span><span class="tab t-over">Over</span></div>
+                <div class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+
+              <p class="summaryrow">3 seasons · avg 2.0 · assisted twice · prolapsed 2025</p>
+
+              <div class="bayh"><span class="lbl">This season</span><span class="cnt">2026</span></div>
+              <button type="button" class="substrip"><span class="ss-main"><span class="ss-l1">Triplet · ease 3 · assisted</span><span class="ss-l2">03:20 auto · 2 live 1 dead</span></span><span class="ss-r">03:20</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">L1</span><span class="ss-main"><span class="ss-l1">Ewe · alive</span><span class="ss-l2">reared by 412</span></span><span class="ss-r">4.1kg</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">L2</span><span class="ss-main"><span class="ss-l1">Ram · alive</span><span class="ss-l2">reared by 412</span></span><span class="ss-r">3.8kg</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">L3</span><span class="ss-main"><span class="ss-l1">Ram · dead</span><span class="ss-l2">recorded 04:07</span></span><span class="ss-r">—</span></button>
+
+              <div class="bayh"><span class="lbl">Previous</span><span class="cnt">2</span></div>
+              <button type="button" class="substrip"><span class="ss-tag">2025</span><span class="ss-main"><span class="ss-l1">Twin · ease 2</span><span class="ss-l2 prose">Prolapsed after lambing</span></span></button>
+              <button type="button" class="substrip"><span class="ss-tag">2024</span><span class="ss-main"><span class="ss-l1">Twin · ease 1</span><span class="ss-l2 prose">Unassisted</span></span></button>
+
+              <div class="bayh"><span class="lbl">Notes</span><span class="cnt">2</span></div>
+              <button type="button" class="substrip"><span class="ss-main"><span class="ss-l2 prose">Good mother, cleans them fast. Watch her for prolapse next season.</span><span class="ss-l2">31 Mar 2025</span></span></button>
+              <button type="button" class="slab act" style="width:100%"><span class="word">Add note</span></button>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, strip lifted context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Lamb</button>
+            <button type="button" class="rkey">Treat</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">02 · Ewe card — 412</span>
+        <span class="fclock">Lifted strip · 04:12 Mon 3 Aug</span>
+        <p class="fdesc">A card is not a new screen, it is a strip grown to 300 × 144 in place — and the one-line summary comes first and alone at 21 pt, before the status, the seasons or anything else, because in year two that sentence is the whole reason the app exists. The clock reads 04:12 rather than 04:00 for a reason worth being pedantic about: this card shows the third lamb recorded dead at 04:07, and a card cannot honestly display a record that has not been written yet.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 03 · QUICK ENTRY ───────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:00</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Match</span><span class="clock">04:00 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="bayh strongtop"><span class="lbl">Live</span><span class="cnt">5</span></div>
+              <button type="button" class="morerow" aria-label="Three more live strips, all lit and all at full brightness through the dim: 305 ready, 77 under withdrawal, 219 under withdrawal. Tap to expand the bay."><span class="mn">+3 more</span><span class="mt">305·77·219</span></button>
+
+              <div class="bayh"><span class="lbl">Match</span><span class="cnt">3</span></div>
+              <button type="button" class="strip s-ready" aria-label="Ewe 412, ready, 31 hours, 3 lambs, over threshold — one tap, no typing">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready 31h</span><span class="sq">pen 4</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-over">Over</span></span>
+                <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Ewe 128, in pen 1, 9 hours, 2 lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">128</span><span class="c-state"><span class="sw2">In pen 1</span><span class="sq">9h · twins</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">9h</span></span>
+                <span class="hbar"><i class="hfill" style="width:18.8%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip" aria-label="Ewe 12, barren, two keystrokes away — not on the live board because she is not in play">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">12</span><span class="c-state"><span class="sw2">Barren</span><span class="sq">not in play</span></span></span>
+              </button>
+
+              <div class="readout"><span class="typed">12</span><i class="caret"></i><span class="cnt">3 match</span></div>
+              <div class="keypad">
+                <button type="button" class="key">1</button>
+                <button type="button" class="key">2</button>
+                <button type="button" class="key">3</button>
+                <button type="button" class="key">4</button>
+                <button type="button" class="key">5</button>
+                <button type="button" class="key">6</button>
+                <button type="button" class="key">7</button>
+                <button type="button" class="key">8</button>
+                <button type="button" class="key">9</button>
+                <button type="button" class="key word">Del</button>
+                <button type="button" class="key">0</button>
+                <button type="button" class="key small">Create 12<br>and carry on</button>
+              </div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, keypad up context">
+            <button type="button" class="rkey is-latched">New</button>
+            <button type="button" class="rkey">Words</button>
+            <button type="button" class="rkey">Voice</button>
+            <button type="button" class="rkey">Scan</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">03 · Quick entry — the 3am screen</span>
+        <span class="fclock">Keypad up, "12" typed · 04:00 Mon 3 Aug</span>
+        <p class="fdesc">The board does not go away: the keypad rises <em>over</em> it, and every <em>lit</em> strip stays at full brightness through the dim — so the recents strip is not a history list at all, it is the shed's live state, and the ewe you are standing over is a 300 × 72 tap while you are still typing. <strong>Nothing on this frame is dimmed, and that is the correct render, not an omission:</strong> a strip dims only if it carries no state at all, and at 04:00 every strip on the board is penned, ready, under withdrawal or flagged. The dim layer exists and tonight it is empty — which is also why the LIVE bay's other three, printed by name on the +3 MORE row, are at full ink: a row that names 305 · 77 · 219 is information, and information never lives in the dim layer. About 3.5 s if she is lit, 6.1 s via the keypad. An unknown tag becomes CREATE AND CARRY ON as a key legend, never a dialog.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 04 · LAMBING ENTRY ─────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:07</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">412 · Lamb</span><span class="clock">04:07 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="strip s-ready" aria-label="Ewe 412 pinned at the top so you never lose the animal">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready 31h</span><span class="sq">pen 4</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-check">Check</span></div>
+                <div class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+
+              <div class="timerow"><span class="tv">03:20</span><span class="auto">Auto</span><button type="button" class="chg">Change</button></div>
+
+              <div class="bayh"><span class="lbl">Birth type · required · 1 tap</span></div>
+              <div class="slabrow g3">
+                <button type="button" class="slab is-sel"><span class="num">3</span><span class="word">Triplet</span><span class="stamp">04:02</span></button>
+                <button type="button" class="slab is-warn"><span class="num">2</span><span class="word">Twin</span><span class="stamp">was 04:01</span></button>
+                <button type="button" class="slab"><span class="num">1</span><span class="word">Single</span><span class="stamp"></span></button>
+              </div>
+              <div class="slabrow g2-13">
+                <button type="button" class="slab"><span class="num">4</span><span class="word">Quad</span><span class="stamp"></span></button>
+                <button type="button" class="slab"><span class="num">5+</span><span class="word">More</span><span class="stamp"></span></button>
+              </div>
+              <p class="fcap" style="color:var(--ink-2)">Twin was pressed at 04:01 with three lamb rows attached. Nothing was reverted, nothing was fixed, nothing was blocked — a red Check tab clipped onto her strip.</p>
+
+              <div class="bayh"><span class="lbl skip">Lambing ease · skippable</span></div>
+              <div class="slabrow g3">
+                <button type="button" class="slab"><span class="num">1</span><span class="word">Unassisted</span><span class="stamp"></span></button>
+                <button type="button" class="slab"><span class="num">2</span><span class="word">Easy pull</span><span class="stamp"></span></button>
+                <button type="button" class="slab is-sel"><span class="num">3</span><span class="word">Hard pull</span><span class="stamp">04:03</span></button>
+              </div>
+              <div class="slabrow g2">
+                <button type="button" class="slab"><span class="num">4</span><span class="word">Malpresent</span><span class="stamp"></span></button>
+                <button type="button" class="slab"><span class="num">5</span><span class="word">Vet / caes</span><span class="stamp"></span></button>
+              </div>
+
+              <div class="bayh"><span class="lbl skip">Lambs · skippable</span><span class="cnt">3</span></div>
+              <button type="button" class="substrip"><span class="ss-tag">L1</span><span class="ss-main"><span class="ss-l1">Ewe · alive</span><span class="ss-l2">created 04:02</span></span><span class="ss-r">4.1kg</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">L2</span><span class="ss-main"><span class="ss-l1">Ram · alive</span><span class="ss-l2">created 04:02</span></span><span class="ss-r">3.8kg</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">L3</span><span class="ss-main"><span class="ss-l1">Ram · dead</span><span class="ss-l2">recorded 04:07</span></span><span class="ss-r">—</span></button>
+
+              <div class="bayh"><span class="lbl skip">Care · skippable</span></div>
+              <div class="checks">
+                <button type="button" class="check on"><span class="box"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3 12.5 L9.5 19 L21 5.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg></span><span class="txt"><span class="cl">Colostrum</span><span class="cs">04:03</span></span></button>
+                <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Navel dipped</span><span class="cs"></span></span></button>
+                <button type="button" class="check on"><span class="box"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3 12.5 L9.5 19 L21 5.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg></span><span class="txt"><span class="cl">Stomach tubed</span><span class="cs">04:05</span></span></button>
+                <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Warmed</span><span class="cs"></span></span></button>
+              </div>
+
+              <div class="bayh"><span class="lbl skip">Assistance · skippable</span></div>
+              <div class="field"><span class="fl">Assisted by</span><span class="fv">Me, alone. Ropes, no vet.</span></div>
+              <div class="field"><span class="fl">Presentation</span><span class="fv">Head back on the third</span></div>
+              <div class="field"><span class="fl">Note</span><span class="fv">Third was slow. Tubed at 04:05, still weak.</span></div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, lambing entry context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey is-latched">Lamb</button>
+            <button type="button" class="rkey">Treat</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">04 · Lambing entry — 412</span>
+        <span class="fclock">Triplet, ease 3 · 04:07 Mon 3 Aug</span>
+        <p class="fdesc">Skippability is structural, not a word: birth type's bay header reads REQUIRED · 1 TAP and every header after it reads SKIPPABLE, so you can see from the labels alone exactly where the record stops being mandatory. Every slab press is its own committed write with its own printed stamp — there is no Save because nothing was ever pending, and abandoning after one press leaves a legitimately correct one-tap record. The time cell reads <em>03:20 AUTO</em> because the app captured it; press CHANGE and the same row reads <em>04:11 EDITED · WAS 03:20 AUTO</em>, both stamps visible forever, because a timestamp this product cannot vouch for is a timestamp it has to label.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 05 · LAMB CARD ─────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>06:15</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">L1 of 412</span><span class="clock">06:15 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="strip s-ready behind" aria-label="Her dam, ewe 412, held at 35 percent so parentage never leaves the screen">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">pen 4</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">33h</span></div>
+                <div class="hbar"><i class="hfill" style="width:68.8%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+
+              <div class="substrip lift" style="flex-direction:column;align-items:stretch;gap:var(--s-8);padding-top:var(--s-12)">
+                <span style="display:flex;align-items:baseline;gap:var(--s-12)"><span class="ss-tag" style="font-size:var(--type-tag-xl)">L1</span><span class="ss-l2">of 412</span></span>
+                <span class="ss-l1" style="font-size:var(--type-prose-lg);font-family:var(--font-prose);text-transform:none;letter-spacing:0;color:var(--ink)">Ewe lamb · 4.1kg · alive · born 03:20 today</span>
+              </div>
+
+              <div class="bayh"><span class="lbl">Dams</span></div>
+              <div class="damgrid">
+                <div class="dam locked"><span class="dk">Birth dam · locked</span><span class="dv">412</span><span class="dn">Never changes</span></div>
+                <button type="button" class="dam"><span class="dk">Rearing dam</span><span class="dv">412</span><span class="dn">Since birth</span></button>
+              </div>
+
+              <div class="bayh"><span class="lbl">Pet lamb</span></div>
+              <div class="checks">
+                <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Pet lamb</span><span class="cs"></span></span></button>
+                <div class="check" style="cursor:default"><span class="txt"><span class="cl">Feeds today</span><span class="cs">last 05:40</span></span><span class="dv" style="margin-left:auto;font-family:var(--font-mono);font-size:var(--type-mono-lg);color:var(--ink)">4</span></div>
+              </div>
+              <div class="stepkeys two">
+                <button type="button" class="stepkey">−1 feed</button>
+                <button type="button" class="stepkey">+1 feed</button>
+              </div>
+
+              <div class="bayh"><span class="lbl">Tag &amp; weight</span></div>
+              <div class="field"><span class="fl">Tag number</span><span class="fv empty">not tagged yet</span></div>
+              <div class="field"><span class="fl">Birth weight</span><span class="fv mono">4.1 kg · weighed 03:26</span></div>
+
+              <div class="gapboard"></div>
+              <button type="button" class="slab act" style="width:100%;box-shadow:inset 0 0 0 var(--stroke-rule) var(--rule-strong)"><span class="word">Record death</span><span class="stamp">Separated by 48 pt of board · no dialog</span></button>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, lamb lifted context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Foster</button>
+            <button type="button" class="rkey">Weigh</button>
+            <button type="button" class="rkey">Tag</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">05 · Lamb card — lamb 1 of 412</span>
+        <span class="fclock">Lifted sub-strip · 06:15 Mon 3 Aug</span>
+        <p class="fdesc">A lamb is a sub-strip, so its card is a lifted sub-strip with its dam's strip still visible above at 35% — parentage never leaves the screen. The birth-dam cell is the only locked cell in the app and is <em>drawn</em> as locked, with a 2 pt frame and no press state, so the rule is visible rather than merely enforced. RECORD DEATH is separated by 48 pt of bare board, because separation is the only protection this system will use.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 06 · FOSTER ────────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>06:15</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Foster</span><span class="clock">06:15 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="substrip" style="cursor:default;background:var(--strip-lift);box-shadow:inset 0 0 0 var(--stroke-frame) var(--rule-strong);margin-left:0;width:100%">
+                <span class="ss-tag">L3</span><span class="ss-main"><span class="ss-l1">Ram · of 412</span><span class="ss-l2">moving now</span></span>
+              </div>
+
+              <div class="fixedhdr">
+                <p class="l1">Birth dam 412 — stays 412 forever</p>
+                <p class="l2">Moving: rearing dam only. Tap one destination and it is written.</p>
+              </div>
+
+              <div class="bayh"><span class="lbl">Rearing dam · pick one</span><span class="cnt">3</span></div>
+              <button type="button" class="strip s-ready" aria-label="Ewe 305, ready 28 hours, 3 lambs — tap to make her the rearing dam">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">305</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">pen 5</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">28h</span></span>
+                <span class="hbar"><i class="hfill" style="width:58.3%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Ewe 128, in pen 1, 2 lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">128</span><span class="c-state"><span class="sw2">In pen 1</span><span class="sq">11h</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">11h</span></span>
+                <span class="hbar"><i class="hfill" style="width:22.9%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Ewe 91, in pen 3, 1 lamb">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">91</span><span class="c-state"><span class="sw2">In pen 3</span><span class="sq">20h</span></span><span class="c-lit"><span class="n">1</span><span class="u">Lmb</span></span><span class="c-time">20h</span></span>
+                <span class="hbar"><i class="hfill" style="width:41.7%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+
+              <div class="bayh"><span class="lbl">After the write</span></div>
+              <button type="button" class="strip s-flag" aria-label="Contradiction flagged: lamb 3 was recorded dead at 04:07 and fostered at 06:15. Not blocked, not fixed.">
+                <span class="sbody"><i class="boot"></i><span class="c-tag sm">L3</span><span class="c-state"><span class="sw2">Dead 04:07</span><span class="sq">fostered 06:15</span></span><span class="tab t-check">Check</span></span>
+              </button>
+              <button type="button" class="substrip"><span class="ss-tag">412</span><span class="ss-main"><span class="ss-l1">Born 3 · unchanged</span><span class="ss-l2 prose">She still gave birth to three.</span></span><span class="ss-r">3</span></button>
+              <button type="button" class="substrip"><span class="ss-tag">305</span><span class="ss-main"><span class="ss-l1">Rearing 4 · was 3</span><span class="ss-l2">06:15</span></span><span class="ss-r">4</span></button>
+
+              <button type="button" class="newstrip"><span class="nw">New</span><span class="nh">Tap or type a tag</span></button>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, foster in flight">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey is-latched">Foster</button>
+            <button type="button" class="rkey">Weigh</button>
+            <button type="button" class="rkey">Tag</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">06 · Foster — two taps</span>
+        <span class="fclock">Destination picking · 06:15 Mon 3 Aug</span>
+        <p class="fdesc">Tap one is the rail's FOSTER key; tap two is the destination strip, and it is written with no confirmation, because nothing was ever pending. The entire safety argument sits in a fixed 19 pt header that never scrolls away — <em>birth dam 412 stays 412 forever</em> — and afterwards two counts stand side by side: 412 still born three, 305 now rears four. Fostering a lamb recorded dead at 04:07 is not blocked and not fixed; it clips a red Check tab.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 07 · PEN BOARD ─────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:00</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Pens</span><span class="clock">04:00 Mon 3 Aug</span><span class="filed">· Filed 3</span></div>
+            <div class="bview">
+
+              <div class="bayh strongtop"><span class="lbl">Over 24h</span><span class="cnt">2</span></div>
+              <button type="button" class="strip s-ready" aria-label="Pen 4, ewe 412, ready, 31 hours, 3 lambs, over the 24 hour turn-out threshold">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">4</span><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">31h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-over">Over</span></span>
+                <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-ready" aria-label="Pen 5, ewe 305, ready, 26 hours, 3 lambs, over the threshold">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">5</span><span class="c-tag">305</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">26h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="tab t-over">Over</span></span>
+                <span class="hbar"><i class="hfill" style="width:54.2%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+
+              <div class="bayh"><span class="lbl">Penned</span><span class="cnt">5</span></div>
+              <button type="button" class="strip s-pen" aria-label="Pen 11, ewe 271, 21 hours, 2 lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">11</span><span class="c-tag">271</span><span class="c-state"><span class="sw2">In pen 11</span><span class="sq">21h</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">21h</span></span>
+                <span class="hbar"><i class="hfill" style="width:43.8%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Pen 3, ewe 91, 18 hours, 1 lamb">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">3</span><span class="c-tag">91</span><span class="c-state"><span class="sw2">In pen 3</span><span class="sq">18h</span></span><span class="c-lit"><span class="n">1</span><span class="u">Lmb</span></span><span class="c-time">18h</span></span>
+                <span class="hbar"><i class="hfill" style="width:37.5%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Pen 9, ewe 88, 12 hours, 1 lamb">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">9</span><span class="c-tag">88</span><span class="c-state"><span class="sw2">In pen 9</span><span class="sq">12h</span></span><span class="c-lit"><span class="n">1</span><span class="u">Lmb</span></span><span class="c-time">12h</span></span>
+                <span class="hbar"><i class="hfill" style="width:25%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Pen 1, ewe 128, 9 hours, 2 lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">1</span><span class="c-tag">128</span><span class="c-state"><span class="sw2">In pen 1</span><span class="sq">9h</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">9h</span></span>
+                <span class="hbar"><i class="hfill" style="width:18.8%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Pen 7, ewe 156, 4 hours, 2 lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-pen">7</span><span class="c-tag">156</span><span class="c-state"><span class="sw2">In pen 7</span><span class="sq">4h</span></span><span class="c-lit"><span class="n">2</span><span class="u">Lmb</span></span><span class="c-time">4h</span></span>
+                <span class="hbar"><i class="hfill" style="width:8.3%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+
+              <div class="bayh"><span class="lbl">Empty</span><span class="cnt">5</span></div>
+              <div class="penrow">
+                <div class="penempty"><span>Pen 2</span><span>Empty</span></div>
+                <div class="penempty"><span>Pen 6</span><span>Empty</span></div>
+              </div>
+              <div class="penrow">
+                <div class="penempty"><span>Pen 8</span><span>Empty</span></div>
+                <div class="penempty"><span>Pen 10</span><span>Empty</span></div>
+              </div>
+              <div class="penrow">
+                <div class="penempty"><span>Pen 12</span><span>Empty</span></div>
+              </div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, pen board, nothing in flight">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">File</button>
+            <button type="button" class="rkey">Find</button>
+            <button type="button" class="rkey">Book</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">07 · Pen board</span>
+        <span class="fclock">PENS morph · 04:00 Mon 3 Aug</span>
+        <p class="fdesc">The twelve pens are not a floor plan and are not sorted by pen number — they are sorted by time in pen, descending, because at 4am you want the one that needs you, not the map. Over-threshold is badged four ways with no colour: the bay, the word READY 31h, the OVER tab, and the hours bar crossing its 3 pt tick. Seven occupied strips at 72 = 504, three bay headers at 28 = 84, and the five empty pens collapsed two-up into three 24 pt rows = 72: <strong>660 of the 695 pt available, with 35 pt of slack and no scroll.</strong> That is the rule this direction lives or dies on — a board that scrolls is a list wearing a costume — and it is met by arithmetic, not by hope. An empty pen pairs up because it is read-only: no target shrinks below 60 pt to make it fit, and the instant a move is in flight each slot expands to a full 72 pt destination. Tap a strip and the rail re-legends to <span style="white-space:nowrap">NEW · PEN · GROUP · OUT · CLOSE</span>; press OUT and the strip <em>files</em>: it slides off the wall into the book, and by morning the board is black with not one record lost. That is the thing the whiteboard cannot do.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 08 · TREATMENTS ────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>09:40</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Treat</span><span class="clock">09:40 Mon 3 Aug</span><span class="filed">· Filed 3</span></div>
+            <div class="bview">
+
+              <div class="bayh strongtop"><span class="lbl">Active withdrawal</span><span class="cnt">2</span></div>
+              <div class="countdown">
+                <i class="boot" style="background:var(--edge-withdrawal);flex:0 0 8px"></i>
+                <div class="cbody">
+                  <div class="cr1"><span class="ctag">77</span><span class="cw">Alamycin LA</span><span class="cd">9 days</span></div>
+                  <div class="cr2">Clear on 12 Aug 2026 · as entered by you</div>
+                  <div class="hbar" style="margin:0 -8px 0 -12px"><i class="hfill" style="width:22%"></i></div>
+                </div>
+              </div>
+              <div class="countdown">
+                <i class="boot" style="background:var(--edge-withdrawal);flex:0 0 8px"></i>
+                <div class="cbody">
+                  <div class="cr1"><span class="ctag">219</span><span class="cw">Footbath</span><span class="cd">1 day</span></div>
+                  <div class="cr2">Clear on 4 Aug 2026 · as entered by you</div>
+                  <div class="hbar" style="margin:0 -8px 0 -12px"><i class="hfill" style="width:89%"></i></div>
+                </div>
+              </div>
+
+              <div class="slabrow g2">
+                <button type="button" class="slab act"><span class="word">Repeat last</span><span class="stamp">days left empty</span></button>
+                <button type="button" class="slab act"><span class="word">Medicine book</span><span class="stamp">41 entries</span></button>
+              </div>
+
+              <div class="bayh"><span class="lbl">New treatment</span><span class="cnt">77</span></div>
+              <div class="field"><span class="fl">Product name</span><span class="fv">Alamycin LA</span></div>
+              <div class="fieldrow">
+                <div class="field"><span class="fl">Dose</span><span class="fv mono">6 ml</span></div>
+                <div class="field"><span class="fl">Batch number</span><span class="fv mono">B0X4471</span></div>
+              </div>
+              <div class="bayh"><span class="lbl">Route</span></div>
+              <div class="slabrow g3">
+                <button type="button" class="slab is-sel" style="min-height:76px"><span class="word">Inj</span><span class="stamp">09:38</span></button>
+                <button type="button" class="slab" style="min-height:76px"><span class="word">Oral</span><span class="stamp"></span></button>
+                <button type="button" class="slab" style="min-height:76px"><span class="word">Topical</span><span class="stamp"></span></button>
+              </div>
+              <div class="timerow"><span class="tv">3 Aug 09:38</span><span class="auto">Auto</span><button type="button" class="chg">Change</button></div>
+
+              <div class="field dotted" style="min-height:110px">
+                <span class="fl">Withdrawal days</span>
+                <span class="fv empty">______</span>
+                <span class="fhint">Read it from the bottle label</span>
+              </div>
+              <p class="fcap">No default · as entered by you</p>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, treatment context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Lamb</button>
+            <button type="button" class="rkey is-latched">Treat</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">08 · Treatments</span>
+        <span class="fclock">Withdrawal countdowns · 09:40 Mon 3 Aug</span>
+        <p class="fdesc">Withdrawal days sits <em>last</em>, ships empty, and is drawn unlike anything else in the product: it carries the only dotted rule in the entire app, a mark that appears nowhere else and means <em>this app has nothing to offer here, the number must come from you</em>. No autocomplete, no recent values, no per-product memory — and REPEAT LAST TREATMENT copies product, dose, route and batch but leaves this field empty, because a different bottle is a different bottle.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 09 · REMINDERS ─────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>04:00</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Remind</span><span class="clock">04:00 Mon 3 Aug</span><span class="filed">· Filed 0</span></div>
+            <div class="bview">
+
+              <div class="bayh strongtop"><span class="lbl">Overdue</span><span class="cnt">1</span></div>
+              <div class="strip s-watch lift" aria-label="Overdue: navel dip for lamb 3 of 412, 40 minutes ago">
+                <div class="sbody"><i class="boot"></i><span class="c-tag sm">L3<br>412</span><span class="c-state"><span class="sw2">Navel dip</span><span class="sq">due 03:20 · over 40m</span></span><span class="tab t-over">Over<br>40m</span></div>
+                <div class="hbar"><i class="hfill" style="width:100%"></i><i class="htick" style="left:62%"></i></div>
+              </div>
+              <div class="slabrow g3">
+                <button type="button" class="slab act"><span class="word">Seen</span><span class="stamp">stays due</span></button>
+                <button type="button" class="slab act"><span class="word">Done</span><span class="stamp">files off</span></button>
+                <button type="button" class="slab act"><span class="word">Mute</span><span class="stamp">for good</span></button>
+              </div>
+
+              <div class="bayh"><span class="lbl">Due</span><span class="cnt">2</span></div>
+              <button type="button" class="strip s-watch" aria-label="Due: colostrum window for lamb 3 of 412, in 20 minutes">
+                <span class="sbody"><i class="boot"></i><span class="c-tag sm">L3<br>412</span><span class="c-state"><span class="sw2">Colostrum</span><span class="sq">closes 04:20</span></span><span class="tab t-due">Due<br>20m</span></span>
+                <span class="hbar"><i class="hfill" style="width:83%"></i><i class="htick" style="left:100%"></i></span>
+              </button>
+              <button type="button" class="strip s-ready" aria-label="Due now: turn out pen 4, ewe 412, 31 hours">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Turn out</span><span class="sq">pen 4 · 31h</span></span><span class="tab t-due">Now</span></span>
+                <span class="hbar"><i class="hfill" style="width:64.6%"></i><i class="htick" style="left:50%"></i></span>
+              </button>
+
+              <div class="bayh"><span class="lbl">Upcoming</span><span class="cnt">2</span></div>
+              <button type="button" class="strip s-rx" aria-label="Upcoming: withdrawal ends for ewe 77 on 12 August">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">77</span><span class="c-state"><span class="sw2">Withdrawal</span><span class="sq">ends 9 days</span></span><span class="c-time wide">12 Aug</span></span>
+              </button>
+              <button type="button" class="strip s-pen" aria-label="Upcoming: tag by 6 August for 128's lambs">
+                <span class="sbody"><i class="boot"></i><span class="c-tag">128</span><span class="c-state"><span class="sw2">Tag by lambs</span><span class="sq">3 days</span></span><span class="c-time wide">6 Aug</span></span>
+              </button>
+
+              <button type="button" class="newstrip"><span class="nw">New</span><span class="nh">Tap or type a tag</span></button>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, remind context">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Move</button>
+            <button type="button" class="rkey">File</button>
+            <button type="button" class="rkey is-latched">Remind</button>
+            <button type="button" class="rkey">Book</button>
+          </nav>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">09 · Reminders</span>
+        <span class="fclock">REMIND morph · 04:00 Mon 3 Aug</span>
+        <p class="fdesc">Reminders are not a separate place — they are strips in bays and tabs on animals, which is why the overdue navel dip is already on the default board. The split between the first two action slabs is the whole point: SEEN writes acknowledged_at, stops the flash, prints SEEN 04:12 on the tab, and the reminder <em>stays due</em>; DONE writes completed_at and files the strip off the board. Seen is not done, and the app never claims something was done because you looked at it.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 10 · SEASON SUMMARY ────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>09:40</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Shed</span><span class="clock">09:40 Mon 3 Aug</span><span class="filed">· Filed 3</span></div>
+            <div class="bview">
+              <div class="bayh strongtop"><span class="lbl">Check</span><span class="cnt">1</span></div>
+              <div class="strip s-flag behind" aria-label="Still on the board in daylight: lamb 3 of 412, recorded dead 04:07 and fostered 06:15. Flagged, never silently fixed.">
+                <div class="sbody"><i class="boot"></i><span class="c-tag sm">L3</span><span class="c-state"><span class="sw2">Dead 04:07</span><span class="sq">fostered 06:15</span></span><span class="tab t-check">Check</span></div>
+              </div>
+              <div class="bayh"><span class="lbl">Ready</span><span class="cnt">2</span></div>
+              <div class="strip s-ready behind">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">36h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">36h</span></div>
+                <div class="hbar"><i class="hfill" style="width:75%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, drawer open">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey is-latched">Season</button>
+            <button type="button" class="rkey">Export</button>
+            <button type="button" class="rkey">Setup</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+
+          <div class="drawer">
+            <i class="lip"></i>
+            <div class="dhead"><span class="dt">Season 2026</span><span class="dm">98 ewes to ram</span></div>
+
+            <div style="padding:var(--s-12)">
+              <p class="t-label" style="color:var(--ink-2)">Lambing percentage</p>
+              <p class="t-tag" style="font-size:var(--type-tag-xl);margin:var(--s-4) 0">187%</p>
+              <p style="font-size:var(--type-prose);color:var(--ink-2)">Lambs born per ewe put to ram</p>
+            </div>
+            <button type="button" class="slab act" style="width:100%"><span class="word">Change definition</span><span class="stamp">4 combinations</span></button>
+
+            <div class="statgrid">
+              <div class="stat"><span class="sk">Avg litter</span><span class="sv">1.9</span></div>
+              <div class="stat"><span class="sk">Barren rate</span><span class="sv">4%</span></div>
+              <div class="stat"><span class="sk">Assisted</span><span class="sv">12%</span></div>
+              <div class="stat"><span class="sk">Ewes to ram</span><span class="sv">98</span></div>
+            </div>
+
+            <div class="bayh"><span class="lbl">Losses by cause</span><span class="cnt">7</span></div>
+            <div role="img" aria-label="Losses by cause: stillborn 3, starvation 2, hypothermia 1, crushed 1. Total 7.">
+              <div class="chartrow" style="min-height:32px"><span class="cl" style="width:auto">Still</span><span class="ctrack"><i class="cfill" style="width:100%"></i></span><span class="cv">3</span></div>
+              <div class="chartrow" style="min-height:32px"><span class="cl">Starv</span><span class="ctrack"><i class="cfill" style="width:66.7%"></i></span><span class="cv">2</span></div>
+              <div class="chartrow" style="min-height:32px"><span class="cl">Hypo</span><span class="ctrack"><i class="cfill" style="width:33.3%"></i></span><span class="cv">1</span></div>
+              <div class="chartrow" style="min-height:32px"><span class="cl">Crush</span><span class="ctrack"><i class="cfill" style="width:33.3%"></i></span><span class="cv">1</span></div>
+            </div>
+
+            <div class="bayh"><span class="lbl">Lambing spread · 2026</span><span class="cnt">67</span></div>
+            <div role="img" aria-label="Lambing spread across 14 days, 2026. Day 1: 2 lambings. Day 2: 5. Day 3: 9. Day 4: 14, the peak. Day 5: 11. Day 6: 8. Day 7: 6. Day 8: 4. Day 9: 3. Day 10: 2. Day 11: 1. Day 12: 1. Day 13: none at all. Day 14: 1. Total 67.">
+              <div class="chartrow"><span class="cl">D1</span><span class="ctrack"><i class="cfill" style="width:14.3%"></i></span><span class="cv">2</span></div>
+              <div class="chartrow"><span class="cl">D2</span><span class="ctrack"><i class="cfill" style="width:35.7%"></i></span><span class="cv">5</span></div>
+              <div class="chartrow"><span class="cl">D3</span><span class="ctrack"><i class="cfill" style="width:64.3%"></i></span><span class="cv">9</span></div>
+              <div class="chartrow"><span class="cl">D4</span><span class="ctrack"><i class="cfill" style="width:100%"></i><i class="ctick" style="right:0"></i></span><span class="cv">14</span></div>
+              <div class="chartrow"><span class="cl">D5</span><span class="ctrack"><i class="cfill" style="width:78.6%"></i></span><span class="cv">11</span></div>
+              <div class="chartrow"><span class="cl">D6</span><span class="ctrack"><i class="cfill" style="width:57.1%"></i></span><span class="cv">8</span></div>
+              <div class="chartrow"><span class="cl">D7</span><span class="ctrack"><i class="cfill" style="width:42.9%"></i></span><span class="cv">6</span></div>
+              <div class="chartrow"><span class="cl">D8</span><span class="ctrack"><i class="cfill" style="width:28.6%"></i></span><span class="cv">4</span></div>
+              <div class="chartrow"><span class="cl">D9</span><span class="ctrack"><i class="cfill" style="width:21.4%"></i></span><span class="cv">3</span></div>
+              <div class="chartrow"><span class="cl">D10</span><span class="ctrack"><i class="cfill" style="width:14.3%"></i></span><span class="cv">2</span></div>
+              <div class="chartrow"><span class="cl">D11</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+              <div class="chartrow"><span class="cl">D12</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+              <div class="chartrow zero"><span class="cl">D13</span><span class="ctrack"></span><span class="cv">0</span></div>
+              <div class="chartrow"><span class="cl">D14</span><span class="ctrack"><i class="cfill" style="width:7.1%"></i></span><span class="cv">1</span></div>
+            </div>
+            <button type="button" class="slab act" style="width:100%"><span class="word">Show days</span></button>
+
+            <div class="bayh"><span class="lbl">Against last year</span></div>
+            <div class="gauge">
+              <div class="grow"><span class="gy">2026</span><span class="gv">187%</span></div>
+              <div class="gtrack"><i class="gfill" style="width:93.5%"></i><i class="gtick" style="left:86%"></i></div>
+            </div>
+            <div class="gauge">
+              <div class="grow"><span class="gy">2025</span><span class="gv">172%</span><span class="gd">+15 pts on 2025</span></div>
+              <div class="gtrack"><i class="gfill" style="width:86%"></i></div>
+            </div>
+          </div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">10 · Season summary — 2026</span>
+        <span class="fclock">Drawer over the board · 09:40 Mon 3 Aug</span>
+        <p class="fdesc">187% is printed with its definition directly beneath it in 19 pt prose and never behind a tooltip, because a lambing percentage without its definition is a rumour. Because the type floor is 18 pt, fourteen vertical bars cannot carry legible labels — so the spread chart is a bay of fourteen day-strips, and D13 = 0 renders with no bar at all: black means fine even in a chart. The delta reads <em>+15 pts on 2025</em> — a word and a number, no colour, no arrow, no judgement about whether 187% is good.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 11 · EXPORT ────────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>09:44</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Shed</span><span class="clock">09:44 Mon 3 Aug</span><span class="filed">· Filed 3</span></div>
+            <div class="bview">
+              <div class="bayh strongtop"><span class="lbl">Check</span><span class="cnt">1</span></div>
+              <div class="strip s-flag behind" aria-label="Still on the board in daylight: lamb 3 of 412, recorded dead 04:07 and fostered 06:15. Flagged, never silently fixed.">
+                <div class="sbody"><i class="boot"></i><span class="c-tag sm">L3</span><span class="c-state"><span class="sw2">Dead 04:07</span><span class="sq">fostered 06:15</span></span><span class="tab t-check">Check</span></div>
+              </div>
+              <div class="bayh"><span class="lbl">Ready</span><span class="cnt">2</span></div>
+              <div class="strip s-ready behind">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">36h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">36h</span></div>
+                <div class="hbar"><i class="hfill" style="width:75%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, drawer open">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Season</button>
+            <button type="button" class="rkey is-latched">Export</button>
+            <button type="button" class="rkey">Setup</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+
+          <div class="drawer">
+            <i class="lip"></i>
+            <div class="dhead"><span class="dt">Export</span><span class="dm">Last · 3 days ago · 31 Jul 2026</span></div>
+
+            <p class="prosebox">There is no cloud. If this phone is lost, this data is lost. Export tonight.</p>
+
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">CSV · one row per lamb</span><span class="e2">124 rows</span></span><span class="estamp"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><path d="M3 12.5 L9.5 19 L21 5.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg>09:44</span></button>
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">CSV · one row per ewe</span><span class="e2">98 rows</span></span></button>
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">CSV · one row per treatment</span><span class="e2">41 rows</span></span></button>
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">PDF · flock book 2026</span><span class="e2">18 pages</span></span></button>
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">PDF · medicine record</span><span class="e2">41 entries</span></span></button>
+            <button type="button" class="exportrow"><span class="ex"><span class="e1">JSON · full backup</span><span class="e2">1.4 MB · restores everything</span></span></button>
+
+            <p class="framedbox">This is a notebook, not a regulatory record. It is not a holding register, a movement record or a statutory medicine book.</p>
+          </div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">11 · Export</span>
+        <span class="fclock">Drawer · one row already stamped · 09:44 Mon 3 Aug</span>
+        <p class="fdesc">The honest warning is set at 19 pt in full ink, not as grey small print — there is no small type in this system, so there is no place to hide it. Each row prints its row count so you know what you are about to send, a press opens the system share sheet directly with no picker and no format dialog, and on return the row stamps EXPORTED 09:44 with a tick. The disclaimer sits inside a 2 pt frame so it cannot be mistaken for chrome, and the same sentence is written into every PDF foot and every CSV as a comment row.</p>
+      </figcaption>
+    </figure>
+
+    <!-- ── 12 · SETTINGS ──────────────────────────────────── -->
+    <figure class="fig">
+      <div class="frame">
+        <div class="statusbar"><span>09:40</span><span class="sb-right"><span class="noserv">No Service</span><span class="batt"><span class="cell"><i class="lvl"></i></span><i class="nub"></i></span></span></div>
+        <div class="fbody">
+          <div class="board">
+            <div class="bhead"><span class="morph">Shed</span><span class="clock">09:40 Mon 3 Aug</span><span class="filed">· Filed 3</span></div>
+            <div class="bview">
+              <div class="bayh strongtop"><span class="lbl">Check</span><span class="cnt">1</span></div>
+              <div class="strip s-flag behind" aria-label="Still on the board in daylight: lamb 3 of 412, recorded dead 04:07 and fostered 06:15. Flagged, never silently fixed.">
+                <div class="sbody"><i class="boot"></i><span class="c-tag sm">L3</span><span class="c-state"><span class="sw2">Dead 04:07</span><span class="sq">fostered 06:15</span></span><span class="tab t-check">Check</span></div>
+              </div>
+              <div class="bayh"><span class="lbl">Ready</span><span class="cnt">2</span></div>
+              <div class="strip s-ready behind" aria-label="The board stays visible: moving the turn-out threshold moves the tick on this bar as you change it">
+                <div class="sbody"><i class="boot"></i><span class="c-tag">412</span><span class="c-state"><span class="sw2">Ready</span><span class="sq">36h</span></span><span class="c-lit"><span class="n">3</span><span class="u">Lmb</span></span><span class="c-time">36h</span></div>
+                <div class="hbar"><i class="hfill" style="width:75%"></i><i class="htick" style="left:50%"></i></div>
+              </div>
+            </div>
+          </div>
+          <nav class="rail" aria-label="Rail, drawer open">
+            <button type="button" class="rkey">New</button>
+            <button type="button" class="rkey">Season</button>
+            <button type="button" class="rkey">Export</button>
+            <button type="button" class="rkey is-latched">Setup</button>
+            <button type="button" class="rkey">Close</button>
+          </nav>
+
+          <div class="drawer">
+            <i class="lip"></i>
+            <div class="dhead"><span class="dt">Setup</span><span class="dm">Season 2026</span></div>
+
+            <div class="setrow">
+              <span class="sname">Units</span>
+              <button type="button" class="sopt on">kg</button>
+              <button type="button" class="sopt">lb</button>
+            </div>
+            <div class="setrow">
+              <span class="sname">Temperature</span>
+              <button type="button" class="sopt on">°C</button>
+              <button type="button" class="sopt">°F</button>
+            </div>
+            <div class="setrow">
+              <span class="sname">Theme</span>
+              <button type="button" class="sopt on">Dark</button>
+              <button type="button" class="sopt">Red-shift</button>
+            </div>
+            <div class="checks">
+              <button type="button" class="check"><span class="box"></span><span class="txt"><span class="cl">Mirror rail</span><span class="cs">left-handed</span></span></button>
+              <button type="button" class="check on"><span class="box"><svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M3 12.5 L9.5 19 L21 5.5" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"/></svg></span><span class="txt"><span class="cl">Export nudge</span><span class="cs">once a day</span></span></button>
+            </div>
+
+            <div class="bayh"><span class="lbl">Terminology</span><span class="cnt">5</span></div>
+            <div class="field"><span class="fl">Adult female</span><span class="fv">Ewe</span></div>
+            <button type="button" class="morerow" aria-label="Four more editable terms: gimmer, shearling, theave, hogget"><span class="mn">+4 more</span><span class="mt">Gimmer · Shearling · Theave · Hogget</span></button>
+            <p class="fcap" style="color:var(--ink-3)">Changing one re-legends every strip in the app immediately</p>
+
+            <div class="bayh"><span class="lbl">Turn-out threshold</span></div>
+            <div class="stepper">
+              <div class="rdout"><span class="sl">Hours in pen before ready</span><span class="sv">24 <span class="unit">hours</span></span></div>
+              <div class="stepkeys">
+                <button type="button" class="stepkey">−6</button>
+                <button type="button" class="stepkey">−1</button>
+                <button type="button" class="stepkey">+1</button>
+                <button type="button" class="stepkey">+6</button>
+              </div>
+            </div>
+
+            <div class="bayh"><span class="lbl">Reminder intervals</span><span class="cnt">6</span></div>
+            <button type="button" class="substrip"><span class="ss-main"><span class="ss-l1">Colostrum window</span><span class="ss-l2">1h after birth</span></span><span class="ss-r">1h</span></button>
+            <button type="button" class="substrip"><span class="ss-main"><span class="ss-l1">Navel dip</span><span class="ss-l2">at birth, repeat 12h</span></span><span class="ss-r">12h</span></button>
+            <button type="button" class="morerow"><span class="mn">+4 more</span><span class="mt">Turn out · Tag by · 2nd dose · Withdrawal end</span></button>
+
+            <div class="bayh"><span class="lbl">Season</span></div>
+            <div class="setrow">
+              <span class="sname">2026 · from 1 Mar</span>
+              <button type="button" class="sopt" style="flex:0 0 140px">Switch season</button>
+            </div>
+
+            <div class="gapboard"></div>
+            <div class="framedbox danger" style="padding:0">
+              <button type="button" class="exportrow" style="border-bottom:var(--stroke-rule) solid var(--edge-flag);background:transparent"><span class="ex"><span class="e1">Delete season 2026</span><span class="e2">type 2026 on the keypad to arm</span></span></button>
+              <button type="button" class="exportrow" style="border-bottom:0;background:transparent"><span class="ex"><span class="e1">Delete everything</span><span class="e2">type 98 on the keypad to arm</span></span></button>
+            </div>
+            <p class="fcap" style="color:var(--ink-3)">No dialog. The key legend stays disabled until you type it.</p>
+          </div>
+        </div>
+        <div class="homebar"><i></i></div>
+      </div>
+      <figcaption>
+        <span class="fnum">12 · Settings</span>
+        <span class="fclock">Drawer · 09:40 Mon 3 Aug</span>
+        <p class="fdesc">Every control lands on the same motor grid the rest of the app uses, so the thumb learns one map. Changing the turn-out threshold moves the 3 pt tick on every hours bar in the app — visible on the board still showing above the drawer as you change it. The two destructive rows are separated by 48 pt of bare board and framed in the flag colour, and neither uses a dialog: both raise the same keypad as everything else and require you to type the season year or the ewe count before the key legend changes from disabled to DELETE. Type-to-arm, on the app's one input surface, with no OK button anywhere.</p>
+      </figcaption>
+    </figure>
+
+  </div>
+
+  <div class="sechead" style="margin-top:var(--s-64)">
+    <h2>The 3am test, screen by screen</h2>
+    <span class="count">SPEC §5 · NON-NEGOTIABLE</span>
+  </div>
+  <p class="lede"><strong>One thumb, one hand:</strong> the rail block is bottom-anchored at y 418–786, entirely inside the right-thumb arc, and NEW exists twice — rail key 1 for muscle memory, the permanent bottom strip for reach — neither of which ever moves. Everything above y 250 is read-only in every state. <strong>Gloves and wet hands:</strong> the primary target is a 300 × 72 strip, five times the 60 × 60 minimum; the smallest target in the system is the 72 × 72 rail key. <strong>No banned gesture:</strong> there is no gesture vocabulary at all — one primitive, tap, and nothing else. Moving a strip is tap-the-strip, tap-the-destination; DEL has no hold-to-repeat because a repeat-on-hold is a long-press in disguise; the drawer's lip is decorative and explicitly not a drag handle. <strong>Cold fingers:</strong> never five across — five 60 pt cells would be nominally legal and practically wrong, which is why birth type and ease are 3 + 2 at 100 × 110, and why there is not one slider, scrubber or thin handle in the product. <strong>Darkness:</strong> one dark palette and one darker red-shift palette, no light theme to accidentally load, and no splash screen to flash white. <strong>Under fifteen seconds:</strong> ≈ 3.5 s when she is already lit, ≈ 6.1 s via the keypad, ≈ 8.7 s for a full three-lamb record. <strong>Assume the phone dies:</strong> every press is a committed write whose timestamp prints on the control, which is why there is no Save button, no draft, no Cancel and no toast — the confirmation <em>is</em> the write, made visible.</p>
+</section>
+
+</div><!-- /wrap -->
+<script>
+(function () {
+  var root = document.documentElement;
+  function bind(id, attr, onVal, offVal, onText, offText) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    b.addEventListener('click', function () {
+      var isOn = root.getAttribute(attr) === onVal;
+      root.setAttribute(attr, isOn ? offVal : onVal);
+      b.setAttribute('aria-pressed', isOn ? 'false' : 'true');
+      b.querySelector('.tg-state').textContent = isOn ? offText : onText;
+    });
+  }
+  bind('tg-theme', 'data-theme', 'red-shift', 'dark',
+       'ON · RED-SHIFT PALETTE', 'OFF · DARK PALETTE');
+  bind('tg-scale', 'data-textscale', 'large', 'normal',
+       'ON · ~160% TEXT SCALE', 'OFF · 100%');
+})();
+</script>
+</body>
+</html>

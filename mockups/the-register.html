@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="amber">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Register — Shed Book design system, direction 1 of 3</title>
+<style>
+/* ============================================================
+   THE REGISTER — Shed Book design tokens
+   Direction 1 of 3. Amber-phosphor instrument, dark-only.
+   1pt = 1 CSS px = 1 dp. Reference device 393 x 852.
+   Mockup frame 390 x 844 (44 status / 30 home) -> 770 content.
+   ============================================================ */
+:root{
+  /* ---- SURFACES ------------------------------------------- */
+  --reg-ground:#0A0806;      /* the face; first painted frame       */
+  --reg-panel:#14100A;       /* readout pane, chart plot area       */
+  --reg-keyface:#1C160E;     /* raised key + slab faces, at rest    */
+  --reg-keypress:#2A2114;    /* key + slab face, held               */
+  --reg-well:#050302;        /* recessed operator keys, inert       */
+  /* ---- INK ------------------------------------------------- */
+  --reg-ink-1:#FFB000;       /* 10.91:1 on ground  AAA              */
+  --reg-ink-2:#C98A00;       /*  6.78:1 on ground  AA               */
+  --reg-ink-inverse:#0A0806; /* 10.91:1 on ink-1   AAA              */
+  /* ---- SIGNAL ---------------------------------------------- */
+  --reg-commit:#3FBF6F;      /*  8.47:1 on ground  AAA · 800ms      */
+  --reg-alarm:#FF3B1F;       /*  5.62:1 on ground  AA · used TWICE  */
+                             /* in the whole product: the DIED slab */
+                             /* and a live withdrawal band.         */
+  /* ---- STRUCTURE (non-text; 3:1 obligation) ---------------- */
+  --reg-bevel:#8A5E00;       /* 3.51 vs ground · load-bearing edge  */
+  --reg-etch:#6B4A00;        /* 2.48 — depth only, never a boundary */
+  --reg-shadow:#000000;
+  /* ---- BLOOM (register numerals only) ---------------------- */
+  --reg-bloom-alpha:0.22;
+  --reg-bloom:0 0 2px rgba(255,176,0,.22),0 0 8px rgba(255,176,0,.14);
+  /* ---- HATCH (non-colour channel of every alarm) ----------- */
+  --reg-hatch-w:20px; --reg-hatch-angle:45deg;
+  /* ---- TYPE FAMILIES --------------------------------------- */
+  --reg-font-machine:"JetBrains Mono","Berkeley Mono",ui-monospace,"SF Mono","IBM Plex Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --reg-font-prose:"Source Sans 3",-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --reg-numeric:tabular-nums slashed-zero;
+  /* ---- TYPE SCALE (px) — floor is 18, nothing is smaller --- */
+  --reg-t-tag:120px;        --reg-lh-tag:86px;
+  --reg-t-tag-suffix:56px;  --reg-lh-tag-suffix:60px;
+  --reg-t-key:56px;         --reg-lh-key:56px;
+  --reg-t-figure:34px;      --reg-lh-figure:34px;
+  --reg-t-slab:28px;        --reg-lh-slab:32px;
+  --reg-t-mode:26px;        --reg-lh-mode:30px;
+  --reg-t-machine:20px;     --reg-lh-machine:22px;
+  --reg-t-prose:19px;       --reg-lh-prose:23px;
+  --reg-t-legend:18px;      --reg-lh-legend:20px;
+  /* ---- WEIGHTS + TRACKING ---------------------------------- */
+  --reg-w-display:700; --reg-w-machine:500; --reg-w-prose:400;
+  --reg-tr-tag:-0.02em; --reg-tr-mode:0.10em; --reg-tr-slab:0.08em;
+  --reg-tr-legend:0.08em; --reg-tr-machine:0.03em;
+  /* ---- SPACE (2pt base; nine values, no others) ------------ */
+  --sp-1:2px; --sp-2:4px; --sp-3:6px;
+  --sp-4:8px;   /* zone gutter                                  */
+  --sp-5:10px;  /* THE DEAD GUTTER — no hit-slop crosses it     */
+  --sp-6:12px;  /* face margin, event-rail gutter               */
+  --sp-7:16px; --sp-8:24px; --sp-9:32px;
+  /* ---- RADII (4px is the ceiling, everywhere) -------------- */
+  --r-0:0px; --r-1:2px; --r-2:4px;
+  /* ---- STROKES --------------------------------------------- */
+  --stroke-hair:1px; --stroke-rule:2px; --stroke-heavy:3px; --stroke-double:4px;
+  /* ---- THE FACE: five welded zones -------------------------- */
+  --face-w:390px; --face-margin:11px; --face-content-w:368px;
+  --face-content-h:770px;   /* 844 - 44 status - 30 home        */
+  --zone-head-h:210px;      /* 770 - 48 - 334 - 84 - 60 - 34gut */
+  --zone-mode-h:48px; --zone-keys-h:334px; --zone-slab-h:84px; --zone-rail-h:60px;
+  /* ---- MODULES --------------------------------------------- */
+  --key-w:116px; --key-h:76px; --key-gutter:10px;
+  --slab-w:368px; --slab-h:84px; --slab-split-2:179px; --slab-split-3:116px;
+  --event-w:64px; --event-h:60px; --event-gutter:12px;
+  --rack-w:116px; --rack-h:64px;
+  --pen-tile-w:116px; --pen-tile-h:56px; /* module size; the board */
+  --pen-tile-fit:48px;                   /* fits 4 rows in the 210, with the
+                                            6px double rule clearing the type */
+  --row-h:48px; --band-h:44px; --chart-h:140px;
+  --chart-bar-w:18px; --chart-bar-gutter:8px;
+  --field-h:96px; --tap-min:60px;
+  /* ---- MOTION (the complete inventory) --------------------- */
+  --mo-instant:0ms; --mo-slab-release:120ms; --mo-commit-hold:800ms; --mo-ease:linear;
+}
+/* ============================================================
+   RED-SHIFT — the same instrument, ramp rotated, peak halved.
+   Not a second design: every role, component and contrast
+   obligation is identical. Green is removed because it destroys
+   dark adaptation; commit becomes inversion + #FF9E6B.
+   ============================================================ */
+:root[data-theme="red-shift"]{
+  --reg-ground:#0A0402; --reg-panel:#150705; --reg-keyface:#1A0905;
+  --reg-keypress:#2C1109; --reg-well:#050201;
+  --reg-ink-1:#FF6B3D;   /*  7.20:1 on ground  AAA */
+  --reg-ink-2:#E0532A;   /*  5.28:1 on ground  AA  */
+  --reg-ink-inverse:#0A0402;
+  --reg-commit:#FF9E6B;  /* 10.04:1 on ground  AAA */
+  --reg-alarm:#FF3B1F;   /*  5.72:1 on ground  AA  */
+  --reg-bevel:#B44018;   /*  3.58 vs ground        */
+  --reg-etch:#7A1400;    /*  1.87 — depth only     */
+  --reg-bloom-alpha:0.12;
+  --reg-bloom:0 0 2px rgba(255,107,61,.12),0 0 8px rgba(255,107,61,.08);
+}
+/* ---- LARGE TEXT ~150%. Class A scales; the KEY BLOCK IS FROZEN
+   (Law 5). All reflow is absorbed by the register head, which is
+   never a tap target: the echo stack drops to one line. -------- */
+:root.tx-lg{
+  --reg-t-machine:26px; --reg-lh-machine:28px;
+  --reg-t-legend:24px;  --reg-lh-legend:26px;
+  --reg-t-prose:28px;   --reg-lh-prose:33px;
+  --reg-t-mode:34px;    --reg-lh-mode:36px;
+  --reg-t-slab:30px;    --reg-lh-slab:32px;
+  --reg-t-figure:40px;  --reg-lh-figure:40px;
+  --reg-t-tag:120px;    --reg-lh-tag:86px;
+  --reg-t-key:60px;     --reg-lh-key:60px;
+  --reg-t-tag-suffix:56px;
+  --zone-slab-h:90px; --zone-rail-h:76px;
+  --pen-tile-fit:56px;
+}
+/* The echo stack is suppressed and readouts print fewer rows plus a
+   "+ N MORE" line — the documented 150% response. The KEY BLOCK NEVER MOVES. */
+:root.tx-lg .drop-lg{display:none!important}
+.lg-only{display:none!important}
+:root.tx-lg .lg-only{display:block!important}
+:root.tx-lg .band.lg-only{display:flex!important}
+/* At 150% the five birth-type cells cannot sit on one 368 line without going
+   under the 18px floor, and clipping "4 QUAD 5 MORE" off the end would leave
+   two digits pressable but not printed — a Law 2 violation. So the strip wraps
+   and the head, which is never a tap target, absorbs it. */
+/* Badges riding beside the 120px tag hold at the 18px floor at large text.
+   The tag is frozen (Class B) so the space beside it does not grow; letting
+   TIME AUTO scale past it clipped the word to "IME AUTO", and a timestamp
+   label that cannot be read in full is worse than one held at the floor. */
+:root.tx-lg .tagside .badge{font-size:18px;line-height:1;letter-spacing:.04em}
+:root.tx-lg .strip{flex-wrap:wrap}
+:root.tx-lg .strip .cell{height:44px;flex:1 0 auto}
+:root.tx-lg .head{gap:0}
+:root.tx-lg .ev{font-size:20px;line-height:22px;letter-spacing:.02em}
+:root.tx-lg .ln{white-space:normal}   /* readout lines wrap; the head absorbs it */
+:root.tx-lg .plate{font-size:24px;letter-spacing:.02em}
+:root.tx-lg .plate.slim{min-height:30px;line-height:30px}
+:root.tx-lg .days{font-size:18px;line-height:18px}
+:root.tx-lg .rrow{white-space:normal}  /* rows wrap rather than clip */
+:root.tx-lg .slab .sm{font-size:19px;line-height:21px}
+:root.tx-lg .slab.disabled{font-size:20px;line-height:22px}
+:root.tx-lg .rackslab .fig{font-size:34px;line-height:34px}
+/* ---- Reduce motion: near no-op, because there is near nothing */
+@media (prefers-reduced-motion:reduce){:root{--mo-slab-release:0ms;--mo-commit-hold:1200ms}}
+/* ---- There is no light theme. This is deliberate and final. -- */
+@media (prefers-color-scheme:light){/* intentionally empty */}
+
+/* ============================ RESET / PAGE ================== */
+*,*::before,*::after{box-sizing:border-box}
+html{background:var(--reg-ground);color:var(--reg-ink-1);
+  font-variant-numeric:var(--reg-numeric);
+  font-feature-settings:"tnum" 1,"zero" 1,"ss01" 1;
+  -webkit-text-size-adjust:100%;overscroll-behavior:none;overflow-x:hidden}
+body{margin:0;max-width:100%;overflow-x:hidden;
+  font-family:var(--reg-font-machine);font-size:var(--reg-t-machine);
+  line-height:var(--reg-lh-machine);padding:0 0 96px}
+h1,h2,h3,p,ul,ol,figure,table{margin:0}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;
+  font-variant-numeric:var(--reg-numeric);cursor:pointer;text-align:center}
+:focus-visible{outline:3px solid var(--reg-ink-1);outline-offset:3px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.wrap{max-width:1360px;margin:0 auto;padding:0 var(--sp-8)}
+.mach{font-family:var(--reg-font-machine);text-transform:uppercase;
+  letter-spacing:var(--reg-tr-machine);font-weight:var(--reg-w-machine)}
+.prose{font-family:var(--reg-font-prose);font-size:var(--reg-t-prose);
+  line-height:var(--reg-lh-prose);font-weight:var(--reg-w-prose);
+  letter-spacing:0;text-transform:none}
+
+/* ============================ HEADER ======================== */
+.pagehead{border-bottom:var(--stroke-rule) solid var(--reg-etch);
+  padding:var(--sp-9) 0 var(--sp-8)}
+.brandrow{display:flex;flex-wrap:wrap;gap:var(--sp-8);align-items:flex-end;
+  justify-content:space-between}
+.brand{font-size:64px;line-height:60px;font-weight:var(--reg-w-display);
+  letter-spacing:var(--reg-tr-tag);text-transform:uppercase;
+  text-shadow:var(--reg-bloom)}
+.brandsub{font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend);color:var(--reg-ink-2);
+  text-transform:uppercase;margin-top:var(--sp-3)}
+.thesis{max-width:74ch;margin-top:var(--sp-7);color:var(--reg-ink-1)}
+.thesis strong{display:block;font-family:var(--reg-font-machine);
+  text-transform:uppercase;letter-spacing:var(--reg-tr-mode);
+  font-size:var(--reg-t-mode);line-height:var(--reg-lh-mode);
+  margin-bottom:var(--sp-3);text-shadow:var(--reg-bloom)}
+.toggles{display:flex;gap:var(--sp-5);flex-wrap:wrap}
+.tgl{min-height:var(--tap-min);min-width:180px;padding:0 var(--sp-7);
+  background:var(--reg-keyface);border-top:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  border-radius:var(--r-2);font-size:var(--reg-t-legend);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase;
+  display:flex;align-items:center;justify-content:center;gap:var(--sp-4)}
+.tgl[aria-pressed="true"]{background:var(--reg-ink-1);color:var(--reg-ink-inverse);
+  border-top-color:var(--reg-ink-1);box-shadow:none}
+.tgl .mark{font-size:var(--reg-t-machine);line-height:1}
+.axes{width:100%;border-collapse:collapse;margin-top:var(--sp-8)}
+.axes th,.axes td{text-align:left;vertical-align:top;padding:var(--sp-3) var(--sp-6) var(--sp-3) 0;
+  border-bottom:var(--stroke-rule) solid var(--reg-etch);overflow-wrap:anywhere;
+  font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend)}
+.axes th{width:210px;color:var(--reg-ink-1);text-transform:uppercase;
+  letter-spacing:var(--reg-tr-legend);white-space:nowrap}
+.axes td{color:var(--reg-ink-2);text-transform:uppercase;
+  letter-spacing:var(--reg-tr-machine)}
+.axes caption{text-align:left;font-size:var(--reg-t-legend);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase;
+  color:var(--reg-ink-1);padding-bottom:var(--sp-4)}
+
+/* ============================ SECTIONS ====================== */
+.sect{padding:var(--sp-9) 0 0}
+.sect-h{font-size:var(--reg-t-mode);line-height:var(--reg-lh-mode);
+  letter-spacing:var(--reg-tr-mode);text-transform:uppercase;
+  font-weight:var(--reg-w-display);padding-bottom:var(--sp-4);
+  border-bottom:var(--stroke-double) double var(--reg-bevel);margin-bottom:var(--sp-8)}
+.sub-h{font-size:var(--reg-t-legend);letter-spacing:var(--reg-tr-legend);
+  text-transform:uppercase;color:var(--reg-ink-2);margin:var(--sp-8) 0 var(--sp-5)}
+.grid{display:flex;flex-wrap:wrap;gap:var(--sp-5)}
+
+/* -------- swatches -------- */
+.sw{width:236px;border:var(--stroke-rule) solid var(--reg-etch);border-radius:var(--r-1);
+  overflow:hidden;background:var(--reg-panel)}
+.sw-chip{height:76px;display:flex;align-items:flex-end;padding:var(--sp-2) var(--sp-3);
+  font-size:var(--reg-t-legend);letter-spacing:var(--reg-tr-legend)}
+.sw-m{padding:var(--sp-3);font-size:var(--reg-t-legend);
+  line-height:var(--reg-lh-legend);letter-spacing:var(--reg-tr-machine);
+  text-transform:uppercase;color:var(--reg-ink-2)}
+.sw-m b{display:block;color:var(--reg-ink-1);font-weight:var(--reg-w-machine)}
+.sw-m .ratio{color:var(--reg-ink-1)}
+/* -------- type scale -------- */
+.ts{display:flex;align-items:baseline;gap:var(--sp-7);
+  border-bottom:var(--stroke-rule) solid var(--reg-etch);padding:var(--sp-3) 0}
+.ts .lbl{flex:0 0 260px;font-size:var(--reg-t-legend);color:var(--reg-ink-2);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase}
+.ts .spec{min-width:0;overflow:hidden}
+/* -------- space + radii -------- */
+.spx{display:flex;align-items:center;gap:var(--sp-5);padding:var(--sp-2) 0;
+  font-size:var(--reg-t-legend);letter-spacing:var(--reg-tr-legend);color:var(--reg-ink-2)}
+.spx i{display:block;height:20px;background:var(--reg-ink-1)}
+.rad{width:116px;height:76px;background:var(--reg-keyface);
+  border-top:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  display:flex;align-items:center;justify-content:center;
+  font-size:var(--reg-t-legend);letter-spacing:var(--reg-tr-legend)}
+
+/* ============================ THE PHONE FACE ================ */
+.frames{display:flex;flex-wrap:wrap;gap:var(--sp-9);justify-content:flex-start}
+.frame{width:var(--face-w);max-width:100%}
+/* The case rule is drawn OUTSIDE the box (box-shadow, not border) so the face
+   keeps its full 390: with an 11px margin each side that is the specified
+   368pt content width, which every module in the system is dimensioned from.
+   A 2px border here would silently shrink the face to 364 and overflow the
+   pen board, the chart and the slab row by 4px. */
+.phone{width:var(--face-w);height:844px;background:var(--reg-ground);
+  border:0;border-radius:var(--r-2);
+  display:flex;flex-direction:column;overflow:hidden;
+  box-shadow:0 0 0 2px var(--reg-bevel),0 0 0 3px var(--reg-shadow),
+    0 8px 0 -2px var(--reg-shadow)}
+.sbar{height:44px;flex:0 0 44px;display:flex;align-items:center;
+  justify-content:space-between;padding:0 var(--face-margin);
+  font-size:var(--reg-t-legend);letter-spacing:var(--reg-tr-legend);
+  color:var(--reg-ink-2);text-transform:uppercase}
+.sbar .batt{display:flex;align-items:center;gap:var(--sp-2)}
+.homebar{height:30px;flex:0 0 30px;display:flex;align-items:center;justify-content:center}
+.homebar i{display:block;width:134px;height:5px;border-radius:var(--r-2);
+  background:var(--reg-ink-2)}
+.face{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:var(--sp-4);
+  padding:0 var(--face-margin)}
+
+/* -------- ZONE 1 · REGISTER HEAD -------- */
+.head{flex:1 1 auto;min-height:0;overflow:hidden;background:var(--reg-panel);
+  border-radius:var(--r-1);padding:var(--sp-1) var(--sp-4);
+  display:flex;flex-direction:column;gap:var(--sp-1)}
+.head>*{flex:0 0 auto}   /* readouts never compress; the head clips, per Law 5 */
+/* full-bleed readouts: the head pads 8px, these three modules are 368 wide */
+.head>.penboard,.head>.chart,.head>.rack{margin-left:calc(var(--sp-4)*-1);
+  margin-right:calc(var(--sp-4)*-1)}
+.head.warn{border-top:var(--stroke-rule) solid var(--reg-ink-1);
+  box-shadow:inset 0 4px 0 -2px var(--reg-panel),inset 0 6px 0 -2px var(--reg-ink-1)}
+.tagband{display:flex;align-items:flex-end;gap:var(--sp-5);min-height:var(--reg-lh-tag)}
+.tag{font-size:var(--reg-t-tag);line-height:var(--reg-lh-tag);
+  font-weight:var(--reg-w-display);letter-spacing:var(--reg-tr-tag);
+  color:var(--reg-ink-1);text-shadow:var(--reg-bloom)}
+.tagsuf{font-size:var(--reg-t-tag-suffix);line-height:var(--reg-lh-tag-suffix);
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1);text-shadow:var(--reg-bloom)}
+.tagside{flex:1 1 auto;min-width:0;overflow:hidden;display:flex;flex-direction:column;
+  align-items:flex-end;justify-content:flex-end;gap:var(--sp-1);text-align:right}
+.ln{font-size:var(--reg-t-machine);line-height:var(--reg-lh-machine);
+  letter-spacing:var(--reg-tr-machine);text-transform:uppercase;color:var(--reg-ink-1);
+  white-space:nowrap;overflow:hidden;text-overflow:clip}
+.ln.sm{font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-machine)}
+.ln.dim{color:var(--reg-ink-2)}
+.ln.row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-4)}
+.strike{text-decoration:line-through;text-decoration-thickness:3px;
+  text-decoration-skip-ink:none}
+.cellmark{font-size:1em}
+
+/* badge — a printed WORD, never a dot */
+.badge{display:inline-flex;align-items:center;min-height:26px;min-width:44px;
+  padding:0 var(--sp-2);border:var(--stroke-rule) solid var(--reg-ink-1);
+  border-radius:var(--r-1);font-size:var(--reg-t-legend);line-height:1;
+  letter-spacing:var(--reg-tr-legend);color:var(--reg-ink-1);text-transform:uppercase;
+  white-space:nowrap}
+.badge.alarm{border-color:var(--reg-alarm);color:var(--reg-alarm)}
+
+/* readout rows */
+.rrow{display:flex;align-items:center;gap:var(--sp-4);
+  border-bottom:var(--stroke-rule) solid var(--reg-etch);
+  font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-machine);text-transform:uppercase;padding:1px 0;
+  color:var(--reg-ink-2);white-space:nowrap;overflow:hidden}
+.rrow .n{flex:0 0 auto;font-size:var(--reg-t-machine);color:var(--reg-ink-1);
+  font-weight:var(--reg-w-display)}
+.rrow .l{flex:1 1 auto;min-width:0;overflow:hidden}
+.rrow .v{flex:0 0 auto;color:var(--reg-ink-1)}
+.rrow.armed{background:var(--reg-ink-1);color:var(--reg-ink-inverse);
+  border-bottom-color:var(--reg-ink-1);padding-left:var(--sp-2);padding-right:var(--sp-2)}
+.rrow.armed .n,.rrow.armed .v{color:var(--reg-ink-inverse)}
+.rrow.alarmrow{border-left:var(--stroke-rule) solid var(--reg-alarm);padding-left:var(--sp-3)}
+
+/* candidate rack — the only targets outside the eighteen positions */
+.rack{display:flex;gap:var(--sp-5)}
+.rackslab{width:var(--rack-w);height:var(--rack-h);background:var(--reg-keyface);
+  border-top:var(--stroke-hair) solid var(--reg-bevel);border-radius:var(--r-2);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rackslab .fig{font-size:var(--reg-t-figure);line-height:var(--reg-lh-figure);
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1)}
+.rackslab .sub{font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend);color:var(--reg-ink-2)}
+.rackslab:active{background:var(--reg-keypress);border-top-color:transparent;
+  border-bottom:var(--stroke-hair) solid var(--reg-bevel);box-shadow:inset 0 2px 0 var(--reg-shadow)}
+
+/* numbered readout strip — segmented choice (a), NOT a control */
+.strip{display:flex;gap:var(--sp-2)}
+.strip .cell{flex:1 1 auto;height:36px;padding:0 var(--sp-2);white-space:nowrap;
+  border:var(--stroke-rule) solid var(--reg-etch);
+  border-radius:var(--r-1);display:flex;flex-direction:column;align-items:center;
+  justify-content:center;font-size:var(--reg-t-legend);line-height:1;
+  letter-spacing:0;color:var(--reg-ink-2);text-transform:uppercase}
+.strip .cell b{font-size:var(--reg-t-legend);line-height:18px;
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1)}
+.strip .cell.sel{background:var(--reg-ink-1);border-color:var(--reg-ink-1);
+  color:var(--reg-ink-inverse)}
+.strip .cell.sel b{color:var(--reg-ink-inverse)}
+
+/* withdrawal band + inert plate */
+.band{min-height:var(--band-h);background:var(--reg-alarm);color:var(--reg-ink-inverse);
+  border-radius:var(--r-0);display:flex;align-items:center;overflow:hidden}
+.band .cap{flex:0 0 var(--reg-hatch-w);align-self:stretch;
+  background-image:repeating-linear-gradient(var(--reg-hatch-angle),
+    var(--reg-ink-inverse) 0 4px,transparent 4px 10px)}
+.band .txt{padding:var(--sp-1) var(--sp-3);font-size:var(--reg-t-legend);
+  line-height:var(--reg-lh-legend);letter-spacing:var(--reg-tr-machine);
+  text-transform:uppercase;font-weight:var(--reg-w-machine)}
+.band.tight{min-height:24px}
+.band.tight .txt{padding:0 var(--sp-3)}
+.plate{min-height:36px;background:var(--reg-well);border-radius:var(--r-1);
+  display:flex;align-items:center;justify-content:center;color:var(--reg-ink-2);
+  font-size:var(--reg-t-machine);line-height:var(--reg-lh-machine);
+  letter-spacing:var(--reg-tr-mode);text-transform:uppercase}
+/* The on-face plate runs tighter than the bench specimen so the head clears,
+   but never tighter than its own brackets — [ ] are full-height glyphs and a
+   clipped bracket would make the one inert plate in the product look broken. */
+.plate.slim{min-height:24px;line-height:24px}
+.field{min-height:var(--field-h);background:var(--reg-well);
+  border:var(--stroke-rule) solid var(--reg-etch);border-radius:var(--r-1);
+  padding:var(--sp-3);color:var(--reg-ink-1)}
+.field.focus{border-color:var(--reg-ink-1)}
+.field .ph{color:var(--reg-ink-2)}
+
+/* pen board */
+.penboard{display:grid;grid-template-columns:repeat(3,var(--pen-tile-w));
+  gap:var(--sp-1) var(--sp-5);justify-content:space-between}
+.pentile{height:var(--pen-tile-fit);background:var(--reg-keyface);overflow:hidden;
+  border-top:var(--stroke-hair) solid var(--reg-bevel);border-radius:var(--r-2);
+  box-shadow:inset 0 -2px 0 var(--reg-etch);padding:0 1px;
+  display:flex;flex-direction:column;justify-content:center}
+.pentile .top{display:flex;justify-content:space-between;align-items:center;gap:2px;
+  white-space:nowrap;overflow:hidden;
+  font-size:var(--reg-t-legend);line-height:16px;
+  letter-spacing:0;color:var(--reg-ink-2)}
+.pentile .occ{display:flex;justify-content:space-between;align-items:baseline;gap:2px;
+  white-space:nowrap;overflow:hidden;
+  font-size:var(--reg-t-figure);line-height:26px;letter-spacing:0;
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1)}
+.pentile.empty{background:var(--reg-well);border-top-color:transparent;
+  box-shadow:inset 0 2px 0 var(--reg-shadow)}
+.pentile.empty .occ{font-size:var(--reg-t-legend);line-height:26px;
+  color:var(--reg-ink-2);font-weight:var(--reg-w-machine);letter-spacing:var(--reg-tr-legend);
+  justify-content:flex-start}
+/* The over-threshold badge is the spec's 2px + 2px gap + 2px double rule,
+   welded across the top EDGE — drawn as a background layer with 6px of
+   padding above the type so the rule never strikes through the pen number
+   or the !! OVER token. Both channels have to stay readable at once. */
+.pentile.over{border-top:0;padding-top:6px;
+  background-image:linear-gradient(var(--reg-ink-1) 0 2px,transparent 2px 4px,
+    var(--reg-ink-1) 4px 6px,transparent 6px);
+  box-shadow:inset 0 -2px 0 var(--reg-etch)}
+.pentile .hcell{background:var(--reg-ink-1);color:var(--reg-ink-inverse);
+  padding:0 2px;border-radius:var(--r-1);font-size:var(--reg-t-legend);
+  line-height:20px;font-weight:var(--reg-w-machine);font-style:normal}
+.pentile.armed{background:var(--reg-ink-1);color:var(--reg-ink-inverse)}
+.pentile.armed .occ,.pentile.armed .top{color:var(--reg-ink-inverse)}
+.pentile.armed .hcell{background:var(--reg-ink-inverse);color:var(--reg-ink-1)}
+/* An armed tile that is ALSO over threshold keeps its double rule — the rule
+   inverts with the tile so the over-threshold channel is never lost to arming. */
+.pentile.over.armed{background-image:linear-gradient(var(--reg-ink-inverse) 0 2px,
+    transparent 2px 4px,var(--reg-ink-inverse) 4px 6px,transparent 6px);
+  box-shadow:inset 0 -2px 0 var(--reg-ink-inverse)}
+
+/* chart */
+.chart{background:var(--reg-panel);border-radius:var(--r-0)}
+.plot{position:relative;display:flex;align-items:flex-end;
+  gap:var(--chart-bar-gutter);padding:0 4px;
+  border-bottom:var(--stroke-rule) solid var(--reg-etch)}
+.plot .col{position:relative;width:var(--chart-bar-w);display:flex;align-items:flex-end}
+.plot .b26{width:100%;background:var(--reg-ink-1)}
+.plot .b25{position:absolute;left:0;width:100%;bottom:0;
+  border:var(--stroke-rule) solid var(--reg-ink-2);background:none}
+.plot .b26.zero{background:var(--reg-etch)}
+.plot .z{position:absolute;left:0;width:100%;bottom:4px;text-align:center;
+  font-size:var(--reg-t-legend);line-height:18px;color:var(--reg-ink-2);font-style:normal}
+.days{display:flex;gap:var(--chart-bar-gutter);padding:0 4px;
+  font-size:var(--reg-t-legend);line-height:18px;color:var(--reg-ink-2)}
+.days span{width:var(--chart-bar-w);text-align:center}
+.days span.on{background:var(--reg-ink-1);color:var(--reg-ink-inverse)}
+
+/* -------- ZONE 2 · MODE LINE (welded) -------- */
+.mode{flex:0 0 auto;min-height:var(--zone-mode-h);
+  border-top:var(--stroke-rule) solid var(--reg-etch);
+  border-bottom:var(--stroke-rule) solid var(--reg-etch);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:var(--sp-2) 0;gap:var(--sp-1);text-align:center}
+.mode .m{font-size:var(--reg-t-mode);line-height:var(--reg-lh-mode);
+  letter-spacing:var(--reg-tr-mode);text-transform:uppercase;
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1)}
+.mode .p{font-family:var(--reg-font-prose);font-size:var(--reg-t-prose);
+  line-height:var(--reg-lh-prose);font-weight:var(--reg-w-prose);
+  color:var(--reg-ink-1);letter-spacing:0;text-transform:none}
+
+/* -------- ZONE 3 · KEY BLOCK (dimensionally frozen) -------- */
+.keys{flex:0 0 var(--zone-keys-h);height:var(--zone-keys-h);
+  display:grid;grid-template-columns:repeat(3,var(--key-w));
+  grid-auto-rows:var(--key-h);gap:var(--key-gutter);justify-content:space-between}
+.key{width:var(--key-w);height:var(--key-h);border-radius:var(--r-2);
+  background:var(--reg-keyface);border-top:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  font-size:var(--reg-t-key);line-height:var(--reg-lh-key);
+  font-weight:var(--reg-w-machine);color:var(--reg-ink-1);
+  display:flex;align-items:center;justify-content:center}
+.key:active,.key.is-pressed{background:var(--reg-keypress);border-top-color:transparent;
+  border-bottom:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 2px 0 var(--reg-shadow)}
+.key.op{background:var(--reg-well);border-top:0;
+  border-bottom:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 2px 0 var(--reg-shadow);
+  font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend)}
+.key.op:active{background:var(--reg-keypress)}
+.key.inert{background:var(--reg-well);border-top:0;box-shadow:none;
+  color:var(--reg-ink-2);cursor:default}
+
+/* -------- ZONE 4 · PRIMARY SLAB -------- */
+.slabs{flex:0 0 var(--zone-slab-h);height:var(--zone-slab-h);display:flex;gap:var(--sp-5)}
+.slabs.three .slab{font-size:22px;line-height:26px}
+:root.tx-lg .slabs.three .slab{font-size:24px;line-height:28px}
+.head.tightrows .rrow{padding:0}
+.slab{flex:1 1 0;min-width:0;height:100%;border-radius:var(--r-2);
+  background:var(--reg-keyface);border-top:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  font-size:var(--reg-t-slab);line-height:var(--reg-lh-slab);
+  letter-spacing:var(--reg-tr-slab);text-transform:uppercase;
+  font-weight:var(--reg-w-display);color:var(--reg-ink-1);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 var(--sp-2);transition:background var(--mo-slab-release) var(--mo-ease)}
+.slab:active,.slab.is-pressed{background:var(--reg-ink-1);color:var(--reg-ink-inverse);
+  border-top-color:var(--reg-ink-1);box-shadow:none;transition-duration:var(--mo-instant)}
+.slab.commit{background:var(--reg-commit);color:var(--reg-ink-inverse);
+  border-top-color:var(--reg-commit);box-shadow:none}
+.slab.disabled{background:var(--reg-well);border-top:0;box-shadow:none;
+  color:var(--reg-ink-2);cursor:default;font-size:var(--reg-t-legend);
+  line-height:var(--reg-lh-legend);letter-spacing:var(--reg-tr-legend)}
+.slab.warn{border:var(--stroke-heavy) solid var(--reg-alarm);border-top-width:var(--stroke-heavy)}
+.slab>*{max-width:100%}
+.slab .sm{font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend);font-weight:var(--reg-w-machine)}
+
+/* -------- ZONE 5 · EVENT RAIL (five permanent legends) -------- */
+.rail{flex:0 0 var(--zone-rail-h);height:var(--zone-rail-h);display:flex;
+  gap:var(--event-gutter);margin-top:var(--sp-1);align-items:flex-start}
+.ev{flex:1 1 0;min-width:var(--event-w);height:var(--event-h);border-radius:var(--r-2);
+  background:var(--reg-keyface);border-top:var(--stroke-hair) solid var(--reg-bevel);
+  box-shadow:inset 0 -2px 0 var(--reg-etch),0 2px 0 var(--reg-shadow);
+  font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase;color:var(--reg-ink-1);
+  display:flex;align-items:center;justify-content:center}
+.ev:active{background:var(--reg-keypress);border-top-color:transparent;
+  border-bottom:var(--stroke-hair) solid var(--reg-bevel);box-shadow:inset 0 2px 0 var(--reg-shadow)}
+.ev.died{border:var(--stroke-heavy) solid var(--reg-alarm);color:var(--reg-alarm);
+  box-shadow:none}
+.ev.died:active{background:var(--reg-alarm);color:var(--reg-ink-inverse)}
+
+/* -------- caption -------- */
+.cap{padding:var(--sp-5) 0 0}
+.cap b{display:block;font-size:var(--reg-t-machine);line-height:var(--reg-lh-machine);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase;color:var(--reg-ink-1)}
+.cap span{display:block;font-family:var(--reg-font-prose);font-size:var(--reg-t-prose);
+  line-height:var(--reg-lh-prose);color:var(--reg-ink-2);margin-top:var(--sp-2)}
+
+/* -------- component bench -------- */
+.bench{display:flex;flex-wrap:wrap;gap:var(--sp-8);align-items:flex-start}
+.bit{background:var(--reg-ground);padding:0}
+.bit .t{font-size:var(--reg-t-legend);line-height:var(--reg-lh-legend);
+  letter-spacing:var(--reg-tr-legend);text-transform:uppercase;color:var(--reg-ink-2);
+  margin-bottom:var(--sp-4);max-width:368px}
+.w368{width:368px}
+/* The axes table is the one wide block on the page. At 150% type, or on a
+   phone-width viewport, its header column must be allowed to wrap or it
+   pushes the table past the viewport. Nothing else on the page is fixed-wide
+   beyond 368, which is the frame width. */
+:root.tx-lg .axes th{white-space:normal;width:auto}
+@media (max-width:440px){
+  .wrap{padding:0 var(--sp-4)}
+  .frames{justify-content:center}
+  .frame{width:100%}
+  .phone{transform:scale(.9);transform-origin:top center;margin-bottom:-84px}
+  .axes th{white-space:normal;width:auto}
+  .ts .lbl{flex:0 0 180px}
+}
+</style>
+</head>
+<body>
+
+<!-- one hidden defs block: the 45-degree hatch primitive -->
+<!-- currentColor inside a <pattern> resolves against the PATTERN's own ancestors,
+     not the element that references it, so the colour is set here and rotates
+     with the theme like everything else. -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute;color:var(--reg-ink-inverse)">
+  <defs>
+    <pattern id="reg-hatch" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="none"/>
+      <line x1="0" y1="0" x2="0" y2="10" stroke="currentColor" stroke-width="4"/>
+    </pattern>
+  </defs>
+</svg>
+
+<header class="pagehead">
+  <div class="wrap">
+    <div class="brandrow">
+      <div>
+        <h1 class="brand">The Register</h1>
+        <div class="brandsub">Shed Book · design system · direction 1 of 3 · amber-phosphor instrument · dark only</div>
+      </div>
+      <div class="toggles">
+        <button class="tgl" id="t-red" type="button" aria-pressed="false">
+          <span class="mark" aria-hidden="true">□</span> Red-shift mode
+        </button>
+        <button class="tgl" id="t-big" type="button" aria-pressed="false">
+          <span class="mark" aria-hidden="true">□</span> Large text 150%
+        </button>
+      </div>
+    </div>
+
+    <div class="thesis prose">
+      <strong>You do not navigate to an animal. You load her.</strong>
+      Ewe 412 sits in a register at the top of the instrument and stays there — across events, across
+      modes, across a cold launch — until you deliberately clear her. That structurally eliminates the
+      single most dangerous 3am error, recording a lambing against the wrong ewe, because she is always
+      the largest object on the phone. Below the register are twelve keys that never move for the life of
+      the app, and the rule that makes a re-legending instrument safe rather than lethal:
+      <em>a digit always means a number.</em> Press 2 and you have said <em>two</em>; the loaded context
+      decides whether two is lambs, ease or days off, and a welded 26px mode line says which, in words.
+      The keys never change meaning — only what the number is attached to. This is the direction that
+      believes a shepherd on night eleven is an operator, not a user, and that the highest respect you can
+      show an operator is a control layout that never moves. Recall is a readout, never a document:
+      history is a value, not a page.
+    </div>
+
+    <table class="axes">
+      <caption>Position on the nine axes</caption>
+      <tbody>
+        <tr><th>Navigation</th><td>None. One instrument face that re-legends; the loaded subject persists across events, modes and cold launches. No tabs, no back, no stack. Secondary functions are readouts summoned onto the same face by MORE.</td></tr>
+        <tr><th>Density</th><td>Sparse and absolutely fixed. Five welded zones, eighteen targets, never more, never fewer, in the same place all night. Density never changes because the layout never changes.</td></tr>
+        <tr><th>Typographic voice</th><td>Oversized numeral display over a monospaced instrument face. Tag 120px, key digits 56px, machine text all-caps, tracked, tabular. Lowercase exists only inside a free-text note.</td></tr>
+        <tr><th>Geometry</th><td>Chunky bevelled slabs on a hard rectilinear grid. 116×76 keys with a 1px top-light bevel and a 2px shadow rule so they read as physical at 10 nits. 10px dead gutters. No radius above 4px anywhere.</td></tr>
+        <tr><th>Colour strategy</th><td>Amber-phosphor. One hue at four luminance steps, plus an 800ms commit green and exactly one red used twice in the entire product. Monochrome by construction, so red-shift is the same design dimmed, not a second design.</td></tr>
+        <tr><th>Data representation</th><td>Numerals-first readout. The head is an instrument reading; history is a value, not a document — a three-line non-scrolling machine echo of the last writes and nothing more.</td></tr>
+        <tr><th>Primary input</th><td>Keypad-first, exclusively. Tag, litter, ease, dose, days: the same twelve keys in the same positions. Free text is a detour and is announced as one.</td></tr>
+        <tr><th>Layout anchor</th><td>Bottom thumb-arc. Keys and action slabs own the lower 62% of the display; the register head owns the top and is never a tap target.</td></tr>
+        <tr><th>Ornament level</th><td>Material bevel plus confined glow. A 2px phosphor bloom on the register numerals only — functional, because it is how you find the readout in peripheral vision while looking at a lamb. Keys stay crisp so legends never halate.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</header>
+
+<!-- ============================ TOKEN PANEL ============================ -->
+<section class="sect wrap" aria-labelledby="tok-h">
+  <h2 class="sect-h" id="tok-h">Tokens · the whole system in one <code>:root</code></h2>
+
+  <h3 class="sub-h">Colour — every text pair computed by WCAG 2.2 relative luminance, to two decimals</h3>
+  <div class="grid">
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;color:#FFB000">GROUND</div>
+      <div class="sw-m"><b>--reg-ground #0A0806</b>L 0.00251 · the face · first painted frame · never pure black</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#14100A;color:#FFB000">PANEL</div>
+      <div class="sw-m"><b>--reg-panel #14100A</b>L 0.00541 · readout pane · ink-1 on it <span class="ratio">10.34:1</span></div></div>
+    <div class="sw"><div class="sw-chip" style="background:#1C160E;color:#FFB000">KEYFACE</div>
+      <div class="sw-m"><b>--reg-keyface #1C160E</b>L 0.00852 · key + slab at rest · ink-1 <span class="ratio">9.79:1</span></div></div>
+    <div class="sw"><div class="sw-chip" style="background:#2A2114;color:#FFB000">KEYPRESS</div>
+      <div class="sw-m"><b>--reg-keypress #2A2114</b>L 0.01630 · held · ink-1 <span class="ratio">8.64:1</span> · alarm on it is 4.45 and is therefore FORBIDDEN</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#050302;color:#C98A00">WELL</div>
+      <div class="sw-m"><b>--reg-well #050302</b>L 0.00125 · recessed operator keys and the inert plate</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;color:#FFB000;text-shadow:var(--reg-bloom)">INK 1 · #FFB000</div>
+      <div class="sw-m"><b>--reg-ink-1 #FFB000</b>on ground <span class="ratio">10.91:1 AAA</span> · carries every value in the product</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;color:#C98A00">INK 2 · #C98A00</div>
+      <div class="sw-m"><b>--reg-ink-2 #C98A00</b>on ground <span class="ratio">6.78:1 AA</span> · on panel 6.42:1 · the dimmest thing that carries a word. There is no third text colour.</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;color:#3FBF6F">COMMIT · #3FBF6F</div>
+      <div class="sw-m"><b>--reg-commit #3FBF6F</b>on ground <span class="ratio">8.47:1 AAA</span> · exists for 800ms per write and nowhere else</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#FF3B1F;color:#0A0806">ALARM · #FF3B1F</div>
+      <div class="sw-m"><b>--reg-alarm #FF3B1F</b>ground on alarm <span class="ratio">5.62:1 AA</span> · used TWICE in the product: the DIED slab, a live withdrawal band</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#FFB000;color:#0A0806">INVERSE · #0A0806</div>
+      <div class="sw-m"><b>--reg-ink-inverse</b>ground on ink-1 <span class="ratio">10.91:1 AAA</span> · every selected, armed and committed state</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;border-top:4px solid #8A5E00;color:#FFB000">BEVEL · #8A5E00</div>
+      <div class="sw-m"><b>--reg-bevel</b>non-text. <span class="ratio">3.51:1</span> vs ground, 3.15 vs keyface. The load-bearing key boundary — always drawn against the ground, never against a lifted face.</div></div>
+    <div class="sw"><div class="sw-chip" style="background:#0A0806;border-bottom:4px solid #6B4A00;color:#FFB000">ETCH · #6B4A00</div>
+      <div class="sw-m"><b>--reg-etch</b>2.48:1 — depth only. Never a boundary, never carries a word.</div></div>
+  </div>
+  <p class="prose" style="margin-top:var(--sp-5);color:var(--reg-ink-2);max-width:80ch">
+    Red-shift re-verifies every obligation rather than dimming: ink-1 #FF6B3D <b>7.20:1</b>, ink-2 #E0532A
+    <b>5.28:1</b> (re-floored above the 4.5 line rather than literally halved), commit #FF9E6B <b>10.04:1</b>,
+    alarm <b>5.72:1</b>, bevel <b>3.58:1</b>. Green is removed because it destroys dark adaptation.
+  </p>
+
+  <h3 class="sub-h">Type scale — the floor is 18px and nothing in the product is smaller</h3>
+  <div class="w368" style="width:100%;max-width:760px">
+    <div class="ts"><span class="lbl">--reg-t-tag 120/86 · 700</span><span class="spec tag">412</span></div>
+    <div class="ts"><span class="lbl">--reg-t-tag-suffix 56/60</span><span class="spec tagsuf">/3</span></div>
+    <div class="ts"><span class="lbl">--reg-t-key 56/56 · 500</span><span class="spec" style="font-size:56px;line-height:56px">7</span></div>
+    <div class="ts"><span class="lbl">--reg-t-figure 34/34 · 700</span><span class="spec" style="font-size:34px;line-height:34px;font-weight:700">305</span></div>
+    <div class="ts"><span class="lbl">--reg-t-slab 28/32 · 0.08em</span><span class="spec mach" style="font-size:28px;line-height:32px;letter-spacing:.08em;font-weight:700">LAMBED</span></div>
+    <div class="ts"><span class="lbl">--reg-t-mode 26/30 · 0.10em</span><span class="spec mach" style="font-size:26px;line-height:30px;letter-spacing:.10em;font-weight:700">LITTER — HOW MANY?</span></div>
+    <div class="ts"><span class="lbl">--reg-t-machine 20/22</span><span class="spec mach" style="font-size:20px">412 · 3 SEASONS · AVG 2.0</span></div>
+    <div class="ts"><span class="lbl">--reg-t-prose 19/23 · humanist</span><span class="spec prose">Read it from the bottle. Your entry.</span></div>
+    <div class="ts"><span class="lbl">--reg-t-legend 18/20 · 0.08em</span><span class="spec mach" style="font-size:18px;letter-spacing:.08em">TREAT · NOTE · DIED · PEN · MORE</span></div>
+  </div>
+
+  <h3 class="sub-h">Space — 2px base, nine values, no others. 10px is the dead gutter.</h3>
+  <div>
+    <div class="spx"><span style="width:120px">--sp-1 · 2</span><i style="width:2px"></i></div>
+    <div class="spx"><span style="width:120px">--sp-2 · 4</span><i style="width:4px"></i></div>
+    <div class="spx"><span style="width:120px">--sp-3 · 6</span><i style="width:6px"></i></div>
+    <div class="spx"><span style="width:120px">--sp-4 · 8</span><i style="width:8px"></i><span>zone gutter</span></div>
+    <div class="spx"><span style="width:120px">--sp-5 · 10</span><i style="width:10px"></i><span>THE DEAD GUTTER — no hit-slop crosses it, so a gloved 14–20mm contact patch cannot straddle two keys</span></div>
+    <div class="spx"><span style="width:120px">--sp-6 · 12</span><i style="width:12px"></i><span>face margin, event-rail gutter</span></div>
+    <div class="spx"><span style="width:120px">--sp-7 · 16</span><i style="width:16px"></i></div>
+    <div class="spx"><span style="width:120px">--sp-8 · 24</span><i style="width:24px"></i></div>
+    <div class="spx"><span style="width:120px">--sp-9 · 32</span><i style="width:32px"></i></div>
+  </div>
+
+  <h3 class="sub-h">Radii — 4px is the ceiling, everywhere</h3>
+  <div class="grid">
+    <div class="rad" style="border-radius:0">--r-0 · 0 · bands, rules, chart</div>
+    <div class="rad" style="border-radius:2px">--r-1 · 2 · plates, badges</div>
+    <div class="rad" style="border-radius:4px">--r-2 · 4 · keys, slabs, tiles</div>
+  </div>
+
+  <h3 class="sub-h">Components at real size</h3>
+  <div class="bench">
+    <div class="bit"><div class="t">KEY — digit (×10). 116×76. Raised = a value. Default / pressed / inert.</div>
+      <div style="display:flex;gap:10px"><span class="key">4</span><span class="key is-pressed">5</span><span class="key inert">6</span></div></div>
+    <div class="bit"><div class="t">KEY — operator. Recessed = an operator. LOAD is live in every state without exception.</div>
+      <div style="display:flex;gap:10px"><span class="key op">LOAD</span><span class="key op">DEL</span></div></div>
+    <div class="bit w368"><div class="t">PRIMARY SLAB 368×84 — default / pressed (10.91:1) / committing (8.47:1, 800ms) / disabled, which states its reason / warning.</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <span class="slab" style="height:84px">LAMBED</span>
+        <span class="slab is-pressed" style="height:84px">CREATE 477<span>AND CARRY ON</span></span>
+        <span class="slab commit" style="height:84px">WROTE LAMBING<span class="sm">03:24 · TIME AUTO</span></span>
+        <span class="slab disabled" style="height:84px">NOTHING LOADED — PRESS LOAD</span>
+        <span class="slab warn" style="height:104px">!! DELETE EVERYTHING<span class="sm">104 EWES · 197 LAMBS · 3 SEASONS<br>CANNOT BE UNDONE</span></span>
+      </div></div>
+    <div class="bit w368"><div class="t">EVENT RAIL ×5, 64×60. These five legends never change for the life of the app. DIED inverts on press instead of lifting, because alarm red on a lifted face is 4.45:1 and would fail.</div>
+      <div class="rail" style="height:60px">
+        <span class="ev">TREAT</span><span class="ev">NOTE</span><span class="ev died">DIED</span><span class="ev">PEN</span><span class="ev">MORE</span>
+      </div></div>
+    <div class="bit w368"><div class="t">MODE LINE 368×48, welded, never a tap target — with its optional 19px humanist prose line.</div>
+      <div class="mode"><span class="m">DAYS OFF ___</span><span class="p">Read it from the bottle. Your entry.</span></div></div>
+    <div class="bit w368"><div class="t">CANDIDATE RACK 116×64 — the only targets in the product outside the eighteen fixed positions, and they vanish the instant a subject resolves.</div>
+      <div class="rack"><span class="rackslab"><span class="fig">412</span><span class="sub">PEN 4</span></span>
+        <span class="rackslab"><span class="fig">128</span><span class="sub">LAMBED</span></span>
+        <span class="rackslab"><span class="fig">12</span><span class="sub">BARREN</span></span></div></div>
+    <div class="bit w368"><div class="t">EWE ROW — a readout, not a button. Default / armed by a digit / warning / withdrawal.</div>
+      <div class="rrow"><span class="n">2</span><span class="l">128 &nbsp;LAMBED YESTERDAY</span><span class="v">TWIN</span></div>
+      <div class="rrow armed"><span class="n">▸1</span><span class="l">412 &nbsp;PEN 4 · 31H</span><span class="v">TRIPLET</span></div>
+      <div class="rrow alarmrow"><span class="n">4</span><span class="l">77 &nbsp;!! WITHDRAWAL</span><span class="v">12 AUG · 9D</span></div></div>
+    <div class="bit"><div class="t">PEN TILE 116×56 — occupied / empty (recessed, reads as a hole) / over threshold, flagged three ways, none of them colour / armed.</div>
+      <div style="display:flex;gap:10px">
+        <span class="pentile" style="height:56px"><span class="top"><span>1</span><span>2L · 9H</span></span><span class="occ">128</span></span>
+        <span class="pentile empty" style="height:56px"><span class="top"><span>2</span></span><span class="occ">EMPTY</span></span>
+        <span class="pentile over" style="height:56px"><span class="top"><span>4 2L</span><span>!!OVER</span></span><span class="occ">412 <i class="hcell">31H</i></span></span>
+      </div></div>
+    <div class="bit w368"><div class="t">WITHDRAWAL BAND 368×44 — solid alarm, ground ink at 5.62:1, 45° hatch end-cap, never behind text. It prints <code>___</code>, never <code>0</code>, because 0 is a number a shepherd could believe.</div>
+      <div class="band"><span class="cap"></span><span class="txt">!! WITHDRAWAL — DAYS NOT ENTERED ___</span></div>
+      <div class="band" style="margin-top:8px"><span class="cap"></span><span class="txt">77 · ALAMYCIN LA · CLEAR 12 AUG 2026 · 9 DAYS</span></div></div>
+    <div class="bit w368"><div class="t">INERT PLATE — exactly one exists in the product. No bevel, no press response, no haptic. Its inertness is the message.</div>
+      <div class="plate">[ NO DEFAULT VALUES ]</div></div>
+    <div class="bit w368"><div class="t">STATUS BADGE — a printed word in a 2px box, minimum 44×26. Closed vocabulary; no badge's meaning is inferred from colour.</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <span class="badge">!! OVER</span><span class="badge">!! MISMATCH</span><span class="badge">PENNED</span>
+        <span class="badge">LAMBED</span><span class="badge">BARREN</span><span class="badge">TREATED</span>
+        <span class="badge">FOSTERED</span><span class="badge">DEAD</span><span class="badge">NEW</span>
+        <span class="badge">TIME AUTO</span><span class="badge">TIME EDITED</span><span class="badge">PET</span></div></div>
+    <div class="bit w368"><div class="t">TIMESTAMP — auto-captured versus edited. A time the instrument measured is labelled TIME AUTO. A time the operator changed is labelled TIME EDITED and prints the value it replaced, in every readout, forever. The original is never destroyed and an edited time is never presented as if the app had measured it.</div>
+      <div class="ln row"><span>412 LAMBED 03:47</span><span class="badge">TIME AUTO</span></div>
+      <div class="ln sm dim">MEASURED BY THE INSTRUMENT</div>
+      <div class="ln row" style="margin-top:12px"><span>412 LAMBED 03:20</span><span class="badge">TIME EDITED</span></div>
+      <div class="ln sm dim">WAS 03:47 · TIME AUTO</div></div>
+    <div class="bit w368"><div class="t">SEGMENTED CHOICE (a) — numeric. Not a control: a numbered readout that tells you what your keys currently mean. Selected = inverted PLUS a filled-cell marker.</div>
+      <div class="strip"><span class="cell"><b>1</b>SINGLE</span><span class="cell"><b>2</b>TWIN</span>
+        <span class="cell sel"><b>■3</b>TRIPLET</span><span class="cell"><b>4</b>QUAD</span><span class="cell"><b>5</b>MORE</span></div>
+      <div class="t" style="margin:10px 0 4px">(b) — non-numeric binary. Genuinely not numbers, so under Law 1 they may not be on keys: they take the slab split in two.</div>
+      <div class="slabs" style="height:84px"><span class="slab is-pressed">■ EWE LAMB</span><span class="slab">RAM LAMB</span></div></div>
+    <div class="bit w368"><div class="t">CHECK CONTROL — you toggle it by pressing its printed number. ON is a FILLED CELL, not a tick (a tick is a picture; a filled cell is a state) and the time of the write prints, because it was a write.</div>
+      <div class="rrow"><span class="n">1</span><span aria-hidden="true"><svg width="32" height="32" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="6" y="6" width="20" height="20" fill="currentColor"/></svg></span><span class="l" style="color:var(--reg-ink-1)">COLOSTRUM GIVEN</span><span class="v">03:26</span></div>
+      <div class="rrow"><span class="n">2</span><span aria-hidden="true"><svg width="32" height="32" viewBox="0 0 32 32"><rect x="1" y="1" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg></span><span class="l">NAVEL DIPPED</span><span class="v"></span></div></div>
+    <div class="bit w368"><div class="t">TEXT FIELD — the detour, announced. The only place lowercase exists. The batch field flags a mixed 0/O without correcting it.</div>
+      <div class="field focus"><span class="prose">Big single ram lamb, back leg</span><span class="prose ph">…</span>
+        <div class="ln sm" style="color:var(--reg-alarm);margin-top:8px">!! CHECK 0 AND O — AL-0O42</div></div></div>
+    <div class="bit w368"><div class="t">HEAD — warning state. A contradiction gets a 4px double rule, a triple heavy haptic, both facts printed, and exactly two resolutions. There is no third slab and the app never picks.</div>
+      <div class="head warn" style="flex:none;height:150px">
+        <div class="tagband"><span class="tag">412</span></div>
+        <div class="ln">!! DECLARED TWIN</div>
+        <div class="ln">3 LAMBS ON RECORD</div>
+      </div>
+      <div class="slabs" style="height:84px;margin-top:8px"><span class="slab">CHANGE TO<span>TRIPLET</span></span><span class="slab">LEAVE IT —<span>3 IS RIGHT</span></span></div></div>
+    <div class="bit w368"><div class="t">CHART — lambing spread at its specified 368×140: 2026 solid (10.34:1 on panel), 2025 a 2px outline overlay (6.42:1). Filled versus outlined is the differentiator, not hue, not opacity. Day 13 renders as a 2px stub plus the label 0 — a measured zero, not a missing bar.</div>
+      <div class="chart" role="img" aria-label="Lambing spread. 2026 births per day, days 1 to 14: 2, 5, 9, 14, 11, 8, 6, 4, 3, 2, 1, 1, 0, 1. Peak is day 4 with 14 lambs. 2025 comparison, outlined: 1, 3, 6, 9, 12, 11, 9, 7, 5, 4, 3, 2, 2, 1.">
+        <div class="plot" style="height:114px">
+          <span class="col"><i class="b25" style="height:8px"></i><i class="b26" style="height:16px"></i></span>
+          <span class="col"><i class="b25" style="height:24px"></i><i class="b26" style="height:40px"></i></span>
+          <span class="col"><i class="b25" style="height:48px"></i><i class="b26" style="height:72px"></i></span>
+          <span class="col"><i class="b25" style="height:72px"></i><i class="b26" style="height:112px"></i></span>
+          <span class="col"><i class="b25" style="height:96px"></i><i class="b26" style="height:88px"></i></span>
+          <span class="col"><i class="b25" style="height:88px"></i><i class="b26" style="height:64px"></i></span>
+          <span class="col"><i class="b25" style="height:72px"></i><i class="b26" style="height:48px"></i></span>
+          <span class="col"><i class="b25" style="height:56px"></i><i class="b26" style="height:32px"></i></span>
+          <span class="col"><i class="b25" style="height:40px"></i><i class="b26" style="height:24px"></i></span>
+          <span class="col"><i class="b25" style="height:32px"></i><i class="b26" style="height:16px"></i></span>
+          <span class="col"><i class="b25" style="height:24px"></i><i class="b26" style="height:8px"></i></span>
+          <span class="col"><i class="b25" style="height:16px"></i><i class="b26" style="height:8px"></i></span>
+          <span class="col"><i class="b25" style="height:16px"></i><i class="b26 zero" style="height:2px"></i><i class="z">0</i></span>
+          <span class="col"><i class="b25" style="height:8px"></i><i class="b26" style="height:8px"></i></span>
+        </div>
+        <div class="days"><span>1</span><span>2</span><span>3</span><span class="on">4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span></div>
+      </div>
+      <p class="sr-only">Text alternative: 2026 births per day over the first 14 days of lambing — day 1: 2, day 2: 5, day 3: 9, day 4: 14, day 5: 11, day 6: 8, day 7: 6, day 8: 4, day 9: 3, day 10: 2, day 11: 1, day 12: 1, day 13: 0, day 14: 1. Total 67 lambs.</p>
+    </div>
+    <div class="bit w368"><div class="t">THE FIVE DRAWN PRIMITIVES — there are no icons in this product, only numerals and words. 2px square-capped strokes on a 32×32 viewBox, currentColor throughout, so red-shift needs no variant.</div>
+      <div style="display:flex;gap:24px;align-items:center;color:var(--reg-ink-1)">
+        <svg width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="check cell, hollow"><rect x="1" y="1" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <svg width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="check cell, filled"><rect x="1" y="1" width="30" height="30" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="6" y="6" width="20" height="20" fill="currentColor"/></svg>
+        <svg width="32" height="32" viewBox="0 0 32 32" role="img" aria-label="armed caret"><path d="M10 6 L24 16 L10 26 Z" fill="currentColor"/></svg>
+        <svg width="40" height="32" viewBox="0 0 40 32" role="img" aria-label="45 degree hatch end-cap"><rect width="40" height="32" style="fill:var(--reg-alarm)"/><rect width="40" height="32" fill="url(#reg-hatch)"/></svg>
+        <span style="position:relative;font-size:34px;font-weight:700">3<svg width="100%" height="100%" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="overstrike" style="position:absolute;inset:0"><line x1="0" y1="20" x2="100" y2="20" stroke="currentColor" stroke-width="3"/></svg></span>
+        <svg width="116" height="6" viewBox="0 0 116 6" role="img" aria-label="double rule"><line x1="0" y1="1" x2="116" y2="1" stroke="currentColor" stroke-width="2"/><line x1="0" y1="5" x2="116" y2="5" stroke="currentColor" stroke-width="2"/></svg>
+      </div></div>
+  </div>
+</section>
+
+<!-- ============================ THE TWELVE FRAMES ============================ -->
+<section class="sect wrap" aria-labelledby="fr-h">
+  <h2 class="sect-h" id="fr-h">Twelve states of one instrument face · 390 × 844</h2>
+  <div class="frames">
+
+  <!-- ==================== 1 · FLOCK ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="ln sm row drop-lg"><span>FLOCK 2026 · 8 EWES</span><span class="dim">LOADED 412</span></div>
+          <div class="rrow"><span class="n">1</span><span class="l">ALL</span><span class="v">8</span></div>
+          <div class="rrow"><span class="n">2</span><span class="l">NOT YET LAMBED</span><span class="v">219 340</span></div>
+          <div class="rrow"><span class="n">3</span><span class="l">IN THE PENS</span><span class="v">412 305 128 +4</span></div>
+          <div class="rrow drop-lg"><span class="n">4</span><span class="l">UNDER TREATMENT</span><span class="v">77 219</span></div>
+          <div class="rrow drop-lg"><span class="n">5</span><span class="l">BARREN</span><span class="v">12</span></div>
+          <div class="ln sm dim drop-lg">SCANNED TWIN 219 · SINGLE 91</div>
+          <div class="ln sm dim lg-only">+ 2 MORE — PRESS 4-5</div>
+        </div>
+        <div class="mode"><span class="m drop-lg">FLOCK — PRESS 1-5</span><span class="m lg-only">FLOCK 1-5</span><span class="p drop-lg">Or type a tag that does not exist.</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><span class="slab disabled">NOTHING SELECTED — PRESS 1-5, OR TYPE A TAG TO LOAD</span></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>01 · Flock</b><span>The flock is a count board, not a list: five numbered filters whose membership prints as pressable numerals, so filtering costs one key press and there is no document to scroll.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 2 · EWE CARD 412 ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="tagband"><span class="tag">412</span>
+            <span class="tagside"><span class="badge">!! OVER</span><span class="ln sm">PEN 4 · 31H</span><span class="ln sm dim drop-lg">2L 1 DEAD</span></span></div>
+          <div class="ln drop-lg">412 · 3 SEASONS · AVG 2.0</div>
+          <div class="ln sm drop-lg">ASSISTED x2 · PROLAPSED 2025</div>
+          <div class="ln sm lg-only">3 SEASONS · AVG 2.0</div>
+          <div class="ln sm lg-only">ASSISTED x2 · PROLAPSED 2025</div>
+          <div class="ln sm dim drop-lg">2026 TRIPLET E3 ASSIST 03:20</div>
+          <div class="ln sm dim drop-lg">2025 TWIN E2 PROLAPSED</div>
+          <div class="ln sm dim drop-lg">2024 TWIN E1 · OLDER VIA MORE</div>
+        </div>
+        <div class="mode"><span class="m">412 LOADED</span></div>
+        <div class="keys">
+          <button class="key inert">1</button><button class="key inert">2</button><button class="key inert">3</button>
+          <button class="key inert">4</button><button class="key inert">5</button><button class="key inert">6</button>
+          <button class="key inert">7</button><button class="key inert">8</button><button class="key inert">9</button>
+          <button class="key op">LOAD</button><button class="key inert">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">LAMBED</button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>02 · Ewe card — 412</b><span>There is no ewe card to open: the register head has been her card the whole time, so recall costs zero taps, and the one-line summary the product spec demands — 3 seasons, avg 2.0, assisted twice, prolapsed 2025 — sits above everything and survives the 150% text scale. Nothing on this face is numbered, so the keys go inert rather than doing something unpredictable; older seasons print the same way under MORE.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 3 · QUICK ENTRY ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="tagband"><span class="tag">12_</span>
+            <span class="tagside"><span class="ln sm">MATCHES 3</span><span class="ln sm dim">PENNED 1ST</span></span></div>
+          <div class="rack">
+            <button class="rackslab"><span class="fig">412</span><span class="sub">PEN 4</span></button>
+            <button class="rackslab"><span class="fig">128</span><span class="sub">PEN 1</span></button>
+            <button class="rackslab"><span class="fig">12</span><span class="sub">BARREN</span></button>
+          </div>
+          <div class="ln sm row drop-lg"><span class="dim">RECENTS</span><span>412 128 305 77 219 12</span></div>
+          <div class="ln sm row drop-lg"><span class="dim">IN THE PENS</span><span>412 305 128 91 +3</span></div>
+        </div>
+        <div class="mode"><span class="m drop-lg">LOAD — TYPE A TAG</span><span class="m lg-only">LOAD — A TAG</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key is-pressed">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><span class="slab disabled">3 MATCHES — PRESS ONE, OR TYPE MORE DIGITS TO NARROW</span></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>03 · Quick entry — the 3am screen</b><span>Quick entry is not a mode you enter, it is what the instrument is when nothing else is happening: shown mid-entry with 12 typed, matching on every digit position, and a slab that states why it will not act rather than guessing which of the three she is.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 4 · LAMBING ENTRY ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head" style="gap:0">
+          <div class="tagband"><span class="tag">412</span>
+            <span class="tagside"><span class="ln sm">03:20</span><span class="badge">TIME AUTO</span><span class="ln sm dim drop-lg">EDITABLE</span></span></div>
+          <div class="strip">
+            <span class="cell"><b>1</b>SINGLE</span><span class="cell"><b>2</b>TWIN</span>
+            <span class="cell sel"><b>■3</b>TRIPLET</span><span class="cell"><b>4</b>QUAD</span><span class="cell"><b>5</b>MORE</span>
+          </div>
+          <div class="ln sm drop-lg">EASE □1 □2 ■3 □4 □5 ASSISTED</div>
+          <div class="ln sm drop-lg">1 EWE ALIVE 4.1 · 2 RAM 3.8</div>
+          <div class="ln sm drop-lg"><span class="strike">3 RAM</span> DEAD ___ · SKIPPABLE</div>
+          <div class="ln sm dim drop-lg">CARE ■1 COLOSTRUM ■3 TUBED</div>
+        </div>
+        <div class="mode"><span class="m drop-lg">CARE — PRESS 1-4</span><span class="m lg-only">CARE 1-4</span></div>
+        <div class="keys">
+          <button class="key is-pressed">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">ALIVE</button><button class="slab is-pressed">■ DEAD</button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>04 · Lambing entry — ewe 412</b><span>Birth type and ease are numbers so they stay on the twelve keys as a numbered readout; sex and alive-or-dead are not numbers, so under Law 1 they take the split slab — and lamb 3's numeral is overstruck permanently, everywhere in the app.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 5 · LAMB CARD ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="tagband"><span class="tag">412</span><span class="tagsuf">/1</span></div>
+          <div class="ln drop-lg">EWE LAMB · 4.1 KG · ALIVE</div>
+          <div class="ln sm drop-lg">BORN 03:20 TODAY · TAG ___</div>
+          <div class="ln sm">BIRTH DAM 412 — PERMANENT</div>
+          <div class="ln sm drop-lg">REARING DAM 305 FOSTER 06:10</div>
+          <div class="ln sm lg-only">REARING DAM 305</div>
+          <div class="ln sm drop-lg">PET ■ · FEEDS 4 · TAG VIA MORE</div>
+        </div>
+        <div class="mode"><span class="m">412/1 LOADED</span></div>
+        <div class="keys">
+          <button class="key inert">1</button><button class="key inert">2</button><button class="key inert">3</button>
+          <button class="key inert">4</button><button class="key inert">5</button><button class="key inert">6</button>
+          <button class="key inert">7</button><button class="key inert">8</button><button class="key inert">9</button>
+          <button class="key op">LOAD</button><button class="key inert">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">−1 FEED</button><button class="slab">+1 FEED</button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>05 · Lamb card — 412/1</b><span>A lamb is addressed dam-slash-order, so the dam stays the largest object on the phone and you can never lose track of whose lamb this is; DIED is on the permanent rail because a lamb dying at 4am is not something to go looking for in a menu. Tag, weigh and foster print as a numbered list only once MORE is pressed — until then nothing on this face is numbered, so the twelve keys are inert and the feed count is worked by the split slab.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 6 · FOSTER ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head" style="gap:0">
+          <div class="tagband" style="margin-top:-4px"><span class="tag">412</span><span class="tagsuf">/3</span></div>
+          <div class="ln">BIRTH DAM 412 — PERMANENT</div>
+          <div class="ln">REARING DAM 412 → 305</div>
+          <div class="rack drop-lg">
+            <button class="rackslab" style="background:var(--reg-ink-1)"><span class="fig" style="color:var(--reg-ink-inverse)">305</span><span class="sub" style="color:var(--reg-ink-inverse)">■ PEN 5</span></button>
+            <button class="rackslab"><span class="fig">128</span><span class="sub">PEN 1</span></button>
+            <button class="rackslab"><span class="fig">91</span><span class="sub">PEN 3</span></button>
+          </div>
+        </div>
+        <div class="mode"><span class="m drop-lg">FOSTER — TYPE A TAG</span><span class="m lg-only">FOSTER — A TAG</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">FOSTER 412/3<span class="sm">TO 305 — REARING DAM ONLY</span></button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>06 · Foster</b><span>Two presses, because this is the flow most likely to be abandoned if it takes five: the birth dam is printed PERMANENT above the field that changes, and the two are never merged into one editable "dam".</span></figcaption>
+  </figure>
+
+  <!-- ==================== 7 · PEN BOARD ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="ln sm lg-only">4 · 412 · 2L · 31H !! OVER</div>
+          <div class="ln sm lg-only">5 · 305 · 3L · 26H !! OVER</div>
+          <div class="ln sm dim lg-only">1 128 9H · 3 91 18H</div>
+          <div class="ln sm dim lg-only">+ 9 MORE — PRESS 1-12</div>
+          <div class="penboard drop-lg">
+            <span class="pentile"><span class="top"><span>1</span><span>2L · 9H</span></span><span class="occ">128</span></span>
+            <span class="pentile empty"><span class="top"><span>2</span></span><span class="occ">EMPTY</span></span>
+            <span class="pentile"><span class="top"><span>3</span><span>1L · 18H</span></span><span class="occ">91</span></span>
+            <span class="pentile over armed"><span class="top"><span>4 2L</span><span>!!OVER</span></span><span class="occ">412 <i class="hcell">31H</i></span></span>
+            <span class="pentile over"><span class="top"><span>5 3L</span><span>!!OVER</span></span><span class="occ">305 <i class="hcell">26H</i></span></span>
+            <span class="pentile empty"><span class="top"><span>6</span></span><span class="occ">EMPTY</span></span>
+            <span class="pentile"><span class="top"><span>7</span><span>0L · 3H</span></span><span class="occ">219</span></span>
+            <span class="pentile empty"><span class="top"><span>8</span></span><span class="occ">EMPTY</span></span>
+            <span class="pentile"><span class="top"><span>9</span><span>0L · 1H</span></span><span class="occ">340</span></span>
+            <span class="pentile"><span class="top"><span>10</span><span>1L · 6H</span></span><span class="occ">77</span></span>
+            <span class="pentile empty"><span class="top"><span>11</span></span><span class="occ">EMPTY</span></span>
+            <span class="pentile empty"><span class="top"><span>12</span></span><span class="occ">EMPTY</span></span>
+          </div>
+        </div>
+        <div class="mode"><span class="m">PEN — TYPE 1-12</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key is-pressed">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">TURN OUT<span>PEN 4</span></button><button class="slab">MOVE 412<span>TO …</span></button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>07 · Pen board</b><span>The board is the same 3×4 grid as the keypad — pen 4 sits directly above key 4 — so you do not tap a pen, you press the key in the same place; pens 4 and 5 are flagged three ways (double rule, printed !! OVER, inverted hours cell) and none of them is colour.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 8 · TREATMENTS ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head" style="gap:0">
+          <div class="tagband"><span class="tag">77</span>
+            <span class="tagside"><span class="ln sm">ALAMYCIN LA</span><span class="ln sm">12 ML · SUBCUT</span><span class="ln sm drop-lg">BATCH AL-7734</span><span class="ln sm dim drop-lg">03:24 · TIME AUTO</span></span></div>
+          <div class="plate slim">[ NO DEFAULT VALUES ]</div>
+          <div class="band drop-lg" style="min-height:24px"><span class="cap"></span><span class="txt">!! WITHDRAWAL — DAYS ___</span></div>
+          <div class="band lg-only" style="min-height:24px"><span class="cap"></span><span class="txt">!! WITHDRAWAL ___</span></div>
+          <div class="band tight drop-lg" style="min-height:22px;margin-top:2px"><span class="cap"></span><span class="txt">77 ALAMYCIN CLEAR 12 AUG 9D</span></div>
+          <div class="band tight drop-lg" style="min-height:22px;margin-top:2px"><span class="cap"></span><span class="txt">219 FOOTBATH CLEAR 4 AUG 1D</span></div>
+        </div>
+        <div class="mode"><span class="m">DAYS OFF ___</span><span class="p drop-lg">Read it from the bottle. Your entry.</span><span class="p lg-only">Read the bottle.</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><span class="slab disabled">WRITE ___ DAYS<span class="sm">NOTHING TYPED YET</span></span></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>08 · Treatments</b><span>The one inert plate in the entire product occupies, visibly and unpressably, the exact rectangle where every competitor puts a suggested withdrawal period — and the field prints ___, never 0, because 0 is a number a shepherd could believe. The primary slab stays disabled until a digit exists, and its legend names whose assertion the number is. Repeat-last-treatment does exist, but it lives at the head of the TREAT chain where the product is chosen; it is not on this face, because a number printed beside an empty withdrawal field is a suggestion whatever the legend calls it.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 9 · REMINDERS ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head">
+          <div class="ln sm dim">OVERDUE</div>
+          <div class="rrow alarmrow"><span class="n">1</span><span class="l">!! NAVEL DIP 412/3</span><span class="v">-40 MIN</span></div>
+          <div class="ln sm dim drop-lg">DUE</div>
+          <div class="rrow armed"><span class="n">▸2</span><span class="l">COLOSTRUM 412/3</span><span class="v">IN 20 MIN</span></div>
+          <div class="rrow drop-lg"><span class="n">3</span><span class="l">TURN OUT PEN 4 412</span><span class="v">NOW 31H</span></div>
+          <div class="ln sm dim drop-lg">UPCOMING</div>
+          <div class="rrow drop-lg"><span class="n">4</span><span class="l">WITHDRAWAL ENDS 77</span><span class="v">12 AUG</span></div>
+          <div class="rrow drop-lg"><span class="n">5</span><span class="l">TAG BY 128'S LAMBS</span><span class="v">6 AUG</span></div>
+          <div class="ln sm dim lg-only">+ 3 MORE 3-5</div>
+        </div>
+        <div class="mode"><span class="m">REMINDERS 1-5</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key is-pressed">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs three"><button class="slab">DONE</button><button class="slab">MUTE<span>THIS ONE</span></button><button class="slab">SNOOZE<span>30</span></button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>09 · Reminders</b><span>The row number is the control: press 2 and the row inverts at 10.91:1 while the slab splits three ways, so every reminder is individually mutable and nothing nags twice — no badge count, no red dot, no second notification.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 10 · SEASON SUMMARY ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head" style="gap:0">
+          <div class="tagband"><span class="tag">187%</span>
+            <span class="tagside"><span class="ln sm dim">2025</span><span class="ln sm">172%</span><span class="ln sm">+15</span></span></div>
+          <div class="ln sm drop-lg">187 BORN/100 TO RAM · PRESS 1</div>
+          <div class="ln sm lg-only">187/100 TO RAM</div>
+          <div class="ln sm dim drop-lg">AVG 1.9 BARREN 4% ASSIST 12%</div>
+          <div class="ln sm dim drop-lg">LOSSES 7 STARV2 HYPO1 SB3 CRU1</div>
+          <div class="chart" role="img" aria-label="Lambing spread 2026, births per day, days 1 to 14: 2, 5, 9, 14, 11, 8, 6, 4, 3, 2, 1, 1, 0, 1. Day 4 is armed and is the peak with 14 lambs. The 2025 comparison is drawn as an outline overlay: 1, 3, 6, 9, 12, 11, 9, 7, 5, 4, 3, 2, 2, 1.">
+            <div class="plot" style="height:38px">
+              <span class="col"><i class="b25" style="height:3px"></i><i class="b26" style="height:5px"></i></span>
+              <span class="col"><i class="b25" style="height:8px"></i><i class="b26" style="height:14px"></i></span>
+              <span class="col"><i class="b25" style="height:16px"></i><i class="b26" style="height:24px"></i></span>
+              <span class="col"><i class="b25" style="height:24px"></i><i class="b26" style="height:38px"></i></span>
+              <span class="col"><i class="b25" style="height:33px"></i><i class="b26" style="height:30px"></i></span>
+              <span class="col"><i class="b25" style="height:30px"></i><i class="b26" style="height:22px"></i></span>
+              <span class="col"><i class="b25" style="height:24px"></i><i class="b26" style="height:16px"></i></span>
+              <span class="col"><i class="b25" style="height:19px"></i><i class="b26" style="height:11px"></i></span>
+              <span class="col"><i class="b25" style="height:14px"></i><i class="b26" style="height:8px"></i></span>
+              <span class="col"><i class="b25" style="height:11px"></i><i class="b26" style="height:5px"></i></span>
+              <span class="col"><i class="b25" style="height:8px"></i><i class="b26" style="height:3px"></i></span>
+              <span class="col"><i class="b25" style="height:5px"></i><i class="b26" style="height:3px"></i></span>
+              <span class="col"><i class="b25" style="height:6px"></i><i class="b26 zero" style="height:2px"></i><i class="z">0</i></span>
+              <span class="col"><i class="b25" style="height:3px"></i><i class="b26" style="height:3px"></i></span>
+            </div>
+            <div class="days"><span>1</span><span>2</span><span>3</span><span class="on">4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span></div>
+          </div>
+        </div>
+        <div class="mode"><span class="m drop-lg">SPREAD — DAY 1-14</span><span class="m lg-only">SPREAD 1-14</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key is-pressed">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">DAY 4 · 14 BORN<span class="sm">PRESS 1 TO CHANGE THE DEFINITION</span></button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>10 · Season summary — 2026</b><span>187% never appears without its arithmetic on the line beneath it, because the figure means four different things to four different shepherds; the chart carries no value labels, because fourteen cannot fit at 18px and shrinking is forbidden — so the keypad reads the chart instead.</span></figcaption>
+  </figure>
+
+  <!-- ==================== 11 · EXPORT ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head tightrows" style="gap:0">
+          <div class="ln sm row drop-lg"><span class="dim">LAST EXPORT</span><span>3 DAYS AGO 24 JUL</span></div>
+          <div class="rrow armed"><span class="n">▸1</span><span class="l">CSV · ROW PER LAMB</span><span class="v">412</span></div>
+          <div class="rrow"><span class="n">2</span><span class="l">CSV · ROW PER EWE</span><span class="v">104</span></div>
+          <div class="rrow drop-lg"><span class="n">3</span><span class="l">CSV · PER TREATMENT</span><span class="v">38</span></div>
+          <div class="rrow drop-lg"><span class="n">4</span><span class="l">PDF · FLOCK BOOK</span><span class="v">18 PP</span></div>
+          <div class="rrow drop-lg"><span class="n">5</span><span class="l">PDF · MEDICINE RECORD</span><span class="v">4 PP</span></div>
+          <div class="rrow drop-lg"><span class="n">6</span><span class="l">JSON · FULL BACKUP</span><span class="v">1.2 MB</span></div>
+          <div class="ln sm dim lg-only">+ 4 MORE — PRESS 3-6</div>
+          <p class="prose drop-lg" style="color:var(--reg-ink-2);margin-top:4px">A private notebook, not a regulatory record.</p>
+          <p class="prose lg-only" style="color:var(--reg-ink-2)">Not a regulatory record.</p>
+        </div>
+        <div class="mode"><span class="m">EXPORT — PRESS 1-6</span></div>
+        <div class="keys">
+          <button class="key is-pressed">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab">SHARE SHEET<span class="sm">THIS PHONE IS THE ONLY COPY — EXPORT TONIGHT</span></button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>11 · Export</b><span>Because there is no cloud this is a safety feature, so the warning and the not-a-regulatory-record line are printed on the face in the humanist cut. The full text is baked verbatim into every CSV header, every PDF footer and the JSON metadata: <em>&ldquo;Shed Book is a private notebook. It is not a holding register, not a statutory medicine book, and not a regulatory or compliance record. Withdrawal periods in this file were entered by the keeper from the product label and have not been verified by this application.&rdquo;</em></span></figcaption>
+  </figure>
+
+  <!-- ==================== 12 · SETTINGS ==================== -->
+  <figure class="frame">
+    <div class="phone">
+      <div class="sbar"><span>03:24</span><span>NO SERVICE</span><span class="batt">82<svg width="26" height="13" viewBox="0 0 26 13" aria-hidden="true"><rect x="1" y="1" width="21" height="11" fill="none" stroke="currentColor" stroke-width="2"/><rect x="3" y="3" width="14" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+      <div class="face">
+        <div class="head" style="gap:0">
+          <div class="rrow"><span class="n">1</span><span class="l">UNITS</span><span class="v">■KG □LB</span></div>
+          <div class="rrow"><span class="n">2</span><span class="l">TEMPERATURE</span><span class="v">■C □F</span></div>
+          <div class="rrow drop-lg"><span class="n">3</span><span class="l">TERMINOLOGY</span><span class="v">EWE · GIMMER +3</span></div>
+          <div class="rrow drop-lg"><span class="n">4</span><span class="l">REMINDERS</span><span class="v">2H 1H 24H 7D</span></div>
+          <div class="rrow drop-lg"><span class="n">5</span><span class="l">SEASON 2026 1 JAN</span><span class="v">SWITCH</span></div>
+          <div class="rrow armed"><span class="n">▸6</span><span class="l">THEME</span><span class="v">■AMBER □RED</span></div>
+          <div class="rrow drop-lg"><span class="n">7</span><span class="l">DELETE A SEASON</span><span class="v">3</span></div>
+          <div class="rrow drop-lg"><span class="n">8</span><span class="l">DELETE EVERYTHING</span><span class="v">!!</span></div>
+          <div class="ln sm dim lg-only">+ 6 MORE 3-8</div>
+        </div>
+        <div class="mode"><span class="m">THEME — PICK ONE</span></div>
+        <div class="keys">
+          <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+          <button class="key">4</button><button class="key">5</button><button class="key is-pressed">6</button>
+          <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+          <button class="key op">LOAD</button><button class="key">0</button><button class="key op">DEL</button>
+        </div>
+        <div class="slabs"><button class="slab is-pressed">■ AMBER</button><button class="slab">RED-SHIFT</button></div>
+        <div class="rail"><button class="ev">TREAT</button><button class="ev">NOTE</button><button class="ev died">DIED</button><button class="ev">PEN</button><button class="ev">MORE</button></div>
+      </div>
+      <div class="homebar"><i></i></div>
+    </div>
+    <figcaption class="cap"><b>12 · Settings</b><span>Eight settings, eight digits, no scrolling and no "advanced": binaries write on the press with a hard cut (a fade from amber to red-shift is 300ms of a colour that is neither), and DELETE EVERYTHING is the single exception to the no-pending-state law — its slab stays disabled, legended WAITING FOR THE WORD DELETE, until the word is typed, then wakes to <em>!! DELETE EVERYTHING — 104 EWES, 197 LAMBS, 3 SEASONS</em>. Setting 3 opens the editable terminology list: ewe · gimmer · shearling · theave · hogget.</span></figcaption>
+  </figure>
+
+  </div>
+</section>
+
+<script>
+(function(){
+  var root = document.documentElement;
+  function wire(btn, on, off){
+    btn.addEventListener('click', function(){
+      var next = btn.getAttribute('aria-pressed') !== 'true';
+      btn.setAttribute('aria-pressed', String(next));
+      btn.querySelector('.mark').textContent = next ? '■' : '□';
+      (next ? on : off)();
+    });
+  }
+  wire(document.getElementById('t-red'),
+    function(){ root.setAttribute('data-theme','red-shift'); },
+    function(){ root.setAttribute('data-theme','amber'); });
+  wire(document.getElementById('t-big'),
+    function(){ root.classList.add('tx-lg'); },
+    function(){ root.classList.remove('tx-lg'); });
+})();
+</script>
+</body>
+</html>

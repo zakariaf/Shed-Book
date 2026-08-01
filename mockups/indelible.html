@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indelible — Shed Book design system, twelve screens</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════════
+   INDELIBLE · design tokens
+   The whole system is visible in this :root block.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root{
+  color-scheme: dark;
+
+  /* ── 1 · INK AND PAPER — dark, the default and only primary theme ── */
+  --page:            #0A0A0B;   /* L 0.00306 — first painted frame, never pure black */
+  --row-pressed:     #131315;   /* L 0.00658 */
+  --sheet:           #141416;   /* L 0.00707 */
+  --slab:            #1C1C1F;   /* L 0.01176 — buttons are the only filled shapes */
+  --slab-pressed:    #2A2A2E;   /* L 0.02345 */
+
+  /* three ink densities + exactly one hue */
+  --ink-full:        #EDE8DC;   /* 16.19:1 on page · AAA */
+  --ink-mid:         #A8A296;   /*  7.80:1 on page · AAA */
+  --ink-low:         #8F8A7E;   /*  5.75:1 on page · AA  — struck text stays legible */
+  --rule:            #6B675F;   /*  3.52:1 · NON-TEXT ONLY, never carries a glyph */
+  --madder-rule:     #B94A40;   /*  3.88:1 · NON-TEXT ONLY — the spine */
+  --madder-ink:      #D4685C;   /*  5.59:1 on page · AA — strike, STRUCK, ?, † */
+
+  /* semantic aliases — components reference these, never the raw values */
+  --ink-record:      var(--ink-full);
+  --ink-secondary:   var(--ink-mid);
+  --ink-struck:      var(--ink-low);
+  --ink-gap:         var(--ink-low);
+  --ink-stamp:       var(--ink-full);
+  --ink-control:     var(--ink-full);
+  --ink-control-off: var(--ink-mid);
+  --spine:           var(--madder-rule);
+  --mark-strike:     var(--madder-ink);
+  --mark-query:      var(--madder-ink);
+  --mark-dagger:     var(--madder-ink);
+  --mark-double:     none;      /* red-shift flips this to `block` (2nd strike line) */
+
+  /* ── 2 · TYPE — two voices, strictly separated ── */
+  --face-record:  "Source Serif 4","Source Serif Pro",Charter,"Bitstream Charter",
+                  ui-serif,"New York","Noto Serif",Georgia,"Times New Roman",serif;
+  --face-control: "Source Sans 3","Source Sans Pro",ui-sans-serif,"SF Pro Text",
+                  "Avenir Next",Roboto,"Segoe UI",system-ui,sans-serif;
+
+  --w-record:         390;   /* one step lighter than light-mode — dark type blooms */
+  --w-record-strong:  420;
+  --w-control:        520;
+  --w-control-strong: 600;
+
+  --t-figure:    56px;  --lh-figure:    60px;  /* 187% */
+  --t-tag-xl:    44px;  --lh-tag-xl:    48px;  /* pen number, live-row tag */
+  --t-tag:       32px;  --lh-tag:       36px;  /* row tag, keypad digit, hours */
+  --t-slab:      26px;  --lh-slab:      28px;  /* + LAMB */
+  --t-ctl-lg:    22px;  --lh-ctl-lg:    26px;
+  --t-record:    20px;  --lh-record:    28px;  /* THE RECORD BODY */
+  --t-ctl:       20px;  --lh-ctl:       24px;
+  --t-ctl-sm:    19px;  --lh-ctl-sm:    23px;  /* control floor */
+  --t-record-sm: 18px;  --lh-record-sm: 24px;  /* record floor */
+  --t-margin:    18px;  --lh-margin:    22px;
+  --t-head:      16px;  --lh-head:      20px;
+  --t-stamp:     14px;  --lh-stamp:     17px;  /* never the sole carrier of meaning */
+
+  --track-stamp:  0.14em;
+  --track-head:   0.10em;
+  --track-slab:   0.06em;
+  --track-ctl:    0.01em;
+  --track-record: 0.006em;  /* reopens counters against halation on dark */
+
+  --figures: tabular-nums lining-nums;  /* every numeral, record and control alike */
+
+  /* ── 3 · SPACE ── */
+  --s-1:  4px;  --s-2:  8px;  --s-3: 12px;  --s-4: 16px;  --s-5:  20px;
+  --s-6: 24px;  --s-7: 32px;  --s-8: 40px;  --s-9: 48px;  --s-10: 64px;
+  --s-11: 88px; --s-12: 132px;
+
+  /* ── 4 · GEOMETRY ── */
+  --rule-w:          2px;      /* never 1px — a hairline vanishes at low brightness */
+  --rule-strike-w:   3px;
+  --rule-double-gap: 3px;
+  --rule-dot:        2px 6px;  /* dash pattern — an unset field is always dotted */
+  --radius-record:   0;
+  --radius-slab:     2px;
+  --radius-sheet:    0;
+  --shadow:          none;     /* there are no shadows in this system */
+
+  --gutter:        16px;
+  --margin-rule-x: 68px;   /* the spine — continuous, never mirrors */
+  --record-gap:     8px;
+  --row-h:         64px;
+  --row-h-tall:    88px;
+  --row-h-chart:   44px;
+  --head-h:        44px;
+  --bottom-band:  152px;   /* slab 140 + 12, above the safe-area inset */
+
+  --tap-min:  60px;   /* spec floor */
+  --tap:      64px;   /* system floor — nothing is smaller than this */
+  --slab-w:  160px;
+  --slab-h:  140px;
+  --index-w:  96px;
+  --key-w:   117px;
+  --key-h:    84px;
+  --tally-w:   8px;
+  --tally-h:  30px;
+  --tally-gap: 3px;
+  --daymark-w: 2px;
+  --daymark-h:12px;
+
+  --zone-thumb: 320px;   /* from the bottom — everything required lives here */
+  --zone-reach: 560px;   /* nothing above this is ever required */
+
+  /* ── 5 · MOTION ── */
+  --motion-press:   40ms;  /* fill only — never scale, never ripple */
+  --motion-ink:    120ms;  /* opacity only — ink appears, it does not travel */
+  --motion-sheet:  160ms;
+  --motion-strike: 180ms;  /* the only animation with a direction */
+  --ease-out:      cubic-bezier(0.2, 0, 0, 1);
+  --ease-strike:   linear;
+}
+
+/* ══════════ RED-SHIFT — six surfaces, six inks, nothing else changes ══════════ */
+:root[data-theme="red-shift"]{
+  --page:         #080605;   /* L 0.00193 */
+  --row-pressed:  #0F0B09;
+  --sheet:        #120D0A;
+  --slab:         #1A1310;
+  --slab-pressed: #261C17;
+
+  --ink-full:     #E4A896;   /*  9.96:1 · AAA */
+  --ink-mid:      #B8846F;   /*  6.32:1 · AA  */
+  --ink-low:      #A4756A;   /*  5.13:1 · AA  */
+  --rule:         #8A6053;   /*  3.73:1 · non-text */
+  --madder-rule:  #C9564A;   /*  4.73:1 · non-text */
+  --madder-ink:   #F2C4AE;   /* 12.79:1 · AAA — brightest mark on the page, because
+                                with no hue channel left, luminance carries it */
+  --mark-double:  block;     /* the strike line doubles when hue can no longer help */
+}
+
+/* ══════════ LARGE TEXT ≈ 165% — rows grow, the grid does not move ══════════ */
+:root[data-scale="lg"]{
+  --t-figure:    92px;  --lh-figure:    98px;
+  --t-tag-xl:    70px;  --lh-tag-xl:    76px;
+  --t-tag:       51px;  --lh-tag:       56px;
+  --t-slab:      29px;  --lh-slab:      32px;   /* capped at 110% — a thumb target */
+  --t-ctl-lg:    35px;  --lh-ctl-lg:    41px;
+  --t-record:    33px;  --lh-record:    44px;
+  --t-ctl:       32px;  --lh-ctl:       38px;
+  --t-ctl-sm:    30px;  --lh-ctl-sm:    36px;
+  --t-record-sm: 29px;  --lh-record-sm: 38px;
+  --t-margin:    29px;  --lh-margin:    34px;
+  --t-head:      22px;  --lh-head:      27px;
+  --t-stamp:     21px;  --lh-stamp:     25px;   /* capped at 150% */
+
+  --margin-rule-x: 108px;
+  --row-h:         112px;
+  --row-h-tall:    156px;
+  --row-h-chart:    60px;
+  --head-h:         64px;
+  --tap:            72px;
+  --slab-w:        176px;   /* capped at 110% */
+  --slab-h:        154px;
+  --index-w:       128px;
+  --key-h:          96px;   /* height only — a key grows, it never shrinks */
+}
+
+/* ══════════ LEFT-HANDED — the slab and INDEX swap; the spine does not move ══════════ */
+:root[data-hand="left"] .slab{ left: var(--gutter); right: auto; }
+:root[data-hand="left"] .index-btn{ right: var(--gutter); left: auto; }
+
+/* ══════════ REDUCE MOTION — the 40ms press flash survives ══════════ */
+@media (prefers-reduced-motion: reduce){
+  :root{ --motion-ink:0ms; --motion-sheet:0ms; --motion-strike:0ms; --motion-press:40ms; }
+}
+
+/* ══════════════════════════════ BASE ══════════════════════════════ */
+*,*::before,*::after{ box-sizing:border-box; }
+html{ overflow-x:hidden; background:var(--page); }
+body{
+  margin:0;
+  background:var(--page);
+  font-family:var(--face-record);
+  font-variant-numeric:var(--figures);
+  font-weight:var(--w-record);
+  font-size:var(--t-record);
+  line-height:var(--lh-record);
+  letter-spacing:var(--track-record);
+  color:var(--ink-record);
+  font-style:normal;                /* nothing in this system is ever italic */
+  -webkit-text-size-adjust:100%;
+  -webkit-font-smoothing:antialiased;
+}
+button{ font:inherit; color:inherit; background:none; border:0; margin:0; cursor:pointer; }
+button,.word,.control,.stamp{
+  font-family:var(--face-control);
+  font-weight:var(--w-control);
+  font-variant-numeric:var(--figures);
+  letter-spacing:var(--track-ctl);
+}
+:focus-visible{ outline:3px solid var(--ink-full); outline-offset:2px; }
+/* nothing in this system is ever italic — italic serifs smear under halation at
+   low luminance, so emphasis is a face swap or an ink lift, never a slope */
+em, i, cite, var, address, dfn{ font-style:normal; }
+em, cite, dfn{ color:var(--ink-full); }
+code{ font-family:var(--face-control); font-size:0.95em; letter-spacing:var(--track-ctl); color:var(--ink-full); }
+.sr-only{
+  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
+}
+
+/* ══════════════════════════ PAGE CHROME ══════════════════════════ */
+.page{ max-width:1440px; margin:0 auto; padding:56px 24px 120px; }
+
+.site-head{ border-bottom:var(--rule-w) solid var(--rule); padding-bottom:var(--s-8); }
+.wordmark{
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:clamp(56px,9vw,104px); line-height:1; letter-spacing:-0.01em;
+  margin:0 0 4px; color:var(--ink-full);
+}
+.wordmark .strikeword{ position:relative; display:inline-block; }
+.wordmark .strikeword::after{
+  content:""; position:absolute; left:-2%; right:-2%; top:52%; height:5px;
+  background:var(--mark-strike);
+}
+.site-sub{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); line-height:var(--lh-ctl-sm);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-mid);
+  margin:0 0 var(--s-7);
+}
+.thesis{ max-width:74ch; font-size:var(--t-record); line-height:var(--lh-record); color:var(--ink-mid); margin:0 0 var(--s-4); }
+.thesis strong{ color:var(--ink-full); font-weight:var(--w-record-strong); }
+.thesis .mad{ color:var(--mark-strike); }
+
+.axes-wrap{ margin-top:var(--s-8); overflow-x:auto; }
+table.axes{ border-collapse:collapse; width:100%; min-width:640px; }
+table.axes th, table.axes td{ text-align:left; vertical-align:top; padding:var(--s-4) var(--s-5) var(--s-4) 0; border-bottom:var(--rule-w) solid var(--rule); }
+table.axes th{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); font-weight:var(--w-control-strong);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-full);
+  white-space:nowrap; width:210px;
+}
+table.axes td{ font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); }
+table.axes caption{
+  caption-side:top; text-align:left; padding-bottom:var(--s-4);
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); text-transform:uppercase;
+  letter-spacing:var(--track-head); color:var(--ink-mid);
+}
+
+.toggles{ display:flex; flex-wrap:wrap; gap:var(--s-3); margin-top:var(--s-8); align-items:center; }
+.toggles .lbl{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); text-transform:uppercase;
+  letter-spacing:var(--track-head); color:var(--ink-mid); margin-right:var(--s-2);
+}
+.tgl{
+  min-height:var(--tap); min-width:var(--tap); padding:0 var(--s-5);
+  background:var(--slab); border:var(--rule-w) solid var(--ink-mid);
+  border-radius:var(--radius-slab); color:var(--ink-full);
+  font-size:var(--t-ctl); text-transform:uppercase; letter-spacing:var(--track-ctl);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.tgl:active{ background:var(--slab-pressed); }
+.tgl[aria-pressed="true"]{ border-color:var(--ink-full); }
+.tgl[aria-pressed="true"]::before{ content:"■ "; color:var(--madder-ink); }
+.tgl[aria-pressed="false"]::before{ content:"□ "; color:var(--ink-mid); }
+
+/* ══════════════════════════ SECTIONS ══════════════════════════ */
+.sec{ margin-top:var(--s-12); }
+.sec-head{
+  font-family:var(--face-control); font-size:var(--t-head); font-weight:var(--w-control-strong);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-mid);
+  margin:0 0 var(--s-4); padding-bottom:var(--s-3);
+  border-bottom:var(--rule-w) solid var(--rule);
+}
+.sec-head + .rule2{ margin-bottom:var(--s-8); }
+.rule2{ height:var(--rule-double-gap); border-bottom:var(--rule-w) solid var(--rule); }
+.sec-note{ max-width:74ch; font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); margin:0 0 var(--s-7); }
+
+.panel{ display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:var(--s-9) var(--s-8); }
+.panel h3, .comp h3{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); font-weight:var(--w-control-strong);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-full);
+  margin:0 0 var(--s-4); padding-bottom:var(--s-2); border-bottom:var(--rule-w) solid var(--rule);
+}
+
+/* colour swatches */
+.sw{ display:flex; align-items:center; gap:var(--s-4); padding:var(--s-3) 0; border-bottom:var(--rule-w) solid var(--rule); }
+.sw .chip{ width:56px; height:56px; flex:0 0 56px; border:var(--rule-w) solid var(--rule); }
+.sw .meta{ min-width:0; }
+.sw .nm{ font-family:var(--face-control); font-size:var(--t-ctl-sm); color:var(--ink-full); text-transform:uppercase; letter-spacing:var(--track-ctl); }
+.sw .hx{ font-family:var(--face-record); font-size:var(--t-record-sm); color:var(--ink-mid); font-variant-numeric:var(--figures); }
+.sw .ratio{ margin-left:auto; text-align:right; white-space:nowrap; }
+.sw .ratio b{ font-family:var(--face-record); font-weight:var(--w-record-strong); font-size:var(--t-record); color:var(--ink-full); font-variant-numeric:var(--figures); }
+.sw .ratio span{ display:block; font-family:var(--face-control); font-size:var(--t-stamp); letter-spacing:var(--track-stamp); text-transform:uppercase; color:var(--ink-mid); }
+
+/* type scale */
+.ts{ border-bottom:var(--rule-w) solid var(--rule); padding:var(--s-3) 0; display:grid; grid-template-columns:150px 1fr; gap:var(--s-4); align-items:baseline; }
+.ts .k{ font-family:var(--face-control); font-size:var(--t-stamp); letter-spacing:var(--track-stamp); text-transform:uppercase; color:var(--ink-mid); }
+.ts .v{ color:var(--ink-full); overflow:hidden; }
+
+/* spacing + radii */
+.sp{ display:flex; align-items:center; gap:var(--s-4); padding:var(--s-2) 0; border-bottom:var(--rule-w) solid var(--rule); }
+.sp .k{ font-family:var(--face-control); font-size:var(--t-stamp); letter-spacing:var(--track-stamp); color:var(--ink-mid); width:96px; flex:0 0 96px; text-transform:uppercase; }
+.sp .bar{ height:16px; background:var(--ink-mid); }
+.sp .n{ font-family:var(--face-record); font-size:var(--t-record-sm); color:var(--ink-mid); margin-left:auto; font-variant-numeric:var(--figures); }
+.rad{ display:flex; gap:var(--s-5); align-items:flex-end; flex-wrap:wrap; }
+.rad figure{ margin:0; text-align:center; }
+.rad .box{ width:88px; height:64px; background:var(--slab); border:var(--rule-w) solid var(--ink-mid); }
+.rad figcaption{ font-family:var(--face-control); font-size:var(--t-stamp); letter-spacing:var(--track-stamp); text-transform:uppercase; color:var(--ink-mid); margin-top:var(--s-2); }
+
+/* component gallery */
+.comp{ display:grid; grid-template-columns:repeat(auto-fit,minmax(390px,1fr)); gap:var(--s-9) var(--s-8); align-items:start; }
+.comp .cell{ min-width:0; }
+.comp .stage{ width:390px; max-width:100%; background:var(--page); border:var(--rule-w) solid var(--rule); padding:var(--s-4) 0; position:relative; }
+.comp .stage.plain{ padding:var(--s-4); }
+.comp .note{ font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); margin-top:var(--s-4); max-width:390px; }
+
+/* ══════════════════════════ PHONE FRAMES ══════════════════════════ */
+.frames{ display:grid; grid-template-columns:repeat(auto-fit,390px); justify-content:center; gap:var(--s-12) var(--s-8); }
+.fig{ margin:0; width:390px; }
+.frame{
+  width:390px; height:844px; position:relative; overflow:hidden;
+  background:var(--page); outline:var(--rule-w) solid var(--rule); outline-offset:0;
+}
+.figcap{ margin-top:var(--s-5); }
+.figcap .n{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); font-weight:var(--w-control-strong);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-full);
+  display:block; margin-bottom:var(--s-2); padding-bottom:var(--s-2);
+  border-bottom:var(--rule-w) solid var(--rule);
+}
+.figcap .d{ font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); }
+
+/* status bar + home indicator (OS chrome, not app UI) */
+.sb{
+  height:44px; flex:0 0 44px; display:flex; align-items:center; justify-content:space-between;
+  padding:0 22px; font-family:var(--face-control); font-size:16px; font-weight:var(--w-control-strong);
+  color:var(--ink-full); letter-spacing:0.01em; font-variant-numeric:var(--figures);
+}
+.sb .svc{ font-size:14px; letter-spacing:var(--track-ctl); color:var(--ink-mid); text-transform:uppercase; }
+.sb .right{ display:flex; align-items:center; gap:8px; }
+.home{
+  position:absolute; bottom:8px; left:50%; transform:translateX(-50%);
+  width:134px; height:5px; border-radius:3px; background:var(--ink-mid); z-index:9;
+}
+
+/* the app surface */
+.screen{ width:390px; height:844px; display:flex; flex-direction:column; position:relative; background:var(--page); }
+.app{ flex:1 1 auto; min-height:0; position:relative; display:flex; flex-direction:column; }
+.spine{
+  position:absolute; top:0; bottom:0; left:var(--margin-rule-x);
+  width:var(--rule-w); background:var(--spine); z-index:2; pointer-events:none;
+}
+.hdr{
+  flex:0 0 auto; min-height:var(--head-h); display:grid;
+  grid-template-columns:var(--margin-rule-x) minmax(0,1fr); align-items:center;
+  border-bottom:var(--rule-w) solid var(--rule); padding-right:var(--gutter);
+}
+.hdr .t{
+  padding-left:var(--record-gap);
+  font-family:var(--face-control); font-size:var(--t-head); line-height:var(--lh-head);
+  font-weight:var(--w-control-strong); text-transform:uppercase; letter-spacing:var(--track-head);
+  color:var(--ink-mid); font-variant-numeric:var(--figures);
+}
+.stream{
+  flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; position:relative; z-index:1;
+  scrollbar-width:thin; scrollbar-color:var(--rule) transparent;
+}
+.stream.band-pad{ padding-bottom:var(--bottom-band); }
+.stream::-webkit-scrollbar{ width:6px; }
+.stream::-webkit-scrollbar-thumb{ background:var(--rule); }
+.stream::-webkit-scrollbar-track{ background:transparent; }
+
+.band{ position:absolute; left:0; right:0; bottom:0; height:var(--bottom-band); z-index:4; pointer-events:none; }
+.band > *{ pointer-events:auto; }
+.index-btn{
+  position:absolute; left:var(--gutter); bottom:12px;
+  width:var(--index-w); height:var(--tap);
+  background:var(--slab); border:var(--rule-w) solid var(--ink-mid); border-radius:var(--radius-slab);
+  color:var(--ink-full); font-size:var(--t-ctl); text-transform:uppercase; letter-spacing:var(--track-ctl);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.index-btn:active{ background:var(--slab-pressed); }
+.slab{
+  position:absolute; right:var(--gutter); bottom:12px;
+  width:var(--slab-w); height:var(--slab-h);
+  background:var(--slab); border:var(--rule-w) solid var(--ink-mid); border-radius:var(--radius-slab);
+  color:var(--ink-full); font-size:var(--t-slab); line-height:var(--lh-slab);
+  font-weight:var(--w-control-strong); text-transform:uppercase; letter-spacing:var(--track-slab);
+  display:flex; align-items:center; justify-content:center; text-align:center;
+  transition:background var(--motion-press) var(--ease-out);
+}
+.slab:active{ background:var(--slab-pressed); }
+.slab.armed{ border-color:var(--ink-full); }
+.slab.armed::before{
+  content:""; position:absolute; left:-2px; top:-2px; width:24px; height:3px; background:var(--madder-rule);
+}
+.slab.armed::after{
+  content:""; position:absolute; left:-2px; top:-2px; width:3px; height:24px; background:var(--madder-rule);
+}
+.slab.off{
+  background:var(--page); color:var(--ink-low);
+  border:var(--rule-w) dashed var(--rule);
+}
+
+/* ── the ruled record row ── */
+.row{
+  position:relative; display:grid; grid-template-columns:var(--margin-rule-x) minmax(0,1fr);
+  min-height:var(--row-h); border-bottom:var(--rule-w) solid var(--rule);
+  padding-right:var(--gutter); align-items:center;
+  transition:background var(--motion-press) var(--ease-out);
+}
+.row.tall{ min-height:var(--row-h-tall); }
+.row:active{ background:var(--row-pressed); }
+.row.norow:active{ background:transparent; }
+button.row{ width:100%; text-align:left; }
+.mg{
+  align-self:stretch; display:flex; flex-direction:column; justify-content:center; align-items:flex-end;
+  gap:2px; padding:var(--s-2) var(--s-2) var(--s-2) 0; text-align:right; min-width:0; overflow:hidden;
+  font-family:var(--face-record); font-size:var(--t-margin); line-height:var(--lh-margin);
+  color:var(--ink-mid); font-variant-numeric:var(--figures);
+}
+.mg .stamp{ letter-spacing:0.06em; white-space:nowrap; }
+.rec{ position:relative; padding-left:var(--record-gap); min-width:0; }
+.rec .line{ display:flex; align-items:center; gap:var(--s-3); min-width:0; flex-wrap:wrap; }
+.rec .line.top{ align-items:baseline; }
+.rec .line > .body{ flex:1 1 auto; min-width:50%; }
+.summary{ display:block; font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid);
+          overflow-wrap:break-word; padding-top:2px; }
+.body, .sub, .hdr .t, .subhead .t, .printed .t, .flabel, .rbody{ overflow-wrap:break-word; }
+
+.tag{
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-tag); line-height:var(--lh-tag); color:var(--ink-full);
+  font-variant-numeric:var(--figures); flex:0 0 auto;
+}
+.tag.col{ min-width:76px; text-align:right; }
+.tag.xl{ font-size:var(--t-tag-xl); line-height:var(--lh-tag-xl); }
+.tag.pen{ font-size:var(--t-tag-xl); line-height:var(--lh-tag-xl); min-width:58px; text-align:left; }
+.body{ font-size:var(--t-record); line-height:var(--lh-record); color:var(--ink-mid); min-width:0; }
+.body.full{ color:var(--ink-full); }
+.sub{ font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); }
+.trail{ margin-left:auto; text-align:right; flex:0 1 auto; min-width:0; max-width:100%; padding-left:var(--s-3);
+        display:flex; align-items:baseline; gap:var(--s-2); flex-wrap:wrap; justify-content:flex-end; }
+.trail .w{
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); line-height:var(--lh-ctl-sm);
+  text-transform:uppercase; letter-spacing:var(--track-ctl); color:var(--ink-mid);
+  overflow-wrap:break-word;
+}
+.trail .f{
+  font-family:var(--face-record); font-size:var(--t-tag); line-height:var(--lh-tag);
+  color:var(--ink-mid); font-variant-numeric:var(--figures);
+}
+.trail .f.lift{ color:var(--ink-full); }
+.hours{
+  font-family:var(--face-record); font-size:var(--t-tag); line-height:var(--lh-tag);
+  color:var(--ink-mid); font-variant-numeric:var(--figures); margin-left:auto; padding-left:var(--s-3);
+}
+.hours.lift{ color:var(--ink-full); }
+
+/* stamps */
+.stamp{
+  display:inline-block; font-size:var(--t-stamp); line-height:var(--lh-stamp);
+  font-weight:var(--w-control-strong); text-transform:uppercase; letter-spacing:var(--track-stamp);
+  color:var(--ink-stamp); white-space:normal; overflow-wrap:break-word; max-width:100%;
+}
+.stamp.boxed{ border:var(--rule-w) solid var(--rule); border-radius:var(--radius-slab); padding:3px var(--s-2); }
+.stamp.mad{ color:var(--mark-strike); }
+.stamp.dim{ color:var(--ink-low); }
+
+/* marks */
+.dag{ color:var(--mark-dagger); font-family:var(--face-record); font-size:24px; line-height:1; }
+.qry{ color:var(--mark-query); font-family:var(--face-record); font-size:28px; line-height:1; }
+.tally{ display:inline-flex; gap:var(--tally-gap); align-items:center; color:var(--ink-full); flex:0 0 auto; }
+.tally i{ position:relative; display:block; width:var(--tally-w); height:var(--tally-h); background:currentColor; }
+.tally.dim{ color:var(--ink-low); }
+/* a lamb entered in error: the stroke keeps its rect and takes a line through it.
+   There is no minus button on a tally — a tally that can go down is not a tally. */
+.tally i.struck{ background:var(--ink-low); }
+.tally i.struck::after{
+  content:""; position:absolute; left:-3px; right:-3px; top:50%; margin-top:-1.5px;
+  height:var(--rule-strike-w); background:var(--mark-strike);
+}
+.dmarks{ display:inline-flex; gap:4px; align-items:center; flex:0 0 auto; }
+.dmarks i{ display:block; width:var(--daymark-w); height:var(--daymark-h); background:var(--ink-mid); }
+
+/* strike */
+.row.struck .rec, .row.struck .mg, .row.struck .tag, .row.struck .body, .row.struck .sub, .row.struck .trail .w, .row.struck .trail .f{ color:var(--ink-low); }
+.strikeline{
+  position:absolute; left:0; right:0; top:50%; height:var(--rule-strike-w);
+  background:var(--mark-strike); transform-origin:left; pointer-events:none;
+}
+.strikeline.two{ display:var(--mark-double); top:calc(50% + 5px); height:var(--rule-w); }
+/* red-shift removes the hue channel, so the strike doubles: two 2px lines, 3px apart */
+:root[data-theme="red-shift"] .strikeline.one{ height:var(--rule-w); }
+.struck-inline{ position:relative; display:inline-block; color:var(--ink-low); }
+.struck-inline::after{
+  content:""; position:absolute; left:-2px; right:-2px; top:52%; height:var(--rule-strike-w);
+  background:var(--mark-strike);
+}
+
+/* queried */
+.queried .qcell{ border-bottom:var(--rule-w) solid var(--mark-query); padding-bottom:2px; }
+
+/* doubled rule = the printer's convention for a boundary */
+.rule-2nd{ height:var(--rule-double-gap); border-bottom:var(--rule-w) solid var(--rule); }
+.subhead{
+  display:grid; grid-template-columns:var(--margin-rule-x) minmax(0,1fr); padding-right:var(--gutter);
+  min-height:var(--head-h); align-items:center; border-bottom:var(--rule-w) solid var(--rule);
+}
+.subhead .t{
+  padding-left:var(--record-gap);
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); font-weight:var(--w-control-strong);
+  text-transform:uppercase; letter-spacing:var(--track-head); color:var(--ink-mid);
+  font-variant-numeric:var(--figures); display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap;
+}
+.printed{
+  display:grid; grid-template-columns:var(--margin-rule-x) minmax(0,1fr); padding-right:var(--gutter);
+  border-bottom:var(--rule-w) solid var(--rule);
+}
+.printed .t{ padding:var(--s-3) 0 var(--s-3) var(--record-gap); font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); }
+.printed .t.full{ color:var(--ink-full); font-size:var(--t-record); line-height:var(--lh-record); }
+
+/* word buttons */
+.word{
+  display:inline-flex; align-items:center; justify-content:center; text-align:center;
+  min-height:var(--tap); min-width:var(--tap); padding:0 12px;
+  color:var(--ink-mid); font-size:var(--t-ctl); line-height:var(--lh-ctl);
+  text-transform:uppercase; letter-spacing:var(--track-ctl);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.word:active{ background:var(--row-pressed); }
+.word > span{ border-bottom:var(--rule-w) solid var(--rule); padding-bottom:6px; white-space:nowrap; }
+:root[data-scale="lg"] .word{ height:auto; padding-top:var(--s-2); padding-bottom:var(--s-2); }
+:root[data-scale="lg"] .word > span{ white-space:normal; }
+.word.sel{ color:var(--ink-full); }
+.word.sel > span{ border-bottom-color:var(--ink-full); }
+.word.lg{ font-size:var(--t-ctl-lg); line-height:var(--lh-ctl-lg); }
+.word.prim{ background:var(--slab); border:var(--rule-w) solid var(--ink-mid); border-radius:var(--radius-slab); color:var(--ink-full); }
+.word.prim > span{ border-bottom:0; padding-bottom:0; }
+.word.prim:active{ background:var(--slab-pressed); }
+.word.dest{ color:var(--mark-strike); }
+.word.dest > span{ border-bottom-color:var(--mark-strike); }
+.wordline{ display:flex; flex-wrap:wrap; gap:var(--s-2); align-items:center; padding:var(--s-1) 0; }
+.wordline.compact .word{ font-size:var(--t-ctl-sm); line-height:var(--lh-ctl-sm); padding:0 10px; }
+.wordline.stack{ width:100%; }
+.wordline.stack .word{ justify-content:flex-start; text-align:left; padding:var(--s-2) 0; height:auto; }
+.wordline.stack .word > span{ white-space:normal; }
+/* there is deliberately no horizontally-scrolling variant of a word line:
+   a sideways strip needs a swipe, and swipe is banned at 3am. Words wrap onto
+   the next ruled line instead. */
+
+/* segmented ease */
+.ease{ display:flex; flex-wrap:wrap; gap:var(--s-2); padding-bottom:var(--s-2);
+       max-width:calc(var(--tap) * 3 + var(--s-2) * 2); }
+.easebtn{
+  position:relative; width:var(--tap); height:var(--tap); flex:0 0 auto;
+  background:var(--page); border:var(--rule-w) solid var(--rule); border-radius:var(--radius-slab);
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-tag); line-height:1; color:var(--ink-mid); font-variant-numeric:var(--figures);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.easebtn:active{ background:var(--slab-pressed); }
+.easebtn.sel{ background:var(--slab); border-color:var(--ink-full); color:var(--ink-full); }
+.easebtn.sel::after{ content:""; position:absolute; left:0; right:0; bottom:-6px; height:var(--rule-w); background:var(--madder-rule); }
+
+/* stepper */
+.stepper{ display:inline-flex; align-items:stretch; border:var(--rule-w) solid var(--rule); border-radius:var(--radius-slab); }
+.stepper button{
+  width:var(--tap); min-height:var(--tap); font-family:var(--face-control); font-size:var(--t-tag);
+  color:var(--ink-mid); transition:background var(--motion-press) var(--ease-out);
+}
+.stepper button:active{ background:var(--slab-pressed); }
+.stepper .val{
+  min-width:88px; min-height:var(--tap); padding:0 var(--s-2); display:flex; align-items:center; justify-content:center;
+  border-left:var(--rule-w) solid var(--rule); border-right:var(--rule-w) solid var(--rule);
+  font-family:var(--face-record); font-size:var(--t-tag); color:var(--ink-full); font-variant-numeric:var(--figures);
+}
+.stepper .val.unset{ color:var(--ink-low); }
+
+/* text field */
+.flabel{
+  display:flex; flex-wrap:wrap; gap:var(--s-2); align-items:center;
+  font-family:var(--face-control); font-size:var(--t-ctl-sm); line-height:var(--lh-ctl-sm);
+  text-transform:uppercase; letter-spacing:var(--track-ctl); color:var(--ink-mid); padding-top:var(--s-2);
+}
+.fval{
+  display:block; width:100%; text-align:left; min-height:var(--tap);
+  font-family:var(--face-record); font-size:var(--t-record); line-height:var(--lh-record);
+  color:var(--ink-full); font-variant-numeric:var(--figures);
+  border-bottom:var(--rule-w) solid var(--rule); padding:var(--s-2) 0 var(--s-3);
+  letter-spacing:var(--track-record);
+}
+.fval.unset{
+  border-bottom:0;
+  background-image:repeating-linear-gradient(to right, var(--rule) 0 2px, transparent 2px 8px);
+  background-size:100% 2px; background-repeat:no-repeat; background-position:left bottom;
+}
+.fval.focus{ border-bottom:var(--rule-w) solid var(--ink-full); }
+.fval.focus::after{ content:""; display:inline-block; width:2px; height:22px; background:var(--ink-full); vertical-align:-4px; margin-left:2px; }
+.dotted{
+  height:var(--rule-w); width:100%;
+  background-image:repeating-linear-gradient(to right, var(--rule) 0 2px, transparent 2px 8px);
+}
+.gap-label{
+  font-family:var(--face-control); font-size:var(--t-stamp); line-height:var(--lh-stamp);
+  text-transform:uppercase; letter-spacing:var(--track-stamp); color:var(--ink-low);
+}
+
+/* check control */
+.chk{ display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap; }
+.chk .lab{
+  font-family:var(--face-control); font-size:var(--t-ctl); line-height:var(--lh-ctl);
+  text-transform:uppercase; letter-spacing:var(--track-ctl); color:var(--ink-mid);
+}
+.chk.done .lab{ color:var(--ink-full); border-bottom:var(--rule-w) solid var(--ink-full); padding-bottom:4px; }
+.chk.unset .lab{ padding-bottom:4px; background-image:repeating-linear-gradient(to right, var(--rule) 0 2px, transparent 2px 8px); background-size:100% 2px; background-repeat:no-repeat; background-position:left bottom; }
+.chk .hit{
+  margin-left:auto; min-width:var(--tap); min-height:var(--tap);
+  display:flex; flex-direction:column; align-items:flex-end; justify-content:center; gap:2px;
+  transition:background var(--motion-press) var(--ease-out);
+}
+.chk .hit:active{ background:var(--row-pressed); }
+.chk .hit .tm{ font-family:var(--face-record); font-size:var(--t-margin); color:var(--ink-full); font-variant-numeric:var(--figures); }
+
+/* keypad + sheet */
+.sheet{
+  position:absolute; left:0; right:0; bottom:0; z-index:5;
+  background:var(--sheet); border-top:var(--rule-w) solid var(--ink-full);
+  border-radius:var(--radius-sheet);
+  display:flex; flex-direction:column; max-height:calc(100% - 60px);
+}
+.sheet-head{
+  flex:0 0 auto; display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap;
+  padding:var(--s-2) var(--gutter) var(--s-2) var(--gutter);
+  min-height:72px; border-bottom:var(--rule-w) solid var(--rule); flex-wrap:nowrap;
+}
+.sheet-head > *{ min-width:0; }
+.sheet-head .stamp{ flex:1 1 auto; }
+:root[data-scale="lg"] .sheet-head{ flex-wrap:wrap; }
+.sheet-head .k{
+  font-family:var(--face-control); font-size:var(--t-stamp); line-height:var(--lh-stamp);
+  font-weight:var(--w-control-strong); text-transform:uppercase;
+  letter-spacing:var(--track-stamp); color:var(--ink-mid); display:block;
+}
+.sheet-head .typed{
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-tag-xl); line-height:var(--lh-tag-xl); color:var(--ink-full);
+  font-variant-numeric:var(--figures);
+}
+.sheet-head .typed::after{ content:""; display:inline-block; width:3px; height:34px; background:var(--ink-full); vertical-align:-4px; margin-left:4px; }
+.sheet-head .close{
+  margin-left:auto; min-width:88px; min-height:var(--tap); padding:0 var(--s-3);
+  background:var(--slab); border:var(--rule-w) solid var(--ink-mid); border-radius:var(--radius-slab);
+  color:var(--ink-full); font-size:var(--t-ctl); text-transform:uppercase; letter-spacing:var(--track-ctl);
+}
+.sheet-list{ flex:1 1 auto; min-height:0; overflow-y:auto; scrollbar-width:thin; scrollbar-color:var(--rule) transparent; }
+.recent{
+  display:flex; align-items:center; gap:var(--s-4); width:100%; text-align:left; flex-wrap:wrap;
+  min-height:var(--tap); padding:0 var(--gutter); border-bottom:var(--rule-w) solid var(--rule);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.recent:active{ background:var(--row-pressed); }
+.recent .rtag{
+  min-width:76px; flex:0 0 auto; text-align:right;
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-tag); line-height:var(--lh-tag); color:var(--ink-full); font-variant-numeric:var(--figures);
+}
+.recent .rbody{ font-family:var(--face-record); font-size:var(--t-record-sm); line-height:var(--lh-record-sm); color:var(--ink-mid); letter-spacing:var(--track-record); }
+.recent.create .rbody{ font-size:var(--t-record); color:var(--ink-mid); }
+.sheet--tag{ height:730px; }
+:root[data-scale="lg"] .sheet-head .typed{ font-size:var(--t-tag); line-height:var(--lh-tag); }
+:root[data-scale="lg"] .sheet-head .typed::after{ height:26px; }
+:root[data-scale="lg"] .sheet--tag{ height:740px; }
+.sheet-list{ scrollbar-width:thin; }
+.keypad{
+  flex:0 0 auto; display:grid; grid-template-columns:repeat(3,1fr); gap:var(--s-2);
+  /* 12px of clear air above the top key row: the last recents line and the first
+     key are different targets and must not share an edge under a cold thumb */
+  padding:var(--s-3) 12px 12px;
+}
+.key{
+  height:var(--key-h); background:var(--slab); border:var(--rule-w) solid var(--rule);
+  border-radius:var(--radius-slab); display:flex; align-items:center; justify-content:center;
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-tag); color:var(--ink-full); font-variant-numeric:var(--figures);
+  transition:background var(--motion-press) var(--ease-out);
+}
+.key:active{ background:var(--slab-pressed); border-color:var(--ink-mid); }
+.key.ctl{ font-family:var(--face-control); font-weight:var(--w-control); font-size:var(--t-ctl-sm); text-transform:uppercase; letter-spacing:var(--track-ctl); }
+
+/* live row */
+.row.live{ border-bottom:var(--rule-w) solid var(--ink-full); min-height:128px; align-items:stretch; }
+.row.live .mg{ justify-content:center; }
+.row.live .rec::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--madder-rule); }
+.row.live .rec{ display:flex; flex-direction:column; justify-content:center; gap:var(--s-2); padding-top:var(--s-3); padding-bottom:var(--s-3); }
+
+/* chart */
+.crow{
+  display:grid; grid-template-columns:var(--margin-rule-x) minmax(0,1fr) auto; align-items:center;
+  min-height:var(--row-h-chart); border-bottom:var(--rule-w) solid var(--rule); padding-right:var(--gutter);
+}
+.crow .cday{ text-align:right; padding-right:12px; font-family:var(--face-record); font-size:var(--t-margin); color:var(--ink-mid); font-variant-numeric:var(--figures); }
+.crow .bar{ display:flex; gap:3px; align-items:center; padding-left:var(--record-gap); min-width:0; }
+.crow .bar i{ display:block; width:8px; height:24px; background:var(--ink-full); flex:0 0 8px; }
+.crow .bar.zero{ height:2px; background-image:repeating-linear-gradient(to right, var(--rule) 0 2px, transparent 2px 8px); margin-left:var(--record-gap); padding-left:0; }
+.crow .ccount{ font-family:var(--face-record); font-size:var(--t-record); color:var(--ink-mid); padding-left:var(--s-4); font-variant-numeric:var(--figures); }
+
+/* figure block (season) */
+.bigfig{
+  display:block;
+  font-family:var(--face-record); font-weight:var(--w-record-strong);
+  font-size:var(--t-figure); line-height:var(--lh-figure); color:var(--ink-full);
+  font-variant-numeric:var(--figures);
+}
+
+/* narrow viewports: scale the frames rather than scrolling the page sideways */
+@media (max-width:470px){
+  .page{ padding:32px 12px 80px; }
+  /* scale the whole grid once — never the grid and its items, which would
+     shrink each frame inside a track it no longer fills */
+  .frames{ zoom:0.82; }
+  .comp .stage{ zoom:0.9; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ═══════════════════════════ 1 · HEADER ═══════════════════════════ -->
+<header class="site-head">
+  <h1 class="wordmark"><span class="strikeword">Indelible</span></h1>
+  <p class="site-sub">Shed Book · direction 1 of 3 · offline lambing notebook · iOS + Android · dark-first</p>
+
+  <p class="thesis">
+    A shed at 3am is not a database, it is <strong>a night that will be impossible to reconstruct in the morning</strong>,
+    and the discipline for exactly that is four hundred years old. In a ship's deck log, a pilot's logbook and every
+    GxP-regulated record on earth the rule is identical and absolute: <strong>never erase, never white out</strong> — strike one
+    line through the error so it stays legible, write the correction beside it, initial and date it. That is not
+    bureaucracy, it is a design pattern for a record kept by an exhausted human at 4am, and it is precisely what the
+    spec's safety rule 4 demands. So Shed Book is a <strong>book of nights</strong>: one ruled page per night, one row per
+    event, a <span class="mad">madder-red margin rule</span> down the left carrying the auto-captured time. Delete does
+    not delete. Edits do not overwrite. Nothing needs a Save button, because the row commits at the first keystroke and
+    you can <strong>see</strong> it, in ink, one line above the one you are writing — which removes the real 3am failure
+    mode, which is not slowness but doubt. And because a lambing is a forty-minute window rather than a form-filling
+    event, the row stays open: you press one corner slab once per lamb as each arrives, and the birth type is derived
+    from the strokes and labelled as derived.
+  </p>
+  <p class="thesis">
+    <strong>Signature move.</strong> There is no delete. The delete button draws a single madder line through the entry and
+    prints <span class="stamp mad">STRUCK 03:41</span> in the margin, and the struck row stays on the page, in the ewe's
+    history and in the CSV export forever. Swipe-to-delete is not merely banned here — the concept of erasure does not
+    exist in the product. And nobody ever chooses "triplet": you press one enormous corner slab once per lamb, like a
+    tally counter, and the strokes print in the lamb column.
+  </p>
+
+  <div class="axes-wrap">
+    <table class="axes">
+      <caption>Position on the nine axes</caption>
+      <tbody>
+      <tr><th scope="row">Navigation</th><td>A single vertical stream — one long page you fill downward, and nothing else. There are no screens: a ewe card is the book filtered to 412, the medicine book is the book filtered to treatments, the season summary is the book's totals footer. One structure, one surface, filters. No rail, no tabs, no stack — the index is a printed line in the stream.</td></tr>
+      <tr><th scope="row">Density</th><td>Medium and rhythmic. Seven or eight 64pt ruled rows visible at once plus the live row. Density comes from the grid, not from cramming: each row is sparse, but rows repeat, so a page reads as a table without ever being a screen of small text.</td></tr>
+      <tr><th scope="row">Typographic voice</th><td>Two voices, strictly separated and stated in the app itself — an editorial serif with true tabular lining figures for the record (what has been written), a humanist sans for every control (what you press). "The book is set in the book face; the buttons are set in the machine face." Even at a glance in the dark you can tell history from target.</td></tr>
+      <tr><th scope="row">Geometry</th><td>Hairline-ruled ledger, with the hairlines raised to 2pt because the ruling is the entire structure. Horizontal rules in dim ink, one vertical madder margin rule 68pt from the left edge, a double rule under a night's total. No cards, no containers, no radius in the record; the only filled shapes in the app are buttons.</td></tr>
+      <tr><th scope="row">Colour strategy</th><td>Inverted-paper ink — three ink densities on near-black plus exactly one hue, a dull madder red doing three jobs: the margin rule, the strike-through and the query mark. Red anywhere means the record has something to say about itself. There is no green, no blue and no status palette at all; alive/dead is a word, not a colour, because a colour-coded death reads wrong at 4am through a wet freezer bag.</td></tr>
+      <tr><th scope="row">Data representation</th><td>Textual list with a numerals-first left column and literal tally strokes in the lamb column. Tags and times in tabular figures so they align into scannable columns down the page; unset fields print as visible gaps rather than hiding behind an empty form field; the season spread is small multiples of the same ruled row, not a dashboard.</td></tr>
+      <tr><th scope="row">Primary input</th><td>Stepper-and-counter over fill-the-row. One 160&times;140pt corner slab pressed once per lamb — the largest target in any of the three directions, because it is the one pressed hundreds of times a season — and every other cell in the live row is its own 64pt target opening an inline chooser inside the row. The row you are filling <em>is</em> the form. A keypad sheet appears only for the tag cell.</td></tr>
+      <tr><th scope="row">Layout anchor</th><td>Bottom-pinned document with the counter slab in the dominant-hand corner (mirrorable). The page fills top-down like a real book, but the live row is welded above the bottom edge — the record reads upward into history and your thumb only ever works at the bottom.</td></tr>
+      <tr><th scope="row">Ornament level</th><td>Print-like ink and paper. Rules, margins, daggers, strikes, a printed page header (NIGHT OF 27 JULY · PAGE 3) and a printed footer on every export stating this is a notebook and not a compliance record. No texture, no fake grain, no shadow — the ornament <em>is</em> the ruling.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="toggles">
+    <span class="lbl">Live controls</span>
+    <button class="tgl" id="tgl-red" type="button" aria-pressed="false">Red-shift mode</button>
+    <button class="tgl" id="tgl-lg" type="button" aria-pressed="false">Large text ≈165%</button>
+    <button class="tgl" id="tgl-hand" type="button" aria-pressed="false">Left-handed</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════ 2 · TOKEN PANEL ═══════════════════════════ -->
+<section class="sec" aria-labelledby="tok-h">
+  <h2 class="sec-head" id="tok-h">Token panel — the whole system in one block</h2>
+  <div class="rule2"></div>
+  <p class="sec-note">
+    Every ratio below is a WCAG 2.2 contrast ratio computed as (L1 + 0.05) / (L2 + 0.05) against the surface named,
+    not estimated. Three ink densities and one hue is the entire palette. <span class="stamp boxed">AAA</span> ≥ 7:1 ·
+    <span class="stamp boxed">AA</span> ≥ 4.5:1 · <span class="stamp boxed">NT</span> non-text, ≥ 3:1 and never used for a glyph.
+  </p>
+
+  <div class="panel">
+    <div>
+      <h3>Ink and paper · dark (default) — on --page #0A0A0B</h3>
+      <div class="sw"><span class="chip" style="background:#0A0A0B"></span><span class="meta"><span class="nm">--page</span><span class="hx">#0A0A0B · L 0.00306</span></span><span class="ratio"><b>—</b><span>the surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#131315"></span><span class="meta"><span class="nm">--row-pressed</span><span class="hx">#131315 · L 0.00658</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#141416"></span><span class="meta"><span class="nm">--sheet</span><span class="hx">#141416 · L 0.00707</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#1C1C1F"></span><span class="meta"><span class="nm">--slab</span><span class="hx">#1C1C1F · L 0.01176</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#2A2A2E"></span><span class="meta"><span class="nm">--slab-pressed</span><span class="hx">#2A2A2E · L 0.02345</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#EDE8DC"></span><span class="meta"><span class="nm">--ink-full</span><span class="hx">#EDE8DC · record, controls, stamps</span></span><span class="ratio"><b>16.19:1</b><span>AAA · 13.91 on slab</span></span></div>
+      <div class="sw"><span class="chip" style="background:#A8A296"></span><span class="meta"><span class="nm">--ink-mid</span><span class="hx">#A8A296 · summaries, margin times</span></span><span class="ratio"><b>7.80:1</b><span>AAA · 6.70 on slab</span></span></div>
+      <div class="sw"><span class="chip" style="background:#8F8A7E"></span><span class="meta"><span class="nm">--ink-low</span><span class="hx">#8F8A7E · struck text, gap labels</span></span><span class="ratio"><b>5.75:1</b><span>AA · struck stays legible</span></span></div>
+      <div class="sw"><span class="chip" style="background:#6B675F"></span><span class="meta"><span class="nm">--rule</span><span class="hx">#6B675F · 2px ruling only</span></span><span class="ratio"><b>3.52:1</b><span>NT · never a glyph</span></span></div>
+      <div class="sw"><span class="chip" style="background:#B94A40"></span><span class="meta"><span class="nm">--madder-rule</span><span class="hx">#B94A40 · the spine</span></span><span class="ratio"><b>3.88:1</b><span>NT · never a glyph</span></span></div>
+      <div class="sw"><span class="chip" style="background:#D4685C"></span><span class="meta"><span class="nm">--madder-ink</span><span class="hx">#D4685C · strike · STRUCK · ? · †</span></span><span class="ratio"><b>5.59:1</b><span>AA · 4.80 on slab</span></span></div>
+    </div>
+
+    <div>
+      <h3>Red-shift — on --page #080605 · six values change, nothing breaks</h3>
+      <div class="sw"><span class="chip" style="background:#080605"></span><span class="meta"><span class="nm">--page</span><span class="hx">#080605 · L 0.00193</span></span><span class="ratio"><b>—</b><span>the surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#120D0A"></span><span class="meta"><span class="nm">--sheet</span><span class="hx">#120D0A</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#1A1310"></span><span class="meta"><span class="nm">--slab</span><span class="hx">#1A1310</span></span><span class="ratio"><b>—</b><span>surface</span></span></div>
+      <div class="sw"><span class="chip" style="background:#E4A896"></span><span class="meta"><span class="nm">--ink-full</span><span class="hx">#E4A896</span></span><span class="ratio"><b>9.96:1</b><span>AAA · 9.03 on slab</span></span></div>
+      <div class="sw"><span class="chip" style="background:#B8846F"></span><span class="meta"><span class="nm">--ink-mid</span><span class="hx">#B8846F</span></span><span class="ratio"><b>6.32:1</b><span>AA · 5.74 on slab</span></span></div>
+      <div class="sw"><span class="chip" style="background:#A4756A"></span><span class="meta"><span class="nm">--ink-low</span><span class="hx">#A4756A</span></span><span class="ratio"><b>5.13:1</b><span>AA · 4.66 on slab</span></span></div>
+      <div class="sw"><span class="chip" style="background:#8A6053"></span><span class="meta"><span class="nm">--rule</span><span class="hx">#8A6053 · 2px ruling only</span></span><span class="ratio"><b>3.73:1</b><span>NT</span></span></div>
+      <div class="sw"><span class="chip" style="background:#C9564A"></span><span class="meta"><span class="nm">--madder-rule</span><span class="hx">#C9564A · the spine</span></span><span class="ratio"><b>4.73:1</b><span>NT</span></span></div>
+      <div class="sw"><span class="chip" style="background:#F2C4AE"></span><span class="meta"><span class="nm">--madder-ink</span><span class="hx">#F2C4AE · brightest mark on the page</span></span><span class="ratio"><b>12.79:1</b><span>AAA · 11.61 on slab</span></span></div>
+      <p class="sec-note" style="margin-top:var(--s-5)">
+        In dark, madder is identified by hue and is <em>dimmer</em> than the ink. In red-shift there is no hue channel
+        left, so madder becomes the <em>brightest</em> mark on the page and the strike line doubles
+        (<code>--mark-double: block</code>). Form carries the meaning in both cases.
+      </p>
+    </div>
+
+    <div>
+      <h3>Type scale — serif = record, sans = control</h3>
+      <div class="ts"><span class="k">--t-figure 56/60</span><span class="v" style="font-size:56px;line-height:60px;font-weight:420">187%</span></div>
+      <div class="ts"><span class="k">--t-tag-xl 44/48</span><span class="v" style="font-size:44px;line-height:48px;font-weight:420">412</span></div>
+      <div class="ts"><span class="k">--t-tag 32/36</span><span class="v" style="font-size:32px;line-height:36px;font-weight:420">412 128 305 31h</span></div>
+      <div class="ts"><span class="k">--t-slab 26 · control</span><span class="v" style="font-family:var(--face-control);font-size:26px;font-weight:600;letter-spacing:.06em">+ LAMB</span></div>
+      <div class="ts"><span class="k">--t-ctl-lg 22 · control</span><span class="v" style="font-family:var(--face-control);font-size:22px;font-weight:520;text-transform:uppercase">Turn out</span></div>
+      <div class="ts"><span class="k">--t-record 20/28</span><span class="v" style="font-size:20px;line-height:28px">the record body · triplet (counted)</span></div>
+      <div class="ts"><span class="k">--t-ctl 20 · control</span><span class="v" style="font-family:var(--face-control);font-size:20px;font-weight:520;text-transform:uppercase">Move pen · add note</span></div>
+      <div class="ts"><span class="k">--t-ctl-sm 19 · control</span><span class="v" style="font-family:var(--face-control);font-size:19px;font-weight:520;text-transform:uppercase">Days — read from the bottle</span></div>
+      <div class="ts"><span class="k">--t-record-sm 18/24</span><span class="v" style="font-size:18px;line-height:24px">3 seasons · avg 2.0 · assisted twice</span></div>
+      <div class="ts"><span class="k">--t-margin 18 · tabular</span><span class="v" style="font-size:18px">03:20 · 07:02 · 12 Aug</span></div>
+      <div class="ts"><span class="k">--t-head 16 · control</span><span class="v" style="font-family:var(--face-control);font-size:16px;font-weight:600;text-transform:uppercase;letter-spacing:.10em">Night of 27 July 2026 · page 3</span></div>
+      <div class="ts"><span class="k">--t-stamp 14 · control</span><span class="v"><span class="stamp">AUTO</span> <span class="stamp">DERIVED</span> <span class="stamp boxed">OVER</span> <span class="stamp boxed">YOUR ENTRY</span></span></div>
+      <p class="sec-note" style="margin-top:var(--s-5)">
+        Body floor is 20px in the record and 19px in controls, both above the spec's 18pt floor. The 14px stamp is the
+        only thing below 18px and it is never the sole carrier of its meaning — remove every stamp and the app still
+        works. Nothing is italic: italic serifs smear under halation at low luminance.
+      </p>
+    </div>
+
+    <div>
+      <h3>Space, geometry, radii</h3>
+      <div class="sp"><span class="k">--s-1</span><span class="bar" style="width:4px"></span><span class="n">4px</span></div>
+      <div class="sp"><span class="k">--s-2</span><span class="bar" style="width:8px"></span><span class="n">8px</span></div>
+      <div class="sp"><span class="k">--s-3</span><span class="bar" style="width:12px"></span><span class="n">12px</span></div>
+      <div class="sp"><span class="k">--s-4</span><span class="bar" style="width:16px"></span><span class="n">16px</span></div>
+      <div class="sp"><span class="k">--s-5</span><span class="bar" style="width:20px"></span><span class="n">20px</span></div>
+      <div class="sp"><span class="k">--s-6</span><span class="bar" style="width:24px"></span><span class="n">24px</span></div>
+      <div class="sp"><span class="k">--s-7</span><span class="bar" style="width:32px"></span><span class="n">32px</span></div>
+      <div class="sp"><span class="k">--s-8</span><span class="bar" style="width:40px"></span><span class="n">40px</span></div>
+      <div class="sp"><span class="k">--s-9</span><span class="bar" style="width:48px"></span><span class="n">48px</span></div>
+      <div class="sp"><span class="k">--s-10</span><span class="bar" style="width:64px"></span><span class="n">64px · row + target</span></div>
+      <div class="sp"><span class="k">--s-11</span><span class="bar" style="width:88px"></span><span class="n">88px · tall row</span></div>
+      <div class="sp"><span class="k">--s-12</span><span class="bar" style="width:132px"></span><span class="n">132px</span></div>
+      <div style="margin-top:var(--s-6)" class="rad">
+        <figure><div class="box" style="border-radius:0"></div><figcaption>--radius-record 0</figcaption></figure>
+        <figure><div class="box" style="border-radius:0"></div><figcaption>--radius-sheet 0</figcaption></figure>
+        <figure><div class="box" style="border-radius:2px"></div><figcaption>--radius-slab 2px</figcaption></figure>
+      </div>
+      <div style="margin-top:var(--s-6)">
+        <div class="sp"><span class="k">--rule-w</span><span class="bar" style="width:180px;height:2px"></span><span class="n">2px · every rule</span></div>
+        <div class="sp"><span class="k">--rule-strike-w</span><span class="bar" style="width:180px;height:3px;background:var(--madder-ink)"></span><span class="n">3px · the strike</span></div>
+        <div class="sp"><span class="k">double rule</span><span style="width:180px"><span style="display:block;height:2px;background:var(--ink-mid)"></span><span style="display:block;height:3px"></span><span style="display:block;height:2px;background:var(--ink-mid)"></span></span><span class="n">2 + 3 + 2</span></div>
+        <div class="sp"><span class="k">--rule-dot</span><span class="bar" style="width:180px;height:2px;background:none;background-image:repeating-linear-gradient(to right,var(--rule) 0 2px,transparent 2px 8px)"></span><span class="n">2px 6px · unset</span></div>
+        <div class="sp"><span class="k">--shadow</span><span class="n" style="margin-left:0">none — there are no shadows in this system</span></div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:var(--s-12)" class="sec-head">Core components at real size</h3>
+  <div class="rule2" style="margin-bottom:var(--s-8)"></div>
+
+  <div class="comp">
+    <div class="cell">
+      <h3>Corner slab · 160 × 140 — the largest target in the system</h3>
+      <div class="stage plain" style="display:flex;gap:16px;flex-wrap:wrap">
+        <div style="position:relative;width:160px;height:140px"><button class="slab" style="position:static" type="button">+ EVENT</button></div>
+        <div style="position:relative;width:160px;height:140px"><button class="slab armed" style="position:static" type="button">+ LAMB</button></div>
+      </div>
+      <div class="stage plain" style="display:flex;gap:16px;flex-wrap:wrap;margin-top:16px">
+        <div style="position:relative;width:160px;height:140px"><button class="slab off" style="position:static" type="button">TAG FIRST</button></div>
+        <div style="position:relative;width:160px;height:140px"><button class="slab" style="position:static;background:var(--slab-pressed)" type="button">+ LAMB</button></div>
+      </div>
+      <p class="note">Default · armed (ink-full border + 24px madder corner tick) · disabled (still a 160×140 target that opens the tag sheet) · pressed (fill only, 40ms, no scale, no ripple)</p>
+    </div>
+
+    <div class="cell">
+      <h3>Keypad key 117 × 84 · word buttons · stamps</h3>
+      <div class="stage plain">
+        <div class="keypad" style="padding:0;grid-template-columns:repeat(3,117px)">
+          <button class="key" type="button">1</button>
+          <button class="key" type="button" style="background:var(--slab-pressed);border-color:var(--ink-mid)">2</button>
+          <button class="key" type="button">3</button>
+          <button class="key" type="button" aria-label="delete">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter" aria-hidden="true"><path d="M9 4 L26 4 L26 24 L9 24 L2 14 Z"/><path d="M13 10 L20 18 M20 10 L13 18"/></svg>
+          </button>
+          <button class="key" type="button">0</button>
+          <button class="key ctl" type="button">New tag</button>
+        </div>
+        <div class="wordline" style="margin-top:20px">
+          <button class="word prim lg" type="button"><span>Turn out</span></button>
+          <button class="word sel" type="button"><span>All 8</span></button>
+          <button class="word" type="button"><span>Barren 1</span></button>
+          <button class="word dest" type="button"><span>Strike</span></button>
+        </div>
+        <div class="wordline" style="margin-top:8px;gap:12px">
+          <span class="stamp boxed">PENNED</span><span class="stamp boxed">BARREN</span><span class="stamp boxed">OVER</span>
+          <span class="stamp">AUTO</span><span class="stamp">COUNTED</span><span class="stamp mad">STRUCK 03:41</span>
+        </div>
+      </div>
+      <p class="note">Digits are set in the book face — the one documented exception, so the digit you press is the shape that prints. Boxed stamp = a state of the animal; unboxed = a note about the record.</p>
+    </div>
+
+    <div class="cell">
+      <h3>Ruled record row · auto · edited · struck · queried · live</h3>
+      <div class="stage">
+        <div class="spine" style="top:0;bottom:0"></div>
+        <div class="row"><div class="mg"><span>02:05</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">305</span><span class="body">move pen · TO PEN 5</span></div></div></div>
+        <div class="row tall"><div class="mg"><span>07:02</span><span class="dag" aria-hidden="true">†</span><span class="stamp">EDITED</span></div><div class="rec"><div class="line"><span class="tag col">128</span><span class="body">lambing · TWIN (COUNTED)</span></div><div class="line"><span class="sub" style="padding-left:84px">EVENT 03:20 AS ENTERED</span></div></div></div>
+        <div class="row struck"><div class="mg"><span>02:41</span><span class="stamp mad">STRUCK</span><span class="stamp mad">02:43</span></div><div class="rec"><span class="strikeline one"></span><span class="strikeline two"></span><div class="line"><span class="tag col">219</span><span class="body">lambing · SINGLE (COUNTED)</span></div></div></div>
+        <div class="row queried"><div class="mg"><span class="qry">?</span></div><div class="rec"><div class="line"><span class="tag col">340</span><span class="body qcell">TRIPLET declared · 2 strokes</span></div></div></div>
+        <div class="row tall"><div class="mg"><span>04:18</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">91</span><span class="body">lambing</span><span class="tally" role="img" aria-label="3 lambs, the third struck" style="margin-left:auto"><i></i><i></i><i class="struck"></i></span></div><div class="line"><span class="body" style="padding-left:84px">TWIN <span class="stamp">COUNTED, 1 STRUCK</span></span></div></div></div>
+        <div class="row live"><div class="mg"><span>03:20</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag xl">412</span><span class="tally" role="img" aria-label="2 lambs"><i></i><i></i></span></div><div class="line"><span class="body full">LAMBING · TWIN&nbsp;<span class="stamp">COUNTED</span></span><span class="stamp" style="margin-left:auto">ROW OPEN</span></div></div></div>
+      </div>
+      <p class="note">Auto-captured time is stamped AUTO; an edited one is stamped EDITED with a dagger and prints <em>both</em> times — the original is never overwritten. A struck row never moves, collapses or fades; it stays at 5.75:1 tonight, next year and in the CSV, and in red-shift the strike line doubles. A mis-pressed slab is not undone by a decrement: the third stroke is ruled through and the count re-prints as TWIN (COUNTED, 1 STRUCK), because a tally that can go down is not a tally.</p>
+    </div>
+
+    <div class="cell">
+      <h3>Ewe row 88 · pen row 88 · withdrawal countdown 88</h3>
+      <div class="stage">
+        <div class="spine" style="top:0;bottom:0"></div>
+        <div class="row tall"><div class="mg"><span class="dag" aria-hidden="true">†</span></div><div class="rec"><div class="line"><span class="tag col">412</span><span class="trail"><span class="w">Pen 4</span><span class="f lift">31h</span></span></div><div class="summary">3 seasons · avg 2.0 · assisted twice · prolapsed 2025</div></div></div>
+        <div class="rule-2nd"></div>
+        <div class="row tall"><div class="mg"><span class="dag" aria-hidden="true">†</span></div><div class="rec"><div class="line"><span class="tag pen">4</span><span class="tag">412</span><span class="tally" role="img" aria-label="2 lambs"><i></i><i></i></span><span class="hours lift">31h</span><span class="stamp boxed" style="margin-left:12px">OVER</span></div></div></div>
+        <div class="rule-2nd"></div>
+        <div class="row tall"><div class="mg"></div><div class="rec"><div class="line"><span class="tag col">77</span><span class="body">Alamycin LA</span><span class="hours">9d</span></div><div class="line" style="gap:var(--s-2)"><span class="sub" style="padding-left:12px">CLEARS 12 AUG 2026</span><span class="dmarks" role="img" aria-label="9 days remaining"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></div></div></div>
+      </div>
+      <p class="note">Over-threshold is marked four ways, any three sufficient: the word OVER, a dagger, a doubled rule, and the hours lifting from 7.80:1 to 16.19:1. Desaturate it and it still reads.</p>
+    </div>
+
+    <div class="cell">
+      <h3>Segmented ease · stepper · check control</h3>
+      <div class="stage">
+        <div class="spine" style="top:0;bottom:0"></div>
+        <div class="row tall"><div class="mg"></div><div class="rec"><div class="ease" role="group" aria-label="Lambing ease 1 to 5, 3 selected">
+          <button class="easebtn" type="button">1</button><button class="easebtn" type="button">2</button>
+          <button class="easebtn sel" type="button" aria-pressed="true">3</button>
+          <button class="easebtn" type="button">4</button><button class="easebtn" type="button">5</button>
+        </div><div class="sub" style="padding-top:6px">EASE 3 · SOME ASSISTANCE</div></div></div>
+        <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="stepper"><button type="button" aria-label="decrease">−</button><span class="val">4.1</span><button type="button" aria-label="increase">+</button></span><span class="sub">kg · step 0.1 · no repeat-on-hold</span></div></div></div>
+        <div class="row"><div class="mg"></div><div class="rec"><div class="chk done"><span class="lab">Navel dipped</span><button class="hit" type="button"><span class="stamp">DONE</span><span class="tm">03:26</span></button></div></div></div>
+        <div class="row"><div class="mg"></div><div class="rec"><div class="chk unset"><span class="lab">Stomach tubed</span><button class="hit" type="button"><span class="gap-label">NOT RECORDED</span></button></div></div></div>
+      </div>
+      <p class="note">No checkbox glyph: pressing stamps the time you pressed it, which is a materially better record. Un-ticking strikes the stamp and prints UNDONE beside it.</p>
+    </div>
+
+    <div class="cell">
+      <h3>Text field · the marks · chart row</h3>
+      <div class="stage">
+        <div class="spine" style="top:0;bottom:0"></div>
+        <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Product</span><span class="fval">Alamycin LA</span></div></div>
+        <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Days — read from the bottle. <span class="stamp boxed">YOUR ENTRY</span></span><span class="fval unset" aria-label="withdrawal days, empty">&nbsp;</span></div></div>
+        <div class="row"><div class="mg"></div><div class="rec"><div class="line" style="gap:20px">
+          <span class="dag" aria-hidden="true">†</span><span class="dag" aria-hidden="true">‡</span><span class="qry" aria-hidden="true">?</span>
+          <svg width="52" height="30" viewBox="0 0 52 30" aria-label="five lambs, five-bar gate" style="color:var(--ink-full)"><rect x="0" y="0" width="8" height="30" fill="currentColor"/><rect x="11" y="0" width="8" height="30" fill="currentColor"/><rect x="22" y="0" width="8" height="30" fill="currentColor"/><rect x="33" y="0" width="8" height="30" fill="currentColor"/><path d="M-3 27 L46 3" stroke="currentColor" stroke-width="4" stroke-linecap="butt"/></svg>
+          <span style="display:inline-block;width:52px;height:3px;background:var(--madder-ink)"></span>
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter" aria-label="delete key"><path d="M9 4 L26 4 L26 24 L9 24 L2 14 Z"/><path d="M13 10 L20 18 M20 10 L13 18"/></svg>
+        </div></div></div>
+        <div class="crow"><span class="cday">4</span><span class="bar" role="img" aria-label="day 4, 14 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">14</span></div>
+        <div class="crow"><span class="cday">13</span><span class="bar zero" role="img" aria-label="day 13, no births"></span><span class="ccount">0</span></div>
+      </div>
+      <p class="note">Six marks and no icon set: dagger, double dagger, query, tally stroke, strike line, and the one drawn glyph — the delete key. No new mark without deleting one.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ 3 · THE TWELVE SCREENS ═══════════════════════════ -->
+<section class="sec" aria-labelledby="frames-h">
+  <h2 class="sec-head" id="frames-h">The twelve screens · 390 × 844 · one document under twelve filters</h2>
+  <div class="rule2"></div>
+  <p class="sec-note">
+    Screen 3 is shown in two states because it is the product: the page as it opens, and the tag sheet mid-entry.
+    Everything else in the app is that page read back.
+  </p>
+
+  <div class="frames">
+
+  <!-- ══════════════ 1 · FLOCK ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Flock · 8 ewes · 27 July 2026</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row norow" style="min-height:var(--row-h)"><div class="mg"></div><div class="rec"><div class="wordline compact">
+              <button class="word sel" type="button"><span>All 8</span></button>
+              <button class="word" type="button"><span>Not yet lambed 2</span></button>
+              <button class="word" type="button"><span>In the pens 4</span></button>
+              <button class="word" type="button"><span>Under treatment 1</span></button>
+              <button class="word" type="button"><span>Barren 1</span></button>
+            </div></div></div>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="tag col">412</span><span class="trail"><span class="w">Pen 4</span><span class="f lift">31h</span></span></span><span class="summary">3 seasons · avg 2.0 · assisted twice · prolapsed 2025</span></span></button>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">128</span><span class="trail"><span class="w">Pen 1</span><span class="f">9h</span></span></span><span class="summary">lambed yesterday · twins · both up and sucking</span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="tag col">305</span><span class="trail"><span class="w">Pen 5</span><span class="f lift">26h</span></span></span><span class="summary">rearing a fostered lamb · own twins · from 412 06:10</span></span></button>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">77</span><span class="trail"><span class="w">Withdrawal</span><span class="f">9d</span></span></span><span class="summary">Alamycin LA · clears 12 Aug</span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">219</span><span class="trail"><span class="stamp boxed">TO LAMB</span></span></span><span class="summary">not yet lambed · scanned for twins</span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">12</span><span class="trail"><span class="stamp boxed">BARREN</span></span></span><span class="summary">barren 2026 · scanned empty 4 Feb</span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">340</span><span class="trail"><span class="stamp boxed">TO LAMB</span></span></span><span class="summary">not yet lambed · first season</span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">91</span><span class="trail"><span class="w">Pen 3</span><span class="f">18h</span></span></span><span class="summary">lambed · single · ease 1 · unassisted</span></span></button>
+
+            <div class="printed"><span></span><span class="t">Search is the same keypad sheet, with a TEXT toggle for notes.</span></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab" type="button">+ Ewe</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">1 · Flock</span>
+      <span class="d">Tags right-align in a fixed three-digit tabular column so 12, 77 and 91 sit under the units of 412, 128 and 305 — the eye runs straight down the numerals instead of zig-zagging. The filters are printed words with counts rather than chips (a chip is a container with a radius, and this system has neither), and they wrap onto ruled lines rather than scrolling sideways, because a horizontally scrolling strip needs a swipe and swipe is banned at 3am.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 2 · EWE CARD ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Ewe 412 · all seasons</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row tall norow"><div class="mg"></div><div class="rec"><span class="body full" style="font-size:var(--t-record)">3 seasons · avg 2.0 · assisted twice · prolapsed 2025</span></div></div>
+
+            <button class="row" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="body full">IN PEN 4 · 31h</span><span class="stamp boxed" style="margin-left:auto">OVER</span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <div class="subhead"><span></span><span class="t">Season 2026</span></div>
+            <div class="rule-2nd"></div>
+
+            <div class="row tall"><div class="mg"><span>07:02</span><span class="dag" aria-hidden="true">†</span><span class="stamp">EDITED</span></div><div class="rec"><div class="line"><span class="body">note · water bag</span></div><div class="line"><span class="sub">EVENT 03:05 AS ENTERED</span></div></div></div>
+            <div class="row tall"><div class="mg"><span>03:20</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">412</span><span class="body">lambing</span><span class="tally" role="img" aria-label="3 lambs" style="margin-left:auto"><i></i><i></i><i></i></span></div><div class="line"><span class="body full" style="padding-left:84px">TRIPLET <span class="stamp">COUNTED</span></span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">EASE 3 · ASSISTED · head back, ropes</span></div></div></div>
+            <div class="row"><div class="mg"><span>03:20</span></div><div class="rec"><div class="line"><span class="body">LAMB 1 · ewe lamb · alive · 4.1kg</span></div></div></div>
+            <div class="row"><div class="mg"><span>03:34</span></div><div class="rec"><div class="line"><span class="body">LAMB 2 · ram lamb · alive · 3.8kg</span></div></div></div>
+            <div class="row"><div class="mg"><span>03:51</span></div><div class="rec"><div class="line"><span class="body">LAMB 3 · ram lamb · <span class="body full">DEAD</span></span></div></div></div>
+            <div class="row"><div class="mg"><span>06:10</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="body">note · lamb 1 fostered onto 305</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Season 2025</span></div>
+            <div class="rule-2nd"></div>
+            <div class="row"><div class="mg"><span>04:02</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">412</span><span class="body">TWINS · EASE 2</span><span class="tally" style="margin-left:auto" role="img" aria-label="2 lambs"><i></i><i></i></span></div></div></div>
+            <div class="row"><div class="mg"><span>11 Mar</span></div><div class="rec"><div class="line"><span class="body">note · prolapsed after lambing, spooned and stitched</span></div></div></div>
+            <div class="row struck"><div class="mg"><span>12 Mar</span><span class="stamp mad">STRUCK</span></div><div class="rec"><span class="strikeline one"></span><span class="strikeline two"></span><div class="line"><span class="body">note · mastitis left side — wrong ewe</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Season 2024</span></div>
+            <div class="rule-2nd"></div>
+            <div class="row"><div class="mg"><span>02:48</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">412</span><span class="body">TWINS · EASE 1</span><span class="tally" style="margin-left:auto" role="img" aria-label="2 lambs"><i></i><i></i></span></div></div></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Record event</span></button>
+              <button class="word" type="button"><span>Treat</span></button>
+            </div></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Move pen</span></button>
+              <button class="word" type="button"><span>Add note</span></button>
+            </div></div></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab" type="button">+ Note</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">2 · Ewe card · 412</span>
+      <span class="d">The one-line summary is printed first, above everything, on its own row in the book face — and the struck note from March 2025 is still here, ruled through at 5.75:1, which is the whole point of year two: you can see what you wrote and what you took back.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 3A · QUICK ENTRY — the page as it opens ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Night of 27 July 2026 · page 3</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad" data-bottom>
+            <div class="row tall"><div class="mg"><span>00:58</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">91</span><span class="body">lambing</span><span class="tally" role="img" aria-label="1 lamb" style="margin-left:auto"><i></i></span></div><div class="line"><span class="body" style="padding-left:84px">SINGLE <span class="stamp">COUNTED</span> · EASE 1</span></div></div></div>
+
+            <div class="row"><div class="mg"><span>02:05</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">305</span><span class="body">move pen · TO PEN 5</span></div></div></div>
+
+            <div class="row tall"><div class="mg"><span>03:15</span><span class="dag" aria-hidden="true">†</span><span class="stamp">EDITED</span></div><div class="rec"><div class="line"><span class="tag col">128</span><span class="body">note · water bag</span></div><div class="line"><span class="sub" style="padding-left:84px">EVENT 02:20 AS ENTERED</span></div></div></div>
+
+            <div class="row tall struck"><div class="mg"><span>02:41</span><span class="stamp mad">STRUCK</span><span class="stamp mad">02:43</span></div><div class="rec"><span class="strikeline one"></span><span class="strikeline two"></span><div class="line"><span class="tag col">219</span><span class="body">lambing</span><span class="tally dim" role="img" aria-label="1 lamb, struck" style="margin-left:auto"><i></i></span></div><div class="line"><span class="body" style="padding-left:84px">SINGLE (COUNTED) — wrong ewe</span></div></div></div>
+
+            <div class="row tall"><div class="mg"><span>03:02</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">77</span><span class="body">treatment</span></div><div class="line"><span class="body" style="padding-left:84px">ALAMYCIN LA · 12ml · SC</span></div></div></div>
+
+            <div class="row norow" style="align-items:center"><div class="mg"></div><div class="rec"><div class="wordline compact">
+              <button class="word sel" type="button"><span>Lambing</span></button>
+              <button class="word" type="button"><span>Treatment</span></button>
+              <button class="word" type="button"><span>Note</span></button>
+              <button class="word" type="button"><span>Death</span></button>
+              <button class="word" type="button"><span>Move pen</span></button>
+            </div></div></div>
+
+            <div class="row live"><div class="mg"><span>03:20</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line top"><span class="tag xl">412</span><span class="tally" role="img" aria-label="2 lambs" style="margin-left:auto"><i></i><i></i></span></div><div class="line"><span class="body full">TWIN <span class="stamp">COUNTED</span></span><span class="stamp" style="margin-left:auto">ROW OPEN</span></div></div></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab armed" type="button">+ Lamb</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">3A · Quick entry — the pen is already on the page</span>
+      <span class="d">There is no quick-entry screen and no Save button: the app opens on tonight's page with a fresh ruled row already drawn and the auto-captured time already inked in the red margin, so the row commits at the first keystroke and the second lamb is one press of the same slab — nobody ever chooses "twin", the type is counted from the strokes.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 3B · QUICK ENTRY — the tag sheet mid-entry ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Night of 27 July 2026 · page 3</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream" data-bottom>
+            <div class="row tall"><div class="mg"><span>03:02</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">77</span><span class="body">treatment</span></div><div class="line"><span class="body" style="padding-left:84px">ALAMYCIN LA · 12ml · SC</span></div></div></div>
+            <div class="row live"><div class="mg"><span>03:24</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="body">tag —</span></div></div></div>
+          </div>
+
+          <div class="sheet sheet--tag">
+            <div class="sheet-head">
+              <span style="min-width:0"><span class="k">Tag · 3 matches · in the pens first</span><span class="typed">12</span></span>
+              <button class="close" type="button">Close</button>
+            </div>
+            <div class="sheet-list">
+              <button class="recent" type="button"><span class="rtag">412</span><span class="rbody">penned 2h · pen 4 · 31h <span class="dag" aria-hidden="true" style="font-size:18px">†</span></span></button>
+              <button class="recent" type="button"><span class="rtag">128</span><span class="rbody">lambed yesterday · pen 1 · 9h</span></button>
+              <button class="recent" type="button"><span class="rtag">12</span><span class="rbody">barren 2026 · scanned empty</span></button>
+              <button class="recent create" type="button"><span class="rbody">no such tag — write 12 into the book</span></button>
+            </div>
+            <div class="keypad">
+              <button class="key" type="button">1</button><button class="key" type="button">2</button><button class="key" type="button">3</button>
+              <button class="key" type="button">4</button><button class="key" type="button">5</button><button class="key" type="button">6</button>
+              <button class="key" type="button">7</button><button class="key" type="button">8</button><button class="key" type="button">9</button>
+              <button class="key" type="button" aria-label="delete">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter" aria-hidden="true"><path d="M9 4 L26 4 L26 24 L9 24 L2 14 Z"/><path d="M13 10 L20 18 M20 10 L13 18"/></svg>
+              </button>
+              <button class="key" type="button">0</button>
+              <button class="key ctl" type="button">New tag</button>
+            </div>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">3B · Quick entry — the tag sheet, "12" typed</span>
+      <span class="d">Partial matches print as the same 64px ruled lines as everything else rather than as a dropdown, right-aligned on the tabular grid so 12 sits under the 12 of 412 and 128 and the match is a shape before you have read a digit. There is no separate "in the pens" list because every recents line already prints the pen and the hours, penned animals sort first, and create-on-the-fly is the last printed line — always present, never a modal.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 4 · LAMBING ENTRY ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Night of 27 July · ewe 412</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row"><div class="mg"><span>03:02</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="tag col">77</span><span class="body">treatment · ALAMYCIN LA</span></div></div></div>
+
+            <div class="row tall live" style="min-height:var(--row-h-tall)"><div class="mg"><span>03:20</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line top"><span class="tag xl">412</span><span class="tally" role="img" aria-label="3 lambs" style="margin-left:auto"><i></i><i></i><i></i></span></div><div class="line"><span class="body full">TRIPLET <span class="stamp">COUNTED</span></span><span class="stamp" style="margin-left:auto">ROW OPEN</span></div></div></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="body">time <span class="body full">03:20</span></span><span class="word" style="margin-left:auto;min-height:var(--tap)"><span>Edit time</span></span></span><span class="line"><span class="stamp">AUTO-CAPTURED</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="body">birth type <span class="body full">TRIPLET</span></span><span class="word" style="margin-left:auto"><span>Change</span></span></span><span class="line"><span class="stamp">DERIVED FROM 3 STROKES</span></span></span></button>
+
+            <div class="printed"><span></span><span class="t">Every cell below may be left blank. A blank cell prints as a gap, not as an error.</span></div>
+
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Lambing ease</span><div class="ease" role="group" aria-label="Lambing ease 1 to 5, 3 selected">
+              <button class="easebtn" type="button">1</button><button class="easebtn" type="button">2</button>
+              <button class="easebtn sel" type="button" aria-pressed="true">3</button>
+              <button class="easebtn" type="button">4</button><button class="easebtn" type="button">5</button>
+            </div><div class="sub" style="padding-top:8px">EASE 3 · SOME ASSISTANCE</div></div></div>
+
+            <div class="row tall"><div class="mg"><span>03:20</span></div><div class="rec"><div class="line"><span class="body full">LAMB 1 · EWE LAMB</span></div><div class="line"><span class="body">alive · 4.1kg</span><span class="stamp boxed" style="margin-left:auto">ALIVE</span></div></div></div>
+            <div class="row tall"><div class="mg"><span>03:34</span></div><div class="rec"><div class="line"><span class="body full">LAMB 2 · RAM LAMB</span></div><div class="line"><span class="body">alive · 3.8kg</span><span class="stamp boxed" style="margin-left:auto">ALIVE</span></div></div></div>
+            <div class="row tall"><div class="mg"><span>03:51</span></div><div class="rec"><div class="line"><span class="body full">LAMB 3 · RAM LAMB</span></div><div class="line"><span class="gap-label">WEIGHT — NOT RECORDED · SKIPPABLE</span><span class="stamp boxed" style="margin-left:auto">DEAD</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Care — pressing stamps a time</span></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="chk done"><span class="lab">Colostrum given</span><button class="hit" type="button"><span class="stamp">DONE</span><span class="tm">03:24</span></button></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="chk done"><span class="lab">Navel dipped</span><button class="hit" type="button"><span class="stamp">DONE</span><span class="tm">03:26</span></button></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="chk unset"><span class="lab">Stomach tubed</span><button class="hit" type="button"><span class="gap-label">NOT RECORDED</span></button></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="chk unset"><span class="lab">Warmed</span><button class="hit" type="button"><span class="gap-label">NOT RECORDED</span></button></div></div></div>
+
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Assistance detail</span><button class="fval" type="button">head back · repositioned · ropes</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Note <span class="stamp">NOT RECORDED · SKIPPABLE</span></span><button class="fval unset" type="button" aria-label="Note, empty">&nbsp;</button></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Close row</span></button>
+              <button class="word dest" type="button"><span>Strike</span></button>
+            </div></div></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab armed" type="button">+ Lamb</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">4 · Lambing entry · ewe 412</span>
+      <span class="d">Birth type is not a control — it is printed TRIPLET, derived from three tally strokes and labelled as derived, which turns safety rule 4 from a validation routine into structure; every other cell is skippable and prints its gap as a dotted rule with NOT RECORDED rather than nagging, and there is no Save button anywhere to lose. The time cell is stamped AUTO-CAPTURED; pressing EDIT TIME does not overwrite it — the margin re-prints as 07:02 † EDITED over EVENT 03:20 AS ENTERED, and both times stay, in the record and in the export (screens 2 and 3A show a row in that state).</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 5 · LAMB CARD ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Lamb 1 of 412 · born 03:20</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row tall norow"><div class="mg"></div><div class="rec"><span class="body full" style="font-size:var(--t-record)">ewe lamb · 4.1kg · alive · born 03:20 today</span></div></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="line"><span class="body full">BIRTH DAM</span><span class="stamp boxed" style="margin-left:auto">PERMANENT</span></div><div class="line"><span class="tag">412</span></div></div></div>
+            <div class="printed"><span></span><span class="t">This cell is not a target. There is no path through the app that changes a birth dam.</span></div>
+
+            <button class="row" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="body full">REARING DAM</span></span><span class="line"><span class="tag">305</span><span class="stamp" style="margin-left:auto">FOSTERED 06:10</span></span></span></button>
+
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="stamp boxed">PET LAMB</span><button class="word" type="button" style="margin-left:auto"><span>Turn off</span></button></div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Feeds today</span><div class="line" style="padding-top:4px"><span class="stepper"><button type="button" aria-label="one fewer feed">−</button><span class="val">4</span><button type="button" aria-label="one more feed">+</button></span><span class="sub">every feed prints a row</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Her stream</span></div>
+            <div class="row"><div class="mg"><span>06:40</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="body">FEED 4 — 150ml</span></div></div></div>
+            <div class="row"><div class="mg"><span>06:10</span><span class="dag" aria-hidden="true">†</span></div><div class="rec"><div class="line"><span class="body">fostered onto 305 · birth dam unchanged</span></div></div></div>
+            <div class="row"><div class="mg"><span>03:24</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="body">colostrum given · 200ml · bottle</span></div></div></div>
+            <div class="row"><div class="mg"><span>03:20</span><span class="stamp">AUTO</span></div><div class="rec"><div class="line"><span class="body">born · ewe lamb · 4.1kg</span></div></div></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Tag</span></button>
+              <button class="word" type="button"><span>Weigh</span></button>
+              <button class="word" type="button"><span>Foster</span></button>
+            </div></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Record death</span></button>
+            </div></div></div>
+            <div class="printed"><span></span><span class="t">Death prints the word DEAD and a date. It does not turn the card red, grey it out, or remove the lamb from her litter count.</span></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab" type="button">+ Note</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">5 · Lamb card</span>
+      <span class="d">Birth dam is a printed cell with no target on it — a stronger guarantee than a warning dialog — and the pet-lamb feed count is not a state but a total: pressing + prints FEED 4 — 06:40 into the stream, because every feed is an event.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 6 · FOSTER ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Lamb 3 of 412 · rearing dam</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream">
+            <div class="row norow"><div class="mg"></div><div class="rec"><span class="body full" style="font-size:var(--t-record)">ram lamb · born 03:51 today</span></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="line"><span class="body full">BIRTH DAM</span><span class="stamp boxed" style="margin-left:auto">PERMANENT</span></div><div class="line"><span class="tag">412</span></div></div></div>
+            <div class="row tall"><div class="mg"><span>06:10</span><span class="dag" aria-hidden="true">†</span></div><div class="rec"><div class="line"><span class="body full">REARING DAM</span></div><div class="line"><span class="struck-inline"><span class="tag" style="font-size:var(--t-tag);color:inherit">412</span></span><span class="body full">→</span><span class="tag" style="font-size:var(--t-tag)">305</span><span class="stamp" style="margin-left:auto">FOSTERED 06:10</span></div></div></div>
+            <div class="printed"><span></span><span class="t">Tap 1 — this cell. Tap 2 — 305. The old value is struck, never erased; 412's litter still reads three lambs born.</span></div>
+          </div>
+
+          <div class="sheet" style="height:440px">
+            <div class="sheet-head" style="min-height:var(--tap)">
+              <span class="k">Rearing dam — choose</span>
+              <button class="close" type="button">Close</button>
+            </div>
+            <div class="sheet-list">
+              <button class="recent" type="button"><span class="rtag">412</span><span class="rbody">birth dam · pen 4 · 31h</span></button>
+              <button class="recent" type="button"><span class="rtag">128</span><span class="rbody">lambed yesterday · twins · pen 1</span></button>
+              <button class="recent" type="button" style="background:var(--row-pressed)"><span class="rtag">305</span><span class="rbody">pen 5 · 26h · own twins</span></button>
+              <button class="recent" type="button"><span class="rtag">77</span><span class="rbody">withdrawal 9d</span></button>
+              <button class="recent" type="button"><span class="rtag">219</span><span class="rbody">not yet lambed · scanned twins</span></button>
+              <button class="recent" type="button"><span class="rtag">12</span><span class="rbody">barren 2026</span></button>
+              <button class="recent create" type="button"><span class="rtag" aria-hidden="true">—</span><span class="rbody">type a tag on the keypad</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">6 · Foster — two taps</span>
+      <span class="d">Fostering reuses the identical selection component as everything else rather than inventing a foster flow, and what prints is the argument: the old rearing dam struck in madder beside the new one, with BIRTH DAM 412 — PERMANENT immutable directly above, because born to one ewe and reared by another is the truth and the season arithmetic depends on the distinction.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 7 · PEN BOARD ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>04:12</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">58%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 58 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">The pens · 04:12 · 2 over †</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="printed"><span></span><span class="t">27 July 2026 · 12 pens · 4 occupied · 1 turned out · sorted by hours</span></div>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="tag pen">4</span><span class="tag">412</span><span class="tally" role="img" aria-label="2 lambs"><i></i><i></i></span><span class="hours lift">31h</span></span><span class="line" style="margin-top:-4px"><span class="stamp boxed" style="margin-left:58px">OVER</span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="tag pen">5</span><span class="tag">305</span><span class="tally" role="img" aria-label="3 lambs"><i></i><i></i><i></i></span><span class="hours lift">26h</span></span><span class="line" style="margin-top:-4px"><span class="stamp boxed" style="margin-left:58px">OVER</span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">3</span><span class="tag">91</span><span class="tally" role="img" aria-label="1 lamb"><i></i></span><span class="hours">18h</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">1</span><span class="tag">128</span><span class="tally" role="img" aria-label="2 lambs"><i></i><i></i></span><span class="hours">9h</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">8</span><span class="body" style="color:var(--ink-low)">TURNED OUT 04:12</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">2</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">6</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">7</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">9</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">10</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">11</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag pen">12</span><span class="body" style="color:var(--ink-low)">— empty —</span></span></span></button>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Sort by pen number</span></button>
+            </div></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word prim lg" type="button"><span>Turn out</span></button>
+              <button class="word lg" type="button"><span>Move to…</span></button>
+            </div></div></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab" type="button">Move</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">7 · Pen board</span>
+      <span class="d">The obvious answer is a 3 × 4 grid of tiles; a grid makes the eye zig-zag and every hop is a chance to read pen 7's hours against pen 8's occupant, so this is twelve ruled rows sorted by hours descending, with over-threshold carried by four independent channels — the word OVER, a dagger, a doubled rule, and the hours lifting to full ink — of which only the dagger is colour.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 8 · TREATMENTS ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Medicine book · 2026</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="subhead"><span></span><span class="t">Active withdrawals · 2</span></div>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="tag col">77</span><span class="body">Alamycin LA</span><span class="hours">9d</span></span><span class="line" style="gap:var(--s-2)"><span class="sub" style="padding-left:12px">CLEARS 12 AUG 2026</span><span class="dmarks" role="img" aria-label="9 days remaining"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span></span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="tag col">219</span><span class="body">Footbath · zinc sulphate</span><span class="hours lift">1d</span></span><span class="line" style="gap:var(--s-2)"><span class="sub" style="padding-left:12px">CLEARS 4 AUG 2026</span><span class="dmarks" role="img" aria-label="1 day remaining"><i></i></span><span class="stamp">LAST DAY</span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <div class="subhead"><span></span><span class="t">New dose · 27 July 04:20</span></div>
+            <div class="rule-2nd"></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word prim" type="button"><span>Repeat last treatment</span></button>
+            </div></div></div>
+            <div class="printed"><span></span><span class="t">Copies product, dose, route and batch. <span style="color:var(--ink-full)">DAYS NOT COPIED — READ THE BOTTLE.</span></span></div>
+
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Product name</span><button class="fval" type="button">Alamycin LA</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Dose</span><button class="fval" type="button">12 ml</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Route</span><button class="fval" type="button">subcutaneous</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Batch number</span><button class="fval" type="button">A4471B</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Date</span><button class="fval" type="button">27 July 2026</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Days — read it from the bottle label. <span class="stamp boxed">YOUR ENTRY</span></span><button class="fval unset" type="button" aria-label="Withdrawal days, empty — no default, no suggestion">&nbsp;</button></div></div>
+            <div class="printed"><span></span><span class="t">No default, no suggestion, no last-value autofill, no placeholder number. A placeholder number in this cell is a food-chain risk.</span></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word" type="button"><span>Medicine book · 41 doses</span></button>
+            </div></div></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+            <button class="slab" type="button">+ Dose</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">8 · Treatments</span>
+      <span class="d">The withdrawal cell is printed blank under a dotted rule with its reason in the label rather than a tooltip, and REPEAT LAST TREATMENT deliberately declines to copy it — the countdown beside it is a tally of days in the same mark as the lamb column, not a progress bar, so a shepherd who has learned one thing has learned both.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 9 · REMINDERS ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Reminders · 1 overdue †</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="subhead"><span></span><span class="t">Overdue</span></div>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="body full">NAVEL DIP</span></span><span class="line"><span class="body">lamb 3 of 412</span><span class="trail"><span class="w">40 min ago</span></span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <div class="subhead"><span></span><span class="t">Due</span></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="body full">COLOSTRUM WINDOW</span></span><span class="line"><span class="body">lamb 3 of 412</span><span class="trail"><span class="w">in 20 min</span></span></span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"><span class="dag" aria-hidden="true">†</span></span><span class="rec"><span class="line"><span class="body full">TURN OUT PEN 4</span></span><span class="line"><span class="body">ewe 412 · 31h</span><span class="trail"><span class="w">now</span></span></span></span></button>
+            <div class="rule-2nd"></div>
+
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word prim" type="button"><span>Done</span></button>
+              <button class="word" type="button"><span>Mute</span></button>
+              <span class="gap-label" style="margin-left:8px">FOR THE TAPPED ROW</span>
+            </div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Not yet written</span></div>
+            <div class="rule-2nd"></div>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="body full">WITHDRAWAL ENDS</span></span><span class="line"><span class="body">ewe 77</span><span class="trail"><span class="w">12 Aug</span></span></span></span></button>
+
+            <button class="row tall" type="button"><span class="mg"></span><span class="rec"><span class="line"><span class="body full">TAG BY</span></span><span class="line"><span class="body">128's lambs</span><span class="trail"><span class="w">6 Aug</span></span></span></span></button>
+
+            <div class="row tall struck"><div class="mg"><span class="stamp mad">MUTED</span><span class="stamp mad">03:44</span></div><div class="rec"><span class="strikeline one"></span><span class="strikeline two"></span><div class="line"><span class="body full">RING &amp; DOCK</span></div><div class="line"><span class="body">91's lamb</span><span class="trail"><span class="w">5 Aug</span></span></div></div></div>
+            <div class="printed"><span></span><span class="t">Mute does not remove a reminder. It strikes it and it stays at 5.75:1, because a muted reminder is a decision you made and you may want to see it at 6am. Nothing nags twice; there is no badge count anywhere in the app.</span></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">9 · Reminders</span>
+      <span class="d">Reminders are the book filtered to rows that have not been written yet — the future part of the page — and MUTE is a strike rather than a removal, so the decision you made at 03:44 is still legible at 6am.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 10 · SEASON SUMMARY ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Season 2026 · totals</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row tall norow" style="min-height:120px"><div class="mg"></div><div class="rec"><span class="bigfig">187%</span><span class="flabel" style="padding-top:0">Lambs born per ewe put to ram</span></div></div>
+            <div class="row norow"><div class="mg"></div><div class="rec"><div class="wordline"><button class="word" type="button"><span>Change definition</span></button></div></div></div>
+            <div class="rule-2nd"></div>
+
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">AVERAGE LITTER</span><span class="hours">1.9</span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">BARREN RATE</span><span class="hours">4%</span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">ASSISTED</span><span class="hours">12%</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Losses by cause · 7</span></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">STARVATION</span><span class="hours">2</span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">HYPOTHERMIA</span><span class="hours">1</span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">STILLBORN</span><span class="hours">3</span></div></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="line"><span class="body">CRUSHED</span><span class="hours">1</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Lambing spread 2026 · one block = one birth</span></div>
+            <p class="sr-only">Lambing spread 2026, births per day across fourteen days: day 1, 2 births; day 2, 5; day 3, 9; day 4, 14; day 5, 11; day 6, 8; day 7, 6; day 8, 4; day 9, 3; day 10, 2; day 11, 1; day 12, 1; day 13, 0; day 14, 1. Total 67 ewes lambed over 14 nights.</p>
+            <div class="crow"><span class="cday">1</span><span class="bar" role="img" aria-label="day 1, 2 births"><i></i><i></i></span><span class="ccount">2</span></div>
+            <div class="crow"><span class="cday">2</span><span class="bar" role="img" aria-label="day 2, 5 births"><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">5</span></div>
+            <div class="crow"><span class="cday">3</span><span class="bar" role="img" aria-label="day 3, 9 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">9</span></div>
+            <div class="crow"><span class="cday">4</span><span class="bar" role="img" aria-label="day 4, 14 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">14</span></div>
+            <div class="crow"><span class="cday">5</span><span class="bar" role="img" aria-label="day 5, 11 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">11</span></div>
+            <div class="crow"><span class="cday">6</span><span class="bar" role="img" aria-label="day 6, 8 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">8</span></div>
+            <div class="crow"><span class="cday">7</span><span class="bar" role="img" aria-label="day 7, 6 births"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">6</span></div>
+            <div class="crow"><span class="cday">8</span><span class="bar" role="img" aria-label="day 8, 4 births"><i></i><i></i><i></i><i></i></span><span class="ccount">4</span></div>
+            <div class="crow"><span class="cday">9</span><span class="bar" role="img" aria-label="day 9, 3 births"><i></i><i></i><i></i></span><span class="ccount">3</span></div>
+            <div class="crow"><span class="cday">10</span><span class="bar" role="img" aria-label="day 10, 2 births"><i></i><i></i></span><span class="ccount">2</span></div>
+            <div class="crow"><span class="cday">11</span><span class="bar" role="img" aria-label="day 11, 1 birth"><i></i></span><span class="ccount">1</span></div>
+            <div class="crow"><span class="cday">12</span><span class="bar" role="img" aria-label="day 12, 1 birth"><i></i></span><span class="ccount">1</span></div>
+            <div class="crow"><span class="cday">13</span><span class="bar zero" role="img" aria-label="day 13, no births"></span><span class="ccount">0</span></div>
+            <div class="crow"><span class="cday">14</span><span class="bar" role="img" aria-label="day 14, 1 birth"><i></i></span><span class="ccount">1</span></div>
+            <div class="subhead"><span></span><span class="t">67 ewes lambed · 14 nights</span></div>
+            <div class="rule-2nd"></div>
+
+            <div class="subhead"><span></span><span class="t">2025 · 172% · for comparison</span></div>
+            <p class="sr-only">Lambing spread 2025, births per day across fourteen days: day 1, 1 birth; day 2, 3; day 3, 5; day 4, 7; day 5, 9; day 6, 8; day 7, 7; day 8, 6; day 9, 5; day 10, 4; day 11, 3; day 12, 3; day 13, 2; day 14, 1. Total 64 ewes lambed over 14 nights.</p>
+            <div class="crow"><span class="cday">1</span><span class="bar" role="img" aria-label="2025 day 1, 1 birth"><i></i></span><span class="ccount">1</span></div>
+            <div class="crow"><span class="cday">2</span><span class="bar" role="img" aria-label="2025 day 2, 3 births"><i></i><i></i><i></i></span><span class="ccount">3</span></div>
+            <div class="crow"><span class="cday">3</span><span class="bar" role="img" aria-label="2025 day 3, 5 births"><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">5</span></div>
+            <div class="crow"><span class="cday">4</span><span class="bar" role="img" aria-label="2025 day 4, 7 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">7</span></div>
+            <div class="crow"><span class="cday">5</span><span class="bar" role="img" aria-label="2025 day 5, 9 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">9</span></div>
+            <div class="crow"><span class="cday">6</span><span class="bar" role="img" aria-label="2025 day 6, 8 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">8</span></div>
+            <div class="crow"><span class="cday">7</span><span class="bar" role="img" aria-label="2025 day 7, 7 births"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">7</span></div>
+            <div class="crow"><span class="cday">8</span><span class="bar" role="img" aria-label="2025 day 8, 6 births"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">6</span></div>
+            <div class="crow"><span class="cday">9</span><span class="bar" role="img" aria-label="2025 day 9, 5 births"><i></i><i></i><i></i><i></i><i></i></span><span class="ccount">5</span></div>
+            <div class="crow"><span class="cday">10</span><span class="bar" role="img" aria-label="2025 day 10, 4 births"><i></i><i></i><i></i><i></i></span><span class="ccount">4</span></div>
+            <div class="crow"><span class="cday">11</span><span class="bar" role="img" aria-label="2025 day 11, 3 births"><i></i><i></i><i></i></span><span class="ccount">3</span></div>
+            <div class="crow"><span class="cday">12</span><span class="bar" role="img" aria-label="2025 day 12, 3 births"><i></i><i></i><i></i></span><span class="ccount">3</span></div>
+            <div class="crow"><span class="cday">13</span><span class="bar" role="img" aria-label="2025 day 13, 2 births"><i></i><i></i></span><span class="ccount">2</span></div>
+            <div class="crow"><span class="cday">14</span><span class="bar" role="img" aria-label="2025 day 14, 1 birth"><i></i></span><span class="ccount">1</span></div>
+            <div class="subhead"><span></span><span class="t">64 ewes lambed · 14 nights · 2025</span></div>
+            <div class="rule-2nd"></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">10 · Season summary · 2026</span>
+      <span class="d">Not a dashboard but the book's totals footer, printed after a double rule in the manner of a ledger's foot — the percentage's definition is visible without tapping because a lambing percentage whose definition is hidden is a number two shepherds will argue about, and the spread is fourteen ruled rows of the same blocks as the lamb tally, with 2025 printed as a second set below rather than overlaid in a second colour.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 11 · EXPORT ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Export · 27 July 2026</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row norow"><div class="mg"></div><div class="rec"><span class="body">LAST EXPORTED 3 DAYS AGO · 41 ENTRIES SINCE</span></div></div>
+            <div class="row tall norow"><div class="mg"><span class="dag" aria-hidden="true">†</span></div><div class="rec"><span class="body full" style="font-size:var(--t-record)">A LOST PHONE IS LOST DATA. THERE IS NO CLOUD COPY.</span></div></div>
+            <div class="rule-2nd"></div>
+
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>CSV — one row per lamb</span></button></div><div class="sub">67 lambs · 24 columns · struck rows included and marked</div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>CSV — one row per ewe</span></button></div><div class="sub">8 ewes · one line each, all seasons</div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>CSV — one row per treatment</span></button></div><div class="sub">41 doses · batch numbers and withdrawal days as you entered them</div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>PDF — flock book 2026</span></button></div><div class="sub">printable · the whole season as ruled pages</div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>PDF — medicine record</span></button></div><div class="sub">chronological · for the vet or an inspection</div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><div class="wordline stack"><button class="word" type="button"><span>JSON — full backup</span></button></div><div class="sub">everything · restores onto a new device</div></div></div>
+
+            <div class="printed"><span></span><span class="t">All six go to the system share sheet. Nothing leaves this device any other way.</span></div>
+            <div class="rule-2nd"></div>
+
+            <div class="subhead"><span></span><span class="t">Printed on every PDF · a comment row in every CSV</span></div>
+            <div class="printed"><span></span><span class="t full">SHED BOOK IS A NOTEBOOK, NOT A COMPLIANCE RECORD. IT IS NOT A HOLDING REGISTER, A MOVEMENT RECORD, OR A STATUTORY MEDICINE BOOK. STRUCK ENTRIES ARE INCLUDED AND MARKED STRUCK. NOTHING HAS BEEN REMOVED.</span></div>
+            <div class="printed"><span></span><span class="t">Every CSV carries a struck and a struck_at column. An export that quietly dropped the strikes would undo the one thing this app is for.</span></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">11 · Export</span>
+      <span class="d">The honest warning is printed at 20px in full ink rather than offered as a dismissible tip, and the footer that names the three things this app is not is a permanent part of every file it writes — including the struck rows, which are exported and marked, never silently dropped.</span>
+    </figcaption>
+  </figure>
+
+  <!-- ══════════════ 12 · SETTINGS ══════════════ -->
+  <figure class="fig">
+    <div class="frame">
+      <div class="screen">
+        <div class="sb"><span>03:24</span><span class="svc">No Service</span><span class="right"><span style="font-size:14px;color:var(--ink-mid)">61%</span>
+          <svg width="26" height="13" viewBox="0 0 26 13" aria-label="battery 61 percent"><rect x="0.5" y="0.5" width="22" height="12" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="3" y="3" width="11.6" height="7" fill="currentColor"/><rect x="24" y="4" width="2" height="5" fill="currentColor"/></svg></span></div>
+        <div class="app">
+          <div class="spine"></div>
+          <div class="hdr"><span></span><span class="t">Settings</span></div>
+          <div class="rule-2nd"></div>
+          <div class="stream band-pad">
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Units</span><div class="wordline"><button class="word sel" type="button"><span>kg</span></button><button class="word" type="button"><span>lb</span></button></div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Temperature</span><div class="wordline"><button class="word sel" type="button"><span>°C</span></button><button class="word" type="button"><span>°F</span></button></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Terminology — editable</span></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Adult female</span><button class="fval" type="button">ewe</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Second season</span><button class="fval" type="button">gimmer</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">First shearing</span><button class="fval" type="button">shearling</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Young female</span><button class="fval" type="button">theave</button></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Yearling</span><button class="fval" type="button">hogget</button></div></div>
+
+            <div class="subhead"><span></span><span class="t">Reminder intervals</span></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Colostrum window</span><div class="line" style="padding-top:4px"><span class="stepper"><button type="button" aria-label="decrease colostrum window">−</button><span class="val">2h</span><button type="button" aria-label="increase colostrum window">+</button></span></div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Turn out from pen</span><div class="line" style="padding-top:4px"><span class="stepper"><button type="button" aria-label="decrease turn out threshold">−</button><span class="val">24h</span><button type="button" aria-label="increase turn out threshold">+</button></span></div></div></div>
+            <div class="row tall"><div class="mg"></div><div class="rec"><span class="flabel">Tag by</span><div class="line" style="padding-top:4px"><span class="stepper"><button type="button" aria-label="decrease tag-by interval">−</button><span class="val">10d</span><button type="button" aria-label="increase tag-by interval">+</button></span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Season</span></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Season start date</span><button class="fval" type="button">1 March 2026</button></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="wordline"><button class="word" type="button"><span>Switch season</span></button><span class="sub">2026 · 2025 · 2024</span></div></div></div>
+
+            <div class="subhead"><span></span><span class="t">Theme</span></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word sel" type="button" data-act="theme-dark"><span>Dark</span></button>
+              <button class="word" type="button" data-act="theme-red"><span>Red-shift</span></button>
+            </div></div></div>
+            <div class="printed"><span></span><span class="t full">THE RECORD IS SET IN THE BOOK FACE. THE BUTTONS ARE SET IN THE MACHINE FACE. IF IT IS SERIF, IT HAPPENED. IF IT IS SANS, IT IS A THING YOU CAN PRESS.</span></div>
+            <div class="printed"><span></span><span class="t">One documented exception: the keypad digits are set in the book face, so the digit you press is the shape that prints.</span></div>
+
+            <div class="subhead"><span></span><span class="t">Writing hand</span></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="wordline">
+              <button class="word sel" type="button" data-act="hand-right"><span>Right</span></button>
+              <button class="word" type="button" data-act="hand-left"><span>Left</span></button>
+            </div></div></div>
+            <div class="printed"><span></span><span class="t">Mirrors the slab and the index button. The margin does not move — a book's margin is on the left.</span></div>
+
+            <div class="rule-2nd"></div>
+            <div class="subhead"><span></span><span class="t">The only delete in Shed Book</span></div>
+            <div class="rule-2nd"></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Type 2026 to delete season 2026</span><button class="fval unset" type="button" aria-label="Type the season year to confirm, empty">&nbsp;</button></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="wordline"><button class="word dest" type="button"><span>Delete season 2026</span></button></div></div></div>
+            <div class="row tall field"><div class="mg"></div><div class="rec"><span class="flabel">Type EVERYTHING to delete everything</span><button class="fval unset" type="button" aria-label="Type EVERYTHING to confirm, empty">&nbsp;</button></div></div>
+            <div class="row"><div class="mg"></div><div class="rec"><div class="wordline"><button class="word dest" type="button"><span>Delete everything</span></button></div></div></div>
+            <div class="printed"><span></span><span class="t full">THIS IS THE ONLY DELETE IN SHED BOOK. IT IS NOT A STRIKE. THE ROWS DO NOT STAY.</span></div>
+          </div>
+          <div class="band">
+            <button class="index-btn" type="button">Index</button>
+          </div>
+        </div>
+        <div class="home"></div>
+      </div>
+    </div>
+    <figcaption class="figcap">
+      <span class="n">12 · Settings</span>
+      <span class="d">The app states its own two-voice rule in one printed line, because a system a user can read is a system a user can trust — and the two destructive actions at the foot are the only honest use of the word delete in the product, each saying out loud that they are not strikes and that the rows do not stay. The theme and writing-hand buttons here drive the whole page.</span>
+    </figcaption>
+  </figure>
+
+  </div>
+</section>
+
+<footer class="sec" style="margin-top:var(--s-12)">
+  <div class="rule-2nd"></div>
+  <div class="rule-2nd"></div>
+  <p class="sec-note" style="margin-top:var(--s-6)">
+    Indelible · Shed Book direction 1 of 3 · every text pair measured ≥ 4.5:1 in both themes · smallest target
+    64 × 64 · body floor 20px record / 19px control · one hue, three jobs · no delete, only strikes.
+    <br>Shed Book is a notebook, not a compliance record.
+  </p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+
+  function bottomOut() {
+    var list = document.querySelectorAll('[data-bottom]');
+    for (var i = 0; i < list.length; i++) { list[i].scrollTop = list[i].scrollHeight; }
+  }
+
+  var tglRed  = document.getElementById('tgl-red');
+  var tglLg   = document.getElementById('tgl-lg');
+  var tglHand = document.getElementById('tgl-hand');
+
+  function setTheme(red) {
+    root.setAttribute('data-theme', red ? 'red-shift' : 'dark');
+    tglRed.setAttribute('aria-pressed', red ? 'true' : 'false');
+    syncSettingsWords();
+  }
+  function setScale(lg) {
+    root.setAttribute('data-scale', lg ? 'lg' : 'base');
+    tglLg.setAttribute('aria-pressed', lg ? 'true' : 'false');
+    // rows grow, the grid does not move — re-weld the live row to the bottom
+    window.requestAnimationFrame(bottomOut);
+  }
+  function setHand(left) {
+    root.setAttribute('data-hand', left ? 'left' : 'right');
+    tglHand.setAttribute('aria-pressed', left ? 'true' : 'false');
+    syncSettingsWords();
+  }
+
+  // keep the in-frame Settings word buttons in step with the page state
+  function syncSettingsWords() {
+    var red  = root.getAttribute('data-theme') === 'red-shift';
+    var left = root.getAttribute('data-hand') === 'left';
+    var map = {
+      'theme-dark': !red, 'theme-red': red,
+      'hand-right': !left, 'hand-left': left
+    };
+    var nodes = document.querySelectorAll('[data-act]');
+    for (var i = 0; i < nodes.length; i++) {
+      var on = map[nodes[i].getAttribute('data-act')];
+      if (on) { nodes[i].classList.add('sel'); } else { nodes[i].classList.remove('sel'); }
+      nodes[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+    }
+  }
+
+  tglRed.addEventListener('click', function () {
+    setTheme(root.getAttribute('data-theme') !== 'red-shift');
+  });
+  tglLg.addEventListener('click', function () {
+    setScale(root.getAttribute('data-scale') !== 'lg');
+  });
+  tglHand.addEventListener('click', function () {
+    setHand(root.getAttribute('data-hand') !== 'left');
+  });
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest ? e.target.closest('[data-act]') : null;
+    if (!el) return;
+    var act = el.getAttribute('data-act');
+    if (act === 'theme-dark') setTheme(false);
+    if (act === 'theme-red')  setTheme(true);
+    if (act === 'hand-right') setHand(false);
+    if (act === 'hand-left')  setHand(true);
+  });
+
+  setTheme(false);
+  setScale(false);
+  setHand(false);
+  bottomOut();
+  window.addEventListener('load', bottomOut);
+})();
+</script>
+</body>
+</html>

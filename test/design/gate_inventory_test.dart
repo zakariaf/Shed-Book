@@ -25,6 +25,7 @@ const String _dir = 'test/design';
 const List<String> _expected = <String>[
   'components_test.dart',
   'contrast_test.dart',
+  'first_frame_parity_test.dart',
   'formatters_test.dart',
   'gate_inventory_test.dart',
   'haptics_test.dart',

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The ONLY place the page colour is typed on Android.
+
+  It is nSurface04 — #0A0A0B — after N11-T04's P14 ruling, and
+  `launch.colour_parity` in tool/check_policy.dart parses BOTH this file and
+  lib/core/ui/primitives.dart and refuses to let them differ. Editing one without
+  the other is the failure the rule exists for, and it is invisible until a
+  shepherd cold-launches on a real phone.
+
+  Eight digits, ARGB: Android wants the alpha first.
+-->
+<resources>
+    <color name="shed_surface_base">#FF0A0A0B</color>
+</resources>

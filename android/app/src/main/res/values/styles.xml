@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <!-- Theme applied to the Android Window while the process is starting when the OS's Dark Mode setting is off -->
-    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <!-- Show a splash screen on the activity. Automatically removed when
-             the Flutter engine draws its first frame -->
-        <item name="android:windowBackground">@drawable/launch_background</item>
-    </style>
-    <!-- Theme applied to the Android Window as soon as the process has started.
-         This theme determines the color of the Android Window while your
-         Flutter UI initializes, as well as behind your Flutter UI while its
-         running.
+<!--
+  THE NON-NIGHT FOLDER, AND IT MUST BE DARK ANYWAY.
 
-         This Theme is only used starting with V2 of Flutter's Android embedding. -->
-    <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
-        <item name="android:windowBackground">?android:colorBackground</item>
+  values-night/ is only consulted when the phone is in dark mode. A shepherd
+  whose phone is in light mode still gets this file, and this app has no light
+  theme — so a light launch background here would be a white flash on exactly the
+  devices whose owners never turn dark mode on.
+-->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/shed_surface_base</item>
+        <item name="android:statusBarColor">@color/shed_surface_base</item>
+        <item name="android:navigationBarColor">@color/shed_surface_base</item>
+        <!-- Stops the OS "helpfully" inverting our surfaces on Android 10+. -->
+        <item name="android:forceDarkAllowed">false</item>
+        <!-- Both default TRUE, and both paint a translucent scrim behind the
+             system bars that reads as a lighter band across the top and bottom
+             of a page whose whole claim is that it is one field. -->
+        <item name="android:enforceStatusBarContrast">false</item>
+        <item name="android:enforceNavigationBarContrast">false</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/shed_surface_base</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

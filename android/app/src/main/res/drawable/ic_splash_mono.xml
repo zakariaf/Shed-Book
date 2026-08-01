@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  windowSplashScreenAnimatedIcon needs a drawable. Without one the Android 12
+  launcher supplies its own default, and it will not be yours.
+
+  A single mark in the page colour on the page colour: present, so the platform
+  has something to draw, and invisible, so the splash and the first frame are the
+  same solid field.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/shed_surface_base"
+        android:pathData="M0,0h108v108h-108z" />
+</vector>

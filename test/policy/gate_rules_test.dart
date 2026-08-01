@@ -76,11 +76,21 @@ final String _willBeBanned =
 
 /// One planted violation: where it goes, what it says, and — for the three
 /// `dep.*` ids — the synthetic lockfile that produces it instead.
-typedef Planted = ({String path, String source, String? lockfile});
+typedef Planted = ({String path, String source, String? lockfile, Map<String, String>? extra});
 
-Planted _at(String path, String source) => (path: path, source: source, lockfile: null);
+Planted _at(String path, String source) =>
+    (path: path, source: source, lockfile: null, extra: null);
+
+/// A planting that needs MORE THAN ONE FILE.
+///
+/// `launch.colour_parity` compares two files in two languages, so a
+/// single-file planting cannot trip it. Everything else stays one file, which
+/// is why this is a second constructor rather than a widened first.
+Planted _atAll(String path, String source, Map<String, String> extra) =>
+    (path: path, source: source, lockfile: null, extra: extra);
 
 Planted _lock(String name, String kind) => (
+  extra: null,
   path: 'lib/keep.dart',
   source: 'void main() {}\n',
   lockfile:
@@ -99,6 +109,21 @@ Planted _lock(String name, String kind) => (
 /// holds the needle whole. That is one of the two ways out the epic names; the
 /// other would be a fifth `[exempt]` line, and there is no fifth `[exempt]` line.
 final Map<String, Planted> firesOn = <String, Planted>{
+  // -- launch (06 §9.4) ------------------------------------------------------
+  // THE ONE RULE THAT READS OUTSIDE lib/, and the only planting that needs two
+  // files: it compares a Dart const with an Android colour resource, so one file
+  // cannot disagree with anything. #0A0A0B against #0B0D0E is the exact pair
+  // P14 was about — a one-digit difference nobody sees until a cold launch on a
+  // real phone.
+  'launch.colour_parity': _atAll(
+    'lib/core/ui/primitives.dart',
+    'const Color nSurface04 = Color(0xFF0A0A0B);',
+    <String, String>{
+      'android/app/src/main/res/values/colors.xml':
+          '<resources><color name="shed_surface_base">#FF0B0D0E</color></resources>',
+    },
+  ),
+
   // -- layer (CONVENTIONS §1.1) ---------------------------------------------
   'layer.domain': _at(
     'lib/domain/withdrawal/clear_date.dart',
@@ -1693,6 +1718,7 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       firesOn.forEach((String id, Planted planted) {
         final List<String> violations = gateOn(<String, String>{
           planted.path: '${planted.source}\n',
+          ...?planted.extra,
         }, lockfile: planted.lockfile ?? _emptyLockfile);
         expect(
           violations.map((String v) => v.split(']').first.substring(1)),

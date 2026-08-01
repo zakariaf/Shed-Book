@@ -1,0 +1,11 @@
+{
+  "@@locale": "en",
+
+  "withdrawalSource": "Withdrawal period: {days} days, as entered by you",
+  "@withdrawalSource": {
+    "description": "Spec 12.1 provenance. The wording 'as entered by you' is a SAFETY REQUIREMENT, not a style choice. Do not shorten it. Never show a withdrawal figure without it.",
+    "placeholders": {
+      "days": { "type": "int" }
+    }
+  }
+}

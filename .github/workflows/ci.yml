@@ -1,0 +1,133 @@
+# .github/workflows/ci.yml
+#
+# TWO jobs on purpose, and the other two are not forgotten. 13 §4.2's matrix has
+# four blocking jobs. `codegen` re-runs build_runner and drift_dev
+# make-migrations and diffs — there is no lib/core/db/database.dart to generate
+# from until N07, so it lands in N08. `android` builds a release AAB and runs G1
+# against android/expected_permissions.txt, which does not exist until G0 is
+# closed — so it lands in N31. Adding either now produces a job that is red for
+# reasons no task in this epic can fix.
+#
+# The job names `gate` and `test` become the required status checks. Once branch
+# protection requires them, renaming a job here silently un-requires it and
+# every subsequent pull request goes green on nothing.
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.44.8'   # must equal .fvmrc — asserted in the first step. Never 'stable'.
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Versions re-verified against the GitHub API on 2026-08-01: checkout
+      # v7.0.1, upload-artifact v7.0.1, flutter-action v2.23.0 on the v2 major
+      # tag — there is no v3. Action versions are not covered by
+      # decision-record §5, which is a pub.dev table.
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+
+      # The version lives in exactly four places: .fvmrc and one env: block per
+      # workflow. This assert is copied verbatim into every workflow that
+      # installs Flutter and deliberately NOT factored into a composite action,
+      # which would be a fifth place it could hide. Inside this file `test` has
+      # `needs: gate`, so one assert covers the workflow.
+      - name: Toolchain pin agrees with .fvmrc
+        run: |
+          PINNED=$(grep -o '"flutter": *"[^"]*"' .fvmrc | sed 's/.*"\([0-9][^"]*\)"/\1/')
+          [ "$PINNED" = "$FLUTTER_VERSION" ] || { echo "::error::.fvmrc=$PINNED workflow=$FLUTTER_VERSION"; exit 1; }
+          flutter --version | grep -q "Flutter $FLUTTER_VERSION"
+
+      - run: flutter pub get
+
+      # N03-T07 inserts the policy gate (G2 + G3) here, as the cheapest step, in
+      # the commit that makes tool/check_policy.dart exist. N01-T05 took the
+      # same option C for the Makefile, so the two files stay in step.
+
+      - name: Format
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      # G5, the half a text check can do. Written as an `if` block and not as
+      # `grep -q … && exit 1`: grep exits 1 when the pattern is ABSENT, and
+      # absent is the pass, so the naive form fails the step on the good
+      # outcome.
+      - name: iOS has no ATS exception
+        run: |
+          if grep -q NSAppTransportSecurity ios/Runner/Info.plist; then
+            echo "::error::NSAppTransportSecurity must not appear in Info.plist"; exit 1
+          fi
+
+  test:
+    runs-on: ubuntu-latest
+    needs: gate
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+
+      # `flutter test` runs on the HOST, so sqlite3_flutter_libs (a plugin, and
+      # an EOL no-op shim anyway) is never applied and the host must supply
+      # sqlite3. This is the one line between a working and a red CI on day one.
+      # 12-testing.md §3.2.
+      - name: Host sqlite3
+        run: sudo apt-get install -y libsqlite3-dev
+
+      - run: flutter pub get
+
+      # Three tags excluded, not one — 12 §11.2, measured 2026-08-01 in N01-T04.
+      # `golden` is verified only on the pinned macOS runner. `uk-zone` files
+      # assert their own process offset and fail loudly under any other zone, so
+      # on this UTC runner they can only pass in the dedicated step below.
+      # `calendar` is N00's ledger, red by design until N32. The spelling here
+      # and in the Makefile is one list kept in step by hand, and
+      # test/policy/ci_jobs_test.dart asserts they agree.
+      - name: Test
+        run: |
+          flutter test --exclude-tags "golden || uk-zone || calendar" \
+            --reporter github \
+            --test-randomize-ordering-seed random \
+            --coverage
+
+      # NOT scoped to test/domain: 12 §2.4 puts two zone-pinned files in
+      # test/data/ and test/features/, and a path scope would run them in the
+      # runner's own zone (UTC), where a spring-forward test passes because
+      # there is no spring forward.
+      #
+      # An empty tag selection exits 79 on 3.44.8 (measured in N01-T04), so this
+      # step fails rather than passing vacuously if the canary is ever deleted.
+      - name: Zone-pinned tests in the target zone
+        run: TZ=Europe/London flutter test --tags uk-zone --reporter github
+
+      # The hostile zone: +12:45/+13:45, a non-hour offset, DST in the southern
+      # summer. Decision #48. uk-zone files are EXCLUDED: they assert the process
+      # offset and fail loudly under any other zone, which is the behaviour 12
+      # wants and would be a false red here. test/domain therefore needs at
+      # least one UNTAGGED file for this step to select anything —
+      # zone_independence_canary_test.dart is it, from N01-T04.
+      - name: Domain tests in a hostile zone
+        run: TZ=Pacific/Chatham flutter test test/domain --exclude-tags uk-zone --reporter github
+
+      # Coverage is REPORTED, never gated (#119). `if: always()` is what makes
+      # it upload from a failing run, which is the run you want it from. No
+      # codecov and no other upload action: it is a network call in a project
+      # whose central claim is that it makes none, and coverage that gates is
+      # coverage that gets gamed.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with: { name: coverage, path: coverage/lcov.info }

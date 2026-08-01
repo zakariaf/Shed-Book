@@ -4,6 +4,7 @@
 // every query, every export shape, every statistic and every restore mapping
 // written in the meantime, because each of them silently assumed no row could
 // be struck.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';
@@ -17,8 +18,7 @@ const String _manifest = 'docs/skills/02-build-manifest.md';
 
 /// The ruling's own heading in `CONVENTIONS §6`. Ruling numbers are allocated
 /// in order and R74 was the highest before N00-T04 took R75–R78.
-final RegExp _rulingHeading =
-    RegExp(r'^### R(\d+) — .*\bstruck\b.*$', multiLine: true);
+final RegExp _rulingHeading = RegExp(r'^### R(\d+) — .*\bstruck\b.*$', multiLine: true);
 
 /// `**Tables (N):**` — the stated count, beside the list it must match.
 final RegExp _tableCount = RegExp(r'\*\*Tables \((\d+)\):\*\*');
@@ -53,39 +53,47 @@ void main() {
   test('CONVENTIONS §6 carries a numbered ruling for struck and struck_at and '
       'names every table it applies to', () {
     final RegExpMatch? heading = _rulingHeading.firstMatch(conventions);
-    expect(heading, isNotNull,
-        reason: 'CONVENTIONS §6 has no numbered ruling naming `struck`');
+    expect(heading, isNotNull, reason: 'CONVENTIONS §6 has no numbered ruling naming `struck`');
 
     final int number = int.parse(heading!.group(1)!);
-    expect(number, greaterThanOrEqualTo(75),
-        reason: 'R74 was the highest ruling before this backlog started');
+    expect(
+      number,
+      greaterThanOrEqualTo(75),
+      reason: 'R74 was the highest ruling before this backlog started',
+    );
 
-    expect(ruling, contains('struck_at'),
-        reason: 'the ruling names only one of the two columns');
-    expect(_tableCount.hasMatch(ruling), isTrue,
-        reason: 'the ruling states no table count, so nothing can check the '
-            'list against it');
+    expect(ruling, contains('struck_at'), reason: 'the ruling names only one of the two columns');
+    expect(
+      _tableCount.hasMatch(ruling),
+      isTrue,
+      reason:
+          'the ruling states no table count, so nothing can check the '
+          'list against it',
+    );
   });
 
   test('the ruling names a table count and the list matches it', () {
     // A list that drifts from its own count is how a table gets missed at N07.
     final int stated = int.parse(_tableCount.firstMatch(ruling)!.group(1)!);
-    final int listed = RegExp(r'^\s*\d+\.\s+`(\w+)`', multiLine: true)
-        .allMatches(ruling)
-        .length;
-    expect(listed, stated,
-        reason: 'the ruling says $stated tables and lists $listed');
+    final int listed = RegExp(r'^\s*\d+\.\s+`(\w+)`', multiLine: true).allMatches(ruling).length;
+    expect(listed, stated, reason: 'the ruling says $stated tables and lists $listed');
   });
 
   test('every listed table exists in 03\'s @DriftDatabase tables block', () {
     final Set<String> schema = _schemaTables(File(_schema).readAsStringSync());
     expect(schema, isNotEmpty, reason: 'could not read the tables block');
 
-    for (final RegExpMatch m
-        in RegExp(r'^\s*\d+\.\s+`(\w+)`', multiLine: true).allMatches(ruling)) {
-      expect(schema, contains(m.group(1)),
-          reason: 'the ruling names a table the schema does not have: '
-              '${m.group(1)}');
+    for (final RegExpMatch m in RegExp(
+      r'^\s*\d+\.\s+`(\w+)`',
+      multiLine: true,
+    ).allMatches(ruling)) {
+      expect(
+        schema,
+        contains(m.group(1)),
+        reason:
+            'the ruling names a table the schema does not have: '
+            '${m.group(1)}',
+      );
     }
   });
 
@@ -100,13 +108,20 @@ void main() {
         'remaining blocking',
         'must land before',
       ]) {
-        expect(line, isNot(contains(marker)),
-            reason: 'the manifest and the ruling disagree:\n$line');
+        expect(
+          line,
+          isNot(contains(marker)),
+          reason: 'the manifest and the ruling disagree:\n$line',
+        );
       }
     }
-    expect(manifest, contains('P1'),
-        reason: 'P1 was deleted rather than moved; §4 keeps ruled items with '
-            'the same shape it uses for P2 and P8');
+    expect(
+      manifest,
+      contains('P1'),
+      reason:
+          'P1 was deleted rather than moved; §4 keeps ruled items with '
+          'the same shape it uses for P2 and P8',
+    );
   });
 
   test('the three CSV shapes in 09 carry struck and struck_at', () {
@@ -117,22 +132,24 @@ void main() {
 
     // Line-scoped throughout, so a failure names what is missing rather than
     // printing the whole document back.
-    for (final String shape in <String>[
-      'lambs.csv',
-      'ewes.csv',
-      'treatments.csv',
-    ]) {
-      expect(lines.any((String l) => l.contains(shape)), isTrue,
-          reason: '09 does not name $shape');
+    for (final String shape in <String>['lambs.csv', 'ewes.csv', 'treatments.csv']) {
+      expect(lines.any((String l) => l.contains(shape)), isTrue, reason: '09 does not name $shape');
     }
     for (final String column in <String>['struck', 'struck_at']) {
-      expect(lines.any((String l) => l.contains(column)), isTrue,
-          reason: '09 does not carry the $column column on any shape');
+      expect(
+        lines.any((String l) => l.contains(column)),
+        isTrue,
+        reason: '09 does not carry the $column column on any shape',
+      );
     }
     for (final String line in lines) {
-      expect(line, isNot(contains('WHERE struck = 0')),
-          reason: 'an export query that filters struck rows out is a defect:\n'
-              '$line');
+      expect(
+        line,
+        isNot(contains('WHERE struck = 0')),
+        reason:
+            'an export query that filters struck rows out is a defect:\n'
+            '$line',
+      );
     }
   });
 
@@ -140,10 +157,17 @@ void main() {
     // N06's eight statistics are the dangerous readers: a struck lambing must
     // leave BOTH the numerator and the denominator, or striking a mistyped
     // record changes a number the shepherd compares against last year.
-    expect(ruling.toLowerCase(), contains('excluded from every count'),
-        reason: 'the ruling does not say which side struck rows fall on, so '
-            'N06 has to guess');
-    expect(ruling.toLowerCase(), contains('included in every history'),
-        reason: 'the ruling does not state the history half of the default');
+    expect(
+      ruling.toLowerCase(),
+      contains('excluded from every count'),
+      reason:
+          'the ruling does not say which side struck rows fall on, so '
+          'N06 has to guess',
+    );
+    expect(
+      ruling.toLowerCase(),
+      contains('included in every history'),
+      reason: 'the ruling does not state the history half of the default',
+    );
   });
 }

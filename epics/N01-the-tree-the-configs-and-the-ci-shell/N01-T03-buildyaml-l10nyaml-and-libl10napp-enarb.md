@@ -165,7 +165,7 @@ AppLocalizations.of(context).withdrawalSource(days: 7)
 - **`build.yaml` names drift; it does not by itself make drift the only generator.** That is
   decision #16 plus the dependency set, held by G2's `[dev_dependencies]` allowlist in N03. This
   file's job is to configure the one builder that exists, not to disable ones that are not there.
-- **`required-resource-attributes: true` makes a missing `description` a generation *failure*.**
+- **`required-resource-attributes: true` does NOT make a missing `description` a generation failure — measured on 3.44.8 when this task was executed.** It fails only when the whole `@key` block is absent. The description half is held by `test/policy/l10n_bootstrap_test.dart`'s anchor. The original text of this bullet, now known to be wrong, read: *it makes a missing `description` a generation failure.*
   That is the whole mechanism, and it is why the safety rationale for a string can live somewhere a
   future contributor will actually read it. Do not soften it to get a build green.
 - **Message ids are `lowerCamel` concept names, never the English text.** `penReadyThreshold`, not

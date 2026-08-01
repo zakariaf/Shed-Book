@@ -33,10 +33,14 @@ and it is worth knowing about before it surprises you offline:
 `flutter pub get` does *not* trigger it — `flutter test` is the first command that does.** Measured
 on 2026-08-01 by deleting `.dart_tool/hooks_runner/` and running the two commands in order:
 
-| Command | Trips the fetch? |
-|---|---|
-| `fvm flutter pub get` | **no** — `.dart_tool/hooks_runner/` is not even created |
-| `fvm flutter test` | **yes** — writes `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/libsqlite3.dylib` |
+| Command | `make` target | Trips the fetch? |
+|---|---|---|
+| `fvm flutter pub get` | — | **no** — `.dart_tool/hooks_runner/` is not even created |
+| `fvm flutter analyze` | `make check` | **no** |
+| `fvm flutter test` | **`make test`** | **yes** — writes `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/libsqlite3.dylib` |
+
+So **`make test` is the first target that needs the network on a cold cache**, and `make check` never
+does: its four steps are the two Python validators, `dart format` and `flutter analyze`.
 
 The hook fetches from `https://github.com/simolus3/sqlite3.dart/releases/download/…` and verifies
 the file against a sha256 compiled into the package, failing with *"Hash of downloaded file … is …,

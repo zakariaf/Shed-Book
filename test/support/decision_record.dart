@@ -64,8 +64,7 @@ String section(String document, String heading) {
   final List<String> lines = document.split('\n');
   final int start = lines.indexWhere((String l) => l.trim() == heading);
   if (start < 0) {
-    throw DecisionRecordFormatException(
-        '$decisionRecordPath has no heading "$heading"');
+    throw DecisionRecordFormatException('$decisionRecordPath has no heading "$heading"');
   }
   final int end = lines.indexWhere(
     (String l) => l.startsWith('## ') || l.trim() == '---',
@@ -78,8 +77,7 @@ final RegExp _itemStart = RegExp(r'^(\d+)\.\s');
 
 // multiLine, because a `RULED` line is not always the last line of its item —
 // the last item in §7.1 is followed by a blank line before the horizontal rule.
-final RegExp _ruled =
-    RegExp(r'RULED (\d{4}-\d{2}-\d{2}) — (.+?)\**\s*$', multiLine: true);
+final RegExp _ruled = RegExp(r'RULED (\d{4}-\d{2}-\d{2}) — (.+?)\**\s*$', multiLine: true);
 
 /// Parses §7.1's numbered prose list into items.
 List<OpenQuestion> parseOpenQuestions(String stillOpenSection) {
@@ -93,14 +91,16 @@ List<OpenQuestion> parseOpenQuestions(String stillOpenSection) {
     }
     final String text = body.join('\n');
     final RegExpMatch? ruled = _ruled.firstMatch(text);
-    items.add(OpenQuestion(
-      number: number!,
-      shapes: shapeTags.where((String t) => text.contains('`$t`')).toList(),
-      isStruck: text.contains('~~'),
-      ruledDate: ruled?.group(1),
-      ruledReason: ruled?.group(2)?.trim(),
-      text: text,
-    ));
+    items.add(
+      OpenQuestion(
+        number: number,
+        shapes: shapeTags.where((String t) => text.contains('`$t`')).toList(),
+        isStruck: text.contains('~~'),
+        ruledDate: ruled?.group(1),
+        ruledReason: ruled?.group(2)?.trim(),
+        text: text,
+      ),
+    );
   }
 
   for (final String line in stillOpenSection.split('\n')) {
@@ -137,9 +137,7 @@ Set<int> parseSettledNumbers(String settledSection) {
     if (cell == '#') {
       continue;
     }
-    numbers.addAll(
-      RegExp(r'\d+').allMatches(cell).map((Match m) => int.parse(m.group(0)!)),
-    );
+    numbers.addAll(RegExp(r'\d+').allMatches(cell).map((Match m) => int.parse(m.group(0)!)));
   }
   return numbers;
 }

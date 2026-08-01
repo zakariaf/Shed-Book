@@ -7,6 +7,7 @@
 // and §5 is the only source of a version number in this project. `pubspec.lock`
 // is generated with a flat, stable shape, so a line scanner is enough — the
 // same posture as decision #82's hand-rolled CSV writer.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';
@@ -36,7 +37,7 @@ Map<String, LockedPackage> parseLockfile(String text) {
 
   void flush() {
     if (name != null && dependency != null && version != null) {
-      packages[name!] = LockedPackage(dependency: dependency!, version: version!);
+      packages[name] = LockedPackage(dependency: dependency, version: version);
     }
   }
 
@@ -150,8 +151,11 @@ void main() {
 
   test('pubspec.lock pins flutter_riverpod to exactly 2.6.1 and declares no '
       'package:test', () {
-    expect(lockfile.existsSync(), isTrue,
-        reason: 'pubspec.lock is decision #5\'s evidence and must be committed');
+    expect(
+      lockfile.existsSync(),
+      isTrue,
+      reason: 'pubspec.lock is decision #5\'s evidence and must be committed',
+    );
     expect(locked, isNotEmpty, reason: 'pubspec.lock parsed to nothing');
 
     final LockedPackage? riverpod = locked['flutter_riverpod'];
@@ -166,8 +170,11 @@ void main() {
     // dependency KIND, never about presence.
     final LockedPackage? test = locked['test'];
     if (test != null) {
-      expect(test.isDirect, isFalse,
-          reason: 'package:test is a direct ${test.dependency} dependency');
+      expect(
+        test.isDirect,
+        isFalse,
+        reason: 'package:test is a direct ${test.dependency} dependency',
+      );
     }
   });
 
@@ -184,8 +191,11 @@ void main() {
     // which the SDK's exact meta: 1.18.0 makes unresolvable.
     expect(version[0], 2);
     expect(version[1], 15);
-    expect(version[2], inInclusiveRange(0, 1),
-        reason: 'build_runner ${runner.version} is outside the decision #3 range');
+    expect(
+      version[2],
+      inInclusiveRange(0, 1),
+      reason: 'build_runner ${runner.version} is outside the decision #3 range',
+    );
   });
 
   test('every package in decision-record §5.1 is a direct main dependency at '
@@ -194,8 +204,11 @@ void main() {
       final LockedPackage? package = locked[name];
       expect(package, isNotNull, reason: '$name is missing from the lockfile');
       expect(package!.dependency, 'direct main', reason: name);
-      expect(package.version, version,
-          reason: '$name resolved to ${package.version}, §5.1 says $version');
+      expect(
+        package.version,
+        version,
+        reason: '$name resolved to ${package.version}, §5.1 says $version',
+      );
     });
   });
 
@@ -205,8 +218,11 @@ void main() {
       final LockedPackage? package = locked[name];
       expect(package, isNotNull, reason: '$name is missing from the lockfile');
       expect(package!.dependency, 'direct dev', reason: name);
-      expect(package.version, version,
-          reason: '$name resolved to ${package.version}, §5.2 says $version');
+      expect(
+        package.version,
+        version,
+        reason: '$name resolved to ${package.version}, §5.2 says $version',
+      );
     });
   });
 
@@ -216,9 +232,13 @@ void main() {
       if (package == null) {
         continue;
       }
-      expect(package.isDirect, isFalse,
-          reason: '$name was rejected in §5.3 and is a ${package.dependency} '
-              'dependency');
+      expect(
+        package.isDirect,
+        isFalse,
+        reason:
+            '$name was rejected in §5.3 and is a ${package.dependency} '
+            'dependency',
+      );
     }
   });
 
@@ -229,10 +249,17 @@ void main() {
     // unsatisfiable and 13's Definition of done bans it by name. The offline
     // proof is G1 + G2 + G3, never the lockfile's package list.
     final LockedPackage? http = locked['http'];
-    expect(http, isNotNull,
-        reason: 'http is expected in the lockfile; if it has gone, an edge '
-            'changed and the offline prose needs re-reading, not celebrating');
-    expect(http!.dependency, 'transitive',
-        reason: 'http must arrive transitively and never be declared');
+    expect(
+      http,
+      isNotNull,
+      reason:
+          'http is expected in the lockfile; if it has gone, an edge '
+          'changed and the offline prose needs re-reading, not celebrating',
+    );
+    expect(
+      http!.dependency,
+      'transitive',
+      reason: 'http must arrive transitively and never be declared',
+    );
   });
 }

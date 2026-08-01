@@ -5,6 +5,7 @@
 //
 // The parser is `test/support/decision_record.dart`, lifted there in this
 // task's Refactor step when this file became its second consumer.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';
@@ -35,19 +36,25 @@ final RegExp _tableDotColumn = RegExp(r'\b([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)\b
 
 /// Suffixes that make a `foo.bar` match a file path rather than a column.
 const List<String> _fileSuffixes = <String>[
-  'dart', 'md', 'yaml', 'yml', 'json', 'png', 'sqlite', 'arb', 'txt', 'kts',
+  'dart',
+  'md',
+  'yaml',
+  'yml',
+  'json',
+  'png',
+  'sqlite',
+  'arb',
+  'txt',
+  'kts',
 ];
 
-bool namesATableAndColumn(String text) => _tableDotColumn
-    .allMatches(text)
-    .any((RegExpMatch m) => !_fileSuffixes.contains(m.group(2)));
+bool namesATableAndColumn(String text) =>
+    _tableDotColumn.allMatches(text).any((RegExpMatch m) => !_fileSuffixes.contains(m.group(2)));
 
 void main() {
   final String record = readDecisionRecord();
-  final List<OpenQuestion> questions =
-      parseOpenQuestions(section(record, '### 7.1 Still open'));
-  final Set<int> settled =
-      parseSettledNumbers(section(record, '### 7.0 SETTLED BY THE OWNER'));
+  final List<OpenQuestion> questions = parseOpenQuestions(section(record, '### 7.1 Still open'));
+  final Set<int> settled = parseSettledNumbers(section(record, '### 7.0 SETTLED BY THE OWNER'));
 
   final List<OpenQuestion> schemaShaped = questions
       .where((OpenQuestion q) => q.shapes.contains('schema-shaped'))
@@ -58,17 +65,16 @@ void main() {
     expect(
       schemaShaped.map((OpenQuestion q) => q.number).toSet(),
       containsAll(schemaShapedQuestions),
-      reason: 'items $schemaShapedQuestions are the four that expire at the '
+      reason:
+          'items $schemaShapedQuestions are the four that expire at the '
           'first schema snapshot',
     );
 
     expect(
-      schemaShaped
-          .where((OpenQuestion q) => !q.isRuled)
-          .map((OpenQuestion q) => q.number)
-          .toList(),
+      schemaShaped.where((OpenQuestion q) => !q.isRuled).map((OpenQuestion q) => q.number).toList(),
       isEmpty,
-      reason: 'these expire at N07-T08 and carry no RULED line; after the '
+      reason:
+          'these expire at N07-T08 and carry no RULED line; after the '
           'freeze the only answer left is a migration on a shepherd\'s phone',
     );
   });
@@ -79,7 +85,8 @@ void main() {
       expect(
         namesATableAndColumn(q.ruledReason!),
         isTrue,
-        reason: 'item ${q.number}\'s ruling names no snake_case table.column, '
+        reason:
+            'item ${q.number}\'s ruling names no snake_case table.column, '
             'so N07 has nothing to implement:\n${q.ruledReason}',
       );
     }
@@ -98,8 +105,10 @@ void main() {
           // legitimately appear apart. Both on one line is the failure.
           for (final String line in text.split('\n')) {
             if (line.contains(spelling) && word.hasMatch(line)) {
-              fail('item ${q.number} puts a default on the $column column, '
-                  'which drops §12.1 from unpersistable to documented:\n$line');
+              fail(
+                'item ${q.number} puts a default on the $column column, '
+                'which drops §12.1 from unpersistable to documented:\n$line',
+              );
             }
           }
         }
@@ -115,8 +124,7 @@ void main() {
         if (!lower.contains('ease')) {
           continue;
         }
-        for (final RegExpMatch m
-            in RegExp(r'BETWEEN 1 AND (\d+)').allMatches(line)) {
+        for (final RegExpMatch m in RegExp(r'BETWEEN 1 AND (\d+)').allMatches(line)) {
           bounds.add(m.group(1)!);
         }
         for (final RegExpMatch m in RegExp(r'\b1\.\.(\d+)').allMatches(line)) {
@@ -125,17 +133,25 @@ void main() {
       }
     }
     expect(bounds, isNotEmpty, reason: 'no ease bound found at all');
-    expect(bounds, <String>{'5'},
-        reason: 'the ease scale is spelled with more than one upper bound: '
-            '$bounds. Five spellings of one number is how a scale widens by '
-            'accident');
+    expect(
+      bounds,
+      <String>{'5'},
+      reason:
+          'the ease scale is spelled with more than one upper bound: '
+          '$bounds. Five spellings of one number is how a scale widens by '
+          'accident',
+    );
   });
 
   test('§7.0 and §7.1 agree', () {
     for (final OpenQuestion q in schemaShaped) {
-      expect(settled, contains(q.number),
-          reason: 'item ${q.number} is ruled in §7.1 with no SETTLED row in '
-              '§7.0');
+      expect(
+        settled,
+        contains(q.number),
+        reason:
+            'item ${q.number} is ruled in §7.1 with no SETTLED row in '
+            '§7.0',
+      );
     }
   });
 
@@ -158,7 +174,8 @@ void main() {
       for (final String line in entity.readAsLinesSync()) {
         final String lower = line.toLowerCase();
         for (final int number in schemaShapedQuestions) {
-          final bool namesIt = lower.contains('§7.1 #$number') ||
+          final bool namesIt =
+              lower.contains('§7.1 #$number') ||
               lower.contains('§7.1 q$number') ||
               lower.contains('open question $number') ||
               lower.contains('question $number');
@@ -166,9 +183,13 @@ void main() {
             continue;
           }
           for (final String marker in openMarkers) {
-            expect(lower, isNot(contains(marker)),
-                reason: '${entity.path} still calls question $number open:\n'
-                    '$line');
+            expect(
+              lower,
+              isNot(contains(marker)),
+              reason:
+                  '${entity.path} still calls question $number open:\n'
+                  '$line',
+            );
           }
         }
       }

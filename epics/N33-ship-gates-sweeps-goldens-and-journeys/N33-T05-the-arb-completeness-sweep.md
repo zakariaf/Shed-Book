@@ -52,7 +52,7 @@ fvm flutter test test/policy/arb_completeness_test.dart   # expect: failing, for
 ```
 
 Sharpen it so it fails for the *interesting* reason rather than the cheap one. `l10n.yaml` already sets
-`required-resource-attributes: true`, so gen-l10n fails the build on a **missing** `description` — an
+`required-resource-attributes: true`, which was measured on 3.44.8 in N01-T03 and fails only on a missing **`@key` block**, not on a missing `description`; the description itself is held by `test/policy/l10n_bootstrap_test.dart` — an
 assertion that only checks presence is duplicated work wearing a safety hat. Assert instead that every
 description is non-empty, is longer than a stub, and that the two safety descriptions —
 `@withdrawalSource` and `@penReadyThreshold` — are **byte-identical** to `10 §8.4`'s published text.
@@ -142,7 +142,7 @@ const kNotInTheArb = <String>[
   lands, `copy.arb_domain_noun` scans zero files and so does `ContentPolicy`'s ARB half — which is
   §12.2's mechanism. Land the reader **first**, then watch the existing rules fire on the real ARB for
   the first time; expect findings.
-- **`required-resource-attributes: true` already fails the build on a missing `description`.** Asserting
+- **`required-resource-attributes: true` does NOT fail the build on a missing `description`** — measured on 3.44.8 in N01-T03; it fails only when the whole `@key` block is absent. `test/policy/l10n_bootstrap_test.dart` holds the description half from N01-T03 onward. Asserting
   presence duplicates gen-l10n and gives false confidence. Assert non-emptiness, a minimum length, and
   byte-identity for the two safety descriptions.
 - **`copy.literal_text` is scoped to `lib/features/` only, and widening it costs four exemptions.**

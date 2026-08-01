@@ -58,7 +58,7 @@ CI re-asserts it two ways: `flutter pub get` must succeed, and gate **G2** (§2.
 
 CONVENTIONS §1 lists four targets in its comment. **Three more are added here.** `perf` and `integration` come from decisions #126 and #117, because both are things a solo developer runs on a desk with a phone plugged in and neither belongs in CI. `goldens-update` comes from [`12-testing.md`](12-testing.md) §11.4, which owns the golden policy and asked for the split in writing: **a target called `goldens` that silently passes `--update-goldens` is the easiest way there is to green a broken golden**, because you type it to check and it always agrees with you. So `goldens` verifies and `goldens-update` re-baselines, and nothing does both.
 
-`test` and `goldens` are 12's targets, reproduced and not redefined. `-P ci-fast` and `-P ci-golden` are `dart_test.yaml` presets and `dart_test.yaml` is 12's file: `ci-fast` is `--exclude-tags golden` **plus** the `migration` tag's `allow_test_randomization: false`, which a bare `--exclude-tags golden` on the command line would silently drop. Pass the preset name; never re-spell the filter.
+`test` and `goldens` are 12's targets, reproduced and not redefined. **This document used to spell the filters `-P ci-fast` and `-P ci-golden`; that was wrong and is corrected here per 12 §14 edit 1.** The day-one check was run on Flutter 3.44.8 on 2026-08-01 in N01-T04: `flutter test` has **no** `-P` / `--preset` flag, so a preset name CI cannot pass is an error message on the first push rather than a source of truth. There are no presets in `dart_test.yaml` presets and `dart_test.yaml` is 12's file: `ci-fast` is `--exclude-tags golden` **plus** the `migration` tag's `allow_test_randomization: false`, which a bare `--exclude-tags golden` on the command line would silently drop. Pass the preset name; never re-spell the filter.
 
 ```make
 # Makefile
@@ -75,14 +75,14 @@ check:                    ## cheapest failure first: <1s, then seconds, then ten
 	$(FLUTTER) analyze --fatal-infos --fatal-warnings
 
 test:                     ## 12-testing.md §11.4. Two commands, because TZ is per-process.
-	$(FLUTTER) test -P ci-fast --test-randomize-ordering-seed random --coverage
+	$(FLUTTER) test --exclude-tags "golden || uk-zone || calendar" --test-randomize-ordering-seed random --coverage
 	TZ=Europe/London $(FLUTTER) test --tags uk-zone
 
 goldens:                  ## VERIFY against the committed PNGs. Never a per-PR gate (#116)
-	$(FLUTTER) test -P ci-golden
+	$(FLUTTER) test --tags golden
 
 goldens-update:           ## RE-BASELINE. A deliberate act, its own commit (12 §8.5)
-	$(FLUTTER) test -P ci-golden --update-goldens
+	$(FLUTTER) test --tags golden --update-goldens
 
 perf:                     ## decision #126 — needs a real device, profile mode
 	$(FLUTTER) run --profile --trace-startup -d $(DEVICE)
@@ -385,10 +385,10 @@ If the repository is public, the budget question disappears and the *only* remai
 |---|---|---|---|---|
 | `gate` | every push to `main`, every PR | `ubuntu-latest` | toolchain pin check · `pub get` · `check_policy` (**G2+G3**) · `dart format --set-exit-if-changed` · `analyze --fatal-infos --fatal-warnings` · ATS check (**G5** text half) | Yes |
 | `codegen` | every push, every PR | `ubuntu-latest` | `build_runner build` + `drift_dev make-migrations` + `git diff --exit-code` | Yes |
-| `test` | every push, every PR | `ubuntu-latest` **+ `libsqlite3-dev`** | `-P ci-fast`, randomised order · `TZ=Europe/London --tags uk-zone` over the **whole** suite · `TZ=Pacific/Chatham test/domain --exclude-tags uk-zone` · coverage artefact | Yes |
+| `test` | every push, every PR | `ubuntu-latest` **+ `libsqlite3-dev`** | `--exclude-tags "golden || uk-zone || calendar"`, randomised order · `TZ=Europe/London --tags uk-zone` over the **whole** suite · `TZ=Pacific/Chatham test/domain --exclude-tags uk-zone` · coverage artefact | Yes |
 | `android` | every push, every PR | `ubuntu-latest` | release AAB · **G1** · **G4** artefact | Yes |
 | `release` | tag `v*` | `ubuntu-latest` | signed AAB with the release build number · **G1** · `--analyze-size` JSON · symbols · all artefacts | Yes |
-| `goldens` | tag `v*` **or** `workflow_dispatch` | `macos-latest` | `flutter test -P ci-golden` — eight images | Yes when it runs |
+| `goldens` | tag `v*` **or** `workflow_dispatch` | `macos-latest` | `flutter test --tags golden` — eight images | Yes when it runs |
 | iOS archive | — | the developer's Mac | `flutter build ipa --obfuscate --split-debug-info=…` | Manual |
 | integration journeys | weekly + before every tag | the developer's desk, phone plugged in | `make integration DEVICE=…` | **Reported, never blocking** |
 
@@ -491,7 +491,9 @@ jobs:
       - run: flutter pub get
 
       # Randomised ordering catches order-dependent state, which otherwise shows up
-      # as a flake at 11pm on release day. `-P ci-fast` is dart_test.yaml's preset:
+      # as a flake at 11pm on release day. There is no preset: `flutter test`
+      # has no -P flag (measured 2026-08-01, 12 §11.2), so the filter is spelled
+      # out and matches the Makefile's exactly:
       # it excludes goldens (pinned to one runner and one exact Flutter version,
       # #116) and the `migration` tag carries allow_test_randomization: false,
       # because migration tests are order-sensitive by design. 12-testing.md owns
@@ -506,7 +508,7 @@ jobs:
       # the randomisation — it is the point of the job.
       - name: Test
         run: |
-          flutter test -P ci-fast \
+          flutter test --exclude-tags "golden || uk-zone || calendar" \
             --reporter github \
             --test-randomize-ordering-seed random \
             --coverage
@@ -705,7 +707,7 @@ jobs:
           flutter --version | grep -q "Flutter $FLUTTER_VERSION"
 
       - run: flutter pub get
-      - run: flutter test -P ci-golden --reporter github
+      - run: flutter test --tags golden --reporter github
       - uses: actions/upload-artifact@v7
         if: failure()
         with: { name: golden-failures, path: test/**/failures/** }
@@ -1333,7 +1335,7 @@ CI proves the mechanical things. These are the ones a pipeline structurally cann
 - [ ] `gate` runs `check_policy` before `format` before `analyze` — cheapest failure first.
 - [ ] Codegen freshness runs `build_runner` **and** `make-migrations` and diffs `lib/`, `drift_schemas/` and `test/drift/generated/`.
 - [ ] The `test` job installs `libsqlite3-dev` before `flutter pub get`. Without it the job is red on day one and the message names no cause.
-- [ ] Tests run `-P ci-fast` with `--test-randomize-ordering-seed random`. No `--exclude-tags golden` on the command line — the preset owns that, and two places to change it is one too many.
+- [ ] Tests run `--exclude-tags "golden || uk-zone || calendar"` with `--test-randomize-ordering-seed random`. There is no `-P ci-fast` — `flutter test` has no preset flag (12 §11.2, measured 2026-08-01). The old wording of this line said no `--exclude-tags golden` on the command line — the preset owns that, and two places to change it is one too many.
 - [ ] The `TZ=Europe/London --tags uk-zone` run is **unscoped** (not `test/domain`), so §2.4 of 12's two uk-zone files outside `test/domain/` actually run in the target zone.
 - [ ] The `TZ=Pacific/Chatham` run carries `--exclude-tags uk-zone`. Without it the zone-pinned files fail loudly, correctly, and pointlessly.
 - [ ] Coverage is uploaded and gates nothing. `*.freezed.dart` appears in no strip list and no analyzer exclude.

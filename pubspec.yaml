@@ -56,6 +56,11 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # gen-l10n runs during a build only when this is set. Without it the ARB is a
+  # file nothing reads. It lands here rather than in N00-T03 because gen-l10n
+  # FAILS without l10n.yaml and lib/l10n/app_en.arb, which arrive in the same
+  # commit as this line — this is the only ordering in which nothing is red.
+  generate: true
   assets:
     - assets/content/
 
@@ -63,8 +68,3 @@ flutter:
 # bundles AtkinsonHyperlegibleNext[wght].ttf and OFL.txt, and a `fonts:` family
 # block names a FILE, which flutter build fails on when it is missing. An
 # `assets:` directory entry only needs the directory to exist and hold something.
-#
-# There is no `generate: true` yet either. It makes gen-l10n run during a build,
-# and gen-l10n fails without l10n.yaml and lib/l10n/app_en.arb, which land
-# together in N01-T03. It is added there, in the commit that gives it something
-# to generate from.

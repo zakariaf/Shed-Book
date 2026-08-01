@@ -1766,6 +1766,149 @@ a scale widens by accident.
 
 ---
 
+### R79 — `struck` / `struck_at`: a second mixin, over the record-bearing tables only
+
+This is P1, the last of the schema-irreversible conflicts (`docs/skills/02-build-manifest.md` §4.5).
+`docs/design/indelible.md` Rule 1 — *"nothing is ever removed, only struck"* — is the design system
+of record and is therefore binding, not advisory, so the only question P1 ever left open was the
+**shape**, never the **whether**. `03` has no such columns today.
+
+The cheap answer was to put the pair on `mixin Identified` and give sixteen tables a strike in one
+edit. It is rejected: `TreatmentWithdrawals` and `VocabTerms` would acquire a verb no shepherd would
+recognise, and every read in the app would still have to answer for it.
+
+**Ruling** (2026-08-01).
+
+#### a · Which tables
+
+A **second mixin**, `mixin Struckable`, over the twelve tables where a strike is a thing a shepherd
+would say out loud. It is applied beside `Identified`, never instead of it.
+
+**Tables (12):**
+
+1. `Seasons`
+2. `Ewes`
+3. `EweSeasons`
+4. `Lambings`
+5. `Lambs`
+6. `FosterEvents`
+7. `CareEvents`
+8. `EweObservations`
+9. `Pens`
+10. `PenOccupancies`
+11. `Reminders`
+12. `Notes`
+
+Four of the sixteen `Identified` tables are deliberately **not** struckable, each for a stated
+reason, and each reason is that the act already has a home:
+
+| Table | Why not |
+|---|---|
+| `Treatments` | It already has `voided_at` (#69). See §e — a treatment is *voided*, not struck |
+| `TreatmentWithdrawals` | A child of `Treatments` with no independent existence. It is voided by voiding its treatment; a withdrawal that could be struck out from under a treatment that still stands is a §12.1 hole |
+| `VocabTerms` | A label the user edits. Editing wording is not striking a record, and `TerminologyOverrides` already carries the user's words |
+| `MediaAssets` | `04 §4.8` already owns removal: media moves to `.trash/<yyyy-MM-dd>/` and purges after 30 days. A second mechanism for one act is what §5 exists to prevent. The **record** the photo hangs off is what gets struck; the file follows the existing path |
+
+The seven tables that carry no `Identified` at all — `PenOccupancyLambs`, `ReminderRules`,
+`TerminologyOverrides`, `AppSettings`, `Entitlements`, `EweTouches`, `EweSummaries` — are unchanged.
+Five are settings, projections or link rows; none is a record of something that happened.
+
+#### b · The column shape
+
+```dart
+// lib/core/db/tables/common.dart — written in N07-T02, from this ruling
+mixin Struckable on Table {
+  late final struck   = boolean().withDefault(const Constant(false))();
+  late final struckAt = integer().map(const InstantConverter()).nullable()();
+}
+
+// and, on every table that carries it:
+//   CHECK (struck IN (0,1))
+//   CHECK ((struck = 1) = (struck_at IS NOT NULL))
+```
+
+Under `STRICT` there is no `BOOLEAN`, hence the first CHECK. The paired CHECK is the same idiom
+`treatment_withdrawals` already uses for `(kind = 'days') = (days IS NOT NULL)`. `struck_at` is UTC
+epoch millis behind `InstantConverter` and never drift's `dateTime()` (#29), because a strike
+happened at a **moment** — and specifically so that a strike recorded at 01:30 on the clocks-back
+night is unambiguous. Its round trip belongs in the `uk-zone` tier against **01:00–01:59**; write it
+there, so nobody later invents the case thinking a strike is a civil date.
+
+`withDefault(const Constant(false))` on `struck` is correct and is **not** a violation of `03 §2`
+point 5: that rule bans defaults on columns that could encode **veterinary advice** — `days`, `ease`,
+`status`. `struck` is `NOT NULL` and every existing row needs a value.
+
+#### c · Which side struck rows fall on
+
+**The default: struck rows are excluded from every count and included in every history and every
+export.** State it once, here, so N06 does not have to guess eight times.
+
+The dangerous readers are N06's eight statistics. A struck lambing must leave **both** the numerator
+and the denominator of lambing percentage, litter size and assisted rate — otherwise striking one
+mistyped record silently changes a number the shepherd will compare against last year, which is
+§12.4 wearing a different hat.
+
+The named exceptions, all of them in the *included* direction:
+
+| Reader | Struck rows |
+|---|---|
+| The ewe card's history, the season timeline, any per-animal list | **Included**, drawn with the 3 px madder strike |
+| `search_docs` / FTS5 note search | **Included.** The trigger set in `03 §9` is unchanged and a struck note stays findable; the *screen* decides how a struck hit renders. Making it unfindable would be Rule 1 violated at the storage layer |
+| Every CSV, the PDF and the JSON backup | **Included and marked** — see §d |
+| The Pen Board's open-occupancy projection, the "in the pens" list, the recents strip, `ewe_summaries` | **Excluded.** All four answer "what is true now", and a struck row is a record of something that was not |
+
+#### d · Export and restore
+
+Indelible screen 11 is unambiguous: *"every CSV carries a `struck` and a `struck_at` column and every
+struck row is included and marked, because an export that quietly drops the strikes would undo the
+one thing this app is for."* The printed footer already promises it —
+`STRUCK ENTRIES ARE INCLUDED AND MARKED STRUCK. NOTHING HAS BEEN REMOVED.`
+
+**A `WHERE struck = 0` in an export query is therefore a defect**, and a test asserts its absence.
+
+All three CSV shapes carry the pair. `treatments.csv` is the one that needs saying out loud: the
+`Treatments` table has no `struck` column, so its two export columns are **derived at write time** —
+`struck = (voided_at IS NOT NULL)` and `struck_at = voided_at` — and sit **beside** `is_voided` and
+`voided_at_utc`, which keep their names. One export contract, two storage words, and the derivation
+written down once so nobody re-derives it differently.
+
+Restore round-trips the pair: **a struck row restores struck**, or the one thing the app promises is
+untrue the moment somebody uses the only recovery path there is.
+
+#### e · The word
+
+`CONVENTIONS §5.2` fixes one word per concept, and this ruling deliberately keeps **two** — so the
+reason is written here rather than discovered later.
+
+**A treatment is *voided*; everything else is *struck*.** A strike is a private correction to the
+shepherd's own notebook. A void is a public one: a treatment may already have been printed into a
+medicine book and handed to a vet (#69), so the medicine record must show that the entry was
+withdrawn rather than simply carry a line through it. The two acts are not the same act, and
+collapsing them would lose the distinction the medicine book depends on.
+
+#### f · The active-tag index predicate
+
+The partial unique index on active tags is written in N07-T03 and its predicate is decided **here**,
+because a predicate that says nothing about `struck` means a shepherd who strikes a mistyped `412`
+cannot immediately re-enter `412`:
+
+```sql
+CREATE UNIQUE INDEX idx_ewe_tag_active
+  ON ewes (tag) WHERE tag IS NOT NULL AND status = 'active' AND struck = 0;
+```
+
+`ewes.status` stays a mutable column (R41), and culling still releases a tag in one `UPDATE`
+(`03 §6` point 4). Striking now releases it too, immediately, which is the whole point of striking a
+typo at 03:20.
+
+**Files:** `03 §2` (`mixin Struckable` beside `mixin Identified`), the twelve table definitions,
+`03 §6` (the index predicate), `03 §9` (FTS5 unchanged, stated), `04 §7` (restore round-trips the
+pair), `09 §3.1`–`§3.3` and `§7` (the CSV and backup shapes),
+`.claude/skills/shed-drift-schema/SKILL.md`, `.claude/skills/shed-export-and-restore/SKILL.md`,
+`docs/skills/02-build-manifest.md` §4.5.
+
+---
+
 ## §7 What this file deliberately does not settle
 
 Four things surfaced during this review that are **not** naming questions and must not be closed by a

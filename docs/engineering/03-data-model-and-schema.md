@@ -261,7 +261,47 @@ mixin Identified on Table {
   late final createdAt = integer().map(const InstantConverter())();
   late final updatedAt = integer().map(const InstantConverter())();
 }
+
+/// Indelible Rule 1 — *nothing is ever removed, only struck*. Ruled 2026-08-01
+/// as `CONVENTIONS` **R79**: a SECOND mixin, applied beside `Identified` and
+/// never instead of it, over the **twelve** tables where a strike is a thing a
+/// shepherd would say out loud.
+///
+/// Carried by: `Seasons`, `Ewes`, `EweSeasons`, `Lambings`, `Lambs`,
+/// `FosterEvents`, `CareEvents`, `EweObservations`, `Pens`, `PenOccupancies`,
+/// `Reminders`, `Notes`.
+///
+/// Deliberately NOT carried by four `Identified` tables, because the act
+/// already has a home: `Treatments` has `voided_at` (#69 — a treatment is
+/// *voided*, not struck, because it may already have been printed into a
+/// medicine book handed to a vet); `TreatmentWithdrawals` is voided by voiding
+/// its treatment; `VocabTerms` labels are edited, not struck; `MediaAssets`
+/// removal is §4.8's `.trash/` path.
+///
+/// **The default every reader follows: struck rows are excluded from every
+/// count and included in every history and every export.** R79 §c names the
+/// exceptions; a `WHERE struck = 0` in an export query is a defect.
+mixin Struckable on Table {
+  /// Under STRICT there is no BOOLEAN, hence the first CHECK below.
+  late final struck = boolean().withDefault(const Constant(false))();
+
+  /// An Instant, not a civil date: a strike happened at a moment, and this is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  late final struckAt = integer().map(const InstantConverter()).nullable()();
+}
 ```
+
+Every table carrying `Struckable` adds both constraints, which is the same paired-nullable idiom
+`treatment_withdrawals` already uses for `(kind = 'days') = (days IS NOT NULL)`:
+
+```dart
+'CHECK (struck IN (0,1))',
+'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+```
+
+The default on `struck` is **not** a violation of §2 point 5: that rule bans defaults on columns that
+could encode veterinary advice — `days`, `ease`, `status` — and `struck` is `NOT NULL`, so every
+existing row needs a value.
 
 `autoIncrement()` emits `INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT`. The `AUTOINCREMENT` keyword (as opposed to a bare rowid alias) guarantees ids are never reused after a delete, which is what stops a recreated ewe inheriting a culled ewe's notes through a stale foreign key in an old export. Keep it; the `sqlite_sequence` overhead is one row.
 
@@ -384,7 +424,7 @@ Files: `lib/core/db/tables/*.dart`, one file per cluster. Indices are listed wit
 ```dart
 // lib/core/db/tables/seasons.dart
 @TableIndex(name: 'idx_season_start', columns: {#startDate})
-class Seasons extends Table with Identified {
+class Seasons extends Table with Identified, Struckable {
   late final year = integer()();
   late final label = text().withLength(min: 1, max: 60)();
   late final startDate = text().map(const LocalDateConverter())();
@@ -431,9 +471,14 @@ class Seasons extends Table with Identified {
 @TableIndex.sql(
   // §7.0 ruling 7: unique among ACTIVE animals only. A culled 412 releases
   // the tag; a new 412 is a new row with its own uid and its own history.
-  "CREATE UNIQUE INDEX idx_ewe_tag_active ON ewes (tag) WHERE status = 'active'",
+  // `struck = 0` is R79 §f, decided with the strike rather than after it: a
+  // predicate that says nothing about struck means a shepherd who strikes a
+  // mistyped 412 cannot immediately re-enter 412, which is the whole point of
+  // striking a typo at 03:20.
+  "CREATE UNIQUE INDEX idx_ewe_tag_active ON ewes (tag) "
+  "WHERE status = 'active' AND struck = 0",
 )
-class Ewes extends Table with Identified {
+class Ewes extends Table with Identified, Struckable {
   /// Exactly as typed. Never normalised on write — spec §12.4.
   late final tag = text().withLength(min: 1, max: 32)();
 
@@ -475,7 +520,7 @@ Barren rate is not computable from lambings, because a barren ewe *has no lambin
 ```dart
 @TableIndex(name: 'idx_eweseason_season', columns: {#season})
 @TableIndex(name: 'idx_eweseason_ewe', columns: {#ewe})
-class EweSeasons extends Table with Identified {
+class EweSeasons extends Table with Identified, Struckable {
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final ewe = integer().references(Ewes, #id, onDelete: KeyAction.cascade)();
 
@@ -512,7 +557,7 @@ class EweSeasons extends Table with Identified {
 @TableIndex(name: 'idx_lambing_ewe_time', columns: {#ewe, #occurredAt})
 @TableIndex(name: 'idx_lambing_localdate', columns: {#season, #localDate})
 @TableIndex(name: 'idx_lambing_presentation', columns: {#presentation})
-class Lambings extends Table with Identified {
+class Lambings extends Table with Identified, Struckable {
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final ewe = integer().references(Ewes, #id, onDelete: KeyAction.restrict)();
 
@@ -602,10 +647,11 @@ Both numbers are preserved verbatim. There is no `warnings` column anywhere in t
 // "which lamb was she?" — on every retained ewe.
 @TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})
 @TableIndex.sql(
+  // `struck = 0` per R79 §f, for the same reason as the ewe index above.
   "CREATE UNIQUE INDEX idx_lamb_tag_alive ON lambs (tag) "
-  "WHERE tag IS NOT NULL AND status = 'alive'",
+  "WHERE tag IS NOT NULL AND status = 'alive' AND struck = 0",
 )
-class Lambs extends Table with Identified {
+class Lambs extends Table with Identified, Struckable {
   late final lambing = integer().references(Lambings, #id, onDelete: KeyAction.cascade)();
 
   /// Immutable, denormalised from lambings.ewe at insert. Enforced by a
@@ -673,7 +719,7 @@ Checkbox state on the Lambing Entry screen is `EXISTS(…)`, never a boolean col
 @TableIndex(name: 'idx_care_lambing_kind', columns: {#lambing, #kind})
 @TableIndex(name: 'idx_care_lamb_kind', columns: {#lamb, #kind})
 @TableIndex(name: 'idx_care_season', columns: {#season})
-class CareEvents extends Table with Identified {
+class CareEvents extends Table with Identified, Struckable {
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final lambing =
       integer().nullable().references(Lambings, #id, onDelete: KeyAction.cascade)();
@@ -723,7 +769,7 @@ class CareEvents extends Table with Identified {
 @TableIndex(name: 'idx_eweobs_season_kind', columns: {#season, #kind})
 @TableIndex(name: 'idx_eweobs_kind', columns: {#kind})
 @TableIndex(name: 'idx_eweobs_lambing', columns: {#lambing})
-class EweObservations extends Table with Identified {
+class EweObservations extends Table with Identified, Struckable {
   late final ewe = integer().references(Ewes, #id, onDelete: KeyAction.cascade)();
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final lambing =
@@ -875,7 +921,7 @@ Do not add a source heuristic banning numeric literals near "withdrawal" — it 
 ### 5.9 Pens and occupancy
 
 ```dart
-class Pens extends Table with Identified {
+class Pens extends Table with Identified, Struckable {
   late final label = text().withLength(min: 1, max: 24)();
   late final sortOrder = integer().withDefault(const Constant(0))();
   late final isActive = boolean().withDefault(const Constant(true))();
@@ -903,7 +949,7 @@ class Pens extends Table with Identified {
   'CREATE UNIQUE INDEX idx_penocc_one_open '
   'ON pen_occupancies (pen) WHERE exited_at IS NULL',
 )
-class PenOccupancies extends Table with Identified {
+class PenOccupancies extends Table with Identified, Struckable {
   late final pen = integer().references(Pens, #id, onDelete: KeyAction.restrict)();
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final ewe =
@@ -973,7 +1019,7 @@ See §8 for the live-board query and the hours-since-penned rule.
 @TableIndex(name: 'idx_reminder_lamb', columns: {#lamb})
 @TableIndex(name: 'idx_reminder_lambing', columns: {#lambing})
 @TableIndex(name: 'idx_reminder_treatment', columns: {#treatment})
-class Reminders extends Table with Identified {
+class Reminders extends Table with Identified, Struckable {
   late final season =
       integer().nullable().references(Seasons, #id, onDelete: KeyAction.cascade)();
   late final ewe =
@@ -1025,7 +1071,7 @@ class ReminderRules extends Table {
 @TableIndex(name: 'idx_note_lamb', columns: {#lamb})
 @TableIndex(name: 'idx_note_lambing', columns: {#lambing})
 @TableIndex(name: 'idx_note_season', columns: {#season})
-class Notes extends Table with Identified {
+class Notes extends Table with Identified, Struckable {
   late final ewe =
       integer().nullable().references(Ewes, #id, onDelete: KeyAction.cascade)();
   late final lamb =
@@ -1352,8 +1398,8 @@ Twelve entries, and the set is closed (R19): a thirteenth repository is a schema
 **Ruling (decision-record §7.0 #7): tags are unique among ACTIVE animals only.** A partial unique index, not a global one. Real flocks reuse tag numbers after culls.
 
 ```sql
-CREATE UNIQUE INDEX idx_ewe_tag_active  ON ewes  (tag) WHERE status = 'active';
-CREATE UNIQUE INDEX idx_lamb_tag_alive  ON lambs (tag) WHERE tag IS NOT NULL AND status = 'alive';
+CREATE UNIQUE INDEX idx_ewe_tag_active  ON ewes  (tag) WHERE status = 'active' AND struck = 0;
+CREATE UNIQUE INDEX idx_lamb_tag_alive  ON lambs (tag) WHERE tag IS NOT NULL AND status = 'alive' AND struck = 0;
 ```
 
 Follow it through:
@@ -1446,7 +1492,7 @@ There is **no `rearing_dam` column**. The decision record rejects it explicitly 
 @TableIndex(name: 'idx_foster_season', columns: {#season})
 @TableIndex(name: 'idx_foster_corrects', columns: {#corrects})
 @TableIndex(name: 'idx_foster_method', columns: {#method})
-class FosterEvents extends Table with Identified {
+class FosterEvents extends Table with Identified, Struckable {
   late final lamb = integer().references(Lambs, #id, onDelete: KeyAction.cascade)();
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
 

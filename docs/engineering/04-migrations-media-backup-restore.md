@@ -1197,6 +1197,18 @@ Other restore routes behave differently, and the app should say which one happen
 
 **Media is not importable in v1.** The Export screen offers "Share photos from this season" — the files handed straight to the share sheet, no ZIP — and labels it plainly as a copy-out, not a restorable backup. Batch at **50 files per share**: that is a chosen bound, not a documented platform limit (`share_plus` 13.3.0 publishes none), picked so one `ShareParams` never carries more than ~35 MB of `XFile` paths through the platform channel. If a real limit is found on either OS, it replaces this number and the source goes in §11. A media ZIP is blocked on verifying `ZipFileEncoder`'s incremental-write behaviour in `package:archive/archive_io.dart` (#85, still unverified); do not design one until that check is done and recorded.
 
+### 7.6a A struck row restores struck
+
+`CONVENTIONS` R79. The twelve `Struckable` tables carry `struck` and `struck_at` through the backup
+and back, and the importer writes both exactly as they appear — it never clears a strike and never
+stamps one. `treatments` carries `voided_at` instead, for the reason R79 §e gives.
+
+This is not a detail. Restore is the single most destructive operation in the app and the only
+recovery path that exists; a restore that silently un-struck every corrected record would hand the
+shepherd back a flock book full of entries they had already marked wrong, in the one moment they are
+least able to check. Indelible Rule 1 is a promise about the record, and a record that survives a
+restore with its strikes intact is the only version of that promise that means anything.
+
 ### 7.7 What restore never does
 
 - **Never merges.** There is no merge code, so there is no merge to accidentally expose.

@@ -266,6 +266,8 @@ Rows: every `lambs` row whose `lambings.season` is the exported season, **includ
 | 33 | `pet_lamb` | `lambs.pet_lamb` | `0` / `1` |
 | 34 | `bottle_feeds` | `lambs.bottle_feeds` | integer |
 | 35 | `notes` | `lambs.notes` | free text — the column that exercises every quoting rule |
+| 36 | `struck` | `lambs.struck` | `0` / `1`. **R79.** A struck row is exported and marked, never filtered out. Filtering struck rows out of an export query is a defect, and a test asserts the predicate appears in no export SQL in this document |
+| 37 | `struck_at` | `lambs.struck_at` | ISO-8601 ms Z, or blank. Instant, so a strike recorded at 01:30 on the clocks-back night is unambiguous |
 
 ### 3.2 `ewes.csv` — one row per ewe
 
@@ -299,6 +301,8 @@ Rows: every `ewe_seasons` row for the exported season joined to `ewes`, **union*
 | 24 | `latest_meat_clear_date` | *derived*: `MAX(treatment_withdrawals.clear_date)` where `target='meat'` | `YYYY-MM-DD` or blank. **The stored value** (#50) — never recomputed here |
 | 25 | `latest_milk_clear_date` | same, `target='milk'` | as above |
 | 26 | `notes` | `ewes.notes` | free text |
+| 27 | `struck` | `ewes.struck` | `0` / `1`. **R79.** A struck row is exported and marked, never filtered out. Filtering struck rows out of an export query is a defect, and a test asserts the predicate appears in no export SQL in this document |
+| 28 | `struck_at` | `ewes.struck_at` | ISO-8601 ms Z, or blank. Instant, so a strike recorded at 01:30 on the clocks-back night is unambiguous |
 
 `ewes.over_free_cap` is **not** exported. It is a monetization marker, not a fact about a sheep. It is in the JSON backup, because the backup is the record and the CSV is a report — and that distinction settles every "does this column belong in the CSV?" argument.
 
@@ -340,6 +344,8 @@ A treatment has 0..2 `treatment_withdrawals` rows (meat, milk). They are **pivot
 | 26 | `clear_date_disagrees` | *derived*: stored `clear_date` ≠ `clearDateFor(administered_at, days)` | `0` / `1`. `WarningCode.clearDateDisagrees`. **Shown, never applied** (#50) — the export prints the warning column and keeps the stored date |
 | 27 | `is_voided` | `treatments.voided_at IS NOT NULL` | `0` / `1` |
 | 28 | `voided_at_utc` | `treatments.voided_at` | ISO or blank |
+| 29 | `struck` | *derived*: `treatments.voided_at IS NOT NULL` | `0` / `1`. **R79 §d and §e.** `Treatments` carries no `struck` column — a treatment is *voided*, not struck, because it may already have been printed into a medicine book handed to a vet (#69). The export contract is uniform across all three shapes, so the pair is derived here and sits **beside** `is_voided` and `voided_at_utc`, which keep their names. The derivation is written once, here |
+| 30 | `struck_at` | *derived*: `treatments.voided_at` | ISO-8601 ms Z, or blank |
 | 29 | `note` | `treatments.note` | free text |
 
 ### 3.4 The header rows, verbatim
@@ -347,15 +353,15 @@ A treatment has 0..2 `treatment_withdrawals` rows (meat, milk). They are **pivot
 These three strings are the contract. They are `const` in `export_repository.dart`, asserted by a golden test, and **frozen**: adding a column appends to the end of the list, renaming one is a breaking change to every spreadsheet a shepherd has built on top of it.
 
 ```
-lamb_uid,season_year,season_label,lamb_tag,sex,birth_dam_tag,birth_dam_uid,rearing_dam_tag,rearing_dam_uid,was_fostered,lambing_uid,born_at_utc,born_at_local,born_local_date,local_date_disagrees,time_source,time_provenance,time_captured_at_utc,time_original_effective_utc,declared_birth_type,lambs_recorded_for_lambing,birth_type_mismatch,lambing_ease,assisted_by,presentation_key,presentation_label,birth_weight_g,birth_weight_kg,status,death_date,death_cause_key,death_cause_label,pet_lamb,bottle_feeds,notes
+lamb_uid,season_year,season_label,lamb_tag,sex,birth_dam_tag,birth_dam_uid,rearing_dam_tag,rearing_dam_uid,was_fostered,lambing_uid,born_at_utc,born_at_local,born_local_date,local_date_disagrees,time_source,time_provenance,time_captured_at_utc,time_original_effective_utc,declared_birth_type,lambs_recorded_for_lambing,birth_type_mismatch,lambing_ease,assisted_by,presentation_key,presentation_label,birth_weight_g,birth_weight_kg,status,death_date,death_cause_key,death_cause_label,pet_lamb,bottle_feeds,notes,struck,struck_at
 ```
 
 ```
-ewe_uid,tag,eid,breed,date_of_birth,source,status,season_year,season_label,season_status,scanned_count,lambings_recorded,lambings_scored,lambings_scored_assisted,lambs_born,lambs_born_alive,lambs_stillborn,lambs_reared,first_lambing_at_utc,first_lambing_local_date,last_lambing_at_utc,observations,treatments_recorded,latest_meat_clear_date,latest_milk_clear_date,notes
+ewe_uid,tag,eid,breed,date_of_birth,source,status,season_year,season_label,season_status,scanned_count,lambings_recorded,lambings_scored,lambings_scored_assisted,lambs_born,lambs_born_alive,lambs_stillborn,lambs_reared,first_lambing_at_utc,first_lambing_local_date,last_lambing_at_utc,observations,treatments_recorded,latest_meat_clear_date,latest_milk_clear_date,notes,struck,struck_at
 ```
 
 ```
-treatment_uid,season_year,season_label,animal_kind,animal_tag,animal_uid,product_name,dose_text,route_key,route_label,batch_no,administered_at_utc,administered_at_local,time_source,time_provenance,time_captured_at_utc,time_original_effective_utc,meat_withdrawal_state,meat_withdrawal_days,meat_clear_date,meat_withdrawal_source,milk_withdrawal_state,milk_withdrawal_days,milk_clear_date,milk_withdrawal_source,clear_date_disagrees,is_voided,voided_at_utc,note
+treatment_uid,season_year,season_label,animal_kind,animal_tag,animal_uid,product_name,dose_text,route_key,route_label,batch_no,administered_at_utc,administered_at_local,time_source,time_provenance,time_captured_at_utc,time_original_effective_utc,meat_withdrawal_state,meat_withdrawal_days,meat_clear_date,meat_withdrawal_source,milk_withdrawal_state,milk_withdrawal_days,milk_clear_date,milk_withdrawal_source,clear_date_disagrees,is_voided,voided_at_utc,note,struck,struck_at
 ```
 
 35, 26 and 29 fields. Every `*_key` column is the stable ASCII vocabulary key that never changes; every `*_label` column is the resolved human wording, which the user may have edited. Both ship, because the key is what a machine joins on and the label is what a human reads, and neither substitutes for the other.
@@ -869,7 +875,8 @@ Each of these is a way the round trip breaks, and each has a home:
 10. **Text is byte-verbatim** — no trimming, no Unicode normalisation, and the CSV formula guard is nowhere near this code path.
 11. **Nothing derived is written.** No statistic, no `lamb_rearing.rearing_dam`, no `lambing_consistency.is_mismatched`. Those are CSV and PDF columns; the backup carries the inputs.
 12. **`AUTOINCREMENT` is doing its job.** A recreated ewe must not inherit a culled ewe's notes through a stale integer FK in an old export — which is why ids are re-issued and why they are never the identity (#32).
-13. **Nothing is re-stamped on the way in or out.** `created_at` and `updated_at` are imported exactly as they appear in the file; the importer never substitutes `appNow()`. A restore that freshened `updated_at` would break byte equality on every row in the database at once, and it would destroy the only evidence of when a record was actually made. The same rule in the other direction is what keeps `app_settings` stable: `last_exported_at` is stamped **after** the artifact is written (§8.3), so it is never inside the file that describes it.
+13. **A struck row round-trips struck.** `struck` and `struck_at` are emitted for the twelve tables that carry them (`CONVENTIONS` R79) and imported exactly as they appear. A backup that quietly dropped the strikes would make the one thing this app promises untrue at the moment somebody uses the only recovery path there is. `treatments` is the exception in shape only: the JSON carries `voided_at`, which is where a treatment's strike actually lives (#69, R79 §e), and the derived CSV pair is a **CSV** concern that the backup does not repeat.
+14. **Nothing is re-stamped on the way in or out.** `created_at` and `updated_at` are imported exactly as they appear in the file; the importer never substitutes `appNow()`. A restore that freshened `updated_at` would break byte equality on every row in the database at once, and it would destroy the only evidence of when a record was actually made. The same rule in the other direction is what keeps `app_settings` stable: `last_exported_at` is stamped **after** the artifact is written (§8.3), so it is never inside the file that describes it.
 
 ### 7.3 The test
 

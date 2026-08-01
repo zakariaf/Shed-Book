@@ -416,7 +416,7 @@ final List<CopyRule> _copyRules = <CopyRule>[
       r'|\b(we|the app) recommends?\b'
       r'|\brecommended (dose|dosage|amount|rate)\b'
       r'|\b\d+\s?(ml|mg|cc|iu)\s?/\s?kg\b'
-      r'|\b(diagnos|prognos)'
+      r'|\bdiagnos(?!tic)|\bprognos'
       r'|\b(indicates?|suggests?) (a |an )?(problem|deficiency|infection|disease)\b'
       r'|\b(normal|healthy|abnormal|too (low|high|light|heavy))\b'
       r'|\bcall (the |your )?vet\b'

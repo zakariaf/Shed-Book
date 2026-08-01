@@ -1419,7 +1419,7 @@ abstract final class ContentPolicy {
     (pattern: RegExp(r'\b(we|the app) recommends?\b', caseSensitive: false), why: 'app asserting judgement'),
     (pattern: RegExp(r'\brecommended (dose|dosage|amount|rate)\b', caseSensitive: false), why: 'dose suggestion'),
     (pattern: RegExp(r'\b\d+\s?(ml|mg|cc|iu)\s?/\s?kg\b', caseSensitive: false), why: 'a computed dose'),
-    (pattern: RegExp(r'\b(diagnos|prognos)', caseSensitive: false), why: 'diagnosis'),
+    (pattern: RegExp(r'\bdiagnos(?!tic)|\bprognos', caseSensitive: false), why: 'diagnosis'),
     (pattern: RegExp(r'\b(indicates?|suggests?) (a |an )?(problem|deficiency|infection|disease)\b',
         caseSensitive: false), why: 'clinical inference from data'),
     (pattern: RegExp(r'\b(normal|healthy|abnormal|too (low|high|light|heavy))\b',
@@ -1440,6 +1440,22 @@ abstract final class ContentPolicy {
 ```
 
 `call the vet` is banned deliberately: it *sounds* like the safe thing to say and it is still the app making a clinical call about a specific animal at a specific moment.
+
+**Amended 2026-08-01 (N08-T07): `\bdiagnos` gained a `(?!tic)`.** As first printed, the alternative
+was `\b(diagnos|prognos)`, and it refused this project's **own mandated vocabulary**. Measured against
+the gate before the change: the string literal `'the diagnostics log'` — `CLAUDE.md`'s required word
+for `LocalLog` — was a violation, and so was an ARB message reading `"Diagnostics"`, which decision
+**#123** requires (*"Settings ▸ Diagnostics shows the last 20 events"*) and which `04 §8.2` also needs
+for its temp directory. Three documents mandate the word; one alternative refused it.
+
+The alternative means **clinical** diagnosis, and every dangerous form still fires — *diagnosis*,
+*diagnose*, *diagnosed*, *diagnosing*. `diagnostic`/`diagnostics` is a different word in a different
+domain. `prognos` is unchanged, because no collision exists for it.
+
+This was ruled rather than exempted on purpose. An `[exempt]` line was unavailable (**R56** fixes the
+allowlist at four lines) and an `except:` path in the rule would have excused one file while leaving
+the collision waiting for N29's Settings screen — which is precisely how a rule with a standing false
+positive gets weakened and then deleted, while guarding safety rule §12.2.
 
 The scan covers string literals in `lib/**.dart` and message values in `lib/l10n/*.arb`, and it is **self-tested in both directions** — a guard that never fires is indistinguishable from a broken guard:
 

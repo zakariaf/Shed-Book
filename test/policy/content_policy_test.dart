@@ -71,6 +71,34 @@ void main() {
     expect(ContentPolicy.allowlist, isNotEmpty);
   });
 
+  test('the diagnosis pattern means CLINICAL diagnosis, not diagnostics', () {
+    // The 2026-08-01 narrowing, pinned in BOTH directions so nobody widens it
+    // back and nobody narrows it further.
+    //
+    // It fires on every clinically dangerous form:
+    for (final String clinical in <String>[
+      'A diagnosis of watery mouth.',
+      'The app will diagnose her.',
+      'We diagnosed hypothermia.',
+      'Diagnosing this is the vet\'s job.',
+      'The prognosis is poor.',
+    ]) {
+      expect(_banned(clinical), isTrue, reason: clinical);
+    }
+
+    // …and not on this project's own mandated vocabulary, which three documents
+    // require: CLAUDE.md's table, decision #123's Settings row, and 04 §8.2's
+    // temp directory.
+    for (final String ours in <String>[
+      'the diagnostics log',
+      'Diagnostics',
+      'Settings > Diagnostics',
+      'diagnostics',
+    ]) {
+      expect(_banned(ours), isFalse, reason: ours);
+    }
+  });
+
   test('every pattern carries a non-empty why', () {
     expect(ContentPolicy.bannedInUserFacingText, hasLength(10));
     for (final ({RegExp pattern, String why}) r in ContentPolicy.bannedInUserFacingText) {

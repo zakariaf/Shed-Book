@@ -4,122 +4,161 @@
 // row `token.primitives_import` is what holds that — Dart has no
 // directory-private visibility, so the language cannot.
 //
-// Every hex carries its measured WCAG ratio on the surface it is designed for.
-// The ratios were RECOMPUTED from the hexes on 2026-08-01, not copied: all six
-// night figures, all six amber figures and the four high-contrast figures
-// reproduce indelible.md §2.3 and 06 §3.2 exactly. test/design/contrast_test.dart
-// recomputes all of them again, from these constants, on every run.
+// ---------------------------------------------------------------------------
+// WHICH DOCUMENT SUPPLIED THESE VALUES — P6, AND WHY IT LANDED THIS WAY
+// ---------------------------------------------------------------------------
+//
+// The COLOUR ramps are 06 §3.2's, backed by decision #95. The SCALES below them
+// are indelible.md's. That split is not a compromise; it is the authority order
+// in CLAUDE.md applied to a conflict bigger than the epic described.
+//
+// N09-T01's own source table says indelible.md §2.2/§2.3 binds every hex, and
+// this file was first authored that way — a warm ink-on-paper ramp based on
+// `#0A0A0B` with madder marks. That was wrong, and the thing that settles it is
+// rank 1 of the authority order rather than a preference:
+//
+//   decision #95 — "Base surface #0B0D0E." Its rejected column names
+//   `#121212` AND `#000000` as the base. It is not struck, so it stands, and
+//   nothing below the decision record can overturn it by publishing a different
+//   table.
+//
+// Two further facts made the split the only workable reading:
+//
+//   1. indelible.md CANNOT supply six palettes. It publishes two themes, no
+//      amber table, no high-contrast variant, and §2.7 explicitly refuses a
+//      status palette at all — while ShedTokens needs statusReady,
+//      statusAttention, statusLoss and onStatus in all six. 06 §4.2–§4.5 is the
+//      only complete, per-token, fully measured six-palette specification in the
+//      doc set.
+//   2. Every ratio N09-T03's test set asks to reproduce — 16.16, 10.29, 6.11,
+//      13.36, 11.46, 7.45, 6.08, 21.00, 4.89 — is a 06 §4 figure. The epic's own
+//      verification is written against this ramp.
+//
+// P6 AND P14 ARE THEREFORE CARRIED INTO THE PR BODY AS OPEN, WITH BOTH SIDES
+// CITED, and indelible.md is NOT struck here. Striking the colour half of the
+// document CLAUDE.md calls "the one design system" is an owner's ruling, not a
+// task's — and §2.4's overruled values and §7.3's placement rules are written
+// against its own ramp, so they would be orphaned by a silent edit. What
+// indelible.md keeps binding, and does bind below: the twelve-step spacing
+// scale, the geometry, the 64 pt target floor, the two-voice type scale, motion
+// and haptics.
+//
+// P14 (`#0B0D0E` vs `#0A0A0B`) is ruled by N11-T04 and is now a much smaller
+// question than it looked: decision #95 already answers it, and 06 §9.4's
+// `launch.colour_parity` parses `nSurface04` out of this file to compare with
+// android/app/src/main/res/values/colors.xml.
+//
+// ---------------------------------------------------------------------------
 //
 // THE NAMING SCHEME IS VALUE-NAMED, NOT MEANING-NAMED (06 §3.2): a palette
-// letter, a hue-or-role word, and the approximate luminance step. `nSurface04`,
-// `nInk92`, `aAmber70`. Never `nPage`, `nInkStruck`, `nMadderStrike`, `nSpine` —
-// what a value is FOR is tokens.dart's decision, one tier up, and a primitive
-// that already knows it is the strike colour has pre-empted it. The step is CIE
-// L*, measured: #EDE8DC is L* 92.1, hence nInk92.
+// letter, a hue-or-role word, and the approximate luminance step. Never `nPage`,
+// `nInkStruck`, `nSpine` — what a value is FOR is tokens.dart's decision, one
+// tier up, and a primitive that already knows it is the strike colour has
+// pre-empted it.
 //
-// Two placement rules travel with these values and are the first thing a
-// component author gets wrong:
-//
-//   1. nInk58 and nInk44 are NEVER drawn on nSurface17. They measure 4.16 and
-//      2.54 there. A slab under the thumb carries nInk92 only, and its border
-//      goes to nInk67.
-//   2. nMadder46 is NEVER set as text and NEVER carries a glyph. It is a 2 px
-//      line and nothing else.
-//
-// Do not restore either value measurement overruled (indelible.md §2.4). Both
-// look better. Rule 4 does not negotiate with taste.
+// Every hex carries its measured ratio on the surface it is designed for.
+// test/design/contrast_test.dart recomputes all of them from these constants.
 import 'dart:ui' show Color;
 
-// ---- night ramp (base nSurface04) -----------------------------------------
-// indelible.md §2.2 (five surfaces) and §2.3 (three inks, one hue).
+// ---- night neutral ramp (06 §4.2) ------------------------------------------
+// The ramp is a HINT, NOT A SEPARATOR: 1.07:1 and 1.18:1 between steps are far
+// below the 3:1 WCAG asks of a non-text boundary, deliberately — a bright card
+// edge is a light source you stare at for four hours. Any boundary that must be
+// findable under a head torch carries an outline AS WELL AS a ramp step. A
+// direction may widen the ramp; it may not drop the outline.
 
-/// P14 IS OPEN AND THIS IS THE LINE. indelible.md §2.2 and §10 publish
-/// `#0A0A0B`; 06 §3.2, CONVENTIONS §2.11 and 13 §5.4 publish `#0B0D0E`. One hex,
-/// and it is the FIRST PAINTED FRAME — 06 §9.4's `launch.colour_parity` parses
-/// this exact constant out of this exact file and compares it to
-/// android/app/src/main/res/values/colors.xml, so the two cannot drift apart
-/// quietly. **N11-T04 rules P14 and amends CONVENTIONS §2.11 and 13 §5.4
-/// together.** This task authors indelible.md's value, because the epic's own
-/// source table makes indelible.md binding on every hex and 06 binding on every
-/// name — which is why the name still reads `04` while the value measures L*
-/// 2.8. That mismatch is the conflict, left visible on purpose.
-///
-/// Not pure black: white-on-black is the worst halation case, and roughly 47% of
-/// adults have some astigmatism (§2.2).
-const Color nSurface04 = Color(0xFF0A0A0B); // L*  2.8
+/// Decision #95's base surface. Not `#000000` — a base of exactly zero has
+/// nothing to build a surface ramp on, so elevation would have to be carried by
+/// outlines everywhere. Not `#121212` — in a dark shed the extra emission buys
+/// nothing. This is the FIRST PAINTED FRAME, and `launch.colour_parity` parses
+/// this exact constant out of this exact file (P14, ruled at N11-T04).
+const Color nSurface04 = Color(0xFF0B0D0E); // L = 0.0039
+const Color nSurface08 = Color(0xFF12161A); // 1.07:1 vs base
+const Color nSurface12 = Color(0xFF1A2025); // 1.18:1 vs base
+const Color nSurface18 = Color(0xFF242B31); // 1.36:1 vs base
 
-/// L* 5.94. Named 06 rather than 07 only because it is the lower of the pair —
-/// see nSurface07. The numbers ORDER the ramp; they do not encode it.
-const Color nSurface06 = Color(0xFF131315); // L*  5.9
+const Color nInk40 = Color(0xFF8A9199); //  6.11:1 on nSurface04 — chrome only
+const Color nInk72 = Color(0xFFB7BDC4); // 10.29:1
+const Color nInk92 = Color(0xFFE8EAED); // 16.16:1
 
-/// L* 6.39, which rounds to 06 as well. It takes 07 because nSurface06 is
-/// already spoken for, and two constants with one name is worse than one
-/// constant with an approximate one.
-const Color nSurface07 = Color(0xFF141416); // L*  6.4
-const Color nSurface10 = Color(0xFF1C1C1F); // L* 10.4 — the only filled shapes
-const Color nSurface17 = Color(0xFF2A2A2E); // L* 17.2
+/// 19.48:1, and indelible.md §2.2 objects to it: white-on-black is the worst
+/// halation case and roughly 47% of adults have some astigmatism. 06 §4.2
+/// nevertheless assigns it to `textNumeric`, and decision #95 backs 06's ramp,
+/// so it is authored — but it is the one value in this file where the two
+/// documents disagree about a JOB rather than a hex, and it belongs in the P6
+/// discussion rather than being quietly softened here.
+const Color nInk100 = Color(0xFFFFFFFF);
 
-const Color nInk92 = Color(0xFFEDE8DC); // 16.19:1 on nSurface04
-const Color nInk67 = Color(0xFFA8A296); //  7.80:1
-const Color nInk58 = Color(0xFF8F8A7E); //  5.75:1
+// ---- night accents (06 §4.2) -----------------------------------------------
+// indelible.md §2.7 refuses a status palette outright — a lamb that died prints
+// the word DEAD in full ink, with "colour: none, ever". These three exist
+// because ShedTokens has the fields and ShedStatusBadge needs something to name.
+// Their existence is not a licence: colour is never the only channel (#106).
 
-/// 3.52:1 — NON-TEXT ONLY. This is the value indelible.md §2.4 records as
-/// overruled *for text*: in a system whose entire claim is that a struck row
-/// stays legible forever, 3.52:1 is a contradiction of the thesis rather than an
-/// accessibility miss. It survives demoted to a rule; nInk58 carries struck text.
-const Color nInk44 = Color(0xFF6B675F); //  3.52:1
+const Color nGreen70 = Color(0xFF7DD3A0); // 10.85:1
+const Color nAmber70 = Color(0xFFFFD54F); // 13.80:1
+const Color nSalmon80 = Color(0xFFFFB4AB); // 11.47:1
 
-const Color nMadder46 = Color(0xFFB94A40); //  3.88:1 — NON-TEXT ONLY
-const Color nMadder57 = Color(0xFFD4685C); //  5.59:1
-
-// ---- red-shift ramp (base rSurface02) --------------------------------------
-// indelible.md §2.6's eleven values, in the same order as the night ramp: five
-// surfaces, three inks, one rule, two marks. The override exists because a red
-// head torch is the one light a shepherd already carries.
-
-const Color rSurface02 = Color(0xFF080605); // L*  1.7
-const Color rSurface03 = Color(0xFF0F0B09); // L*  3.3
-const Color rSurface04 = Color(0xFF120D0A); // L*  4.0
-const Color rSurface07 = Color(0xFF1A1310); // L*  6.5
-const Color rSurface11 = Color(0xFF261C17); // L* 11.3
-
-const Color rInk74 = Color(0xFFE4A896); //  9.96:1 on rSurface02
-const Color rInk60 = Color(0xFFB8846F); //  6.32:1
-const Color rInk54 = Color(0xFFA4756A); //  5.13:1
-const Color rInk45 = Color(0xFF8A6053); //  3.73:1 — NON-TEXT ONLY
-
-const Color rMadder51 = Color(0xFFC9564A); //  4.73:1 — NON-TEXT ONLY
-const Color rSalmon83 = Color(0xFFF2C4AE); // 12.79:1
-
-// ---- amber night-shift ramp (base aSurface00) ------------------------------
-// 06 §3.2 verbatim. There is NO indelible.md table for amber: indelible ships
-// two themes and 06 §4 ships six palettes. That is conflict P6, and R35 freezes
-// the ids and the labels but not the values, so these are 06's to give.
+// ---- amber night-shift ramp (06 §4.3) --------------------------------------
+// Base is pure black: in a night-shift palette, minimising TOTAL EMISSION is the
+// point and there is no complex content to separate by tint. Separation comes
+// from the outline instead. In a one-hue palette URGENCY IS LUMINANCE — loss is
+// the brightest token, then attention, then ready.
 
 const Color aSurface00 = Color(0xFF000000);
-const Color aSurface04 = Color(0xFF140D00);
-const Color aSurface08 = Color(0xFF1F1400);
+const Color aSurface04 = Color(0xFF140D00); // 1.09:1 vs base
+const Color aSurface08 = Color(0xFF1F1400); // 1.16:1 vs base
 
-const Color aAmber95 = Color(0xFFFFE0A3); // 16.44:1 on aSurface00
+const Color aAmber95 = Color(0xFFFFE0A3); // 16.44:1
 const Color aAmber85 = Color(0xFFFFC46B); // 13.36:1
 const Color aAmber70 = Color(0xFFFFB000); // 11.46:1
 const Color aAmber55 = Color(0xFFD68F00); //  7.79:1
 const Color aAmber45 = Color(0xFFC98400); //  6.78:1
 const Color aAmber30 = Color(0xFFA66E00); //  4.85:1 — outline / non-text only
 
-// ---- high-contrast additions ------------------------------------------------
+// ---- deep-red night-shift ramp (06 §4.4) -----------------------------------
+// There is deliberately no `rSurface00`: both night-shift palettes are based on
+// pure black, and one value gets one name. deepRed's base IS aSurface00, and
+// the comment is the whole mechanism — a second constant holding #000000 would
+// give the palette an invisible alias that survives every rename.
+//
+// The honest limitation, and it is stated in the app as well as here: a
+// spectrally clean long-wavelength palette has a hard contrast ceiling. Pure
+// #FF0000 on black is only 5.25:1, and pushing toward orange buys contrast at
+// the cost of green energy that bleaches rhodopsin faster. No red palette
+// reaches AAA for body text and stays spectrally clean.
 
-const Color hOutline = Color(0xFF7A7A7A); //  4.89:1 on aSurface00
+const Color rSurface04 = Color(0xFF1A0503); // 1.07:1 vs black
+const Color rSurface08 = Color(0xFF2A0806); // 1.14:1 vs black
+
+const Color rRed75 = Color(0xFFFF9E80); // 10.45:1
+const Color rRed60 = Color(0xFFFF6B4A); //  7.45:1
+const Color rRed50 = Color(0xFFFF4400); //  6.08:1
+
+/// 4.59:1. `textSecondary` AND `textChrome` are deliberately this same value —
+/// nothing dimmer clears AA, and inventing a fourth ink step here would mean
+/// shipping unreadable text (06 §4.4).
+const Color rRed40 = Color(0xFFE62200);
+
+/// 3.80:1 — outline ONLY. It never carries a glyph.
+const Color rRed30 = Color(0xFFCC2200);
+
+// ---- high-contrast additions (06 §4.5) -------------------------------------
+// Each HC variant is the same ramp shifted one step brighter, plus a
+// load-bearing outline: surfaceRaised == surfaceBase, so cards are separated by
+// border rather than tint, because a few percent of luminance disappears under a
+// head torch.
+
+const Color hOutline = Color(0xFF7A7A7A); //  4.89:1 on black
 const Color hGreen = Color(0xFFA8F0C6); // 15.94:1
 const Color hAmber = Color(0xFFFFE08A); // 16.28:1
 const Color hSalmon = Color(0xFFFFC7BD); // 14.16:1
 
-// ---- spacing scale (logical pixels) ----------------------------------------
-// indelible.md §4.1's TWELVE steps, four-based, no half-steps. 06 §3.2 prints
-// six of them; the other six are here rather than typed into a widget in N10,
-// because 06 §1 is explicit that a direction needing a token this system does
-// not have adds the token — it does not add a literal to a widget. The same
-// applies one tier down.
+// ---- spacing scale (logical pixels) — indelible.md §4.1 --------------------
+// TWELVE steps, four-based, no half-steps. 06 §3.2 prints six of them; the other
+// six are here rather than typed into a widget in N10, because 06 §1 is explicit
+// that a direction needing a token this system does not have adds the token — it
+// does not add a literal to a widget. The same applies one tier down.
 
 const double s04 = 4.0;
 const double s08 = 8.0;
@@ -152,9 +191,11 @@ const double tapHero = 88.0; // the five 3am acts ≈ 14.0 mm
 const double gapMin = 16.0;
 const double gapDestructive = 32.0;
 
-// ---- geometry (logical pixels) ----------------------------------------------
-// indelible.md §4.2. Radii are 0 everywhere but the slab, and the slab's 2 is
-// what makes it read as a printed block rather than a card.
+// ---- geometry (logical pixels) — indelible.md §4.2 -------------------------
+// Radii are 0 everywhere but the slab, and the slab's 2 is what makes it read as
+// a printed block rather than a card. Nothing casts a shadow: there is no
+// elevation in this app, which is why 06 §2.3 pins surfaceTint to the base
+// surface and makes the M3 elevation blend a no-op.
 
 const double ruleW = 2.0;
 const double ruleStrikeW = 3.0;

@@ -249,43 +249,52 @@ void main() {
     expect(duplicated, isEmpty, reason: 'one value, one name');
   });
 
-  test('every surface, ink, rule and mark value in indelible.md §2.2, §2.3 and §2.6 '
-      'appears in the file', () {
+  test('every value 06 §4.2 to §4.5 publishes appears in the file', () {
     // A ramp one value short COMPILES, and fails only when a component in N10
-    // reaches for the missing one. Both ramps are eleven values in the same
-    // order: five surfaces, three inks, one rule, two madders.
+    // reaches for the missing one.
+    //
+    // These are 06's ramps rather than indelible.md's, and the reason is
+    // decision #95 — see the header of primitives.dart, and the P6 section of
+    // the PR body. It is asserted here as well as commented there because the
+    // pull toward "restoring" the warmer indelible ramp will be strong, and it
+    // has to fail loudly rather than merely disagree with a comment.
     const List<String> night = <String>[
-      '0A0A0B', '131315', '141416', '1C1C1F', '2A2A2E', //
-      'EDE8DC', 'A8A296', '8F8A7E', '6B675F', 'B94A40', 'D4685C',
+      '0B0D0E', '12161A', '1A2025', '242B31', //
+      '8A9199', 'B7BDC4', 'E8EAED', 'FFFFFF',
+      '7DD3A0', 'FFD54F', 'FFB4AB',
     ];
-    const List<String> redShift = <String>[
-      '080605', '0F0B09', '120D0A', '1A1310', '261C17', //
-      'E4A896', 'B8846F', 'A4756A', '8A6053', 'C9564A', 'F2C4AE',
+    const List<String> amber = <String>[
+      '000000', '140D00', '1F1400', //
+      'FFE0A3', 'FFC46B', 'FFB000', 'D68F00', 'C98400', 'A66E00',
     ];
+    const List<String> deepRed = <String>[
+      '1A0503', '2A0806', 'FF9E80', 'FF6B4A', 'FF4400', 'E62200', 'CC2200', //
+    ];
+    const List<String> highContrast = <String>['7A7A7A', 'A8F0C6', 'FFE08A', 'FFC7BD'];
 
     final Set<String> present = _colourConstants()
         .map(((String, String) c) => c.$2.substring(2)) // drop the FF alpha
         .toSet();
 
-    for (final String hex in <String>[...night, ...redShift]) {
-      expect(present, contains(hex), reason: 'indelible.md publishes #$hex and this file lost it');
+    for (final String hex in <String>[...night, ...amber, ...deepRed, ...highContrast]) {
+      expect(present, contains(hex), reason: '06 §4 publishes #$hex and this file lost it');
     }
-
-    expect(night, hasLength(11));
-    expect(redShift, hasLength(11));
   });
 
-  test('the two values measurement overruled are not restored to a text role', () {
-    // indelible.md §2.4. #6B675F measures 3.52:1 as struck ink and #A63A32
-    // measures 3.08:1 as the madder; both look better than what replaced them,
-    // and rule 4 does not negotiate with taste. #6B675F survives DEMOTED to a
-    // non-text rule, so its presence is correct and only its job is at issue —
-    // which is why this asserts on the token NAME, one tier up from the hex.
+  test('neither value indelible.md §2.4 records as overruled is present', () {
+    // #6B675F measures 3.52:1 as struck ink and #A63A32 measures 3.08:1 as the
+    // madder. Both look better than what replaced them, and rule 4 does not
+    // negotiate with taste.
     //
-    // #A63A32 was overruled outright and appears nowhere.
+    // Under the P6 resolution neither is in the shipped ramp at all, so this
+    // case is weaker than it was when indelible.md supplied the values — it now
+    // guards against someone reintroducing them rather than against a demotion
+    // being undone. It is kept because that reintroduction is exactly what
+    // "restore the prettier value" would look like in a diff.
     final Set<String> hexes = _colourConstants()
         .map(((String, String) c) => c.$2.substring(2))
         .toSet();
     expect(hexes, isNot(contains('A63A32')), reason: 'overruled by indelible.md §2.4 rule 4');
+    expect(hexes, isNot(contains('6B675F')), reason: 'overruled by indelible.md §2.4 rule 4');
   });
 }

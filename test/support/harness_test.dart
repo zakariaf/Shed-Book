@@ -126,24 +126,51 @@ void main() {
     expect(await container.read(databaseProvider.future), same(callersDb));
   });
 
-  test('the container is disposed after the test', () async {
-    // Proves addTearDown is INSIDE the helper. 250 call sites will not each
-    // remember, and a leaked container holds a leaked database, which is a
-    // leaked isolate.
-    final AppDatabase db = testDatabase();
-    final ProviderContainer container = shedContainer(db);
-    container.listen<int>(_disposeWitness, (int? previous, int next) {});
+  group('the harness registers its own tear-downs', () {
+    // BOTH ASSERTIONS LIVE IN A GROUP tearDown, and the reason is mechanical
+    // AND MEASURED. Two orderings are in play:
+    //
+    //   * addTearDown callbacks run LIFO, so one registered inside the test body
+    //     runs BEFORE shedContainer's own dispose and reads 0 every time;
+    //   * a group tearDown runs AFTER every addTearDown callback — probed, not
+    //     assumed.
+    //
+    // The obvious shape, a second test asserting what the first one left
+    // behind, is WRONG HERE AND CI CAUGHT IT: `make test` and the `test` job
+    // both pass --test-randomize-ordering-seed random, so "the previous test"
+    // is not a thing a case may depend on. A group tearDown is the only hook
+    // that is both after the tear-downs and independent of order.
+    int disposals = 0;
+    String? supportDirPath;
 
-    // NO addTearDown ASSERTION HERE, and the reason is mechanical: tear-downs
-    // run LIFO, so one registered now would run BEFORE shedContainer's own
-    // dispose and would read 0 every time. The proof has to be a later case.
-    expect(_disposals, 0);
-  });
+    tearDown(() {
+      expect(disposals, 1, reason: 'shedContainer must register addTearDown(container.dispose)');
+      expect(
+        Directory(supportDirPath!).existsSync(),
+        isFalse,
+        reason: 'freshSupportDir must delete its directory',
+      );
+    });
 
-  test('the previous test disposed its container', () {
-    // The other half, and it has to be a separate case: a tear-down that
-    // asserted its own disposal would run before the container's.
-    expect(_disposals, 1);
+    test('shedContainer disposes its container and freshSupportDir deletes its directory', () {
+      // 250 call sites will not each remember, and a leaked container holds a
+      // leaked database, which is a leaked isolate.
+      final AppDatabase db = testDatabase();
+      final ProviderContainer container = shedContainer(db);
+      container.listen<int>(
+        Provider.autoDispose<int>((Ref ref) {
+          ref.onDispose(() => disposals += 1);
+          return 1;
+        }),
+        (int? previous, int next) {},
+      );
+
+      final Directory dir = freshSupportDir();
+      expect(dir.existsSync(), isTrue);
+
+      supportDirPath = dir.path;
+      expect(disposals, 0);
+    });
   });
 
   test('Device.all is three entries, smallest first', () {
@@ -237,18 +264,6 @@ void main() {
       });
     }
   }
-
-  test('freshSupportDir returns a directory that is gone after the test', () {
-    final Directory dir = freshSupportDir();
-    expect(dir.existsSync(), isTrue);
-
-    _supportDirPath = dir.path;
-  });
-
-  test('the previous test deleted its support directory', () {
-    expect(_supportDirPath, isNotNull);
-    expect(Directory(_supportDirPath!).existsSync(), isFalse);
-  });
 
   test('seedEwe, seedLambing and seedTreatment produce readable rows', () async {
     final AppDatabase db = testDatabase();
@@ -358,15 +373,3 @@ void main() {
     }
   });
 }
-
-/// Set by the freshSupportDir case, read by the one after it.
-String? _supportDirPath;
-
-int _disposals = 0;
-
-/// A leaf whose disposal is the evidence that `shedContainer` registered its own
-/// tear-down.
-final AutoDisposeProvider<int> _disposeWitness = Provider.autoDispose<int>((Ref ref) {
-  ref.onDispose(() => _disposals += 1);
-  return 1;
-});

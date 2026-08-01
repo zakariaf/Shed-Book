@@ -90,6 +90,46 @@ jobs:
             echo "::error::NSAppTransportSecurity must not appear in Info.plist"; exit 1
           fi
 
+  codegen:
+    runs-on: ubuntu-latest
+    needs: gate
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+      - run: flutter pub get
+
+      # Generated files ARE committed, so a clean checkout builds. CI proves they
+      # match their sources. 00-README §7.3 calls this the single most valuable
+      # step in the pipeline after G1: a stale generated file is invisible
+      # locally and lethal on a fresh clone.
+      #
+      # `make gen`, not the raw commands, so this job and a developer's machine
+      # can never diverge about what "regenerate" means. The target does NOT call
+      # `drift_dev make-migrations`: on drift_dev 2.34.5 that wrapper aborts with
+      # "Could not read schema version from the shed_book database", because it
+      # statically analyses `schemaVersion` and CONVENTIONS R14 rules that getter
+      # as a reference to the schemaVersionOverride FIELD rather than to a
+      # constant. The Makefile calls the three commands the wrapper composes and
+      # says so; the artefacts are identical.
+      - name: Regenerate
+        run: make gen
+
+      # MEASURED: build_runner emits database.g.dart at drift's own width and the
+      # project's format pass rewraps it, so a diff taken before formatting is a
+      # false failure every time. Formatting first is what makes this job's
+      # signal real.
+      - name: Format the regenerated output
+        run: dart format .
+
+      - name: Generated code and schema artefacts are fresh
+        run: |
+          git add -A -- lib/ drift_schemas/ test/drift/generated/
+          git diff --cached --exit-code -- lib/ drift_schemas/ test/drift/generated/ || {
+            echo "::error::Generated artefacts are stale. Run 'make gen' and commit."
+            exit 1; }
+
   test:
     runs-on: ubuntu-latest
     needs: gate

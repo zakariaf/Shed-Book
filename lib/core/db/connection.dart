@@ -44,8 +44,89 @@ void configureConnection(CommonDatabase db) {
   db.execute('PRAGMA recursive_triggers = ON;');
 
   assertEngineCapabilities(db);
+  _snapshotBeforeMigration(db);
+}
 
-  // N08-T07 adds _snapshotBeforeMigration(db) on the line below. Do not stub it.
+/// The bound on a pre-migration snapshot.
+///
+/// Named rather than written as `250 * 1024 * 1024` at the one site that uses
+/// it: a magic size is a magic size even when it appears once, and this is the
+/// number somebody will want to change when a shepherd with four seasons of
+/// photographs reports a slow launch. It lives here rather than in
+/// `lib/data/media_limits.dart` with the other caps, because `lib/core/db/` may
+/// not import `lib/data/` (layer rule 2).
+const int kPreMigrationSnapshotMaxBytes = 250 * 1024 * 1024;
+
+/// `VACUUM INTO` a copy of the database **before** a migration runs.
+///
+/// The closest thing to a safety net this product has, in an app whose only
+/// backup is one the user remembered to make.
+///
+/// **It never rethrows.** A failed snapshot must not stop the app opening —
+/// that would turn a full disk into a phone that cannot record a lambing.
+///
+/// **The catch is wider than 04 §2.8's, deliberately.** That section catches
+/// `on SqliteException`, but `createSync` on a full disk throws a
+/// `FileSystemException`, and `lengthSync` on a file that vanished throws too.
+/// Neither is a `SqliteException`, so both would escape `configureConnection` —
+/// and a throw from `setup` takes the app down **at launch**, which is precisely
+/// the failure this function exists to survive. Do not narrow it back.
+///
+/// **Everything here is synchronous**: no `await`, no `path_provider`, no
+/// `Future`. It runs from [configureConnection], which crosses an isolate
+/// boundary and must capture nothing (R12) — so the main file's path comes from
+/// the connection itself.
+void _snapshotBeforeMigration(CommonDatabase db) {
+  try {
+    final int current = db.userVersion;
+    // 0 means a database we are about to CREATE. There is nothing to protect,
+    // and >= means there is no migration about to run.
+    if (current == 0 || current >= kSchemaVersion) {
+      return;
+    }
+
+    final String? mainPath = _mainDatabasePath(db);
+    // Empty for `:memory:`. Nothing to copy, and nowhere to copy it to.
+    if (mainPath == null || mainPath.isEmpty) {
+      return;
+    }
+
+    final File mainFile = File(mainPath);
+    // Bounded, because a snapshot at launch must never cost a minute.
+    if (mainFile.lengthSync() > kPreMigrationSnapshotMaxBytes) {
+      return;
+    }
+
+    // Composed with dart:io rather than `package:path`, which is a TRANSITIVE
+    // dependency here — importing it trips depend_on_referenced_packages under
+    // --fatal-infos, and promoting it to a direct dependency is a
+    // decision-record §5 change rather than something to slip into this commit.
+    // `File.parent` and the platform separator do the same job for a path this
+    // simple.
+    final Directory dir = Directory('${mainFile.parent.path}${Platform.pathSeparator}pre_migration')
+      ..createSync(recursive: true);
+    final File out = File('${dir.path}${Platform.pathSeparator}shed_book-v$current.sqlite');
+    // VACUUM INTO refuses a target that already exists.
+    if (out.existsSync()) {
+      out.deleteSync();
+    }
+
+    db.execute('VACUUM INTO ?;', <Object?>[out.path]);
+  } on Object {
+    // Disk full, a damaged file, a directory that cannot be created. The
+    // diagnostics log records it on the main isolate; nothing is rethrown here.
+    // NEVER rethrow from setup.
+  }
+}
+
+/// The `main` database's file path, read off the connection.
+String? _mainDatabasePath(CommonDatabase db) {
+  for (final Map<String, Object?> row in db.select('PRAGMA database_list;')) {
+    if (row['name'] == 'main') {
+      return row['file'] as String?;
+    }
+  }
+  return null;
 }
 
 /// **An assertion, not a capability probe** (decision #36).

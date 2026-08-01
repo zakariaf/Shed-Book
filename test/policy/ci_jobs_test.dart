@@ -70,15 +70,22 @@ void main() {
     // proved nothing.
     expect(workflow, isNot(contains('continue-on-error')));
 
-    // The other two jobs are deliberately absent — codegen lands in N08 and
-    // android in N31, because neither has anything to run against yet.
-    for (final String absent in <String>['  codegen:', '  android:']) {
-      expect(
-        lines.any((String l) => l == absent),
-        isFalse,
-        reason: '$absent is red for reasons no task in N01 can fix',
-      );
-    }
+    // codegen ARRIVED with N08-T06, in the commit that gave it something to run
+    // against. Inverted rather than deleted: the pair is what stops it being
+    // removed in a tidy-up with a green suite.
+    expect(
+      lines.any((String l) => l == '  codegen:'),
+      isTrue,
+      reason: 'codegen lands with N08-T06',
+    );
+
+    // android is still deliberately absent — it lands in N31, because there is
+    // no platform artefact to build yet.
+    expect(
+      lines.any((String l) => l == '  android:'),
+      isFalse,
+      reason: '  android: is red for reasons no task before N31 can fix',
+    );
   });
 
   test('the test job installs libsqlite3-dev before it runs any test', () {

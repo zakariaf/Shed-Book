@@ -24,9 +24,24 @@ BROAD_EXCLUDE ?= golden || uk-zone || calendar
 
 .PHONY: gen check validate test goldens goldens-update perf integration all
 
+# `drift_dev make-migrations` is NOT used, and the reason is measured rather than
+# stylistic. On drift_dev 2.34.5 it aborts with "Could not read schema version
+# from the shed_book database": it statically analyses `schemaVersion`, and
+# CONVENTIONS R14 rules that getter as a reference to the schemaVersionOverride
+# FIELD rather than to a constant. R14 is a numbered ruling, so the three
+# commands the wrapper composes are called directly instead — they take the same
+# paths from build.yaml and write byte-identical artefacts. If R14 is ever
+# amended, this collapses back to one line.
+# Read from lib/core/db/database.dart so the version exists in exactly one
+# place — decision-record §5's rule applied to a Makefile.
+SCHEMA_VERSION := $(shell sed -n 's/^const int kSchemaVersion = \([0-9]*\);/\1/p' lib/core/db/database.dart)
+
 gen:                      ## codegen + migration artefacts. The ONLY way generated code changes
 	$(DART) run build_runner build --delete-conflicting-outputs
-	$(DART) run drift_dev make-migrations
+	$(FLUTTER) gen-l10n
+	$(DART) run drift_dev schema dump lib/core/db/database.dart drift_schemas/drift_schema_v$(SCHEMA_VERSION).json
+	$(DART) run drift_dev schema steps drift_schemas/ lib/core/db/schema_versions.dart
+	$(DART) run drift_dev schema generate --data-classes --companions drift_schemas/ test/drift/generated/
 
 # `$(DART) tool/check_policy.dart`, never `$(DART) run …`. Measured 2026-08-01:
 # the run subcommand does an implicit pub get and runs the package's build hooks,

@@ -24,7 +24,7 @@ by a parser, exactly as a CSV carries an ISO-8601 column beside its human one.
 |---|---|---|---|---|---|---|
 | `field_night` | One full night observed in a real lambing shed | | before N13 | | | Quick Entry is designed from forum posts, and every tap count in `07-screens.md` stays a desk estimate |
 | `twelve_testers` | Twelve shepherds recruited and opted in to the Play closed test | | before N32 | | | Play's 14-day clock cannot start; fourteen days of dead calendar at the end of the project |
-| `ziplock_capacitance` | Taps registered through a freezer bag, per target device | | before N13 | | | Decisions #100–#102 change and the interaction model is re-cut around volume-button shortcuts |
+| `ziplock_capacitance` | Taps registered through a freezer bag, per target device, under all five conditions below | | before N13 | | | Decision **#100** (the 60×60 pt floor), decision **#101** (the gesture ban) and decision **#102** (volume-button shortcuts) are struck and re-decided, and the interaction model is re-cut around volume-button shortcuts — which invalidates N13 onward |
 | `developer_accounts` | Both store accounts exist; the post-13-Nov-2023 personal-account question answered | | before N32 | | | No app record, no closed track, no TestFlight |
 | `apple_sbp_enrolment` | Apple Small Business Program enrolment submitted | | before the first sale | | | 30% instead of 15% on everything sold in the gap, for nothing |
 | `price_and_territories` | The exact price and the territory list, read in Play Console | | before the first submission | | | A price set from a secondary source, wrong for three years |
@@ -77,6 +77,52 @@ Twelve is the current floor, not a remembered one: it was reduced from twenty on
 and organisation accounts and personal accounts created before 13 November 2023 are exempt entirely.
 Whether this project is exempt is `developer_accounts`' question — recruit anyway, because the field
 night needs the same people for a different reason.
+
+## `ziplock_capacitance` — the measurement, so two people get the same answer
+
+N00-T08's. **The consequence is written here before the result is known**, deliberately, so that the
+result cannot be argued with afterwards. The critique's complaint about the old plan was not that the
+test was missing; it was that it had *"no owner, no epic and no date"* and its consequence lived in
+prose.
+
+A standard 1 L LDPE freezer bag — the kind a shepherd already has — sealed over the phone. Test
+**every target device** at the OS version it will ship to, and record each condition separately:
+
+| # | Condition | Why it is on the list |
+|---|---|---|
+| 1 | A single tap on a 60×60 pt target, dry bag, bare hand | The baseline decision #100 assumes |
+| 2 | The same, with the bag **wet on the outside** | This is the shed condition, and it is the one that fails: water on a capacitive surface produces **phantom touches**, not missed ones |
+| 3 | The same, with a wet or gloved hand inside | Spec §5's actual user. Parhi et al.'s 9.2/9.6 mm optimum is for a *bare* thumb in ideal conditions |
+| 4 | Two taps in quick succession on the same target | The double-tap defence (#22) exists because cold, wet fingers on capacitive glass double-fire. Confirm the hardware double-fires rather than misses |
+| 5 | The same tap with the vendor's glove mode / raised touch sensitivity **off** | It is off by default on the Androids that have it. A result that only holds with it on is a fail for a stock device |
+
+**Pass means: every condition registers a tap on the intended 60×60 pt target, and no condition
+produces a phantom touch elsewhere.** Anything else is a fail, recorded per device **with the
+condition that failed**. *"Works dry, phantom touches wet"* is the most likely result and it is a
+genuine answer — it points at hit slop and target size rather than at volume buttons. Write the
+condition, not a verdict.
+
+Three things that change the answer and must be recorded with it:
+
+- **The bag is not the failure mode; the water on it is.** Capacitive digitisers couple happily
+  through a thin dielectric — 50 µm of LDPE is nothing. What breaks them is a conductive film across
+  the surface, which is exactly what a shed produces. A test run on a dry bag at a kitchen table
+  passes and proves nothing.
+- **Record the OS version, not just the model.** Touch rejection and moisture heuristics are
+  firmware, and the same handset behaves differently across a major OS release.
+- **Do not test with a screen protector unless the target ships with one** — and if you do, say so in
+  the outcome cell. It is another dielectric layer.
+
+**The bag is a user workaround, never a product feature.** The app cannot detect it, must not detect
+it, and no code path may branch on it. What the measurement changes is a *decision*, not a runtime.
+The measurement uses a **single tap only**, because that is the only gesture the product has — do not
+test a swipe through the bag; there are no swipes to save.
+
+**And volume-button shortcuts are not a free fallback.** On Android, capturing volume keys outside
+your own foreground activity needs a media session or an accessibility service; on iOS it is bounded
+by App Store Guideline 2.5.9. Either route is a new permission or a new entitlement — and a new
+permission is a change to the set **G0 records at N02**. If this fails, N02's answer changes shape
+too.
 
 ## What this file does not do
 

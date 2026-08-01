@@ -241,6 +241,38 @@ void main() {
     );
   });
 
+  // ───────────────────────────────────────────────────────────────────────
+  // N00-T08 — the ziplock-bag capacitance test.
+  // ───────────────────────────────────────────────────────────────────────
+
+  test('the ziplock row carries a date, a device and an outcome', () {
+    expect(row('ziplock_capacitance').isComplete, isTrue,
+        reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}');
+  });
+
+  test('the ziplock outcome names a device and an OS version', () {
+    // "Passed" alone does not pass. Touch rejection and moisture heuristics
+    // are firmware, and the same handset behaves differently across a major
+    // OS release.
+    final String outcome = row('ziplock_capacitance').outcome;
+    expect(isRealOutcome(outcome), isTrue,
+        reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}');
+    expect(RegExp(r'\d+(\.\d+)?').hasMatch(outcome), isTrue,
+        reason: 'the outcome carries no version number, so it records a model '
+            'and not a device');
+  });
+
+  test('the ziplock row states its consequence', () {
+    // By number, so a future reader cannot mistake the scope. This case can
+    // pass before the measurement happens — the consequence is written BEFORE
+    // the result is known, so the result cannot be argued with afterwards.
+    final String consequence = row('ziplock_capacitance').consequence;
+    for (final String decision in <String>['#100', '#101', '#102']) {
+      expect(consequence, contains(decision),
+          reason: 'the consequence does not name decision $decision');
+    }
+  });
+
   test('the test reads no clock', () {
     // A policy test on a policy test, and it earns its place: it is what stops
     // somebody adding a recency check in six months and making the suite fail

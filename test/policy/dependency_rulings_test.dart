@@ -3,138 +3,25 @@
 // a §7.1 item tagged `dependency-shaped` with no ruling beneath it is a
 // question somebody is about to answer by accident.
 //
-// The parser here is deliberately private. N00-T04 is its second consumer and
-// lifts it to `test/support/decision_record.dart` in that task's Refactor step.
+// The parser lived privately in this file until N00-T04 became its second
+// consumer; it is now `test/support/decision_record.dart` and this file is one
+// of its two callers.
 library;
 
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-const String _decisionRecord = 'docs/research/00-tech-decisions.md';
-
-/// The shape tag every surviving §7.1 item carries. A question is answered by
-/// whoever owns the artefact it expires into: the pubspec, the schema freeze,
-/// somebody else's diary, or the product.
-const List<String> shapeTags = <String>[
-  'dependency-shaped',
-  'schema-shaped',
-  'calendar-shaped',
-  'product-shaped',
-];
+import '../support/decision_record.dart';
 
 /// The placeholder outcomes that do not count as a reason.
-const List<String> _placeholderReasons = <String>['TBD', 'TODO', 'pending', '?'];
-
-/// One numbered item of decision-record §7.1.
-class OpenQuestion {
-  const OpenQuestion({
-    required this.number,
-    required this.shapes,
-    required this.isStruck,
-    required this.ruledDate,
-    required this.ruledReason,
-    required this.text,
-  });
-
-  final int number;
-  final List<String> shapes;
-  final bool isStruck;
-  final String? ruledDate;
-  final String? ruledReason;
-  final String text;
-
-  bool get isRuled => ruledDate != null;
-}
-
-/// Everything between a heading and the next heading or horizontal rule.
-String _section(String document, String heading) {
-  final List<String> lines = document.split('\n');
-  final int start = lines.indexWhere((String l) => l.trim() == heading);
-  if (start < 0) {
-    fail('$_decisionRecord has no heading "$heading"');
-  }
-  final int end = lines.indexWhere(
-    (String l) => l.startsWith('## ') || l.trim() == '---',
-    start + 1,
-  );
-  return lines.sublist(start + 1, end < 0 ? lines.length : end).join('\n');
-}
-
-final RegExp _itemStart = RegExp(r'^(\d+)\.\s');
-// multiLine, because a `RULED` line is not always the last line of its item —
-// the last item in §7.1 is followed by a blank line before the horizontal rule.
-final RegExp _ruled =
-    RegExp(r'RULED (\d{4}-\d{2}-\d{2}) — (.+?)\**\s*$', multiLine: true);
-
-/// Parses §7.1's numbered prose list into items. §7.1 is prose and not a table,
-/// so the shape tag and the `RULED` line are what make it machine-readable at
-/// all — that is why N00-T02 introduces them rather than tidying them.
-List<OpenQuestion> ruledRows(String section) {
-  final List<OpenQuestion> items = <OpenQuestion>[];
-  final List<String> lines = section.split('\n');
-
-  int? number;
-  List<String> body = <String>[];
-
-  void flush() {
-    if (number == null) {
-      return;
-    }
-    final String text = body.join('\n');
-    final RegExpMatch? ruled = _ruled.firstMatch(text);
-    items.add(OpenQuestion(
-      number: number!,
-      shapes: shapeTags.where((String t) => text.contains('`$t`')).toList(),
-      isStruck: text.contains('~~'),
-      ruledDate: ruled?.group(1),
-      ruledReason: ruled?.group(2)?.trim(),
-      text: text,
-    ));
-  }
-
-  for (final String line in lines) {
-    final RegExpMatch? start = _itemStart.firstMatch(line);
-    if (start != null) {
-      flush();
-      number = int.parse(start.group(1)!);
-      body = <String>[line];
-    } else if (number != null) {
-      body.add(line);
-    }
-  }
-  flush();
-  return items;
-}
-
-/// The question numbers §7.0's SETTLED table claims. Its `#` cell carries forms
-/// like `5 + 6`, so every integer in the cell counts.
-Set<int> settledNumbers(String section) {
-  final Set<int> numbers = <int>{};
-  for (final String line in section.split('\n')) {
-    if (!line.startsWith('|') || line.contains('---')) {
-      continue;
-    }
-    final List<String> cells = line.split('|');
-    if (cells.length < 2) {
-      continue;
-    }
-    final String cell = cells[1].trim();
-    if (cell == '#') {
-      continue;
-    }
-    numbers.addAll(
-      RegExp(r'\d+').allMatches(cell).map((Match m) => int.parse(m.group(0)!)),
-    );
-  }
-  return numbers;
-}
+const List<String> placeholderReasons = <String>['TBD', 'TODO', 'pending', '?'];
 
 void main() {
-  final String record = File(_decisionRecord).readAsStringSync();
-  final String stillOpen = _section(record, '### 7.1 Still open');
-  final String settled = _section(record, '### 7.0 SETTLED BY THE OWNER');
-  final List<OpenQuestion> questions = ruledRows(stillOpen);
+  final String record = readDecisionRecord();
+  final String stillOpen = section(record, '### 7.1 Still open');
+  final String settled = section(record, '### 7.0 SETTLED BY THE OWNER');
+  final List<OpenQuestion> questions = parseOpenQuestions(stillOpen);
 
   test('no decision-record row marked dependency-shaped is still open', () {
     expect(questions, isNotEmpty, reason: '§7.1 parsed to nothing');
@@ -171,7 +58,7 @@ void main() {
       expect(q.ruledReason, isNotNull, reason: 'item ${q.number}');
       expect(q.ruledReason!.length, greaterThan(20),
           reason: 'item ${q.number}: a ruling without a reason gets reopened');
-      for (final String placeholder in _placeholderReasons) {
+      for (final String placeholder in placeholderReasons) {
         expect(q.ruledReason, isNot(equals(placeholder)),
             reason: 'item ${q.number}');
       }
@@ -197,7 +84,7 @@ void main() {
   });
 
   test('§7.0 and §7.1 agree', () {
-    final Set<int> settledIn70 = settledNumbers(settled);
+    final Set<int> settledIn70 = parseSettledNumbers(settled);
     for (final OpenQuestion q in questions.where((OpenQuestion q) => q.isRuled)) {
       expect(settledIn70, contains(q.number),
           reason: 'item ${q.number} is struck in §7.1 with no SETTLED row '

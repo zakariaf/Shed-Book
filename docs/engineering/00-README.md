@@ -172,21 +172,21 @@ These four are **closed**. Anything in the research notes that contradicts them 
 2. **Ziplock-bag capacitance.** Does the target hardware register taps through a freezer bag? A hardware test, not a desk decision. If it fails, decisions #100, #101 and #102 all change and the interaction model is rethought around volume-button shortcuts.
 4. **Exact price and territories.** Enrol in the Apple Small Business Program **before the first sale**; confirm Google's post-30-June-2026 one-time-product rate inside Play Console.
 9. Does the app replace the paper record entirely, or sit alongside it for season one?
-10. **Is the target market ever a dairy flock?** If yes, `WithdrawalTarget.milk` must be in the **v1 schema** even if not in the v1 UI. Shipping the sealed type now is free; retrofitting is a migration.
-11. **Where does temperature appear at all?** Spec §7.10 has a °C/°F setting and §10's data model has no temperature field. Drop the setting or add the column — **before schema v1**.
+10. ~~**Is the target market ever a dairy flock?**~~ **Ruled 2026-08-01: ship `WithdrawalTarget.milk` in the v1 schema.** The v1 UI may never write one. `treatment_withdrawals` already carries `CHECK (target IN ('meat','milk'))`, so it costs nothing today and a migration later.
+11. ~~**Where does temperature appear at all?**~~ **Ruled 2026-08-01: nowhere — drop the setting.** No v1 table stores a temperature; `app_settings.temperature_unit`, the Settings °C/°F row and `temperatureUnitProvider` do not exist. `MilliCelsius` still ships.
 12. Lamb-scale resolution and the plausible weight band (0.1 kg? 0.05 kg? 50 g?).
-13. **Does a lamb kept as a breeding ewe become a `Ewe` row?** A v1 schema decision with v3 consequences (`Lambs.became_ewe`).
+13. ~~**Does a lamb kept as a breeding ewe become a `Ewe` row?**~~ **Ruled 2026-08-01: yes.** `lambs.became_ewe`, a nullable FK to `ewes(id)` with `onDelete: setNull` and a hand-written index. It is what makes *"her dam was 412"* answerable in season three.
 14. **Does the developer account exist, and is it a personal account created after 13 Nov 2023?** If yes, Play's **12-tester / 14-day closed test** is on the critical path and must be scheduled *now*. Recruiting twelve shepherds doubles as the answer to item 1.
-15. Lambing ease: the spec's 5 points or SRUC's 6? Recommendation: stay at 5. Decide before any data exists.
+15. ~~Lambing ease: the spec's 5 points or SRUC's 6?~~ **Ruled 2026-08-01: five**, with point 5 documented as covering elective caesarean. `lambings.ease` keeps `BETWEEN 1 AND 5` and is deliberately not a vocabulary foreign key, so widening it stays a migration.
 16. ~~Must the PDF print from *inside* the app?~~ **Ruled 2026-08-01: no.** `printing` stays rejected, delivery stays share sheet → the OS Print action, and G3's `PdfGoogleFonts` / `networkImage` greps stay blocking (decision-record §7.0 row 16).
 17. Does the free tier cap reminders too? 15 ewes fits inside the 56-slot iOS budget; 400 does not.
 18. ~~Voice note cap: 60 s or 120 s?~~ **Ruled 2026-08-01: 60 s**, the recoverable direction — raising a cap orphans nothing, lowering one makes existing recordings unreproducible (decision-record §7.0 row 18).
 
-Items **3, 5, 6, 7 and 8** are settled in §5.1 and are struck from the open list. Items **16 and 18** were the two that expired when `pubspec.yaml` closed and were ruled on 2026-08-01, before it did. **Eleven remain.**
+Items **3, 5, 6, 7 and 8** are settled in §5.1 and are struck from the open list. Items **16 and 18** were the two that expired when `pubspec.yaml` closed and were ruled on 2026-08-01, before it did. Items **10, 11, 13 and 15** were the four that expire at the schema freeze and were ruled the same day, five epics before it. **Seven remain: 1, 2, 4, 9, 12, 14 and 17 — four of them bookings rather than decisions.**
 
 Four more, surfaced by `CONVENTIONS.md` §7 and deliberately not closed by a naming authority: whether the retention story needs a **ewe status-history table** (R41 — a schema addition, irreversible after the first snapshot, needs the owner); the cost of adding the provenance quad to four tables (R37); the field-night list above; and whether `HapticFeedback.successNotification()` exists on 3.44.8 (an SDK fact, not a ruling).
 
-**Items 10, 11 and 13 are schema-shaped and therefore expire at the first snapshot.** Answer them, or accept a migration.
+**Items 10, 11, 13 and 15 were schema-shaped and would have expired at the first snapshot.** They did not expire — they were answered on 2026-08-01, in N00-T04, five epics before the freeze at N07-T08. Nothing left in this list is schema-shaped.
 
 ---
 

@@ -196,6 +196,8 @@ shed_book/
 │   ├── support/                      # harness.dart + the seven hand-written fakes + seeds.dart
 │   │                                 # · reads.dart · flock_generator.dart
 │   │                                 # · tolerant_comparator.dart   (12 §5.3)
+│   │                                 # · decision_record.dart — §7's parser, shared by the
+│   │                                 #   dependency and schema ruling anchors (N00-T04)
 │   └── fixtures/                     # flock_400_3seasons.json · flock_15_at_cap.json
 └── integration_test/                 # four journeys, nightly, non-blocking  (R57)
 ```
@@ -1615,7 +1617,7 @@ The "no verbatim third-party copy" CI check scans **both** `assets/content/` and
 **Ruling.** `unitsProvider : Provider<WeightUnit>` (new enum
 `lib/domain/units/weight_unit.dart`, keys `kg`/`lb`, matching `app_settings.weight_unit`'s CHECK) and
 `terminologyProvider : Provider<Terminology>` (05's type). Both derive from `settingsProvider`.
-A `temperatureUnitProvider` ships only if a temperature column ships (open question 11).
+There is **no** `temperatureUnitProvider`. No temperature column ships — ruled 2026-08-01, R76.
 **Files:** 02 (§5.1).
 
 ### R69 — The free-tier types
@@ -1688,6 +1690,82 @@ seam, not a platform one: `08-platform-integration.md` documents six and does no
 
 ---
 
+### R75 — `WithdrawalTarget` keeps `milk` in the v1 schema
+
+Decision-record §7.1 question 10 asked whether the target market is ever a dairy flock. §2.7 and
+`03 §5.8` were written for two targets while the question was open, so the *name* was never in doubt —
+only whether the member survived to the freeze.
+
+**Ruling** (decision-record §7.0 row 10, 2026-08-01). `enum WithdrawalTarget { meat('meat'),
+milk('milk') }` keeps both members. `treatment_withdrawals.target` keeps
+`CHECK (target IN ('meat','milk'))` and the `{treatment, target}` unique key, so 0..n rows per
+treatment express a second target at no cost. **`WithdrawalMilkings` does not exist in v1** and
+nothing converts milkings to days. Ruling the schema does not add a screen: `09 §10` row 12 already
+had the four `milk_*` columns shipping in `treatments.csv` regardless, and the v1 UI may never write
+one — do not let the ruling grow a Treatments field.
+**Files:** none outstanding — §2.7 and §2.9 already spell both members.
+
+---
+
+### R76 — there is no `temperature_unit` column and no `temperatureUnitProvider`
+
+§3 made `temperatureUnitProvider` conditional on a temperature column shipping. It does not ship.
+
+**Ruling** (decision-record §7.0 row 11, 2026-08-01). **No v1 table stores a temperature.**
+`app_settings.temperature_unit`, its `CHECK (temperature_unit IN ('c','f'))`, the Settings °C/°F row
+and `temperatureUnitProvider` do not exist. `MilliCelsius` **still ships** and is not deleted —
+`05 §5.2`'s measured reason for it (0.1 °C silently rewrites 89 of 201 °F entries) is independent of
+whether a v1 column uses it. This was the only window in which dropping the column was free:
+migrations are forward-only and never destructive (#37), so before the first snapshot it can simply
+never exist, and after it, it ships forever unread.
+**Files:** `CONVENTIONS.md` §3 (the provider line), `03 §5.12` (`AppSettings` and its
+`customConstraints`), `05 §5.2`, `07-screens.md`'s Settings brief.
+
+---
+
+### R77 — `lambs.became_ewe` is in the v1 schema
+
+Decision-record §7.1 question 13 asked whether a lamb kept as a breeding ewe becomes a `Ewe` row.
+`03 §6` point 5 was written against the answer *no* and said so in as many words.
+
+**Ruling** (decision-record §7.0 row 13, 2026-08-01). **Yes.** `lambs.became_ewe` is
+`integer().nullable().references(Ewes, #id, onDelete: KeyAction.setNull)()`, hand-indexed as
+`idx_lamb_became_ewe` because SQLite creates no child-key index automatically (#31). `setNull` and
+not `cascade`: deleting the ewe row must not delete the lamb she was, because the lamb is a record of
+a birth that happened. The Dart spelling is `becameEwe`; the column is `became_ewe` per §4.6.
+
+The cross-table tag rule at `03 §6` point 5 is amended rather than deleted. Its old reason — *"v1 has
+no lamb→ewe promotion"* — is now false; the surviving reason is that promotion writes a `ewes` row
+through the same create-on-the-fly path every other ewe uses, so its tag meets the partial unique
+index on active ewes exactly like any other. **No cross-table trigger is added**, which is `03 §6`'s
+own standing instruction and is now permanent rather than provisional.
+**Files:** `03 §5.5` (the `Lambs` table and its index block), `03 §6` point 5, `07-screens.md`'s ewe
+card and lamb card briefs.
+
+---
+
+### R78 — the lambing-ease scale is 1..5, stated once
+
+Decision-record §7.1 question 15 offered the spec's five points against SRUC's six. R44 had already
+frozen the *type*; this ruling freezes the *bound*.
+
+**Ruling** (decision-record §7.0 row 15, 2026-08-01). **Five**, with point 5 documented as covering
+elective caesarean. `extension type const LambingEase(int code)` validates 1..5 (R44);
+`lambings.ease` keeps `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; the labels stay `vocab_terms`
+rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5`;
+`ShedChoiceRow`'s *ease 1–5 only* contract stands.
+
+`lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a
+migration somebody has to think about, and that friction is the feature. **A blank ease is not
+"unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the
+assisted rate and reports coverage; no ruling may make the column non-nullable or give it a default,
+which would convert a §12.4 violation into schema. `test/policy/schema_shaped_rulings_test.dart`
+asserts the bound is spelled `5` everywhere it appears, because five spellings of one number is how
+a scale widens by accident.
+**Files:** none outstanding — §2.9, `03 §5.4`, `05 §6.7` and `09 §3.1` already spell it 1..5.
+
+---
+
 ## §7 What this file deliberately does not settle
 
 Four things surfaced during this review that are **not** naming questions and must not be closed by a
@@ -1699,10 +1777,13 @@ naming authority. They are listed so nobody mistakes silence for agreement.
    ruling is that it must land before the first snapshot; whether all four tables get an *edit verb*
    in v1 is a screens decision, and 07's "no quad, no edit verb" rule already covers the interim.
 3. **The open questions carried by every document** — the field night, the ziplock-bag capacitance
-   test, the exact price, the temperature field, the milk withdrawal UI, lambing ease 5 vs 6. None is
-   a name; none is settled here. The voice-note cap and in-app printing were on this list and are
-   not any more: both were ruled on 2026-08-01, before `pubspec.yaml` closed (decision-record §7.0
-   rows 16 and 18).
+   test, the exact price. None is a name; none is settled here, and all three are bookings rather
+   than decisions (`docs/calendar.md`). Five items that were on this list are not any more, and none
+   of them was closed by this file acting as a naming authority — each was an owner ruling recorded
+   in decision-record §7.0 and then given a number here: the voice-note cap and in-app printing on
+   2026-08-01 before `pubspec.yaml` closed (§7.0 rows 16 and 18, no ruling number — neither is a
+   name), and the temperature field, the milk withdrawal target and lambing ease 5 vs 6 the same day,
+   before the schema freeze (**R75**, **R76**, **R78**).
 4. **Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8** (07 §22 item 7). That
    is an SDK fact, not a naming ruling. 06 owns it; if the member does not exist, the *name* in this
    file changes with it and every other ruling stands.

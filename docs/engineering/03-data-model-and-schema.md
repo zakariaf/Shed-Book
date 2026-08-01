@@ -369,7 +369,9 @@ The two wrapper types are `Grams` (`lib/domain/units/grams.dart`) and `MilliCels
 
 Measured, and the reason this is not a taste question: storing mass at 0.1 kg resolution silently rewrites **132 of 241** lb entries; storing temperature at 0.1 °C rewrites **89 of 201** °F entries. Both are spec §12.4 violations produced purely by a storage choice, invisible in code review, in over half of possible entries. Conversion happens at the display edge only; the edit form is seeded from canonical and parses the *typed text* back to canonical.
 
-> **Open (decision-record §7.1 #11): where does temperature appear at all?** Spec §7.10 has a °C/°F setting but §10's data model has no temperature field. **No v1 table stores a temperature.** If the owner rules that lamb body temperature ships, it lands as `temp_mc INTEGER NULL` on `care_events` (the `warmed` kind is its obvious home) plus a `CHECK (temp_mc IS NULL OR temp_mc BETWEEN 25000 AND 45000)` unit-slip guard. Until then, the `temperature_unit` setting is vestigial and doc [`07-screens.md`](07-screens.md) must either justify it or drop it — an unused setting is a 3am tax.
+> **Ruled 2026-08-01 (decision-record §7.0 row 11): temperature appears nowhere, and the setting is dropped.** **No v1 table stores a temperature**, and `app_settings.temperature_unit` does not exist either — nor its `CHECK (temperature_unit IN ('c','f'))`, nor the Settings °C/°F row, nor `temperatureUnitProvider`. An unused setting is a 3am tax, and this was the only window in which removing the column was free: migrations are forward-only and never destructive (#37), so before the first snapshot the column can simply never exist, and after it, it ships forever unread.
+>
+> `MilliCelsius` **still ships** and is not deleted (`05 §5.2`): the measured reason it exists — storing temperature at 0.1 °C silently rewrites 89 of 201 °F entries — is independent of whether a v1 column uses it. If a future version rules that lamb body temperature ships, it lands as `temp_mc INTEGER NULL` on `care_events` (the `warmed` kind is its obvious home) plus a `CHECK (temp_mc IS NULL OR temp_mc BETWEEN 25000 AND 45000)` unit-slip guard, and `temperature_unit` comes back with it — as an additive migration, which is what forward-only allows.
 
 ---
 
@@ -595,6 +597,10 @@ Both numbers are preserved verbatim. There is no `warnings` column anywhere in t
 @TableIndex(name: 'idx_lamb_birthdam', columns: {#birthDam})
 @TableIndex(name: 'idx_lamb_tagdigits', columns: {#tagDigits})
 @TableIndex(name: 'idx_lamb_deathcause', columns: {#deathCause})
+// Ruled 2026-08-01 (§7.0 row 13). SQLite creates no child-key index
+// automatically (#31), and the ewe card reads this the other way round —
+// "which lamb was she?" — on every retained ewe.
+@TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})
 @TableIndex.sql(
   "CREATE UNIQUE INDEX idx_lamb_tag_alive ON lambs (tag) "
   "WHERE tag IS NOT NULL AND status = 'alive'",
@@ -627,6 +633,15 @@ class Lambs extends Table with Identified {
   late final petLamb = boolean().withDefault(const Constant(false))();
   late final bottleFeeds = integer().withDefault(const Constant(0))();
   late final notes = text().nullable()();
+
+  /// The retained lamb, promoted to the breeding flock. Ruled 2026-08-01
+  /// (decision-record §7.0 row 13). NULL for every lamb that was not kept,
+  /// which is nearly all of them. `setNull` and not `cascade`: deleting the
+  /// ewe row must not delete the lamb she was, because the lamb is a record of
+  /// a birth that happened. Hand-indexed below — SQLite creates no child-key
+  /// index automatically (#31).
+  late final becameEwe =
+      integer().nullable().references(Ewes, #id, onDelete: KeyAction.setNull)();
 
   @override
   List<String> get customConstraints => [
@@ -1172,7 +1187,11 @@ class AppSettings extends Table {
   /// `enum WeightUnit { kg('kg'), lb('lb') }` in
   /// `lib/domain/units/weight_unit.dart`.
   late final weightUnit = text().withDefault(const Constant('kg'))();
-  late final temperatureUnit = text().withDefault(const Constant('c'))();
+  // No temperature_unit. Ruled 2026-08-01 (decision-record §7.0 row 11): no v1
+  // table stores a temperature, so the setting is a 3am tax on a screen that
+  // has to stay small. MilliCelsius still ships; the column does not. If a
+  // temperature column ever lands, this column comes back with it as an
+  // additive migration, which is what forward-only allows.
   /// Stored keys are byte-identical to `ShedPaletteId`'s keys (R35):
   /// `night` · `amber` · `red`. There is no `dark` key — the palette that
   /// used to be called that is `night`, and the enum and the column must
@@ -1223,7 +1242,6 @@ class AppSettings extends Table {
   List<String> get customConstraints => [
         'CHECK (id = 1)',
         "CHECK (weight_unit IN ('kg','lb'))",
-        "CHECK (temperature_unit IN ('c','f'))",
         // No 'light'. Spec §5: dark is the default, not an option.
         "CHECK (palette IN ('night','amber','red'))",
         "CHECK (percentage_definition IN ("
@@ -1355,7 +1373,7 @@ Follow it through:
 
    It is a link, never a merge offer. The two animals are two animals.
 4. **Culling is what releases a tag.** `UPDATE ewes SET status = 'culled'` drops the row out of the partial index in the same statement. Nothing else needs to happen.
-5. **Cross-table collisions are deliberately not enforced.** A lamb tagged `412` and an active ewe tagged `412` can coexist, because they are different tables and v1 has no lamb→ewe promotion. This is tied to decision-record §7.1 open question 13 ("does a retained lamb become a `Ewe` row?"). Do not add a cross-table trigger to paper over it; if question 13 is answered yes, the answer is a `lambs.became_ewe` FK and a migration, and the uniqueness rule is revisited then.
+5. **Cross-table collisions are deliberately not enforced, and that survives lamb→ewe promotion.** A lamb tagged `412` and an active ewe tagged `412` can coexist, because they are different tables. Decision-record §7.0 row 13 ruled on 2026-08-01 that a retained lamb **does** become a `Ewe` row, via `lambs.became_ewe`, so the old wording — *"v1 has no lamb→ewe promotion"* — is no longer the reason. The reason now is that **promotion writes a `ewes` row through the same create-on-the-fly path every other ewe uses**, so the tag it takes is checked against the partial unique index on active ewes exactly like any other, and the lamb row keeps the tag it was born with because it is a record of a birth that happened. The two rows are two animals with one `became_ewe` link between them, which is precisely what point 3's link-never-merge rule already describes. **Do not add a cross-table trigger to paper over it** — that instruction is unchanged and is now permanent rather than provisional.
 
 **The test that pins the behaviour** — `test/data/tag_uniqueness_test.dart`:
 
@@ -1838,7 +1856,7 @@ Two constraints on the writing itself, which are not this document's deliverable
 1. **`lambing_ease` descriptions are paraphrased, not adopted.** The SRUC technical note cited in the research is image-based; its text and its licence terms **could not be verified** and the "adopt them verbatim" instruction is overturned. Write the 1–5 scale in the app's own words at the same semantic granularity. The *concept* of a five-point assistance scale is not ownable; the sentences are.
 2. **Every list carries a provenance line stating it was authored**, and CI runs the "no verbatim third-party copy" check alongside the §12.2 content-policy scan. That check scans **both** `assets/content/` and `lib/l10n/` (R66) — the provenance lines live in the first, the forty labels live in the second, and a check pointed at only one of them misses whichever half the copy was pasted into. Every seeded key must have a matching ARB message — a test asserts the two sets are equal, so a key added without a label fails the build rather than rendering blank at 3am.
 
-Spec §7.8's *lambing ease 1–5 vs SRUC's 6* remains open (decision-record §7.1 #15); the recommendation on record is to stay at 5 and document that 5 covers elective caesarean. `lambings.ease` is an ordinal `INTEGER` with a `CHECK`, not a vocabulary FK, precisely so that widening the scale is a migration someone has to think about.
+Spec §7.8's *lambing ease 1–5 vs SRUC's 6* was **ruled on 2026-08-01 (decision-record §7.0 row 15, `CONVENTIONS` R78): five**, with point 5 documented as covering elective caesarean. `lambings.ease` is an ordinal `INTEGER` with a `CHECK`, not a vocabulary FK, precisely so that widening the scale is a migration someone has to think about.
 
 ---
 
@@ -1869,7 +1887,7 @@ Spec §7.8's *lambing ease 1–5 vs SRUC's 6* remains open (decision-record §7.
 - [ ] The export round trip contains no integer row ids and no `id` keys.
 - [ ] `dart run tool/seed.dart --ewes 400 --seasons 3 --seed 42` produces a database, through the restore path, on which the pen board, the ewe card and note search all return in one frame.
 - [ ] All **five** items flagged *needs verification* — §1.3 (`pragma_compile_options` exists in the bundled build), §1.4 (`drift_dev` is tree-shaken out of the release tree), §5.14 (`BEGIN` vs `BEGIN IMMEDIATE`), §9.2 (drift#3322 and the FTS5 shadow tables), §9.2 (cascade deletes vs `recursive_triggers`) — have been resolved and their answers written into this file. A doc that still says "needs verification" at v1.0 is a doc nobody finished.
-- [ ] The one item flagged **open** — §4.3, whether a temperature field ships at all (decision-record §7.1 #11) — has an owner ruling. It is the only thing in this document that cannot be closed by a developer, and it is a schema decision, so it closes **before** the first `make-migrations` run, not after.
+- [x] The one item flagged **open** — §4.3, whether a temperature field ships at all (decision-record §7.1 #11) — **has an owner ruling, taken 2026-08-01 in N00-T04: it does not ship, and `app_settings.temperature_unit` is dropped with it.** It was the only thing in this document that could not be closed by a developer, and because it was a schema decision it closed **before** the first `make-migrations` run rather than after. Three more schema-shaped rulings landed with it and are reflected above: `WithdrawalTarget.milk` ships (§5.8), `lambs.became_ewe` ships (§5.5, §6 point 5), and lambing ease stays 1..5 (§5.4).
 
 ---
 

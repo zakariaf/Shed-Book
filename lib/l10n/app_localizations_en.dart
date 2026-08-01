@@ -66,4 +66,124 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get vocabEase1 => 'No assistance';
+
+  @override
+  String get vocabEase2 => 'Slight assistance by hand';
+
+  @override
+  String get vocabEase3 => 'Considerable assistance needed';
+
+  @override
+  String get vocabEase4 => 'Veterinary assistance needed';
+
+  @override
+  String get vocabEase5 => 'Caesarean section';
+
+  @override
+  String get vocabDcStarvation => 'Starvation';
+
+  @override
+  String get vocabDcHypothermia => 'Hypothermia';
+
+  @override
+  String get vocabDcWateryMouth => 'Watery mouth';
+
+  @override
+  String get vocabDcJointIll => 'Joint ill';
+
+  @override
+  String get vocabDcCrushed => 'Crushed';
+
+  @override
+  String get vocabDcStillborn => 'Stillborn';
+
+  @override
+  String get vocabDcUnknown => 'Unknown';
+
+  @override
+  String get vocabDcOther => 'Other';
+
+  @override
+  String get vocabMpHeadBack => 'Head back';
+
+  @override
+  String get vocabMpOneLegBack => 'One leg back';
+
+  @override
+  String get vocabMpBothLegsBack => 'Both legs back';
+
+  @override
+  String get vocabMpBreech => 'Breech';
+
+  @override
+  String get vocabMpBackwards => 'Backwards';
+
+  @override
+  String get vocabMpTwinsTogether => 'Twins together';
+
+  @override
+  String get vocabMpRingwomb => 'Ringwomb';
+
+  @override
+  String get vocabMpOther => 'Other';
+
+  @override
+  String get vocabRtSubcutaneous => 'Subcutaneous';
+
+  @override
+  String get vocabRtIntramuscular => 'Intramuscular';
+
+  @override
+  String get vocabRtOral => 'Oral';
+
+  @override
+  String get vocabRtTopical => 'Topical';
+
+  @override
+  String get vocabRtIntranasal => 'Intranasal';
+
+  @override
+  String get vocabRtIntravenous => 'Intravenous';
+
+  @override
+  String get vocabRtIntraperitoneal => 'Intraperitoneal';
+
+  @override
+  String get vocabRtOther => 'Other';
+
+  @override
+  String get vocabObsProlapse => 'Prolapse';
+
+  @override
+  String get vocabObsMastitis => 'Mastitis';
+
+  @override
+  String get vocabObsPoorMothering => 'Poor mothering';
+
+  @override
+  String get vocabObsGoodMothering => 'Good mothering';
+
+  @override
+  String get vocabObsNoMilk => 'No milk';
+
+  @override
+  String get vocabObsOther => 'Other';
+
+  @override
+  String get vocabFmWetAdopt => 'Wet adoption';
+
+  @override
+  String get vocabFmSkin => 'Skinning';
+
+  @override
+  String get vocabFmCrate => 'Adoption crate';
+
+  @override
+  String get vocabFmBottle => 'Bottle';
+
+  @override
+  String get vocabFmOther => 'Other';
 }

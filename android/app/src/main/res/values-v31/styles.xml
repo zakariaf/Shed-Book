@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+ replaces windowBackground with the SplashScreen API, AND IT CANNOT
+  BE OPTED OUT OF. Without these three items the platform supplies its own splash
+  — the launcher icon on a system-chosen background — and the shepherd sees it
+  before our first frame.
+
+  The animation duration is 0 because our splash and our first frame are the same
+  solid field; any duration is a crossfade between two identical images that
+  costs a visible beat.
+-->
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/shed_surface_base</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_splash_mono</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+    <style name="NormalTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@color/shed_surface_base</item>
+        <item name="android:forceDarkAllowed">false</item>
+    </style>
+</resources>

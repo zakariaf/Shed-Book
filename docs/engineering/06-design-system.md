@@ -203,7 +203,7 @@ Three rules bind every scheme:
 
 ### 2.4 The error widget renders outside any theme
 
-`ErrorWidget.builder` (decision #14) may be invoked when no `Theme`, no `MediaQuery` and no `Directionality` is in scope, so it cannot read tokens and cannot read a `TextTheme` either. `NightErrorPanel` in `lib/core/ui/night_error_panel.dart` therefore hard-codes the base surface `#0B0D0E` and near-white text, supplies its own `Directionality`, and is the **one file exempted from the raw-colour rule** — allowlist line `lib/core/ui/night_error_panel.dart :: token.raw_color`. The default red-on-yellow `ErrorWidget` is a flashbang under a head torch; ours is the base surface, one line of near-white text, the route name, and exactly one action: *"Save a copy of my records"*. `01-architecture.md` §5.5 owns the panel and its widget test; this document owns only the colour it must use.
+`ErrorWidget.builder` (decision #14) may be invoked when no `Theme`, no `MediaQuery` and no `Directionality` is in scope, so it cannot read tokens and cannot read a `TextTheme` either. `NightErrorPanel` in `lib/core/ui/night_error_panel.dart` therefore hard-codes the base surface `#0A0A0B` (P14, N11-T04) and near-white text, supplies its own `Directionality`, and is the **one file exempted from the raw-colour rule** — allowlist line `lib/core/ui/night_error_panel.dart :: token.raw_color`. The default red-on-yellow `ErrorWidget` is a flashbang under a head torch; ours is the base surface, one line of near-white text, the route name, and exactly one action: *"Save a copy of my records"*. `01-architecture.md` §5.5 owns the panel and its widget test; this document owns only the colour it must use.
 
 ### 2.5 Accessibility flags the theme layer reads
 
@@ -263,7 +263,7 @@ Dart cannot make `primitives.dart` private to a directory, so the gate does: `to
 import 'dart:ui' show Color;
 
 // ---- night neutral ramp ----------------------------------------------------
-const nSurface04  = Color(0xFF0B0D0E); // base   (L = 0.0039)
+const nSurface04  = Color(0xFF0A0A0B); // base   (L = 0.00306) — P14, N11-T04
 const nSurface08  = Color(0xFF12161A); // raised
 const nSurface12  = Color(0xFF1A2025); // pressed
 const nSurface18  = Color(0xFF242B31); // fill
@@ -783,23 +783,25 @@ The honest sentence beside the pair, which the Settings screen shows and the doc
 
 ### 4.2 `night` — the default palette
 
-Base surface `#0B0D0E` (decision #95). Not `#000000`: a base of exactly zero has nothing to build a surface ramp on, so elevation would have to be carried by outlines everywhere. Not `#121212`: in a dark shed the extra emission buys nothing.
+**Base surface `#0A0A0B` — amended 2026-08-01 (N11-T04), closing P14.** This section published `#0B0D0E` and cited decision #95. §1's own fixed-versus-free table puts *"the base surface hex, provided it is no brighter than `#0B0D0E`"* in the **free** column, and §9 calls `#0B0D0E` *"the brightest base any palette may have"* — so it is a **ceiling**, not an exact value. `indelible.md` §2.2's `#0A0A0B` measures L 0.00306 against `#0B0D0E`'s 0.00391, i.e. **darker**, so it is inside the ceiling this document set. Every ratio in the table below was recomputed against it; the raised-surface trio is unchanged because it does not touch the base.
+
+The rejected bases stand: Not `#000000`: a base of exactly zero has nothing to build a surface ramp on, so elevation would have to be carried by outlines everywhere. Not `#121212`: in a dark shed the extra emission buys nothing.
 
 | Token | Hex | Ratio on `surfaceBase` | Use |
 |---|---|---|---|
-| `surfaceBase` | `#0B0D0E` | — (L = 0.0039) | scaffold, keypad gutters |
-| `surfaceRaised` | `#12161A` | 1.07:1 vs base | cards, keys, tiles |
-| `surfacePressed` | `#1A2025` | 1.18:1 vs base | pressed / selected |
-| `surfaceFill` | `#242B31` | 1.36:1 vs base | emphasis fills, chart bars |
-| `outline` | `#8A9199` | **6.11:1** | borders (decoration; meaning is in the label) |
-| `textNumeric` | `#FFFFFF` | **19.48:1** | tags, keypad digits, timers |
-| `textPrimary` | `#E8EAED` | **16.16:1** | body |
-| `textSecondary` | `#B7BDC4` | **10.29:1** | labels |
-| `textChrome` | `#8A9199` | **6.11:1** | AA only — **never a value the shepherd must read** |
-| `statusReady` | `#7DD3A0` | **10.85:1** | ready to turn out |
-| `statusAttention` | `#FFD54F` | **13.80:1** | withdrawal active, treatment due |
-| `statusLoss` | `#FFB4AB` | **11.47:1** | loss recorded |
-| `onStatus` | `#0B0D0E` | 10.85 / 13.80 / 11.47 on the three fills | text inside a status chip |
+| `surfaceBase` | `#0A0A0B` | — (L = 0.00306) | scaffold, keypad gutters |
+| `surfaceRaised` | `#12161A` | 1.09:1 vs base | cards, keys, tiles |
+| `surfacePressed` | `#1A2025` | 1.20:1 vs base | pressed / selected |
+| `surfaceFill` | `#242B31` | 1.38:1 vs base | emphasis fills, chart bars |
+| `outline` | `#8A9199` | **6.21:1** | borders (decoration; meaning is in the label) |
+| `textNumeric` | `#FFFFFF` | **19.79:1** | tags, keypad digits, timers |
+| `textPrimary` | `#E8EAED` | **16.42:1** | body |
+| `textSecondary` | `#B7BDC4` | **10.45:1** | labels |
+| `textChrome` | `#8A9199` | **6.21:1** | AA only — **never a value the shepherd must read** |
+| `statusReady` | `#7DD3A0` | **11.02:1** | ready to turn out |
+| `statusAttention` | `#FFD54F` | **14.02:1** | withdrawal active, treatment due |
+| `statusLoss` | `#FFB4AB` | **11.66:1** | loss recorded |
+| `onStatus` | `#0A0A0B` | 11.02 / 14.02 / 11.66 on the three fills | text inside a status chip |
 
 **The ramp is a hint, not a separator.** 1.07:1 and 1.18:1 are far below the 3:1 WCAG asks of a non-text boundary — deliberately, because a bright card edge is a light source you are staring at for four hours. So the rule is: **any boundary that must be findable under a head torch carries an `outline` as well as a ramp step.** The ramp does the work in a dark room; the outline does it in a bright pool of torchlight. Cards, keys, pen tiles and sheets are all outlined. A direction may widen the ramp; it may not drop the outline.
 
@@ -1254,7 +1256,7 @@ There are four layers in the launch sequence and a white frame at any one of the
                                LaunchScreen.storyboard
 ```
 
-**The single constant is `#0B0D0E`** — the `night` palette's base surface, i.e. the *brightest* base any palette may have. Every other palette is pure black, so the handoff can only ever go darker. `test/design/contrast_test.dart` asserts that invariant (§3.5).
+**The single constant is `#0A0A0B`** — the `night` palette's base surface after N11-T04's P14 ruling, i.e. the *brightest* base any palette may have. (`#0B0D0E` remains the CEILING this document sets in §1; the shipped value is darker than it.) Every other palette is pure black, so the handoff can only ever go darker. `test/design/contrast_test.dart` asserts that invariant (§3.5).
 
 ### 9.1 Android
 

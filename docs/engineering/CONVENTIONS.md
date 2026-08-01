@@ -543,7 +543,7 @@ final class FreeTierPolicy {
 | `ShedTapTarget` | `components/shed_tap_target.dart` | required `semanticLabel`; `Semantics(onTap:)` set |
 | `ShedKeypad` | `components/shed_keypad.dart` | the only tag- and number-entry route (R70) |
 | `ShedReceiptBar` | `components/shed_receipt.dart` | the widget only; the *functions* are in `feedback.dart` |
-| `NightErrorPanel` | `night_error_panel.dart` | hard-coded `#0B0D0E`, own `Directionality`, no `Theme`/`MediaQuery` |
+| `NightErrorPanel` | `night_error_panel.dart` | hard-coded `#0A0A0B` (P14 ruled 2026-08-01, N11-T04; this row said `#0B0D0E`), own `Directionality`, no `Theme`/`MediaQuery` |
 
 `showShedReceipt` and `showShedFailure` are banned spellings (R30). `feedback.dart` is the one file
 permitted to call `showSnackBar(`.

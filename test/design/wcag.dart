@@ -63,8 +63,8 @@ double peakStatusLuminance(ShedPalette p) => <Color>[
 /// test fail. A test that imported the value it is checking would agree with
 /// itself forever.
 ///
-/// P14 (`#0B0D0E` vs `#0A0A0B`) is ruled at N11-T04; when it lands, this
-/// constant and the native config move together. The assertion is written as
-/// *"no palette's `surfaceBase` is brighter than the native launch colour"* so
-/// it still means something whichever way that goes.
-const Color launchSurface = Color(0xFF0B0D0E);
+/// **P14 was ruled at N11-T04 in favour of `#0A0A0B`**, and this constant moved
+/// with it. The assertion stays written as *"no palette's `surfaceBase` is
+/// brighter than the native launch colour"* rather than as an equality, so it
+/// keeps meaning something if the two ever diverge again.
+const Color launchSurface = Color(0xFF0A0A0B);

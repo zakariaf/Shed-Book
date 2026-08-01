@@ -259,7 +259,7 @@ void main() {
     // pull toward "restoring" the warmer indelible ramp will be strong, and it
     // has to fail loudly rather than merely disagree with a comment.
     const List<String> night = <String>[
-      '0B0D0E', '12161A', '1A2025', '242B31', //
+      '0A0A0B', '12161A', '1A2025', '242B31', //
       '8A9199', 'B7BDC4', 'E8EAED', 'FFFFFF',
       '7DD3A0', 'FFD54F', 'FFB4AB',
     ];

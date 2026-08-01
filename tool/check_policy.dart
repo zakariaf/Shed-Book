@@ -813,6 +813,10 @@ Iterable<String> get policyRuleIds sync* {
   for (final String kind in _sectionFor.keys) {
     yield 'dep.${kind.replaceAll(' ', '_')}';
   }
+  // Emitted by code rather than by a table row, like layer.import and dep.*,
+  // because it compares two files in two languages and no (id, pattern, path)
+  // tuple can express that.
+  yield 'launch.colour_parity';
 }
 
 /// Every text and pattern rule as (id, the path prefix it applies under).
@@ -1004,6 +1008,7 @@ List<String> runPolicy({String root = '.'}) {
   }
 
   violations.addAll(_checkLockfile(allow, root: root));
+  violations.addAll(_checkLaunchColourParity(root: root));
   return violations..sort();
 }
 
@@ -1047,6 +1052,83 @@ List<String> _checkLockfile(Map<String, Set<String>> allow, {required String roo
             'the allowlist — read its pubspec, confirm it opens no socket and merges no '
             'permission, then add it to tool/policy_allowlist.txt',
   ];
+}
+
+/// **The one rule in this script that reads outside `lib/`** (06 §9.4).
+///
+/// The first painted frame is written in three languages — a Dart const, an
+/// Android colour resource and two iOS storyboards — and nothing in a normal
+/// build makes them agree. The failure is invisible everywhere except a cold
+/// launch on a real device: every widget test passes, the theme is right, and
+/// the shepherd still sees a pale flash.
+///
+/// **Absent files are not a violation.** The gate runs against temporary trees
+/// in its own tests and against a checkout that may not have both platforms; a
+/// rule that fired on absence would make every one of those red. It fires only
+/// when two files that both exist disagree.
+///
+/// The storyboards store sRGB COMPONENTS rather than a hex, so their comparison
+/// is numeric to within 1/255 — anything tighter fails on Xcode's rounding
+/// rather than on the colour.
+List<String> _checkLaunchColourParity({required String root}) {
+  final File dart = File(_join(root, 'lib/core/ui/primitives.dart'));
+  if (!dart.existsSync()) {
+    return const <String>[];
+  }
+  final RegExpMatch? base = RegExp(
+    r'const Color nSurface04 = Color\(0xFF([0-9A-Fa-f]{6})\)',
+  ).firstMatch(dart.readAsStringSync());
+  if (base == null) {
+    return const <String>[];
+  }
+  final String hex = base.group(1)!.toUpperCase();
+
+  final List<String> violations = <String>[];
+
+  final File colours = File(_join(root, 'android/app/src/main/res/values/colors.xml'));
+  if (colours.existsSync()) {
+    final RegExpMatch? android = RegExp(
+      r'<color name="shed_surface_base">#FF([0-9A-Fa-f]{6})</color>',
+    ).firstMatch(colours.readAsStringSync());
+    if (android == null || android.group(1)!.toUpperCase() != hex) {
+      violations.add(
+        '[launch.colour_parity] android/app/src/main/res/values/colors.xml is '
+        '#${android?.group(1)?.toUpperCase() ?? "absent"} and nSurface04 is #$hex — '
+        'the first painted frame differs between Dart and Android — 06 §9.4',
+      );
+    }
+  }
+
+  for (final String path in <String>[
+    'ios/Runner/Base.lproj/LaunchScreen.storyboard',
+    'ios/Runner/Base.lproj/Main.storyboard',
+  ]) {
+    final File board = File(_join(root, path));
+    if (!board.existsSync()) {
+      continue;
+    }
+    final RegExpMatch? m = RegExp(
+      r'<color key="backgroundColor" red="([\d.]+)" green="([\d.]+)" blue="([\d.]+)"',
+    ).firstMatch(board.readAsStringSync());
+    if (m == null) {
+      violations.add('[launch.colour_parity] $path has no sRGB backgroundColor — 06 §9.4');
+      continue;
+    }
+    const double tolerance = 1 / 255;
+    bool off(String got, int offset) =>
+        (double.parse(got) - int.parse(hex.substring(offset, offset + 2), radix: 16) / 255.0)
+            .abs() >
+        tolerance;
+    if (off(m.group(1)!, 0) || off(m.group(2)!, 2) || off(m.group(3)!, 4)) {
+      violations.add(
+        '[launch.colour_parity] $path paints '
+        '(${m.group(1)}, ${m.group(2)}, ${m.group(3)}) and nSurface04 is #$hex — '
+        'the first painted frame differs between Dart and iOS — 06 §9.4',
+      );
+    }
+  }
+
+  return violations;
 }
 
 /// Every package in `<root>/pubspec.lock`, as name → dependency kind.

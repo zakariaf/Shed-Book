@@ -306,13 +306,13 @@ void main() {
     }
 
     final ShedTokens n = nightPalette.tokens;
-    published(contrastRatio(n.textNumeric, n.surfaceBase), 19.48, 'night textNumeric');
-    published(contrastRatio(n.textPrimary, n.surfaceBase), 16.16, 'night textPrimary');
-    published(contrastRatio(n.textSecondary, n.surfaceBase), 10.29, 'night textSecondary');
-    published(contrastRatio(n.textChrome, n.surfaceBase), 6.11, 'night textChrome');
-    published(contrastRatio(n.statusReady, n.surfaceBase), 10.85, 'night statusReady');
-    published(contrastRatio(n.statusAttention, n.surfaceBase), 13.80, 'night statusAttention');
-    published(contrastRatio(n.statusLoss, n.surfaceBase), 11.47, 'night statusLoss');
+    published(contrastRatio(n.textNumeric, n.surfaceBase), 19.79, 'night textNumeric');
+    published(contrastRatio(n.textPrimary, n.surfaceBase), 16.42, 'night textPrimary');
+    published(contrastRatio(n.textSecondary, n.surfaceBase), 10.45, 'night textSecondary');
+    published(contrastRatio(n.textChrome, n.surfaceBase), 6.21, 'night textChrome');
+    published(contrastRatio(n.statusReady, n.surfaceBase), 11.02, 'night statusReady');
+    published(contrastRatio(n.statusAttention, n.surfaceBase), 14.02, 'night statusAttention');
+    published(contrastRatio(n.statusLoss, n.surfaceBase), 11.66, 'night statusLoss');
 
     // §4.2's "also measured on the raised surface, because half the app's text
     // sits there".

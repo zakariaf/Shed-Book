@@ -43,6 +43,7 @@ somewhere calmer, in daylight.
 ## Gates
 
 - [ ] `gate` green
+- [ ] `codegen` green — it is a REQUIRED check, so a stale generated file blocks the merge
 - [ ] `test` green
 - [ ] `/simplify`, then `/code-review`, were run before every commit on this branch
 - [ ] `/shed-code-review` run once over the whole branch, in irreversibility order, before this PR was opened

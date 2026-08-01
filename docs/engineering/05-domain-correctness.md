@@ -968,18 +968,36 @@ Weights use **the in-app 60×60 pt keypad**, the same component as tag entry, wi
 
 For any free-text numeric field that survives review:
 
+~~The body below resolved `'1,5'` to 1.5.~~ **Amended 2026-08-01 (N04-T06).** Feed the printed
+version `'1,5'`: one comma, zero dots, neither guard fires, and it returns **1.5**. That is a guess.
+This section's own comment says guessing `'4,3'` means 43 is a silent correction, and then resolves
+the same ambiguity in the other direction — which is the same act. A comma is ambiguous in `en_GB`
+full stop, so **any comma returns null**.
+
+```dart
+// ~~the printed body — struck 2026-08-01~~
+//   if (commas > 0 && dots > 0) return null;   // returns 1.5 for '1,5'
+//   if (commas > 1 || dots > 1) return null;
+//   return double.tryParse(s.replaceAll(',', '.'));
+```
+
+A second correction from the same commit: `double.tryParse` is more forgiving than a shepherd's
+typing warrants. It accepts `'4.'` as 4.0, and `'1e3'`, `'0x10'`, `'Infinity'` and `'NaN'` as
+themselves. A trailing point is a half-typed number and none of the rest can be entered on a keypad
+with one decimal key, so the shape is matched before the parse.
+
 ```dart
 // lib/domain/units/parse_number.dart
 /// Rejects ambiguity rather than guessing. Guessing that '4,3' means 43 is a
-/// silent correction (safety rule 4).
+/// silent correction (safety rule §12.4) — and so is guessing it means 4.3.
 double? parseUserNumber(String raw) {
-  final s = raw.trim().replaceAll(' ', '');
-  final commas = ','.allMatches(s).length;
-  final dots = '.'.allMatches(s).length;
-  if (commas > 0 && dots > 0) return null;   // ambiguous
-  if (commas > 1 || dots > 1) return null;
-  return double.tryParse(s.replaceAll(',', '.'));
+  final s = raw.replaceAll(' ', '');
+  if (s.contains(',')) return null;          // ambiguous in en_GB, both ways
+  if (!_plain.hasMatch(s)) return null;      // '4.', '1e3', '0x10', 'NaN'
+  return double.tryParse(s);
 }
+
+final _plain = RegExp(r'^-?\d+(\.\d+)?$');
 ```
 
 `null` becomes a `Warning`, never a value.

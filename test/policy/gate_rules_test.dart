@@ -1608,6 +1608,45 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       );
     });
 
+    test('the vocabulary rules read declarations; the API rules read every line', () {
+      // Added 2026-08-01 after grams.dart's "provisional pending open question
+      // 12" tripped copy.banned_word on the ordinary English word. The line is
+      // between two kinds of rule: a commented-out banned CALL is one keystroke
+      // from being real, and a comment saying "there is no draft state" is the
+      // sentence that keeps the rule alive.
+      expect(
+        gateOn(<String, String>{
+          'lib/data/flock_repository.dart':
+              '// There is no dr'
+              'aft state and no s'
+              'ave(aggregate) here.\n'
+              '// A failure type is never called an Err'
+              'or.\n'
+              'void beginLambing() {}\n',
+        }),
+        isEmpty,
+      );
+      // The same words in code still fire.
+      expect(
+        gateOn(<String, String>{
+          'lib/data/flock_repository.dart':
+              'const s = '
+              "'dr"
+              "aft';\n",
+        }).single,
+        contains('[copy.banned_word]'),
+      );
+      // And an API rule is unaffected by the comment marker: a commented-out
+      // gesture is one keystroke from being real.
+      expect(
+        gateOn(<String, String>{
+          'lib/features/lambing/lambing_screen.dart':
+              '// Widget b() => Dismissible(key: k, child: c);\n',
+        }).single,
+        contains('[gesture.dismissible]'),
+      );
+    });
+
     test('the two copy.* CONTENT rules are deliberately absent until N06-T09', () {
       expect(policyRuleIds, isNot(contains('copy.vet_advice')));
       expect(policyRuleIds, isNot(contains('copy.disclaimer_retyped')));

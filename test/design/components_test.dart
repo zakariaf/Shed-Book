@@ -16,9 +16,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_choice_row.dart';
 import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
 import 'package:shed_book/core/ui/components/shed_countdown.dart';
 import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
+import 'package:shed_book/core/ui/components/shed_field_row.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_recents_strip.dart';
 import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
@@ -1268,5 +1270,264 @@ void main() {
 
     await _pumpComponent(tester, countdown(9), scale: 2.0, boldText: true);
     expect(tester.takeException(), isNull, reason: 'ShedCountdown overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T06 — ShedChoiceRow (ease 1–5 only, P8) and ShedFieldRow
+  // -------------------------------------------------------------------------
+
+  const String choiceFile = 'lib/core/ui/components/shed_choice_row.dart';
+  const String fieldFile = 'lib/core/ui/components/shed_field_row.dart';
+
+  List<({int ordinal, String label, String semanticLabel})> easeChoices() =>
+      <({int ordinal, String label, String semanticLabel})>[
+        for (int i = 1; i <= 5; i++) (ordinal: i, label: '$i', semanticLabel: 'Lambing ease $i'),
+      ];
+
+  ShedChoiceRow easeRow({int? selected, ValueChanged<int>? onSelected}) => ShedChoiceRow(
+    choices: easeChoices(),
+    selected: selected,
+    onSelected: onSelected ?? (int _) {},
+    unsetLabel: 'EASE — NOT RECORDED · SKIPPABLE',
+    groupSemanticLabel: 'Lambing ease',
+  );
+
+  testWidgets('ShedFieldRow renders no placeholder inside the field and ShedChoiceRow is '
+      'documented as ease-only', (WidgetTester tester) async {
+    // THE ANCHOR, in both halves.
+    //
+    // A placeholder in the withdrawal-days field is a FOOD-CHAIN RISK (§12.1) —
+    // the shepherd reads a number the app suggested and the meat clears early —
+    // and in the dark a grey placeholder is indistinguishable from an entered
+    // value, so nobody can tell which fields they have filled in.
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(
+        label: 'WITHDRAWAL DAYS',
+        value: null,
+        onTap: () {},
+        semanticLabel: 'Withdrawal days, not recorded',
+      ),
+    );
+
+    expect(find.text('WITHDRAWAL DAYS'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ShedFieldRow), matching: find.byType(Text)),
+      findsOneWidget,
+      reason: 'the unset row rendered a second glyph',
+    );
+
+    final String fieldSource = _declarations(fieldFile);
+    for (final String banned in <String>[
+      'hintText',
+      'placeholder',
+      'initialValue',
+      'defaultValue',
+      'InputDecoration',
+    ]) {
+      expect(fieldSource, isNot(contains(banned)), reason: banned);
+    }
+
+    // P8: the chooser exists for ease and for nothing else, and it says so.
+    final String choiceSource = File(choiceFile).readAsStringSync();
+    expect(choiceSource, contains('EASE 1–5 ONLY'));
+    expect(choiceSource, contains('P8'));
+  });
+
+  test('ShedFieldRow has no API surface that could carry a default', () {
+    // §12.1 held at UNCONSTRUCTIBLE, not at documented. The parameter list is
+    // read from source: label, value, onTap, semanticLabel, stamp — and nothing
+    // that could seed a number the shepherd did not read off the bottle.
+    final String source = _declarations(fieldFile);
+    final RegExpMatch? ctor = RegExp(r'ShedFieldRow\(\{([^}]*)\}\)').firstMatch(source);
+    expect(ctor, isNotNull);
+
+    final String params = ctor!.group(1)!;
+    for (final String banned in <String>['default', 'initial', 'hint', 'suggest', 'prefill']) {
+      expect(params.toLowerCase(), isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('an unset ShedFieldRow paints a dotted rule and no value glyph', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'Days'),
+    );
+    expect(
+      find.descendant(of: find.byType(ShedFieldRow), matching: find.byType(CustomPaint)),
+      findsWidgets,
+      reason: 'no dotted rule',
+    );
+
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days'),
+    );
+    expect(find.text('7'), findsOneWidget);
+  });
+
+  test('value: empty string is refused', () {
+    // '' and null are DIFFERENT FACTS: null is unset, '' is a value nobody can
+    // see. Collapsing them makes an empty field look answered.
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: '', onTap: () {}, semanticLabel: 'x'),
+      throwsAssertionError,
+    );
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: '  ', onTap: () {}, semanticLabel: 'x'),
+      throwsAssertionError,
+    );
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'x'),
+      returnsNormally,
+    );
+  });
+
+  testWidgets('the label sits above the value at textScale 1.0, 1.3 and 2.0', (
+    WidgetTester tester,
+  ) async {
+    // A label that becomes a placeholder is a label that disappears the moment
+    // the field is filled — and then nobody can check what they answered.
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(
+        tester,
+        ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days'),
+        scale: scale,
+      );
+      expect(tester.takeException(), isNull, reason: 'overflow at $scale');
+      expect(
+        tester.getRect(find.text('DAYS')).bottom,
+        lessThanOrEqualTo(tester.getRect(find.text('7')).top),
+        reason: 'scale $scale',
+      );
+    }
+  });
+
+  testWidgets('ShedFieldRow is at least tapMin tall and is one ShedTapTarget', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days, 7'),
+    );
+
+    expect(tester.getSize(find.byType(ShedFieldRow)).height, greaterThanOrEqualTo(60.0));
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, isNotEmpty);
+
+    handle.dispose();
+  });
+
+  testWidgets('ShedChoiceRow lays out five cells of tapPrimary in a Wrap', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, easeRow());
+    expect(find.byType(Wrap), findsOneWidget);
+
+    final Finder cells = find.byType(ShedTapTarget);
+    expect(cells, findsNWidgets(5));
+    for (int i = 0; i < 5; i++) {
+      expect(tester.getSize(cells.at(i)).height, greaterThanOrEqualTo(72.0), reason: 'cell $i');
+    }
+  });
+
+  testWidgets('ShedChoiceRow reflows to two lines at textScale 2.0 without overflow', (
+    WidgetTester tester,
+  ) async {
+    // THE WRAP EARNING ITS KEEP. At 200% five cells of tapPrimary do not share
+    // one line, and a Row would overflow where a Wrap reflows.
+    await _pumpComponent(tester, easeRow(), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+  });
+
+  testWidgets('the unset group renders one dotted rule and one label, not a sixth cell', (
+    WidgetTester tester,
+  ) async {
+    // A sixth cell would make "not recorded" something you PICK, and then a
+    // shepherd who skipped the question and one who answered "unknown" become
+    // indistinguishable in the record.
+    await _pumpComponent(tester, easeRow());
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+    expect(find.text('EASE — NOT RECORDED · SKIPPABLE'), findsOneWidget);
+
+    await _pumpComponent(tester, easeRow(selected: 3));
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+    expect(find.text('EASE — NOT RECORDED · SKIPPABLE'), findsNothing);
+  });
+
+  testWidgets('a selected cell differs from an unselected one with colour removed', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, easeRow(selected: 3));
+
+    final Iterable<Text> labels = tester.widgetList<Text>(
+      find.descendant(of: find.byType(Wrap), matching: find.byType(Text)),
+    );
+    expect(
+      labels.where((Text x) => x.style!.fontWeight == FontWeight.w700).length,
+      1,
+      reason: 'selection is carried by colour alone',
+    );
+
+    final Iterable<DecoratedBox> boxes = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(Wrap), matching: find.byType(DecoratedBox)),
+    );
+    final Set<double> widths = boxes
+        .map((DecoratedBox b) => ((b.decoration as BoxDecoration).border! as Border).bottom.width)
+        .toSet();
+    expect(widths, hasLength(2), reason: 'the selected underline is not heavier');
+  });
+
+  testWidgets('selecting a cell reports its ordinal once', (WidgetTester tester) async {
+    final List<int> reported = <int>[];
+    await _pumpComponent(tester, easeRow(onSelected: reported.add));
+
+    await tester.tap(find.text('3'));
+    await tester.pump();
+
+    expect(reported, <int>[3]);
+  });
+
+  test('no file in this commit contains birth_type', () {
+    // P8. Birth type is DERIVED from the tally strokes and printed (COUNTED) —
+    // that is what makes safety rule §12.4 structural instead of procedural, and
+    // a five-cell chooser is exactly how it would be softened back.
+    //
+    // R59's stale example elsewhere in the doc set is left alone for N16-T02a.
+    for (final String f in <String>[choiceFile, fieldFile]) {
+      expect(File(f).readAsStringSync(), isNot(contains('birth_type')), reason: f);
+    }
+  });
+
+  test('neither file names Slider, CupertinoPicker, showDatePicker or showTimePicker', () {
+    for (final String f in <String>[choiceFile, fieldFile]) {
+      final String source = _declarations(f);
+      for (final String banned in <String>[
+        'Slider',
+        'CupertinoPicker',
+        'showDatePicker',
+        'showTimePicker',
+        'DropdownButton',
+      ]) {
+        expect(source, isNot(contains(banned)), reason: '$f names $banned');
+      }
+    }
+  });
+
+  testWidgets('both components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'Days'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedFieldRow overflowed');
   });
 }

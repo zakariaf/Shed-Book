@@ -17,15 +17,21 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
+import 'package:shed_book/core/ui/components/shed_countdown.dart';
 import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_recents_strip.dart';
 import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
+import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/theme.dart';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
 
 /// Pumps one component inside a real theme.
 ///
@@ -924,5 +930,343 @@ void main() {
         );
       }
     }
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T05 — ShedStatusBadge and ShedCountdown
+  // -------------------------------------------------------------------------
+
+  const String badgeFile = 'lib/core/ui/components/shed_status_badge.dart';
+  const String countdownFile = 'lib/core/ui/components/shed_countdown.dart';
+
+  ShedCountdown countdown(int daysRemaining) {
+    final LocalDate today = LocalDate(2026, 8, 1);
+    return ShedCountdown(
+      clearsOn: ClearsOn(
+        today.plusDays(daysRemaining),
+        Instant.fromDateTime(DateTime.utc(2026, 8, 1 + daysRemaining)),
+        WithdrawalTarget.meat,
+      ),
+      now: Instant.fromDateTime(DateTime.utc(2026, 8, 1, 12)),
+      productName: 'Alamycin',
+      clearsOnLabel: 'CLEARS 12 AUG 2026',
+      semanticLabel: 'Alamycin, $daysRemaining days remaining',
+    );
+  }
+
+  testWidgets('every ShedStatusBadge state carries a word as well as a colour, and '
+      'notRecorded renders neither 0 nor blank', (WidgetTester tester) async {
+    // THE ANCHOR, exhaustive over ShedStamp.values. A stamp that rendered a
+    // shape and no word would be a state indistinguishable from another to
+    // anybody who cannot tell the inks apart — and `notRecorded` rendering `0`
+    // would be safety rule §12.1 broken in the one place it is most visible.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: stamp.name.toUpperCase()));
+      final Text word = tester.widget<Text>(
+        find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+      );
+      expect(word.data, isNotEmpty, reason: '$stamp');
+      expect(word.data, isNot('0'), reason: '$stamp');
+      expect(word.data, isNot('—'), reason: '$stamp');
+    }
+
+    expect(
+      () => ShedStatusBadge(stamp: ShedStamp.notRecorded, label: '  '),
+      throwsAssertionError,
+      reason: 'a wordless stamp must be unconstructible',
+    );
+  });
+
+  testWidgets('every boxed stamp draws a border and every unboxed stamp draws none', (
+    WidgetTester tester,
+  ) async {
+    // The form is a real second channel and not a naming convention: BOXED is a
+    // state of the animal, UNBOXED is a note about the record.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: 'WORD'));
+      final Finder boxes = find.descendant(
+        of: find.byType(ShedStatusBadge),
+        matching: find.byType(DecoratedBox),
+      );
+      switch (stamp.form) {
+        case ShedStampForm.boxed:
+          expect(boxes, findsOneWidget, reason: '$stamp is boxed');
+        case ShedStampForm.unboxed:
+          expect(boxes, findsNothing, reason: '$stamp is unboxed');
+      }
+    }
+  });
+
+  testWidgets('ShedStatusBadge is at least 24 tall and is not a ShedTapTarget', (
+    WidgetTester tester,
+  ) async {
+    // indelible.md §7.7: STAMPS ARE NOT TARGETS. A stamp that could be pressed
+    // is a stamp a shepherd presses at 03:20 expecting something to happen.
+    await _pumpComponent(tester, ShedStatusBadge(stamp: ShedStamp.penned, label: 'PENNED'));
+    expect(tester.getSize(find.byType(ShedStatusBadge)).height, greaterThanOrEqualTo(24.0));
+    expect(find.byType(ShedTapTarget), findsNothing);
+    expect(_declarations(badgeFile), isNot(contains('GestureDetector')));
+  });
+
+  testWidgets('no stamp renders below the 18 px floor', (WidgetTester tester) async {
+    // Closes the artefact's 14 px defect at the component boundary. The
+    // Indelible artefact sets stamps at 14 px; 02 §4.4 defect 2 rules that four
+    // of them are never the sole carrier of their meaning and must clear 18.
+    // Rather than split the set, every stamp takes the floor.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: 'WORD'));
+      final Text word = tester.widget<Text>(
+        find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+      );
+      expect(word.style!.fontSize, greaterThanOrEqualTo(18.0), reason: '$stamp');
+    }
+  });
+
+  testWidgets('the dead stamp uses no status colour', (WidgetTester tester) async {
+    // indelible.md §2.7: a lamb that died prints the word DEAD, in full ink,
+    // with "colour: none, ever".
+    await _pumpComponent(tester, ShedStatusBadge(stamp: ShedStamp.dead, label: 'DEAD'));
+    final ShedTokens t = buildShedTheme(nightPalette).extension<ShedTokens>()!;
+    final Text word = tester.widget<Text>(
+      find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+    );
+
+    expect(word.style!.color, t.textPrimary);
+    expect(word.style!.color, isNot(t.statusLoss));
+  });
+
+  testWidgets('ShedCountdown renders a tally mark per remaining day', (WidgetTester tester) async {
+    await _pumpComponent(tester, countdown(9));
+    expect(find.text('9'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNWidgets(9),
+    );
+  });
+
+  testWidgets('ShedCountdown caps the tally at 28 marks and prints +n', (
+    WidgetTester tester,
+  ) async {
+    // Beyond 28 the strokes stop being countable and start being a texture, so
+    // the surplus is a figure instead.
+    await _pumpComponent(tester, countdown(41));
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNWidgets(ShedCountdown.maxMarks),
+    );
+    expect(find.text('+13'), findsOneWidget);
+  });
+
+  testWidgets('the last day renders LAST DAY, a dagger and a doubled rule, and does not '
+      'recolour the figure', (WidgetTester tester) async {
+    // FOUR CHANNELS, ONE ASSERTION EACH, and the fourth is the important one:
+    // the figure keeps its ink. The one thing a shepherd must not have to do at
+    // 03:20 is distinguish two reds.
+    await _pumpComponent(tester, countdown(5));
+    final TextStyle normalFigure = tester.widget<Text>(find.text('5')).style!;
+
+    await _pumpComponent(tester, countdown(1));
+    expect(find.text('LAST DAY'), findsOneWidget);
+    expect(find.text('†'), findsOneWidget);
+
+    final Iterable<DecoratedBox> rules = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(DecoratedBox)),
+    );
+    expect(
+      rules.any((DecoratedBox b) {
+        final Border border = (b.decoration as BoxDecoration).border! as Border;
+        return border.top.width > 0 && border.bottom.width > 0;
+      }),
+      isTrue,
+      reason: 'no doubled rule on the last day',
+    );
+
+    expect(tester.widget<Text>(find.text('1')).style!.color, normalFigure.color);
+  });
+
+  testWidgets("a cleared countdown keeps the tally's width as a solid rule", (
+    WidgetTester tester,
+  ) async {
+    // Nothing reflows on the day a withdrawal clears. A row that jumps that day
+    // is a row whose neighbour gets pressed.
+    await _pumpComponent(tester, countdown(3));
+    final double tallyWidth = tester
+        .getSize(
+          find.descendant(of: find.byType(ShedCountdown), matching: find.byType(SizedBox)).first,
+        )
+        .width;
+
+    await _pumpComponent(tester, countdown(0));
+    final double ruleWidth = tester
+        .getSize(
+          find.descendant(of: find.byType(ShedCountdown), matching: find.byType(SizedBox)).first,
+        )
+        .width;
+
+    expect(ruleWidth, tallyWidth);
+  });
+
+  testWidgets('ShedCountdown.notRecorded renders words and no figure, no tally and no date', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notRecorded(
+        productName: 'Alamycin',
+        words: 'Withdrawal not recorded',
+        semanticLabel: 'Alamycin, withdrawal not recorded',
+      ),
+    );
+
+    expect(find.text('Withdrawal not recorded'), findsOneWidget);
+    expect(find.text('0'), findsNothing, reason: 'safety rule §12.1: 0 is a real label value');
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNothing,
+    );
+    expect(find.textContaining('CLEARS'), findsNothing);
+  });
+
+  testWidgets('notRecorded and notApplicable render different sentences', (
+    WidgetTester tester,
+  ) async {
+    // A gap and a fact off the label are different facts. Rendering one sentence
+    // for both is how the gap becomes invisible.
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notRecorded(
+        productName: 'Alamycin',
+        words: 'Withdrawal not recorded',
+        semanticLabel: 'x',
+      ),
+    );
+    expect(find.text('Withdrawal not recorded'), findsOneWidget);
+
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notApplicable(
+        productName: 'Alamycin',
+        words: 'No withdrawal period',
+        semanticLabel: 'x',
+      ),
+    );
+    expect(find.text('No withdrawal period'), findsOneWidget);
+    expect(find.text('Withdrawal not recorded'), findsNothing);
+  });
+
+  test('ShedCountdown cannot be constructed from a WithdrawalUnknown', () {
+    // CONVENTIONS §2.7 held AT THE TYPE LEVEL. The default constructor's
+    // parameter is ClearsOn, so a countdown for an unrecorded period is
+    // type-impossible rather than merely discouraged — which is safety rule
+    // §12.1's whole mechanism, because `0` is a real label value and a nullable
+    // int cannot carry the difference.
+    final String source = _declarations(countdownFile);
+    expect(source, contains('required ClearsOn this.clearsOn'));
+    expect(source, isNot(contains('WithdrawalStatus this.')));
+    expect(source, isNot(contains('required WithdrawalStatus')));
+  });
+
+  testWidgets('the days figure carries tabularFigures through headlineLarge', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, countdown(9));
+    expect(
+      tester.widget<Text>(find.text('9')).style!.fontFeatures,
+      contains(const FontFeature.tabularFigures()),
+    );
+    expect(_declarations(countdownFile), isNot(matches(RegExp(r'TextStyle\('))));
+  });
+
+  testWidgets(
+    'DST: seven days across UK spring-forward renders seven tally marks, not six',
+    (WidgetTester tester) async {
+      // THE Instant.difference().inDays REGRESSION, CAUGHT. 29 March 2026 is 23
+      // hours long, so seven civil days is 167 hours and truncating integer
+      // division gives SIX — one day short of a withdrawal period, in the
+      // direction that says meat is clear when it is not.
+      expect(
+        DateTime(2026, 7).timeZoneOffset,
+        const Duration(hours: 1),
+        reason: 'run with TZ=Europe/London',
+      );
+
+      final LocalDate start = LocalDate(2026, 3, 26);
+      await _pumpComponent(
+        tester,
+        ShedCountdown(
+          clearsOn: ClearsOn(
+            start.plusDays(7),
+            Instant.fromDateTime(DateTime.utc(2026, 4, 2)),
+            WithdrawalTarget.meat,
+          ),
+          now: Instant.fromDateTime(DateTime(2026, 3, 26, 12)),
+          productName: 'Alamycin',
+          clearsOnLabel: 'CLEARS 2 APR 2026',
+          semanticLabel: 'x',
+        ),
+      );
+
+      expect(find.text('7'), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+        findsNWidgets(7),
+      );
+    },
+    tags: <String>['uk-zone'],
+  );
+
+  testWidgets('DST: the tally is stable through the ambiguous hour 01:00 to 01:59', (
+    WidgetTester tester,
+  ) async {
+    // Both readings of the repeated local hour on the clocks-back night give
+    // the same LocalDate, so the count does not flicker as the hour repeats.
+    expect(DateTime(2026, 7).timeZoneOffset, const Duration(hours: 1));
+
+    final LocalDate clear = LocalDate(2026, 11, 1);
+    final List<int> counts = <int>[];
+
+    for (final DateTime utc in <DateTime>[
+      DateTime.utc(2026, 10, 25, 0, 30), // 01:30 BST
+      DateTime.utc(2026, 10, 25, 1, 30), // 01:30 GMT — the same wall time
+    ]) {
+      await _pumpComponent(
+        tester,
+        ShedCountdown(
+          clearsOn: ClearsOn(
+            clear,
+            Instant.fromDateTime(DateTime.utc(2026, 11)),
+            WithdrawalTarget.meat,
+          ),
+          now: Instant(utc.millisecondsSinceEpoch),
+          productName: 'Alamycin',
+          clearsOnLabel: 'CLEARS 1 NOV 2026',
+          semanticLabel: 'x',
+        ),
+      );
+      counts.add(
+        tester
+            .widgetList(
+              find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+            )
+            .length,
+      );
+    }
+
+    expect(counts.toSet(), hasLength(1), reason: 'the tally flickered across the repeated hour');
+  }, tags: <String>['uk-zone']);
+
+  testWidgets('both components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedStatusBadge(stamp: ShedStamp.withdrawal, label: 'WITHDRAWAL'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedStatusBadge overflowed');
+
+    await _pumpComponent(tester, countdown(9), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull, reason: 'ShedCountdown overflowed');
   });
 }

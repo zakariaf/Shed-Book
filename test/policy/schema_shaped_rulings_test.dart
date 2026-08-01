@@ -5,6 +5,7 @@
 //
 // The parser is `test/support/decision_record.dart`, lifted there in this
 // task's Refactor step when this file became its second consumer.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

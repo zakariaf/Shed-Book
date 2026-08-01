@@ -7,6 +7,7 @@
 // and §5 is the only source of a version number in this project. `pubspec.lock`
 // is generated with a flat, stable shape, so a line scanner is enough — the
 // same posture as decision #82's hand-rolled CSV writer.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

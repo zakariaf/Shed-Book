@@ -1209,7 +1209,7 @@ Images live in `test/features/goldens/*.png` and the keys are written relative: 
 The `matchesGoldenFile` documentation states it plainly: *"A golden file generated on Windows with fonts will likely differ from the one produced by another operating system."* Flutter's own team solves this with Flutter Gold / Skia Gold, which is not available to app developers, and their contributor docs say *"it is common for there to be slight differences between them."* Goldens also differ across Flutter versions (flutter#36667). So:
 
 1. **One runner, one OS, one exact Flutter version.** Goldens are generated and verified on `macos-latest` with Flutter **3.44.8** pinned exactly via FVM — never `channel: stable`, never a floating version.
-2. **Tagged `golden` and excluded from the fast job.** `flutter test --exclude-tags golden` on `ubuntu-latest` every push; `flutter test --tags golden` on the macOS job.
+2. **Tagged `golden` and excluded from the fast job.** `flutter test --exclude-tags "golden || uk-zone || calendar"` on `ubuntu-latest` — see §11.2 for why the exclusion set is three tags and not one every push; `flutter test --tags golden` on the macOS job.
 3. **Not a per-PR gate** (decision #116). GitHub bills macOS at a 10× multiplier and the Free plan's 2,000 minutes is 200 macOS minutes a month; a per-push macOS build burns the quota in a week. The macOS golden job runs on a `v*` tag or manual dispatch, and `make goldens` runs locally before tagging.
 4. **`--update-goldens` never runs on CI.** Regeneration is a local, reviewed act.
 5. **`failures/` is a CI artifact, never committed.** `LocalFileComparator` writes four images per failure — master, test, isolated diff, masked diff — which makes review trivial.
@@ -1767,16 +1767,55 @@ The tags must be **declared here** or a `--tags` filter silently matches nothing
 1. **`flutter test` has no preset flag.** `-P`/`--preset` is **not** in the pass-through list below, which is read off `flutter_tools`' `test.dart`. `dart test` accepts it; `flutter test` is a different command with its own argument parser, and this project never runs `dart test` — decision #4 keeps `package:test` out of the pubspec entirely. A preset name CI cannot pass is not a source of truth, it is an error message on the first push. **Confirm this on day one against the installed SDK** — it is the one line that decides which of the two documents changes — and if `flutter test` does accept `-P`, reason 1 evaporates and only reason 2 stands.
 2. 13's stated rationale for the preset — that a bare `--exclude-tags golden` "would silently drop" the `migration` tag's `allow_test_randomization: false` — does not hold. Tag configuration in `dart_test.yaml` applies to every run that selects those tests, preset or not; it is not something a command-line filter switches off.
 
-Until that check is run, treat the flags as canonical and the presets as unwritten. §14 carries the edit.
+**RULED 2026-08-01, in N01-T04, by running the check on the installed SDK.** Both halves were run
+together as this section asks, on Flutter 3.44.8:
 
-> **Verify on day one, and record the answer here.** `flutter test` historically honours less of `dart_test.yaml` than `dart test` does. Confirm that `allow_test_randomization: false` actually takes effect on the migration tag; if it does not, the fallback is `--exclude-tags migration` in the randomised job plus a separate non-randomised invocation for migrations. **Unverified as written** — and note that this is the same day-one check as the preset question above, so run them together.
+| Check | Command | Answer |
+|---|---|---|
+| Does `flutter test` accept a preset flag? | `fvm flutter test --help \| grep -E '^\s*-P\|--preset'` | **No.** Empty output. Reason 1 above stands, so **this document is right and 13 §1.3 and §4.3 are wrong as published**; both take §14 edit 1 |
+| Does `allow_test_randomization: false` take effect under `flutter test`? | three tests declared `a`, `b`, `c` under `@Tags(['migration'])`, run twice with the same explicit seed | **Yes.** With the key: `a b c`. Without it: `b c a`. The fallback this section names — `--exclude-tags migration` plus a separate non-randomised invocation — is **not needed** |
+
+A third fact fell out of the same twenty minutes and it corrects the sentence at the top of this
+section. **An empty tag selection does not exit 0.** `flutter test --tags policy` against a tree with
+no file carrying that tag prints *"No tests match the requested tag selectors"* and exits **79**. So
+a `--tags` filter that matches nothing fails a CI step rather than passing vacuously — a stronger
+position than this document assumed, and it changes nothing about the rule. Declare the tag anyway
+and land a carrier anyway: an exit code is a weaker guarantee than a name, and a step that passes
+because a tagged file exists is worth more than one that fails because none does. N01-T04 lands the
+`uk-zone` canary for exactly that reason.
+
+**The Definition-of-Done line "both presets exist" is therefore unsatisfiable as written**, and it is
+recorded here as a ruling rather than quietly dropped: there are no presets, in this file or
+anywhere, and every filter in the `Makefile` and in `ci.yml` is spelled out, identically in both.
+
+**And the filter is wider than `--exclude-tags golden`, which is a second correction the same
+twenty minutes produced.** `ci-fast` was only ever `exclude_tags: golden`, and a run filtered that
+way is red on day one for two reasons that have nothing to do with goldens:
+
+| Also excluded from the broad run | Why, and where it runs instead |
+|---|---|
+| `uk-zone` | Those files assert their own process offset and **fail loudly under any other zone** — which is the behaviour §2.5 wants, and which makes them a guaranteed failure in the broad run on a UTC CI runner. They run in the dedicated `TZ=Europe/London` step, which is the only place they can pass |
+| `calendar` | N00's ledger test is **red by design** until N32 closes the last commitment. §11.2's own rule is that it is kept out of the blocking set by this tag; leaving it in the broad run makes `main` permanently red for the one reason that is not a defect |
+
+So the broad command is
+
+```bash
+flutter test --exclude-tags "golden || uk-zone || calendar" \
+  --test-randomize-ordering-seed random --coverage
+```
+
+and `--exclude-tags` does accept that boolean expression — measured on 3.44.8 on 2026-08-01, along
+with everything else in this section. Verified end to end: under `TZ=UTC` it selects 52 tests and all
+52 pass, and `zone_canary_test.dart` is not among them.
+
+> **VERIFIED 2026-08-01 (N01-T04), and the answer is in the table above.** `flutter test` historically honours less of `dart_test.yaml` than `dart test` does, so this was a real risk — but `allow_test_randomization: false` **does** take effect on the `migration` tag under `flutter test`, measured against three tests declared `a`, `b`, `c` run twice under the same explicit seed. The fallback named here — `--exclude-tags migration` in the randomised job plus a separate non-randomised invocation — is **not needed** and must not be added: it would be complexity paid for a problem that does not exist.
 
 `flutter test` does pass through `--tags`/`-t`, `--exclude-tags`/`-x`, `--update-goldens`, `--coverage`, `--reporter`, `--concurrency`, `--test-randomize-ordering-seed`, `--name`, `--plain-name`, `--total-shards`, `--shard-index`, `--timeout` and `--fail-fast`. There is no `-P`, no `--preset` and no `--configuration`.
 
 ### 11.3 Randomised ordering
 
 ```bash
-flutter test --exclude-tags golden --test-randomize-ordering-seed random
+flutter test --exclude-tags "golden || uk-zone || calendar" --test-randomize-ordering-seed random
 ```
 
 The seed is printed on every run, so any failure reproduces with `--test-randomize-ordering-seed=<seed>`. This matters more here than in a typical app: the data and migration tiers share `setUp`-created databases, and randomisation is what catches accidental cross-test state — a leaked `withClock`, a static seed counter, a fixture mutated in place by a previous test. Migration tests are excluded (they are order-sensitive by design).
@@ -1789,7 +1828,7 @@ The seed is printed on every run, so any failure reproduces with `--test-randomi
 # The shape this document requires. Two commands on `test`, because TZ is
 # per-process and the tag alone cannot change the zone the runner starts in.
 test:
-	$(FLUTTER) test --exclude-tags golden --test-randomize-ordering-seed random --coverage
+	$(FLUTTER) test --exclude-tags "golden || uk-zone || calendar" --test-randomize-ordering-seed random --coverage
 	TZ=Europe/London $(FLUTTER) test --tags uk-zone
 
 # A target called `goldens` that silently rewrites the baseline is the single
@@ -1801,7 +1840,7 @@ goldens-update:           ## re-baseline. A deliberate act, its own commit (§8.
 	$(FLUTTER) test --tags golden --update-goldens
 ```
 
-13's copies read `-P ci-fast` and `-P ci-golden` where these read `--exclude-tags golden` and `--tags golden`. That is the §11.2 disagreement and nothing else: the target names, the split and the zone run all match. Resolve it once, in whichever direction the day-one check decides, and make both files say the same thing.
+13's copies **used to** read `-P ci-fast` and `-P ci-golden` where these read `--exclude-tags golden` and `--tags golden`. That was the §11.2 disagreement and nothing else; it was settled on 2026-08-01 by running the check, and 13 §1.3 and §4.3 now spell the filters the same way this document does: the target names, the split and the zone run all match. Resolve it once, in whichever direction the day-one check decides, and make both files say the same thing.
 
 Everything else in 13's `Makefile` stands as written. `make check` runs the cheapest failure first — the gate is sub-second, `analyze` is tens of seconds — and that ordering is worth preserving.
 
@@ -1867,7 +1906,7 @@ Owned by [`13-build-ci-release.md`](13-build-ci-release.md); listed here so a te
 |---|---|---|
 | `tool/check_policy.dart`, format, analyze | `ubuntu-latest` | Yes |
 | Codegen + `make-migrations` freshness diff | `ubuntu-latest` | Yes |
-| `flutter test --exclude-tags golden --test-randomize-ordering-seed random --coverage` (13 §4.3 currently spells the filter `-P ci-fast` — §11.2, §14 edit 1) | `ubuntu-latest` + `libsqlite3-dev` | Yes |
+| `flutter test --exclude-tags "golden \|\| uk-zone \|\| calendar" --test-randomize-ordering-seed random --coverage` (13 §4.3 spelled the filter `-P ci-fast` until 2026-08-01; edit 1 has been applied, and the exclusion set was widened at the same time — see §11.2) | `ubuntu-latest` + `libsqlite3-dev` | Yes |
 | `TZ=Europe/London flutter test --tags uk-zone` (no path — §2.5) | `ubuntu-latest` | Yes |
 | `TZ=Pacific/Chatham flutter test test/domain --exclude-tags uk-zone` | `ubuntu-latest` | Yes |
 | Release AAB build + permission assertion (G1) | `ubuntu-latest` | Yes |
@@ -1887,7 +1926,7 @@ Four still open, three already landed. None is a naming change and none reopens 
 
 | # | Document | Edit | Why |
 |---|---|---|---|
-| 1 | [`13-build-ci-release.md`](13-build-ci-release.md) §1.3 and §4.3 | Replace `-P ci-fast` / `-P ci-golden` with `--exclude-tags golden` / `--tags golden`, and drop the claim that `dart_test.yaml` declares those presets | §11.2. `-P`/`--preset` is not in `flutter test`'s flag set, and this project never runs `dart test` (decision #4). **Run the day-one check first**: if `flutter test` does accept `-P`, this document adds the presets instead and the edit reverses. One of the two files changes; both saying different things is the only unacceptable outcome |
+| 1 ✅ **APPLIED 2026-08-01 (N01-T04)** | [`13-build-ci-release.md`](13-build-ci-release.md) §1.3 and §4.3 | Replaced `-P ci-fast` / `-P ci-golden` with `--exclude-tags golden` / `--tags golden`, and dropped the claim that `dart_test.yaml` declares those presets | §11.2. `-P`/`--preset` is not in `flutter test`'s flag set, and this project never runs `dart test` (decision #4). **Run the day-one check first**: if `flutter test` does accept `-P`, this document adds the presets instead and the edit reverses. One of the two files changes; both saying different things is the only unacceptable outcome |
 | 2 | [`07-screens.md`](07-screens.md) §21.2 | Adopt §8.2's eight goldens — same count, two images moved from pen-board data shapes to text scale 2.0 and the deep-red palette | Tile count is a layout property the 252-cell matrix asserts without a PNG; legibility at 200% and under red-shift has no other gate |
 | 3 | [`06-design-system.md`](06-design-system.md) §6.3 and [`10-accessibility-and-i18n.md`](10-accessibility-and-i18n.md) §7.3 | Split by cost, per §7.4: the tree-walking guidelines + headings in `semantics_gate_test.dart`, the geometric gate + canary in `tap_target_test.dart`, the pixel-sampling `textContrastGuideline` in `contrast_test.dart` | Both documents currently run all three guidelines over the same 14 variants, so the contrast run happens twice at 84 runs each when 42 proves the same thing |
 | 4 | [`CONVENTIONS.md`](CONVENTIONS.md) §1 and [`01-architecture.md`](01-architecture.md) §2.2 | Tree comments. `test/support/` holds the harness, **seven** fakes, `seeds.dart`, `reads.dart`, `flock_generator.dart` and `tolerant_comparator.dart`. `test/design/` holds `semantics_gate_test.dart` and `reduce_motion_test.dart` as well as the three files the comment lists | Comment edits, not rulings. The seventh fake is [`11-monetization-and-store.md`](11-monetization-and-store.md)'s `FakePurchaseService`; the four helpers are this document's; the two design files are §7.4's and 10 §7.3's |
@@ -1930,7 +1969,7 @@ Tick every line before calling the test layer finished.
 - [ ] Coverage is published as an artifact and gates nothing. `lib/domain/**` is at 95%+ or the gap is named in review.
 - [ ] `make goldens` **verifies** and `make goldens-update` **re-baselines**; no single target does both.
 - [ ] The four open edits in §14 have been made in their owning documents, or each is open with an owner; the three landed properties (A–C) still hold.
-- [ ] The `dart_test.yaml` day-one check has been run and its answer is written into §11.2 — both the preset question and the `allow_test_randomization` question, which are the same check.
+- [x] The `dart_test.yaml` day-one check **has been run** (2026-08-01, N01-T04) and both answers are written into §11.2: `flutter test` has no preset flag, and `allow_test_randomization: false` does take effect. A third measurement is recorded there too — an empty tag selection exits 79, not 0 — both the preset question and the `allow_test_randomization` question being the same check.
 - [ ] `flutter test` runs green on a laptop in aeroplane mode.
 
 ---
@@ -1939,7 +1978,7 @@ Tick every line before calling the test layer finished.
 
 Carried, not hidden.
 
-1. **`dart_test.yaml` fidelity under `flutter test`** (§11.2). Two unverified halves of one check. Whether `allow_test_randomization: false` takes effect on the `migration` tag, and whether `flutter test` accepts `-P`/`--preset` at all. The second decides whether §14 edit 1 lands in 13 or reverses into this file. Fallbacks stated; record both answers in §11.2 on day one, before either document is implemented.
+1. ~~**`dart_test.yaml` fidelity under `flutter test`** (§11.2). Two unverified halves of one check.~~ **CLOSED 2026-08-01 (N01-T04).** Both halves were run together on Flutter 3.44.8: `flutter test` has no `-P` / `--preset` flag, and `allow_test_randomization: false` does take effect on the `migration` tag. A third fact was measured with them — an empty `--tags` selection exits **79**, not 0. All three are recorded in §11.2 and 13 §1.3 and §4.3 have taken §14 edit 1.
 2. **Closed — `checkLambing`'s real name** (§10, §10.4). 05 §7.5 guarantee 1 now names the validation entry points (`check<Thing>` → `List<Warning>`, one per file), so `checkLambing(Lambing, List<Lamb>)` is 05's spelling and not this document's placeholder. Nothing in §10.4 changes.
 3. **The host sqlite3 floor on the actual runner image** (§3.2). 3.41.0 is the asserted floor; which build a given image ships has not been checked. Run `test/data/host_sqlite_version_test.dart` on the image before the first green CI.
 4. **The tolerant comparator's installation** (§8.3). `LocalFileComparator`'s basedir resolution and the interaction with `flutter_test_config.dart` must be confirmed by deliberately breaking a golden. Until that is done, a green golden run proves nothing.

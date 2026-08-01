@@ -2,6 +2,7 @@
 // SDK that happens to be installed. `13 §1.1`'s three-line workflow assert greps
 // `.fvmrc` for one exact key; a file that pin does not match is a green pipeline
 // that has proved nothing.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:convert';

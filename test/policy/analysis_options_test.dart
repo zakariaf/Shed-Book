@@ -7,6 +7,7 @@
 // from `test/` is exactly what G2's `[transitive]` section exists to police —
 // it would also trip `depend_on_referenced_packages`, which `flutter_lints`
 // enables and `--fatal-infos` turns into a build break.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

@@ -1,0 +1,57 @@
+# dart_test.yaml
+#
+# 12 §11.2 verbatim for the tag block, plus `calendar`.
+#
+# THERE IS NO `presets:` BLOCK, and that is a measured ruling rather than an
+# omission. 12 §11.2 and 13 §1.3/§4.3 contradicted each other in writing about
+# whether `ci-fast` and `ci-golden` could exist at all; 12 §14 edit 1 made
+# resolving it a day-one check. It was run on Flutter 3.44.8 on 2026-08-01:
+#
+#     fvm flutter test --help | grep -E '^\s*-P|--preset'   ->  empty
+#
+# `flutter test` has no preset flag. 12 §11.2 is right and 13 §1.3 and §4.3 were
+# wrong as published; both take 12 §14 edit 1. Every filter in the Makefile and
+# in ci.yml is therefore spelled `--exclude-tags golden` and `--tags golden`,
+# identically in both files, and never `-P`.
+#
+# This project never runs `dart test`, because decision #4 keeps package:test
+# out of the pubspec entirely — so there is no invocation from which a preset
+# could be selected.
+#
+# A tag must be DECLARED here or a `--tags` filter matches nothing. Measured at
+# the same time: an empty selection on 3.44.8 prints "No tests match the
+# requested tag selectors" and exits **79**, not 0 — so it fails a CI step
+# rather than passing vacuously. Declare the tag anyway; an exit code is a
+# weaker guarantee than a name, and 12 §11.2's rule stands.
+
+tags:
+  # Generated and verified only on the pinned macOS runner.
+  golden:
+
+  migration:
+    timeout: 2x
+    # Order-sensitive by design. MEASURED on 3.44.8, 2026-08-01: this key does
+    # take effect under `flutter test`. Three tests declared a, b, c ran a, b, c
+    # with the key and b, c, a without it, under the same explicit seed. The
+    # fallback 12 §11.2 named — `--exclude-tags migration` in the randomised job
+    # plus a separate non-randomised invocation — is therefore NOT needed.
+    #
+    # `test_randomize_ordering_seed` is a RUNNER-level key and is not valid
+    # here; setting it at the top of this file would switch randomisation off
+    # for the whole suite, which is the exact opposite of what the randomised
+    # job exists for.
+    allow_test_randomization: false
+
+  # Requires TZ=Europe/London; the file asserts the offset itself.
+  uk-zone:
+
+  policy:
+
+  slow:
+    timeout: 3x
+
+  # N00's ledger test; red until every commitment has a date and an outcome.
+  calendar:
+
+  # Excluded from CI; every one carries an expiry date in its name.
+  flaky:

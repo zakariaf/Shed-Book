@@ -6,6 +6,7 @@
 // The parser lived privately in this file until N00-T04 became its second
 // consumer; it is now `test/support/decision_record.dart` and this file is one
 // of its two callers.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

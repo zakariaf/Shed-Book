@@ -8,6 +8,7 @@
 // must be absent and stay absent. Setting it forces one storage representation
 // onto instants and civil dates, which are different kinds (#29), and it
 // becomes permanent at the first snapshot in N07.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:convert';

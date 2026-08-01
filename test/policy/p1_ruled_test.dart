@@ -4,6 +4,7 @@
 // every query, every export shape, every statistic and every restore mapping
 // written in the meantime, because each of them silently assumed no row could
 // be struck.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

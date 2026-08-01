@@ -8,6 +8,7 @@
 // and `test/`, which is the only thing the gate walks. `.gitignore` and the
 // directory tree are outside that walk, so they are §1.4's second bullet:
 // behaviour and artefacts are tests.
+@Tags(<String>['policy'])
 library;
 
 import 'dart:io';

@@ -1,0 +1,12 @@
+# l10n.yaml — repo root (CONVENTIONS §1). Ships en only.
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+output-class: AppLocalizations
+# Every message must carry a description. Ten seconds each; it is where the
+# safety rationale for a string lives (§8.4).
+required-resource-attributes: true
+# AppLocalizations.of(context) with no `!`.
+nullable-getter: false
+# Named parameters, so a three-placeholder message is readable at the call site.
+use-named-parameters: true

@@ -1,0 +1,19 @@
+# build.yaml — NOT build.yml. A drift discussion exists solely because
+# someone lost a day to that typo and FTS5 silently stayed disabled.
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          sql:
+            dialect: sqlite
+            options:
+              modules:
+                - fts5
+          # Result sets get value equality so `.distinct()` in the repository
+          # actually suppresses duplicate stream emissions (decision #12).
+          override_hash_and_equals_in_result_sets: true
+          databases:
+            shed_book: lib/core/db/database.dart
+          schema_dir: drift_schemas/
+          test_dir: test/drift/

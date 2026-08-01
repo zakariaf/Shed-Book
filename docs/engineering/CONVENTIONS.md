@@ -531,7 +531,7 @@ final class FreeTierPolicy {
 
 | Name | File | Shape |
 |---|---|---|
-| `ShedTokens` | `tokens.dart` | `final class ShedTokens extends ThemeExtension<ShedTokens>`; flat; `copyWith({Duration? motion, bool? highContrast})`; `lerp` snaps every non-`Color` field at `t < 0.5` |
+| `ShedTokens` | `tokens.dart` | `final class ShedTokens extends ThemeExtension<ShedTokens>`; flat; `copyWith({Duration? motion, bool? highContrast})`; `lerp` snaps **every** field at `t < 0.5`, colours included — amended 2026-08-01 (N09-T02); see `06 §3.3` |
 | `ShedPalette` | `tokens.dart` | `{id, highContrast, name, colorScheme, tokens}` |
 | `ShedPaletteId` | `tokens.dart` | `{night, amber, deepRed}` with `key` (R35) |
 | `ShedThemeSet` | `theme.dart` | `typedef ShedThemeSet = ({ThemeData theme, ThemeData highContrast});` |

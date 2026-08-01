@@ -608,7 +608,7 @@ Run on **one small iPhone and one small Android**, in a dark room, holding a tor
 
 | # | Pass | Definition of done |
 |---|---|---|
-| 1 | **Dark, default palette** | No white flash from cold launch at any of the four layers. No surface lighter than the palette's `surfaceFill`. Every text/background pair measured, not eyeballed. |
+| 1 | **Dark, default palette** | No white flash from cold launch at any of the four layers. No surface lighter than the palette's `surfaceFillPressed` — the brightest of the five, and the fifth surface arrived with `06 §3.3`'s 2026-08-01 amendment; this row named `surfaceFill` when there were four. Every text/background pair measured, not eyeballed. |
 | 2 | **Largest text** (iOS AX5; Android 200% **and** largest display size, simultaneously) | No clipped text, no overlapping text, no horizontal page scroll, every target still ≥ 60 pt, every action still reachable. The pen board has reflowed to ≤ 2 columns. No `FittedBox` has appeared. |
 | 3 | **Bold Text on** | Nothing reflows into overflow. Nothing got *lighter* (§4.6). |
 | 4 | **Reduce Motion on** — set it on **both** platforms, they are different flags | No slide transitions, no shimmer, no pulsing badge. Nothing became undiscoverable because its animation was the affordance. |

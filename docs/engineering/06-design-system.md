@@ -364,6 +364,7 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
     required this.surfaceRaised,
     required this.surfacePressed,
     required this.surfaceFill,
+    required this.surfaceFillPressed,
     required this.outline,
     // ink
     required this.textNumeric,
@@ -392,7 +393,8 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
 
   final ShedPaletteId id;
   final bool highContrast;
-  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill, outline;
+  final Color surfaceBase, surfaceRaised, surfacePressed, surfaceFill,
+      surfaceFillPressed, outline;
   final Color textNumeric, textPrimary, textSecondary, textChrome;
   final Color statusReady, statusAttention, statusLoss, onStatus;
   final double tapMin, tapPrimary, tapHero, gapMin, gapDestructive;
@@ -413,6 +415,7 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
         /* …every other field passed through verbatim… */
         surfaceBase: surfaceBase, surfaceRaised: surfaceRaised,
         surfacePressed: surfacePressed, surfaceFill: surfaceFill,
+        surfaceFillPressed: surfaceFillPressed,
         outline: outline, textNumeric: textNumeric, textPrimary: textPrimary,
         textSecondary: textSecondary, textChrome: textChrome,
         statusReady: statusReady, statusAttention: statusAttention,
@@ -428,32 +431,9 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
   @override
   ShedTokens lerp(covariant ShedTokens? other, double t) {
     if (other == null) return this;
-    // Colours interpolate with Color.lerp. Metrics and identity NEVER do:
-    // a tap target that is 63.4 pt for 150 ms breaks the 60 pt contract for
-    // 150 ms, so every non-Color field snaps at the halfway point.
-    final ShedTokens m = t < 0.5 ? this : other;
-    return ShedTokens(
-      id: m.id, highContrast: m.highContrast, motion: m.motion,
-      photoTint: m.photoTint,
-      tapMin: m.tapMin, tapPrimary: m.tapPrimary, tapHero: m.tapHero,
-      gapMin: m.gapMin, gapDestructive: m.gapDestructive,
-      outlineWidth: m.outlineWidth, radiusControl: m.radiusControl,
-      bodySize: m.bodySize, numeralSize: m.numeralSize,
-      surfaceBase: Color.lerp(surfaceBase, other.surfaceBase, t)!,
-      surfaceRaised: Color.lerp(surfaceRaised, other.surfaceRaised, t)!,
-      textNumeric: Color.lerp(textNumeric, other.textNumeric, t)!,
-      textPrimary: Color.lerp(textPrimary, other.textPrimary, t)!,
-      /* …the remaining Colors lerp identically… */
-      surfacePressed: Color.lerp(surfacePressed, other.surfacePressed, t)!,
-      surfaceFill: Color.lerp(surfaceFill, other.surfaceFill, t)!,
-      outline: Color.lerp(outline, other.outline, t)!,
-      textSecondary: Color.lerp(textSecondary, other.textSecondary, t)!,
-      textChrome: Color.lerp(textChrome, other.textChrome, t)!,
-      statusReady: Color.lerp(statusReady, other.statusReady, t)!,
-      statusAttention: Color.lerp(statusAttention, other.statusAttention, t)!,
-      statusLoss: Color.lerp(statusLoss, other.statusLoss, t)!,
-      onStatus: Color.lerp(onStatus, other.onStatus, t)!,
-    );
+    // Every field snaps, colours included: one operand or the other, never a
+    // third value. See the amendment note below.
+    return t < 0.5 ? this : other;
   }
 }
 
@@ -462,6 +442,42 @@ extension ShedTokensX on BuildContext {
   ShedTokens get tokens => Theme.of(this).extension<ShedTokens>()!;
 }
 ```
+
+**Amended 2026-08-01 (N09-T02), two changes, both narrowings.**
+
+**1 — `lerp` snaps the `Color` fields too.** The body above previously read:
+
+> ~~`surfaceBase: Color.lerp(surfaceBase, other.surfaceBase, t)!,`~~ and the same for the other
+> eleven `Color` fields — *"Colours interpolate with `Color.lerp`. Metrics and identity NEVER do."*
+
+Struck, with its reason: **a colour produced by interpolation is a colour nobody measured for
+contrast.** The entire claim of the two-tier structure is that every colour on screen is one somebody
+measured, and `Color.lerp` manufactures values outside that set — at `t = 0.5` between `night` and
+`deepRed`, `textChrome` lands on a hex that appears in no palette and in no row of §4's contrast
+tables. Indelible rule 4 does not have a "for 150 ms" exemption, and `00-README` §2.3's hierarchy
+prefers *unrepresentable* over *documented*.
+
+The cost is zero: §2.1 and §4.8 already pin `themeAnimationDuration: Duration.zero`, precisely
+because *"a 200 ms lerp between night and deep red drags every colour through a desaturated,
+low-contrast midpoint"* — so no intermediate `t` is ever produced in the running app. This change
+removes the possibility instead of relying on that setting staying where it is.
+
+The metric sentence survives unchanged and is the half this always got right: a tap target that is
+63.4 pt for 150 ms breaks the 60 pt contract for 150 ms.
+
+`CONVENTIONS §2.11` and `.claude/skills/indelible-page-and-screens/SKILL.md` §4 both said *"snaps
+every non-`Color` field"* and were amended in the same commit.
+
+**2 — `surfaceFillPressed`, the fifth surface.** This section had four surfaces; `indelible.md` §2.2
+has five, and `--slab-pressed` (`#2A2A2E`) had nowhere to go. §1's own rule applies — *"if a
+direction needs a token this system does not have, add the token to `ShedTokens`"* — so it is added
+rather than folded into `surfacePressed`. They are different hexes with different placement rules: a
+row under the thumb is `#131315`, a slab under the thumb is `#2A2A2E`, and the second is the only
+surface in the app on which `outline` and `textChrome` may not be drawn (2.54 and 4.16).
+
+`10-accessibility-and-i18n.md` §11's acceptance row said *"no surface lighter than the palette's
+`surfaceFill`"*, which this change makes false — `surfaceFillPressed` is lighter by design. Amended
+in the same commit to name the brightest surface.
 
 Usage is then greppable and palette-proof:
 
@@ -484,7 +500,7 @@ Widget build(BuildContext context) {
 
 | Prefix | Meaning | Examples |
 |---|---|---|
-| `surface*` | something the app paints *under* content | `surfaceBase`, `surfaceRaised`, `surfacePressed`, `surfaceFill` |
+| `surface*` | something the app paints *under* content | `surfaceBase`, `surfaceRaised`, `surfacePressed`, `surfaceFill`, `surfaceFillPressed` |
 | `text*` | something the app paints *as* glyphs | `textNumeric`, `textPrimary`, `textSecondary`, `textChrome` |
 | `status*` | a domain state, always paired with a shape and a word | `statusReady`, `statusAttention`, `statusLoss` |
 | `on*` | a foreground guaranteed legible on the named background | `onStatus` |

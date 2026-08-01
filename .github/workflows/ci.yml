@@ -52,9 +52,27 @@ jobs:
 
       - run: flutter pub get
 
-      # N03-T07 inserts the policy gate (G2 + G3) here, as the cheapest step, in
-      # the commit that makes tool/check_policy.dart exist. N01-T05 took the
-      # same option C for the Makefile, so the two files stay in step.
+      # The policy gate. G2 and G3 both live in this one step, so a green `gate`
+      # is the epic's product working and not a proxy for it.
+      #
+      # It sits AFTER `flutter pub get` and before everything else, which is the
+      # resolution of a three-way disagreement in the doc set: N03-T07's own
+      # title says "first step, before pub get", while 01 §3.3 and 13 §4.3 both
+      # put it after, with a reason. The two documents are right — a missing
+      # lockfile is exit 2, and G2 must read the lockfile CI will actually build
+      # with, not the one committed before an upstream package moved. The title's
+      # intent survives intact: this is the first step that can fail on the
+      # CONTENTS of the diff; the two above it are preconditions, one of which
+      # 13 §1.1 requires to be first in the first job that installs Flutter.
+      #
+      # `dart`, never `dart run`: the run subcommand does an implicit pub get and
+      # executes the package's build hooks, which is how a dependency-free gate
+      # acquires a dependency. Measured 2026-08-01 in N03-T01.
+      #
+      # No `continue-on-error`, here or anywhere in this file. A gate that cannot
+      # fail is not a gate.
+      - name: Policy gate (G2 + G3)
+        run: dart tool/check_policy.dart
 
       - name: Format
         run: dart format --output=none --set-exit-if-changed .

@@ -684,6 +684,14 @@ String _wordPattern(String word) {
 
 /// Every rule id this script can emit, in declaration order. N03-T07's
 /// inventory assertion iterates this; a rule that is not here cannot be proved.
+/// Every rule id this script can emit, in declaration order, from **all** of:
+/// [_layerRuleIds] (which covers `_directionRuleId`'s values and the three ids
+/// emitted by code rather than by a map entry) · `layer.import` · [_bannedText]
+/// · [_bannedPattern] · the three `dep.*` ids [_checkLockfile] interpolates.
+///
+/// An id a rule can emit but this getter does not yield is invisible to the
+/// inventory assertion — which is the one way that assertion can be written and
+/// still be worthless. `dep.*` and `layer.import` appear in no table at all.
 Iterable<String> get policyRuleIds sync* {
   yield* _layerRuleIds;
   yield 'layer.import';
@@ -692,6 +700,9 @@ Iterable<String> get policyRuleIds sync* {
   }
   for (final (String id, _, _, _) in _bannedPattern) {
     yield id;
+  }
+  for (final String kind in _sectionFor.keys) {
+    yield 'dep.${kind.replaceAll(' ', '_')}';
   }
 }
 

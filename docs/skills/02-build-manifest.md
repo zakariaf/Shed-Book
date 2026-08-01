@@ -779,15 +779,15 @@ writing a step.**
 name: shed-release
 description: >-
   Cuts a Shed Book release — the offline gates G0 to G5 against a real release bundle, the exact
-  eight-entry permission set, signing and the off-machine symbols archive, size and startup budgets on
+  nine-name permission set, signing and the off-machine symbols archive, size and startup budgets on
   two real devices, version and build number rules, the closed test track, and the release freeze
   between 1 February and 30 April. This builds, signs and tags, so it runs only when the developer
   asks for it by name.
 disable-model-invocation: true
 ```
 
-**Sources.** `13-build-ci-release.md` §2 (the offline contract and its gates, **G0 has not been run —
-until it is, G1 is unwritten**), §3 (the complete permission set), §4 (the CI job matrix and its macOS
+**Sources.** `13-build-ci-release.md` §2 (the offline contract and its gates, **G0 ran 2026-08-01 —
+G1 is now writable and is written at N31-T03**), §3 (the complete permission set), §4 (the CI job matrix and its macOS
 budget), §6 (size and startup budgets), §9 (versioning and signing), §10 (test tracks and the 12-tester
 requirement), §11 (the seasonal freeze), §12 (the manual pre-release checklist);
 `../research/00-tech-decisions.md` §3.2, §3.3.

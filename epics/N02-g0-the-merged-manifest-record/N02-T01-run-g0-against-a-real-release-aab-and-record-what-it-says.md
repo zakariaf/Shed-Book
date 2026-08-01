@@ -121,8 +121,19 @@ grep -i -B2 -A6 'INTERNET' build/app/outputs/logs/manifest-merger-debug-report.t
 | 5 | `docs/engineering/REFERENCES.md` §22 | A2, B19, B20 and the manifest half of D8 are struck with the answer and the date. An unverified row that has been verified and left standing is how the same afternoon gets spent twice |
 | 6 | `test/policy/g0_recorded_test.dart` | **written first** (§4). Created here with one `test()`; N02-T03 adds the second to the same file |
 
-Nothing under `lib/`, nothing under `android/`, no `pubspec.yaml` edit, no lockfile churn. A diff
-touching any of those in this commit is a different task wearing this one's message.
+Nothing under `lib/`, no `pubspec.yaml` edit, no lockfile churn. A diff touching any of those in this
+commit is a different task wearing this one's message.
+
+~~Nothing under `android/`~~ — **amended 2026-08-01, and it is the one exception.**
+`flutter build appbundle --release` fails at `:app:checkReleaseAarMetadata` with *"Dependency
+':flutter_local_notifications' requires core library desugaring to be enabled for :app"*, so there is
+no `.aab` to read and G0 cannot run at all. Two lines go into `android/app/build.gradle.kts` —
+`isCoreLibraryDesugaringEnabled = true` and
+`coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")`, both of them `13 §3.1`'s and
+already owned by N31-T02 and N24-T06 — and they are **committed, not reverted**, because an archived
+merger report describing a tree nobody can rebuild is evidence of nothing. They contribute no manifest
+node: `desugar_jdk_libs` appears zero times in the report. Both task files are amended to verify
+rather than add.
 
 ### 5.3 The table, as it must read afterwards
 

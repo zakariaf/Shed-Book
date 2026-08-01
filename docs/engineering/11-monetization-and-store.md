@@ -94,27 +94,17 @@ Nothing else is added. There is no `StoreGateway`, no `PurchaseRepository`, no `
 
 ## 3. What `in_app_purchase` does to the manifest, and which offline claims survive
 
-### 3.1 The eight-entry permission set
+### 3.1 The permission set — nine names, eight lines
 
-`00-tech-decisions.md` §3.3 is canonical. Reproduced here because this document is the reason one of
-its lines exists:
-
-```
-android.permission.POST_NOTIFICATIONS      <- flutter_local_notifications (merged)
-android.permission.VIBRATE                 <- flutter_local_notifications (merged)
-android.permission.RECEIVE_BOOT_COMPLETED  <- we add (reschedule after reboot)
-android.permission.SCHEDULE_EXACT_ALARM    <- we add (user-granted; NEVER USE_EXACT_ALARM)
-android.permission.RECORD_AUDIO            <- record (merged)
-android.permission.WAKE_LOCK               <- wakelock_plus (merged)
-com.android.vending.BILLING                <- Play Billing 8.0.0 AAR (merged, via in_app_purchase)
-android.permission.INTERNET                <- ABSENT. Explicitly removed at merge time.
-android.permission.ACCESS_NETWORK_STATE    <- removal PENDING G0. Do not commit the removal on faith.
-```
-
-What each layer contributes:
+~~The eight-entry permission set~~ — **struck 2026-08-01. G0 measured nine.**
+`00-tech-decisions.md` §3.3 is canonical and is not re-typed here any more, because it now carries
+two blocks — what the artefact declared and what N31 changes — and a reproduction of one of them
+reads as the whole. What this document owes the reader is the monetization half:
 
 - **`in_app_purchase_android`'s own manifest is empty.** Verified: `<manifest package="io.flutter.plugins.inapppurchase"></manifest>` and nothing else.
-- **The Play Billing AAR merges `com.android.vending.BILLING`**, a translucent `ProxyBillingActivity` that hosts the Play Store's checkout sheet, and a `com.google.android.play.billingclient.version` meta-data key. That evidence is read off a **mirror of billing 2.0.3**; the 8.0.0 AAR manifest is not published as text and **could not be verified from a primary source**. Treat "billing 8.0.0 adds nothing else" as highly likely and **unverified**.
+- **The Play Billing 8.0.0 AAR merges `com.android.vending.BILLING`** and, in the merged manifest, nothing else — read off a real release `.aab` on **2026-08-01**, not off the 2.0.3 mirror, which is struck. ~~Treat "billing 8.0.0 adds nothing else" as highly likely and **unverified**.~~
+- **What was missed was not the AAR but its Gradle graph.** `com.android.billingclient:billing:8.0.0` has `com.google.android.datatransport:transport-backend-cct:3.1.8` as a **compile-scope** dependency, and *that* library declares both `android.permission.INTERNET` and `android.permission.ACCESS_NETWORK_STATE`. Billing 8.0.0 also brings `play-services-base` 18.5.0, `play-services-basement` 18.4.0, `play-services-location` 19.0.0 and `play-services-tasks` 18.2.0; none of those contributed a permission to the 2026-08-01 build, and the location one was checked by name because a location permission in a lambing notebook's Play listing would be indefensible.
+- **This is the reason "the billing AAR is a Play-Services-adjacent artefact whose transitive Gradle graph is reviewed on every bump" is a rule and not a caution.** The permissions were one edge further out than four documents assumed.
 - **iOS merges nothing**, because iOS has no manifest permission model. StoreKit 2 is an XPC client of the system App Store daemon; `in_app_purchase_storekit` has used StoreKit 2 by default since 0.4.0.
 
 ### 3.2 G0 is a prerequisite, not a chore
@@ -131,11 +121,18 @@ java -jar bundletool.jar dump manifest \
 ```
 
 Then **record the actual permission set contributed by Play Billing 8.0.0 in `00-tech-decisions.md`
-§3.3**. Removing `INTERNET` is safe and proven. **Removing `ACCESS_NETWORK_STATE` is not proven** —
-three research notes hard-code that removal on the strength of a six-majors-old AAR. If billing 8.0.0
-declares it and the merger strips it, the failure surfaces as a purchase flow that misbehaves on a
-flaky connection, in production, on somebody else's phone. Until G0 has run, the offline gate is
-**unwritten, not merely unimplemented**.
+§3.3**. **Done 2026-08-01** (N02-T01); §3.3 carries it and this section is kept because the procedure
+is what a Billing Library bump re-runs, not because it is still owed.
+
+Removing `INTERNET` is safe and proven — twice over, as of that build: the `.aab` built with the line
+drops it and keeps the other six, and the debug and profile variants keep theirs.
+~~**Removing `ACCESS_NETWORK_STATE` is not proven**~~ — **struck: it is not removed.** Three research
+notes hard-coded that removal on the strength of a six-majors-old AAR; the measured answer is that
+billing's own manifest declares neither network permission and a transitive Google telemetry library
+declares both, so `13-build-ci-release.md` §2.2's *leave it* branch is the one that fires. Had the
+removal been committed on faith, the failure would have surfaced as a purchase flow that misbehaves on
+a flaky connection, in production, on somebody else's phone. ~~Until G0 has run, the offline gate is
+**unwritten, not merely unimplemented**.~~ It has run; the gate is writable, and N31-T03 writes it.
 
 The billing AAR is a **Play-Services-adjacent artefact**. Its transitive Gradle graph is reviewed on
 every Billing Library bump, and the bump is never done in the same commit as anything else.

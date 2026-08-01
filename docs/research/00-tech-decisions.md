@@ -32,9 +32,11 @@ These are irreversible or structural. Everything else in this document can be re
 2. **Instants are `INTEGER` UTC epoch millis; civil dates are `TEXT 'YYYY-MM-DD'`.** `store_date_time_values_as_text` is never set and drift `dateTime()` columns are never used. This is irreversible after the first migration snapshot. (c3 A4)
 3. **Withdrawal clear date = ceil-to-next-local-midnight of (administration instant + N × 24 h)**, computed in absolute time, stored exactly once at write time. Civil-day arithmetic is banned for withdrawal. (c3 A2, A3)
 4. **`main()` awaits nothing**: `ensureInitialized()` → install error handlers → `runApp()`. The database lives in **application support**, opened after the first frame. (c3 A5, D1)
-5. **Run the manifest-merger check against a real release AAB before writing any `tools:node="remove"` line**, and add the four `in_app_purchase*` packages to the offline allowlist and `com.android.vending.BILLING` to the permission list. (c3 B1, B2)
+5. **Run the manifest-merger check against a real release AAB before writing any `tools:node="remove"` line**, and add the four `in_app_purchase*` packages to the offline allowlist and `com.android.vending.BILLING` to the permission list. (c3 B1, B2) — **done 2026-08-01, N02-T01.** The record is §3.3; the ruling it produced is [`13-build-ci-release.md`](../engineering/13-build-ci-release.md) §2.2.
 
-Until #5 is done, the offline gate in CI is unwritten, not merely unimplemented.
+~~Until #5 is done, the offline gate in CI is unwritten, not merely unimplemented.~~ **Struck
+2026-08-01: #5 is done.** G1 is now writable, and N31-T03 is what writes it. Nothing else about the
+sentence changed — the gate is still unwritten *code*, and no CI job builds an `.aab` until N31.
 
 ---
 
@@ -250,29 +252,86 @@ Two claims currently in the research notes must stop being made: drift has "zero
 
 | # | Gate | What it proves | Blocking? |
 |---|---|---|---|
-| G1 | `bundletool dump manifest` on the **shipped release `.aab`** asserts the permission set is **exactly** the eight entries in §3.3 | A plugin cannot silently merge a permission | **Yes**, every push |
+| G1 | `bundletool dump manifest` on the **shipped release `.aab`** asserts the permission set is **exactly** §3.3's eight uncommented lines (~~eight entries~~ — struck 2026-08-01; G0 measured nine names and eight lines) | A plugin cannot silently merge a permission | **Yes**, every push |
 | G2 | Direct-**dependency** allowlist over `pubspec.lock`, with `dependencies` and `dev_dependencies` scanned separately and a **documented transitive allowlist** | A new package cannot enter the graph unreviewed | **Yes**, every push |
 | G3 | Import-level scan of `lib/`: no `package:http`, `dio`, `connectivity_plus`, `firebase_*`, `*_web_socket`, `google_fonts`, `PdfGoogleFonts`, `networkImage` | Our own source cannot reach a network API | **Yes**, every push |
 | G4 | `manifest-merger-release-report.txt` archived as a CI artifact | **Diagnostic only** — names which library contributed which permission | No |
 | G5 | iOS: no `NSAppTransportSecurity` key in `Info.plist`; App Privacy "Data Not Collected"; `PrivacyInfo.xcprivacy` present; one manual App Privacy Report / `nettop` check per release | There is no iOS permission to remove, so enforcement is construction + observation. **Say so honestly rather than implying parity with Android.** | Manual, per release |
 
-**G0 — the prerequisite.** Before any `tools:node="remove"` line is committed: run `flutter build appbundle --release`, read `build/app/outputs/logs/manifest-merger-release-report.txt`, and **record the actual permission set contributed by Play Billing 8.0.0 in this file**. Removing `INTERNET` is safe and proven. **Removing `ACCESS_NETWORK_STATE` is NOT yet proven** — three notes hard-code its removal, and the only AAR manifest anyone could fetch was billing **2.0.3**, six majors behind. If billing 8.0.0 declares it and the merger strips it, the failure surfaces as a purchase flow that misbehaves on a flaky connection, in production, on someone else's phone.
+**G0 — the prerequisite. Closed 2026-08-01** (N02-T01); the record is §3.3 and
+[`13-build-ci-release.md`](../engineering/13-build-ci-release.md) §2.2, and the artefact is `docs/gates/manifest-merger-release-report.txt`. It stays written here because a closed prerequisite that reads as open is how the same afternoon gets spent twice, and because G1 is only as good as the day this was read.
 
-### 3.3 The permission set — eight entries, not seven
+Before any `tools:node="remove"` line is committed: run `flutter build appbundle --release`, read `build/app/outputs/logs/manifest-merger-release-report.txt`, and **record the actual permission set contributed by Play Billing 8.0.0 in this file**. Removing `INTERNET` is safe and proven — ~~and~~ **now proven twice**: the release `.aab` built with the line drops `INTERNET` and keeps everything else, and the debug and profile variants keep theirs. ~~**Removing `ACCESS_NETWORK_STATE` is NOT yet proven**~~ — **struck 2026-08-01: it is not removed at all.** Three notes hard-coded its removal, and the only AAR manifest anyone could fetch was billing **2.0.3**, six majors behind. The measured answer is that billing 8.0.0's own manifest declares neither network permission and a **transitive** Google telemetry library declares both, so §2.2's *leave it* branch is the one that fires. Had the removal been committed on faith, the failure would have surfaced as a purchase flow that misbehaves on a flaky connection, in production, on someone else's phone.
+
+### 3.3 The permission set — nine entries, eight of them lines in the expected file
+
+**G0 was run on 2026-08-01** (N02-T01). Everything below is read off a real release
+`.aab` with `bundletool 1.18.3 dump manifest`, and attributed with
+`build/app/outputs/logs/manifest-merger-release-report.txt`, archived at
+`docs/gates/manifest-merger-release-report.txt`. Nothing here is remembered.
+
+> ~~`android.permission.WAKE_LOCK  <- wakelock_plus (merged)`~~ — **struck 2026-08-01.**
+> `wakelock_plus` 1.7.0 contributes **no** permission. Its manifest merges `<application>`
+> attributes only, and the plugin keeps the screen on with the `FLAG_KEEP_SCREEN_ON` window
+> flag, which needs none. `WAKE_LOCK` appears **zero** times in the merger report. It was
+> carried from note 06 and never checked.
+>
+> ~~`android.permission.ACCESS_NETWORK_STATE  <- removal PENDING G0`~~ — **struck 2026-08-01.**
+> It is present, it is not billing's own manifest that adds it, and §2.2's second permitted
+> outcome fires: **leave it.** See the line below for what actually contributes it.
+>
+> ~~"eight entries, not seven"~~ — **struck 2026-08-01.** The count moved by measurement, not by
+> decision: −1 `WAKE_LOCK`, +1 `ACCESS_NETWORK_STATE`, +1 `DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`.
 
 ```
-android.permission.POST_NOTIFICATIONS      <- flutter_local_notifications (merged)
-android.permission.VIBRATE                 <- flutter_local_notifications (merged)
-android.permission.RECEIVE_BOOT_COMPLETED  <- we add (reschedule after reboot)
-android.permission.SCHEDULE_EXACT_ALARM    <- we add (user-granted; NEVER USE_EXACT_ALARM)
-android.permission.RECORD_AUDIO            <- record (merged)
-android.permission.WAKE_LOCK               <- wakelock_plus (merged)
-com.android.vending.BILLING                <- Play Billing 8.0.0 AAR (merged, via in_app_purchase)
-android.permission.INTERNET                <- ABSENT. Explicitly removed at merge time.
-android.permission.ACCESS_NETWORK_STATE    <- removal PENDING G0. Do not commit the removal on faith.
+# AS BUILT — the exact uses-permission set the release .aab declared, 2026-08-01.
+# Seven entries. Each names the manifest the merger attributed it to.
+android.permission.POST_NOTIFICATIONS      <- flutter_local_notifications 22.2.0 (merged)
+android.permission.VIBRATE                 <- flutter_local_notifications 22.2.0 (merged)
+android.permission.RECORD_AUDIO            <- record_android, via record 7.1.1 (merged)
+com.android.vending.BILLING                <- com.android.billingclient:billing:8.0.0 (merged)
+com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION <- androidx.core:core:1.18.0 (merged)
+android.permission.ACCESS_NETWORK_STATE    <- com.google.android.datatransport:transport-backend-cct:3.1.8 (merged)
+android.permission.INTERNET                <- com.google.android.datatransport:transport-backend-cct:3.1.8 (merged)
 ```
 
-Note 06's canonical list of seven was wrong the moment monetization shipped: a grep of notes 06, 01, 04 and 08 for `in_app_purchase` / `billing` / `BILLING` returns **zero hits**. The offline gate and the monetization decision were designed in ignorance of each other. The billing AAR is a **Play-Services-adjacent artifact** whose transitive Gradle graph must be reviewed on every Billing Library bump.
+```
+# NOT IN THE ARTEFACT ABOVE. These three are the whole of what N31-T01 and N31-T02
+# change about the permission set, and the reason each is not there yet.
+android.permission.RECEIVE_BOOT_COMPLETED  <- we add — reminders survive a reboot (N31-T02)
+android.permission.SCHEDULE_EXACT_ALARM    <- we add — user-granted; NEVER USE_EXACT_ALARM (N31-T02)
+android.permission.INTERNET                <- REMOVED by tools:node="remove" in src/main (N31-T01).
+#                                             Proven on 2026-08-01: the merger logs
+#                                             "REJECTED from [transport-backend-cct:3.1.8]" and
+#                                             the release .aab drops to six entries.
+```
+
+**The shipped set is therefore nine names and eight lines.** Nine is this section's two blocks
+resolved — the seven above, minus `INTERNET`, plus the two we add. Eight is the uncommented lines
+`android/expected_permissions.txt` holds, because `INTERNET` is asserted by its *absence*. Same fact
+counted two ways, and confusing them is how somebody adds a ninth line to make a red build green.
+
+**Two libraries nobody in this doc set had listed contribute permissions, and one of them matters.**
+
+- `androidx.core:core:1.18.0` declares `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`,
+  a signature-level permission it defines and holds itself, used by `ContextCompat.registerReceiver`.
+  It is invisible in the Play listing and reaches no network. It is in the set because G1 asserts
+  **exact set equality**, and a set that omits it is red on the first Android job.
+- `com.google.android.datatransport:transport-backend-cct:3.1.8` is a **compile-scope dependency of
+  Play Billing 8.0.0** — Google's Cloud CCT telemetry transport — and it, not
+  `billing-8.0.0/AndroidManifest.xml`, is what declares both `INTERNET` and `ACCESS_NETWORK_STATE`.
+  Billing's own manifest declares `com.android.vending.BILLING` and nothing else, which is exactly
+  what §22 A2 guessed and could not prove. **What A2 did not anticipate is the transitive edge.**
+  Billing 8.0.0 also drags in `play-services-base` 18.5.0, `play-services-basement` 18.4.0,
+  `play-services-location` 19.0.0 and `play-services-tasks` 18.2.0; none of those contributed a
+  permission to this build, and the location one contributing none was checked specifically.
+  What this means for the tier 2 claim is **[`13-build-ci-release.md`](../engineering/13-build-ci-release.md) §2.2's ruling** — it is not a
+  question this section may answer, because §3.1's wording is public copy.
+
+Note 06's canonical list of seven was wrong the moment monetization shipped: a grep of notes 06, 01, 04 and 08 for `in_app_purchase` / `billing` / `BILLING` returns **zero hits**. The offline gate and the monetization decision were designed in ignorance of each other. The billing AAR is a **Play-Services-adjacent artifact** whose transitive Gradle graph must be reviewed on every Billing Library bump — and G0 has now shown that the graph, not the AAR, is where the permissions were hiding.
+
+**The record above is true of one dependency set** — the `pubspec.lock` in the tree on 2026-08-01.
+That is not a weakness to hedge: it is precisely what G1 exists to catch on every push afterwards.
 
 ### 3.4 The honest exceptions — things that touch a network and are kept anyway
 
@@ -280,7 +339,7 @@ Note 06's canonical list of seven was wrong the moment monetization shipped: a g
 |---|---|---|---|
 | 1 | **`http 1.6.0` is in the dependency graph via two regular edges** — `flutter_local_notifications → timezone → http ^1.6.0` and `wakelock_plus → package_info_plus → http ^1.6.0` | Unavoidable; both packages are load-bearing | Runtime exposure on Android/iOS is plausibly nil (`timezone`'s use is in `browser.dart`; `package_info_plus`'s is on web), and a built APK shows no `INTERNET` permission and no surviving network symbols after AOT. **But any "no http in pubspec.lock" gate is unsatisfiable and must not be written.** The gate is G1 + G2 + G3. |
 | 2 | **`in_app_purchase`** | Spec §14 requires a trial; only IAP delivers it without a second app sandbox | Binder IPC to the Play Store / XPC to the App Store daemon — *someone else's* socket. Called **only** on explicit Unlock / Restore taps, never on the launch path. Adds `com.android.vending.BILLING`. |
-| 3 | **`sqlite3` build hooks download prebuilt binaries from GitHub at build time**, sha256-verified | Bundling SQLite is what guarantees `STRICT` + FTS5 on every device | Build machine only; the shipped app has no network code. **Document it in the README** so a plane-mode `flutter clean && flutter build` failure is not mistaken for a regression. The build is not hermetic; vendor the pub cache or use `url_pattern` to point at a mirror if a 2029 rebuild matters. |
+| 3 | **`sqlite3` build hooks download prebuilt binaries from GitHub at build time**, sha256-verified | Bundling SQLite is what guarantees `STRICT` + FTS5 on every device | Build machine only; the shipped app has no network code. **Documented in `README.md`** as of 2026-08-01 (N02-T01), with the measured answer to §22 B20: `pub get` first on an empty pub cache, then **`flutter test`**, which fetches the host `libsqlite3.dylib`; `flutter build appbundle` fetches three more, one per Android ABI, so warming one target does **not** warm the other. The cache is `.dart_tool/hooks_runner/shared/`, which `flutter clean` deletes — so `flutter clean` is genuinely cold for the hook, unlike for `~/.pub-cache`. The build is not hermetic; vendor the pub cache or use `url_pattern` to point at a mirror if a 2029 rebuild matters. |
 | 4 | **`build_runner` pulls `shelf` / `web_socket_channel` into `pubspec.lock`** | Dev-only, never shipped | G2 scans `dependencies` and `dev_dependencies` separately. |
 | 5 | **A hosted privacy-policy URL** | Mandatory on both stores; the one piece of internet infrastructure this project cannot avoid | It is *outside* the app. No `url_launcher`; the full policy text also ships as static Dart strings. |
 | 6 | **The share sheet, the system photo picker** | The share sheet *is* the export mechanism (spec §7.9) | Tier 3 is explicitly not claimed. |

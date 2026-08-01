@@ -156,7 +156,18 @@ TextTheme buildShedTextTheme(ShedTokens t) {
   const double lineHeight = 1.4; // headroom for WCAG 1.4.12 — 06 §5.5
 
   // No weightBump parameter exists. Bold Text is the framework's job (06 §5.3).
+  //
+  // fontWeight, never FontVariation. The wght axis MEASURES 200–800, so
+  // indelible.md §3.3's 390 / 420 / 520 / 600 are all reachable — the axis was
+  // never the obstacle, and 06 §5.2's "500–700" record was simply wrong. What
+  // rules them out is the mechanism they would need: Text.build merges
+  // FontWeight.bold for the Bold Text accessibility setting and does NOT touch
+  // fontVariations, so a weight set through FontVariation('wght', 390) silently
+  // ignores that setting. The bug is invisible on a developer's device and
+  // lands on exactly the users who turned the setting on. See the P7 ruling in
+  // N09-T05's commit.
   TextStyle s(double size, FontWeight w, {List<FontFeature>? f}) => TextStyle(
+    fontFamily: 'AtkinsonNext',
     fontSize: size,
     fontWeight: w,
     color: t.textPrimary,

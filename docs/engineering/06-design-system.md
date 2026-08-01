@@ -966,7 +966,20 @@ TextTheme buildShedTextTheme(ShedTokens t) {
 
 Bundle **Atkinson Hyperlegible Next** (SIL OFL 1.1, ~114 KB for the upright variable file, ships `tnum` — decision #98). Take it from the Google Fonts OFL distribution, commit `OFL.txt` beside it in `assets/fonts/`, and register it via `LicenseRegistry.addLicense`.
 
-**Verify on download, before the pubspec entry is written:** the exact byte count (it goes in the < 5 MB asset budget, decision #127) and the `wght` axis range reported by `fc-query` or `ttx -l`. The house style caps at w700 (§5.3) and the theme uses w500–w700, so the axis must cover at least 500–700; nothing in this document has confirmed the published range. Record both numbers in `docs/perf/measurements.md` with the download date.
+**Verified on download, 2026-08-01 (N09-T05), before the pubspec entry was written.** This paragraph previously said *"nothing in this document has confirmed the published range"* and gave the requirement as *"the axis must cover at least 500–700"*. It has now been read off the file:
+
+| | Recorded here | **Measured** |
+|---|---|---|
+| Byte count | ~114 KB | **114 552** bytes — 2.2% of decision #127's < 5 MB budget |
+| `wght` axis | *"must cover at least 500–700"*, range unconfirmed | **200 – 800**, default 400, one axis, seven named instances |
+| `tnum` | claimed by #98 | **present** — confirmed |
+| slashed zero | *"unverified"* | **absent**, and there is no `ss01`/`cv` variant either |
+
+Full readings, including the GSUB/GPOS feature lists and what is still **not** measured, are in `docs/perf/measurements.md`.
+
+**The axis is wider than this document assumed, and that matters for P7.** `indelible.md §3.3`'s 390 / 420 / 520 / 600 are all *reachable* on a 200–800 axis — the axis was never the obstacle. What rules them out is the mechanism they would need: `Text.build` merges `FontWeight.bold` for the Bold Text accessibility setting and does **not** touch `fontVariations`, so a weight set through `FontVariation('wght', 390)` silently ignores that setting, on exactly the users who turned it on. `FontVariation` is therefore banned outright under `lib/` and a test holds it. See N09-T05's commit for the ruling.
+
+Record any re-measurement in `docs/perf/measurements.md` with its date.
 
 ```yaml
 flutter:

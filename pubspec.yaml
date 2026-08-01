@@ -63,8 +63,22 @@ flutter:
   generate: true
   assets:
     - assets/content/
-
-# There is no `fonts:` block yet. assets/fonts/ holds nothing until N09-T05
-# bundles AtkinsonHyperlegibleNext[wght].ttf and OFL.txt, and a `fonts:` family
-# block names a FILE, which flutter build fails on when it is missing. An
-# `assets:` directory entry only needs the directory to exist and hold something.
+  fonts:
+    # ONE family, and the family count is the open half of P7 — see N09-T05's
+    # commit and N09's pull request. indelible.md §3.2 asks for TWO bundled
+    # faces (Source Serif 4 for the record voice, Source Sans 3 for the control
+    # voice, "two families, four instances, whole payload under 700 kB");
+    # decision #98 names Atkinson Hyperlegible Next and only that. #98 is rank 1
+    # in the authority order and is not struck, so one family ships today. The
+    # cost is real and is stated rather than hidden: with one face, the two
+    # voices are carried by size and weight alone.
+    #
+    # MEASURED 2026-08-01 before this block was written, per 06 §5.2:
+    # 114 552 bytes, wght axis 200–800, tnum present. See
+    # docs/perf/measurements.md.
+    - family: AtkinsonNext
+      fonts:
+        # One variable file. Post-3.41 FontWeight drives the wght axis, so there
+        # are no per-weight asset entries and no FontVariation lists — see the
+        # commit for why FontVariation is banned outright here.
+        - asset: assets/fonts/AtkinsonHyperlegibleNext[wght].ttf

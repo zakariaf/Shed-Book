@@ -209,6 +209,14 @@ cannot connect to anything"* was already the **cannot** framing.
 
 ~~Until this table is filled in, `android/expected_permissions.txt` does not exist and G1 cannot be written.~~ **Struck 2026-08-01: the table is filled in.** The expected file and G1 are N31-T03's to write; what changed is that they are now writable, and §2.3 below prints the eight lines they will hold.
 
+**That sentence is now executable, and it lives in `test/policy/g0_recorded_test.dart`** (N02-T03),
+in the `test` job on every push. Its second case reads this table and the three source-set manifests
+and fails if a removal directive exists while any row is unfilled — keyed on the *Recorded on* column
+as well as on the word UNVERIFIED, and matching `tools:node="removeAll"` and `tools:remove=` as well
+as the one spelling. It is deliberately **conditional**: N31-T01 legitimately writes the directive, and
+a guard hardened into an absolute ban is a guard somebody deletes. It was watched failing on all three
+spellings, on a blanked date, on a renamed §2.2 and on an absent `13`, before it was committed.
+
 ### 2.3 G1 — the permission assertion on the shipped AAB
 
 **Blocking, every push.** It reads the built artefact, never the source manifest, because the source manifest is not what ships — the merger blends in every library's manifest with no warning.

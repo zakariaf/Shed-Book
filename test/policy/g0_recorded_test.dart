@@ -91,6 +91,40 @@ Set<String> _permissionsIn(String text) => RegExp(
   r'|[a-z][a-z0-9.]*\.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION)',
 ).allMatches(text).map((RegExpMatch m) => m.group(0)!).toSet();
 
+/// The three source-set manifests a `flutter create` project has.
+///
+/// Named, never walked. `build/` is gitignored, so it is absent in CI and
+/// present on the machine that just ran T01's B19 experiment — where it holds a
+/// **merged** manifest carrying exactly the directive this guard bans. A
+/// recursive walk is therefore green in CI and red locally, which is the shape
+/// 13 §2.8 warns about when it bans grepping `build/app/intermediates/`.
+/// `src/profile` is the one people forget, and it is the interesting one:
+/// `src/debug` and `src/profile` exist to hold `INTERNET` for hot reload.
+const List<String> _manifests = <String>[
+  'android/app/src/main/AndroidManifest.xml',
+  'android/app/src/debug/AndroidManifest.xml',
+  'android/app/src/profile/AndroidManifest.xml',
+];
+
+/// Any directive that deletes something at merge time — not just the one
+/// spelling. `tools:node="removeAll"` is not caught by a match on
+/// `tools:node="remove"` (the closing quote is in the way), and
+/// `tools:remove="android:name"` deletes an attribute rather than an element.
+final RegExp _removalDirective = RegExp(r'''tools:(node\s*=\s*['"]remove(All)?['"]|remove\s*=)''');
+
+/// The questions of `13` §2.2 whose Answer or *Recorded on* cell is unfilled.
+///
+/// The sentinel is the **column**, not only the word: reverting a date to `—`
+/// must re-arm the guard just as reverting an answer does.
+Iterable<String> _unverifiedRows() => _g0Table()
+    .where(
+      ((String, String, String) row) =>
+          row.$2.contains('UNVERIFIED') ||
+          row.$2.toLowerCase().contains('not yet run') ||
+          row.$3.trim() == '—',
+    )
+    .map(((String, String, String) row) => row.$1);
+
 /// The lines of one `###` section of [path], heading excluded.
 ///
 /// An absent file or an absent heading **fails**; `13` §2.3 on G1 is explicit
@@ -99,7 +133,12 @@ List<String> _section(String path, String heading) {
   final File file = File(path);
   expect(file.existsSync(), isTrue, reason: '$path is missing');
   final List<String> lines = file.readAsLinesSync();
-  final int start = lines.indexWhere((String l) => l.trimRight().startsWith(heading));
+  // `$heading ` and not `$heading`: a prefix match reads `### 2.2x` as `### 2.2`,
+  // which is how a renamed section stays silently "found" and the guard keeps
+  // passing against a table that is no longer there. Drilled 2026-08-01.
+  final int start = lines.indexWhere(
+    (String l) => l.trimRight() == heading || l.startsWith('$heading '),
+  );
   expect(start, isNot(-1), reason: '$path has no `$heading` heading');
   final List<String> out = <String>[];
   for (int i = start + 1; i < lines.length; i++) {
@@ -128,4 +167,36 @@ void main() {
       expect(recorded, equals(_canonicalPermissions()));
     },
   );
+
+  test('no tools:node="remove" line exists while 13 §2.2 reads UNVERIFIED', () {
+    final List<String> unverified = _unverifiedRows().toList();
+    // G0 is recorded, so N31-T01 may write the line. The guard stays conditional
+    // on purpose: hardened into an absolute ban it would be deleted at N31, and
+    // a deleted guard protects nothing.
+    if (unverified.isEmpty) {
+      return;
+    }
+    expect(
+      File(_manifests.first).existsSync(),
+      isTrue,
+      reason: 'src/main must exist; an absent manifest is a failure, never a skip',
+    );
+    for (final String path in _manifests) {
+      final File file = File(path);
+      // Only src/debug and src/profile may legitimately be absent.
+      if (!file.existsSync()) {
+        continue;
+      }
+      final List<String> lines = file.readAsLinesSync();
+      for (int i = 0; i < lines.length; i++) {
+        expect(
+          _removalDirective.hasMatch(lines[i]),
+          isFalse,
+          reason:
+              '$path line ${i + 1} removes something at merge time while '
+              '13 §2.2 still reads UNVERIFIED for: ${unverified.join(", ")}',
+        );
+      }
+    }
+  });
 }

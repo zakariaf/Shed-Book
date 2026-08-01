@@ -17,7 +17,8 @@
 // `#0A0A0B` with madder marks. That was wrong, and the thing that settles it is
 // rank 1 of the authority order rather than a preference:
 //
-//   decision #95 — "Base surface #0B0D0E." Its rejected column names
+//   decision #95 — "Base surface #0B0D0E." It is a CEILING rather than an
+//   exact value (see nSurface04 below and 06 §1); its rejected column names
 //   `#121212` AND `#000000` as the base. It is not struck, so it stands, and
 //   nothing below the decision record can overturn it by publishing a different
 //   table.
@@ -43,9 +44,10 @@
 // scale, the geometry, the 64 pt target floor, the two-voice type scale, motion
 // and haptics.
 //
-// P14 (`#0B0D0E` vs `#0A0A0B`) is ruled by N11-T04 and is now a much smaller
-// question than it looked: decision #95 already answers it, and 06 §9.4's
-// `launch.colour_parity` parses `nSurface04` out of this file to compare with
+// P14 IS NOW CLOSED — see nSurface04 below for the ruling. The short form: 06 §1
+// leaves the base surface hex FREE below a ceiling, and indelible.md's value is
+// darker than that ceiling, so it ships. 06 §9.4's `launch.colour_parity` parses
+// `nSurface04` out of this file to compare with
 // android/app/src/main/res/values/colors.xml.
 //
 // ---------------------------------------------------------------------------
@@ -70,9 +72,18 @@ import 'dart:ui' show Color;
 /// Decision #95's base surface. Not `#000000` — a base of exactly zero has
 /// nothing to build a surface ramp on, so elevation would have to be carried by
 /// outlines everywhere. Not `#121212` — in a dark shed the extra emission buys
-/// nothing. This is the FIRST PAINTED FRAME, and `launch.colour_parity` parses
-/// this exact constant out of this exact file (P14, ruled at N11-T04).
-const Color nSurface04 = Color(0xFF0B0D0E); // L = 0.0039
+/// nothing.
+///
+/// **P14 IS CLOSED (N11-T04) AND indelible.md's `#0A0A0B` WON.** 06 §1's own
+/// fixed-versus-free table puts *"the base surface hex, provided it is no
+/// brighter than `#0B0D0E`"* in the FREE column, and 06 §9 calls `#0B0D0E`
+/// *"the brightest base any palette may have"* — so it is a CEILING, not an
+/// exact value. `#0A0A0B` measures L 0.00306 against `#0B0D0E`'s 0.00391, so it
+/// is inside the ceiling 06 itself set. Applying 06's rule, not overruling it.
+///
+/// This is the FIRST PAINTED FRAME, and `launch.colour_parity` parses this exact
+/// constant out of this exact file.
+const Color nSurface04 = Color(0xFF0A0A0B); // L = 0.00306 — P14, ruled at N11-T04
 const Color nSurface08 = Color(0xFF12161A); // 1.07:1 vs base
 const Color nSurface12 = Color(0xFF1A2025); // 1.18:1 vs base
 const Color nSurface18 = Color(0xFF242B31); // 1.36:1 vs base

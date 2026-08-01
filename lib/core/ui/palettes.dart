@@ -13,7 +13,8 @@
 // in prose at all.
 //
 // Which document supplied these values, and why, is P6. The short form:
-// decision #95 fixes the base surface at #0B0D0E, indelible.md publishes no
+// decision #95 caps the base surface at #0B0D0E (a ceiling — P14, N11-T04, and
+// the shipped value is indelible.md's darker #0A0A0B), indelible.md publishes no
 // amber table, no high-contrast variant and (§2.7) no status palette at all, and
 // 06 §4 is the only complete six-palette specification in the doc set. The long
 // form is in primitives.dart's header and in N09's pull request.

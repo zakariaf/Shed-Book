@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/app.dart';
 import 'package:shed_book/core/log/local_log.dart';
+import 'package:shed_book/core/ui/night_error_panel.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +33,9 @@ void main() {
     return true;
   };
 
-  // 3. ErrorWidget.builder — N11-T04, with the panel it renders.
+  // 3. The build-time error widget. The framework default is red-on-yellow,
+  //    which is a flashbang under a head torch.
+  ErrorWidget.builder = (FlutterErrorDetails details) => const NightErrorPanel();
 
   runApp(const ProviderScope(child: ShedBookApp()));
 }

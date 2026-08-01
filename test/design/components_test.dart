@@ -15,11 +15,13 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
 import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_recents_strip.dart';
 import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -703,5 +705,224 @@ void main() {
       boldText: true,
     );
     expect(tester.takeException(), isNull, reason: 'ShedRecentsStrip overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T04 — ShedAnimalRow and ShedSectionHeading
+  // -------------------------------------------------------------------------
+
+  const String rowFile = 'lib/core/ui/components/shed_animal_row.dart';
+  const String headingFile = 'lib/core/ui/components/shed_section_heading.dart';
+
+  ShedAnimalRow row(
+    String tag, {
+    ShedAnimalRowHeight height = ShedAnimalRowHeight.tall,
+    bool selected = false,
+    Widget? trailing,
+  }) => ShedAnimalRow(
+    tag: tag,
+    summary: '3 seasons · avg 2.0 · assisted twice',
+    semanticLabel: 'Ewe $tag',
+    onTap: () {},
+    height: height,
+    selected: selected,
+    trailing: trailing,
+  );
+
+  testWidgets('ShedSectionHeading exposes headingLevel and no widget in the tree sets '
+      'header: true', (WidgetTester tester) async {
+    // THE ANCHOR. `header: true` has been a NO-OP since 3.44 — a heading that
+    // announces nothing is a heading a screen-reader user cannot navigate by,
+    // and the failure is completely silent on a developer's machine.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, const ShedSectionHeading(label: 'Recent'));
+    expect(tester.getSemantics(find.byType(ShedSectionHeading)).headingLevel, 2);
+
+    await _pumpComponent(tester, const ShedSectionHeading(label: 'Flock', level: 1));
+    expect(tester.getSemantics(find.byType(ShedSectionHeading)).headingLevel, 1);
+
+    for (final FileSystemEntity f in Directory(
+      'lib/core/ui/components',
+    ).listSync().whereType<File>()) {
+      expect(
+        _declarations(f.path),
+        isNot(contains('header: true')),
+        reason: '${f.path} uses the no-op',
+      );
+    }
+
+    handle.dispose();
+  });
+
+  test('ShedSectionHeading refuses a level outside 1 and 2', () {
+    // 10 §3.4's table has no level 3 anywhere.
+    expect(() => ShedSectionHeading(label: 'x', level: 0), throwsAssertionError);
+    expect(() => ShedSectionHeading(label: 'x', level: 3), throwsAssertionError);
+    expect(() => ShedSectionHeading(label: 'x', level: 1), returnsNormally);
+    expect(() => ShedSectionHeading(label: 'x', level: 2), returnsNormally);
+  });
+
+  testWidgets('level 1 renders titleLarge and level 2 renders titleMedium', (
+    WidgetTester tester,
+  ) async {
+    // 24 and 20 at scale 1.0, never M3's 16.
+    late TextTheme theme;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: Builder(
+          builder: (BuildContext context) {
+            theme = Theme.of(context).textTheme;
+            return const Scaffold(
+              body: Column(
+                children: <Widget>[
+                  ShedSectionHeading(label: 'One', level: 1),
+                  ShedSectionHeading(label: 'Two'),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('One')).style!.fontSize, theme.titleLarge!.fontSize);
+    expect(tester.widget<Text>(find.text('Two')).style!.fontSize, theme.titleMedium!.fontSize);
+    expect(theme.titleMedium!.fontSize, greaterThanOrEqualTo(18.0));
+  });
+
+  testWidgets('ShedAnimalRow is tapPrimary tall standard and tapHero tall tall', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, row('412', height: ShedAnimalRowHeight.standard));
+    expect(tester.getSize(find.byType(ShedAnimalRow)).height, greaterThanOrEqualTo(72.0));
+
+    await _pumpComponent(tester, row('412'));
+    expect(tester.getSize(find.byType(ShedAnimalRow)).height, greaterThanOrEqualTo(88.0));
+  });
+
+  testWidgets('neither row height shrinks at textScaler 1.3 or 2.0', (WidgetTester tester) async {
+    for (final ShedAnimalRowHeight h in ShedAnimalRowHeight.values) {
+      double? previous;
+      for (final double scale in <double>[1.0, 1.3, 2.0]) {
+        await _pumpComponent(tester, row('412', height: h), scale: scale);
+        expect(tester.takeException(), isNull, reason: '$h overflowed at $scale');
+        final double got = tester.getSize(find.byType(ShedAnimalRow)).height;
+        if (previous != null) {
+          expect(got, greaterThanOrEqualTo(previous), reason: '$h shrank at $scale');
+        }
+        previous = got;
+      }
+    }
+  });
+
+  testWidgets('tags right-align on their units digit', (WidgetTester tester) async {
+    // indelible.md §7.4's WHOLE CLAIM, and the one that breaks the day someone
+    // left-aligns the cell: a shepherd scanning for 128 finds it by shape, not
+    // by reading.
+    await _pumpComponent(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String tag in <String>['412', '128', '77', '9']) row(tag),
+        ],
+      ),
+    );
+
+    final Set<double> rightEdges = <double>{
+      for (final String tag in <String>['412', '128', '77', '9'])
+        tester.getRect(find.text(tag)).right,
+    };
+    expect(rightEdges, hasLength(1), reason: 'the tag column is not right-aligned: $rightEdges');
+  });
+
+  testWidgets('the tag renders through displaySmall with tabularFigures', (
+    WidgetTester tester,
+  ) async {
+    // Catches the constructed-TextStyle regression 06 §5.4 warns about: a fresh
+    // TextStyle drops fontFeatures, and the column stops aligning.
+    await _pumpComponent(tester, row('412'));
+    final Text tag = tester.widget<Text>(find.text('412'));
+    expect(tag.style!.fontFeatures, contains(const FontFeature.tabularFigures()));
+  });
+
+  testWidgets('the summary is exactly one line', (WidgetTester tester) async {
+    // The row grows; the summary does not become two lines and push the trailing
+    // cell off the grid.
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(tester, row('412'), scale: scale);
+      final Text summary = tester.widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'));
+      expect(summary.maxLines, 1, reason: 'scale $scale');
+    }
+  });
+
+  testWidgets('the row draws a bottom rule and no top rule', (WidgetTester tester) async {
+    // Two rules per row is indelible.md §7.4's WARNING state and must not be the
+    // default — a list where every row is boxed reads as a list where every row
+    // needs attention.
+    await _pumpComponent(tester, row('412'));
+    final DecoratedBox box = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShedAnimalRow), matching: find.byType(DecoratedBox)).first,
+    );
+    final Border border = (box.decoration as BoxDecoration).border! as Border;
+
+    expect(border.bottom.width, greaterThan(0));
+    expect(border.top, BorderSide.none);
+    expect(border.left, BorderSide.none);
+    expect(border.right, BorderSide.none);
+  });
+
+  testWidgets('a selected row differs from an unselected one with colour removed', (
+    WidgetTester tester,
+  ) async {
+    // Decision #106. The difference has to survive a reader who cannot tell the
+    // inks apart, so it is an underline and a weight rather than a hue.
+    await _pumpComponent(tester, row('412'));
+    final TextStyle plain = tester
+        .widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'))
+        .style!;
+
+    await _pumpComponent(tester, row('412', selected: true));
+    final TextStyle picked = tester
+        .widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'))
+        .style!;
+
+    expect(
+      picked.decoration != plain.decoration || picked.fontWeight != plain.fontWeight,
+      isTrue,
+      reason: 'selection is carried by colour alone',
+    );
+  });
+
+  testWidgets('the row is one ShedTapTarget with a semanticLabel', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, row('412'));
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+
+    final SemanticsData data = tester.getSemantics(find.byType(ShedTapTarget)).getSemanticsData();
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, 'Ewe 412');
+
+    handle.dispose();
+  });
+
+  test('neither file contains the literal 64, 76 or 88', () {
+    // The spine is the PAGE's (indelible.md §4.3) and the numbers are tokens.
+    // 76 is the one most likely to be pasted in: the document prints it as
+    // "76px fixed (3 tabular digits at 32px)", which is a MEASUREMENT AT SCALE
+    // 1.0 — hard-coding it makes a four-digit tag at 200% overflow.
+    for (final String f in <String>[rowFile, headingFile]) {
+      final String source = _declarations(f);
+      for (final String literal in <String>['64', '76', '88']) {
+        expect(
+          source,
+          isNot(matches(RegExp(r'(?<![\w.])' + literal + r'(?![\w.])'))),
+          reason: '$f hard-codes $literal',
+        );
+      }
+    }
   });
 }

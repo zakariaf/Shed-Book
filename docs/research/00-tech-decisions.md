@@ -14,7 +14,7 @@
 | § | Contents |
 |---|---|
 | 1 | The five decisions that must be taken before commit #1 |
-| 2 | The canonical decision table — 88 numbered, final, implementable decisions |
+| 2 | The canonical decision table — 129 numbered, final, implementable decisions |
 | 3 | The offline-purity contract: the promise, the mechanical gates, the honest wording |
 | 4 | Dropped, degraded and opt-in-gated — the blunt list |
 | 5 | The verified dependency table (from the c1 audit; the only source of version numbers) |
@@ -157,6 +157,7 @@ Every row is final and implementable. "Source" names the primary evidence; the b
 | 79 | Keep screen awake | **`wakelock_plus`, default-OFF Settings toggle, session-scoped, 30-minute auto-expiry, released on `dispose` and on any non-resumed lifecycle state.** | Screen-on time is the dominant battery cost and the shed is cold; but a mid-lambing sleep forces a wet-gloved unlock that alone blows the 15 s budget. The merge takes note 08's expiry (the safety-relevant half) and note 06's release condition (the stricter half). [c3 D10, note 06 §8, note 08 §8.2] | Always-on; the discontinued `wakelock` |
 | 80 | Share sheet | **`share_plus`, `SharePlus.instance.share(ShareParams(...))`.** Always pass a file **path**, never `XFile.fromData`. `sharePositionOrigin` is required on iPad. | The static `Share.*` API is deprecated; omitting `sharePositionOrigin` on iPad "may cause crashes or unresponsive UI" per the README. [note 06 §6.4, c1 §4.1] | The static `Share.shareXFiles`; `open_filex` |
 | 81 | File import | **`file_selector`** (`ACTION_OPEN_DOCUMENT` / `UIDocumentPickerViewController`) — no storage permission on either platform. Accept `application/octet-stream` as well and **validate magic bytes ourselves**. | `file_picker`'s cloud/Drive picking actively undercuts the positioning, and Android MIME filtering for `.zip` is unreliable. Better to accept too much and reject clearly than to grey out the user's own backup. [note 06 §7, c1 §4.3] | `file_picker` |
+| 129 | Application id / bundle id | **One string on both stores, chosen 2026-08-01 and never changeable: see `RELEASES.md`'s header.** It carries no underscore and no hyphen, because an Apple bundle id admits `[A-Za-z0-9.-]` and an Android application id admits `[A-Za-z0-9_.]` — the set the two stores share is alphanumeric and the period. The literal lives in exactly three places: `android/app/build.gradle.kts` (`namespace` and `applicationId`), the Xcode target's `PRODUCT_BUNDLE_IDENTIFIER` in Debug, Release **and** Profile, and `RELEASES.md`'s header. This row records the **decision** and where the literal lives; it does not re-type it in a second spelling. | `13 §3.1`: *"chosen once, before the first upload, and can never change on either store"* — every future Play listing, App Store record, signing identity and purchase entitlement keys on it. `flutter create --org` derives two different spellings by default (`shed_book` on Android, `shedBook` on iOS) and two spellings of one identifier is the failure this row exists to prevent. [N00-T01] | Two platform spellings of one id; an id containing `_` (invalid on Apple) or `-` (invalid on Android); changing it after the first upload, which is a new app with no users |
 
 ### H. Export, PDF, CSV, backup
 

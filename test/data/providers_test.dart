@@ -160,7 +160,15 @@ void main() {
     // provider whose body throws UnimplementedError is not a placeholder, it is
     // a lie that compiles.
     expect(_declaredProviders(), _ledger());
-    expect(_declaredProviders(), <String>{'databaseProvider', 'freeTierPolicyProvider'});
+    expect(_declaredProviders(), <String>{
+      'databaseProvider',
+      'freeTierPolicyProvider',
+      'settingsRepositoryProvider',
+      'settingsProvider',
+      'themeProvider',
+      'unitsProvider',
+      'terminologyProvider',
+    });
   });
 
   test('every declared provider name appears in CONVENTIONS §3.1', () {

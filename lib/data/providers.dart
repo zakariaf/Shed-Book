@@ -6,11 +6,14 @@
 // DECLARED TODAY (N12):
 //   databaseProvider            N12-T01  FutureProvider<AppDatabase>  keepAlive
 //   freeTierPolicyProvider      N12-T01  Provider<FreeTierPolicy>     keepAlive
+//   settingsRepositoryProvider  N12-T02  Provider<SettingsRepository>
+//   settingsProvider            N12-T02  StreamProvider<AppSetting>
+//   themeProvider               N12-T02  Provider<ShedThemeSet>       synchronous
+//   unitsProvider               N12-T02  Provider<WeightUnit>
+//   terminologyProvider         N12-T02  Provider<Terminology>
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   settingsRepositoryProvider · settingsProvider · themeProvider ·
-//     unitsProvider · terminologyProvider                            N12-T02
 //   flockRepositoryProvider · tagIndexProvider                       N13
 //   lambingRepositoryProvider                                        N16
 //   noteRepositoryProvider · mediaStoreProvider ·
@@ -33,7 +36,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/db/connection.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/ui/theme.dart';
+import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/terminology/animal_class.dart';
+import 'package:shed_book/domain/terminology/term_label.dart';
+import 'package:shed_book/domain/terminology/terminology.dart';
+import 'package:shed_book/domain/units/weight_unit.dart';
 
 /// Opened from the first post-frame callback in `lib/app.dart` (#21, `01 §6.3`).
 ///
@@ -75,4 +85,89 @@ final FutureProvider<AppDatabase> databaseProvider = FutureProvider<AppDatabase>
 /// keeps every entitlement question off the five 3am screens at any state.
 final Provider<FreeTierPolicy> freeTierPolicyProvider = Provider<FreeTierPolicy>(
   (ref) => const FreeTierPolicy(),
+);
+
+/// The only writer of `app_settings`. Depends on the database, so it is only
+/// readable once the boot kick has resolved.
+final Provider<SettingsRepository> settingsRepositoryProvider = Provider<SettingsRepository>(
+  (ref) => SettingsRepository(ref.watch(databaseProvider).requireValue),
+);
+
+/// The one settings row, watched. **Carries the ROW class**, not a hand-rolled
+/// view model: a second shape is a second place a column can be forgotten.
+final StreamProvider<AppSetting> settingsProvider = StreamProvider<AppSetting>(
+  (ref) => ref.watch(settingsRepositoryProvider).watch(),
+);
+
+/// **SYNCHRONOUS, and that is the point** (`06 §2.1`, R29).
+///
+/// The first frame paints BEFORE the database opens, so this provider cannot
+/// await anything. Its not-yet-loaded arm is the `const` night pair — which is
+/// why N09 had to build that pair as a `const` before `app.dart` could name it.
+///
+/// Reduce-motion is applied at the WIDGET, not here: `prefersReducedMotion`
+/// needs a `BuildContext` and this provider has none.
+final Provider<ShedThemeSet> themeProvider = Provider<ShedThemeSet>((ref) {
+  // SWITCHED ON THE AsyncValue, never read through a nullable accessor
+  // (gate row rp3.value_or_null, #18). The pattern makes the not-yet-loaded arm
+  // a branch somebody had to write rather than a `?.` somebody could forget —
+  // and that arm is the const night pair, which is the whole reason N09 built it
+  // as a const.
+  final ShedPaletteId id = switch (ref.watch(settingsProvider)) {
+    AsyncData<AppSetting>(value: final AppSetting s) => switch (s.palette) {
+      'amber' => ShedPaletteId.amber,
+      'red' => ShedPaletteId.deepRed,
+      // An unrecognised key lands on night too. A restore from a newer schema
+      // can carry a palette this build has never heard of, and the first frame
+      // is not the place to find out.
+      _ => ShedPaletteId.night,
+    },
+    _ => ShedPaletteId.night,
+  };
+  return buildShedThemeSet(id);
+});
+
+/// `Provider<WeightUnit>` (R68). **Never inferred from the locale**: a UK
+/// smallholder may genuinely want lb, and a wrong inference silently mislabels
+/// every weight ever recorded.
+final Provider<WeightUnit> unitsProvider = Provider<WeightUnit>((ref) {
+  switch (ref.watch(settingsProvider)) {
+    case AsyncData<AppSetting>(value: final AppSetting s):
+      try {
+        return WeightUnit.fromKey(s.weightUnit);
+      } on FormatException {
+        // Same reasoning as the palette: an unknown key is a restore from a
+        // newer build, not a reason to fail a read.
+        return WeightUnit.kg;
+      }
+    case _:
+      // The default is kg — settled, not open (§7.0 ruling 3, UK and Ireland
+      // first) — and it is never inferred from the locale.
+      return WeightUnit.kg;
+  }
+});
+
+/// The shepherd's words for their own animals.
+///
+/// `Terminology` takes DEFAULTS and OVERRIDES as two separate maps, and keeping
+/// them separate is what makes a half-filled override fall back instead of
+/// rendering a blank button at 3am.
+///
+/// **Both maps are empty here, and that is a seam rather than a gap.**
+///
+/// The defaults come from the ARB (`05 §8.1`) and reading the ARB needs a
+/// `BuildContext` this provider has none of. The overrides come from a table
+/// `SettingsRepository.watchTerminologyOverrides()` already exposes and this
+/// task already tests — but wiring them needs a SECOND provider, and CONVENTIONS
+/// §3.1's catalogue does not name one. Inventing `terminologyOverridesProvider`
+/// was the first attempt and the subset assertion caught it, which is precisely
+/// what that assertion is for: the catalogue is the authority on names, and a
+/// provider it does not name is a name nobody agreed to.
+///
+/// So N29 — which edits the overrides and has the context to read the ARB —
+/// assembles the real pair, and adds its provider to §3.1 in the same commit.
+/// N12 only reads (`CONVENTIONS §2.13`), and empty-over-empty is the honest
+/// identity: every lookup falls through to the caller's own word.
+final Provider<Terminology> terminologyProvider = Provider<Terminology>(
+  (ref) => const Terminology(<AnimalClass, TermLabel>{}, <AnimalClass, TermLabel>{}),
 );

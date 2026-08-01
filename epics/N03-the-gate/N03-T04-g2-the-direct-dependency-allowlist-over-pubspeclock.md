@@ -16,7 +16,7 @@ tool.
 
 There is a third section, and it is the one that makes the gate satisfiable at all: `transitive`.
 `build_runner` legitimately drags `shelf` and `web_socket_channel` into the graph, and `http 1.6.0`
-arrives on two regular edges nothing can remove. An undifferentiated allowlist fails on day one and
+arrives on four regular edges nothing can remove. An undifferentiated allowlist fails on day one and
 gets deleted on day two. The claim G2 makes is narrower and true: **no package enters the graph
 unreviewed.**
 
@@ -170,7 +170,7 @@ reading that package's pubspec.
   something upstream moved and you are about to ship it. G2 cannot see that; a reviewer can. Say so
   in the commit message.
 - **Never write the lockfile rule.** A *"no `http` in `pubspec.lock`"* gate is unsatisfiable —
-  `http` sits on two regular edges — and writing it means either deleting reminders and the wakelock
+  `http` sits on four regular edges — and writing it means either deleting reminders and the wakelock
   or disabling the gate. N03-T03 put the reason in the source; this task is where somebody looking at
   a lockfile full of `http` will be tempted to add it anyway. The `[transitive]` line's comment is
   the answer.

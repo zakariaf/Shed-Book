@@ -119,7 +119,7 @@ in a PR that does not also change `pubspec.yaml`.
   `DERIVED FROM 3 STROKES` are **not exempt stamps**: each carries meaning nothing else on its line
   carries, so each meets the 18px floor rather than `--t-stamp:14px`.
 - **Refuse, do not debate:** tag OCR or voice tag entry returning (the voice *note* ships), any "no
-  `http` in `pubspec.lock`" gate (unsatisfiable — `http 1.6.0` sits on two regular edges), a Save
+  `http` in `pubspec.lock`" gate (unsatisfiable — `http 1.6.0` sits on four regular edges), a Save
   button, a draft, an `isDirty`, or any wording resembling *"your data never leaves your phone"*.
 
 ## Done when

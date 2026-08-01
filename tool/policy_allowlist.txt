@@ -10,6 +10,230 @@
 # say so and stop.
 
 [dependencies]
+# direct main — every line was read against 00-tech-decisions §5.1, which is the
+# ONLY source of a version number in this project. This file matches on the NAME,
+# never the version: `intl` is declared `any` and pins to 0.20.2 because
+# flutter_localizations pins it exactly, and version enforcement belongs to
+# pubspec.yaml, not to a gate.
+#
+# The four SDK packages are the first thing that breaks G2 and none of them is in
+# §5.1's table, because §5.1 is a pub.dev table. flutter and flutter_localizations
+# are `direct main` here, flutter_test is `direct dev`, sky_engine is transitive.
+flutter                               # SDK. Not on pub.dev, so not in §5.1's table.
+flutter_localizations                 # SDK. Pins intl EXACTLY — which is why intl is `any` (#108).
+flutter_riverpod                      # 2.6.1 EXACTLY. A caret here is the resolution failure, not a style choice.
+drift                                 # the only generator (#9).
+drift_flutter                         # opens the database in application support (#27).
+sqlite3                               # bundled SQLite: STRICT + FTS5 on every device.
+path_provider                         # application support, never Documents (#27).
+uuid                                  # newUid() lives in lib/core/db/, because the domain may not import it (R15).
+clock                                 # the one fakeable wall clock. Banned in lib/domain/ (R24).
+intl                                  # `any`, deliberately. See flutter_localizations above.
+flutter_local_notifications           # the only reminder mechanism (spec §7.6). Drags timezone → http.
+timezone                              # tz.setLocalLocation for the reminder projection.
+wakelock_plus                         # the default-off "Keep screen on" toggle. Merges NO permission (G0).
+image_picker                          # system camera UI and system photo picker. Merges no permission.
+flutter_image_compress                # merges <application> attributes and no permission (G0, 2026-08-01).
+record                                # the voice NOTE (spec §7.2). Merges RECORD_AUDIO.
+file_selector                         # restore: pick a backup file. Chosen over file_picker (§5.3).
+pdf                                   # the export. `printing` is REJECTED — PdfGoogleFonts is a one-line footgun (#83).
+archive                               # the backup container.
+share_plus                            # the share sheet IS the export mechanism (spec §7.9).
+in_app_purchase                       # decision #5. The ONLY direct one of the four; the other three are
+                                      # transitive. Adds com.android.vending.BILLING.
+device_info_plus                      # Settings ▸ Diagnostics.
+logging                               # the diagnostics log. There is no telemetry and no analytics.
+
+[dev_dependencies]
+# direct dev — never ships. Its own section because build_runner legitimately
+# drags shelf and web_socket_channel into the graph, and an undifferentiated
+# allowlist would fail on day one.
+#
+# SIX rows, not seven. `glados` was struck from decision-record §5.2 on
+# 2026-08-01: it does not resolve against drift_dev 2.34.5 at any version,
+# because it depends on package:test, which caps analyzer <13.0.0 and pins a
+# test_api other than flutter_test's exact 0.7.11 — the identical edge decision
+# #4 already bans. 12 §10.6 stated the outcome in advance and it was applied: the
+# property layer was deleted, not the pin. Do not add the package. (Seven lines
+# appear below because flutter_test is the SDK package and is not one of §5.2's.)
+flutter_test                          # SDK. `test` is NEVER a direct dependency (#4).
+drift_dev                             # the only generator.
+build_runner                          # ">=2.15.0 <2.15.2" — it does not resolve at ^2.15.2.
+flutter_lints                         # 6.0.0. Sets no analyzer language modes, which is why
+                                      # analysis_options.yaml restates the strict block.
+mocktail                              # no codegen. The seams have hand-written fakes; this is the exception.
+accessibility_tools                   # #100. lib/app.dart imports it behind kDebugMode, which trips
+                                      # depend_on_referenced_packages and reads as a mistake. It is not.
+golden_screenshot                     # belongs to tool/, not test/ (§5.2).
+
+[transitive]
+# Documented, with the reason on the line. Every line was produced by reading
+# `dart pub deps --json` on 2026-08-01 and attributing each package to the direct
+# dependencies that reach it — not typed from memory, and not copied from §5.1,
+# which is a table of DIRECT choices.
+#
+# This section is the one people are tempted to "tidy". Do not. A transitive
+# package that disappears from this list is a package that entered the graph
+# unreviewed the next time somebody runs pub get.
+_fe_analyzer_shared                   # via build_runner, drift_dev
+analyzer                              # via build_runner, drift_dev
+args                                  # via build_runner, drift_dev, drift_flutter, flutter_local_notifications, path_provider, share_plus, wakelock_plus
+async                                 # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_test, golden_screenshot, image_picker, mocktail, sqlite3, timezone, wakelock_plus
+barcode                               # via pdf
+bidi                                  # via pdf
+boolean_selector                      # via accessibility_tools, flutter_test, golden_screenshot, mocktail
+build                                 # via build_runner, drift_dev
+build_config                          # via build_runner, drift_dev
+build_daemon                          # via build_runner
+built_collection                      # via build_runner
+built_value                           # via build_runner
+characters                            # via accessibility_tools, device_info_plus, drift_flutter, file_selector, flutter, flutter_image_compress, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, in_app_purchase, path_provider, record, share_plus, wakelock_plus
+charcode                              # via drift_dev
+checked_yaml                          # via build_runner, drift_dev
+cli_util                              # via drift_dev
+code_assets                           # via drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
+collection                            # via accessibility_tools, build_runner, device_info_plus, drift, drift_dev, drift_flutter, file_selector, flutter, flutter_image_compress, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, in_app_purchase, mocktail, path_provider, pdf, record, share_plus, sqlite3, timezone, uuid, wakelock_plus
+convert                               # via build_runner, drift, drift_dev, drift_flutter
+cross_file                            # via file_selector, flutter_image_compress, image_picker, share_plus
+crypto                                # via build_runner, drift, drift_dev, drift_flutter, path_provider, pdf, share_plus, sqlite3, uuid
+dart_style                            # via build_runner, drift_dev
+dbus                                  # via flutter_local_notifications, wakelock_plus
+device_info_plus_platform_interface   # via device_info_plus
+fake_async                            # via accessibility_tools, flutter_test, golden_screenshot
+ffi                                   # via archive, device_info_plus, drift, drift_dev, drift_flutter, flutter_local_notifications, path_provider, pdf, share_plus, sqlite3, wakelock_plus
+ffi_leak_tracker                      # via device_info_plus, share_plus, wakelock_plus
+file                                  # via build_runner, device_info_plus, drift, drift_dev, drift_flutter, share_plus, sqlite3
+file_selector_android                 # via file_selector
+file_selector_ios                     # via file_selector
+file_selector_linux                   # via file_selector, image_picker
+file_selector_macos                   # via file_selector, image_picker
+file_selector_platform_interface      # via file_selector, image_picker
+file_selector_web                     # via file_selector
+file_selector_windows                 # via file_selector, image_picker
+fixnum                                # via build_runner, share_plus, uuid
+flutter_image_compress_common         # via flutter_image_compress
+flutter_image_compress_macos          # via flutter_image_compress
+flutter_image_compress_ohos           # via flutter_image_compress
+flutter_image_compress_platform_interface# via flutter_image_compress
+flutter_image_compress_web            # via flutter_image_compress
+flutter_local_notifications_linux     # via flutter_local_notifications
+flutter_local_notifications_platform_interface# via flutter_local_notifications
+flutter_local_notifications_web       # via flutter_local_notifications
+flutter_local_notifications_windows   # via flutter_local_notifications
+flutter_plugin_android_lifecycle      # via image_picker
+flutter_web_plugins                   # via device_info_plus, file_selector, flutter_image_compress, image_picker, record, share_plus, wakelock_plus
+glob                                  # via build_runner, drift, drift_dev, drift_flutter, sqlite3
+graphs                                # via build_runner
+hooks                                 # via drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
+http                                  # via timezone, package_info_plus, file_selector_platform_interface and
+# image_picker_platform_interface. FOUR regular edges — the doc set said two
+# (measured 2026-08-01, N03-T04). A "no http in pubspec.lock" rule is
+# UNSATISFIABLE and must never be written: it would mean deleting reminders,
+# the wakelock, the file picker AND the photo picker. 00-tech-decisions §3.4 #1.
+http_multi_server                     # via build_runner
+http_parser                           # via build_runner, file_selector, flutter_local_notifications, image_picker, timezone, wakelock_plus
+image                                 # via pdf
+image_picker_android                  # via image_picker
+image_picker_for_web                  # via image_picker
+image_picker_ios                      # via image_picker
+image_picker_linux                    # via image_picker
+image_picker_macos                    # via image_picker
+image_picker_platform_interface       # via image_picker
+image_picker_windows                  # via image_picker
+in_app_purchase_android               # decision #5's other three. Only in_app_purchase itself is direct.
+# Billing is a Play-Services-adjacent artefact whose transitive Gradle graph is
+# reviewed on every Billing Library bump — G0 (2026-08-01) found ACCESS_NETWORK_STATE
+# and INTERNET one edge further out than four documents assumed.
+in_app_purchase_platform_interface    # decision #5.
+in_app_purchase_storekit              # decision #5. Must be >= 0.4.8 (§5.1). StoreKit 2 by default since 0.4.0.
+io                                    # via build_runner, drift_dev
+jni                                   # via drift_flutter, path_provider, share_plus
+jni_flutter                           # via drift_flutter, path_provider, share_plus
+jni_util                              # via drift_flutter, path_provider, share_plus
+json_annotation                       # via build_runner, drift_dev, in_app_purchase
+leak_tracker                          # via accessibility_tools, flutter_test, golden_screenshot
+leak_tracker_flutter_testing          # via accessibility_tools, flutter_test, golden_screenshot
+leak_tracker_testing                  # via accessibility_tools, flutter_test, golden_screenshot
+lints                                 # via flutter_lints
+matcher                               # via accessibility_tools, flutter_test, golden_screenshot, mocktail
+material_color_utilities              # via accessibility_tools, device_info_plus, drift_flutter, file_selector, flutter, flutter_image_compress, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, in_app_purchase, path_provider, record, share_plus, wakelock_plus
+meta                                  # via accessibility_tools, archive, build_runner, device_info_plus, drift, drift_dev, drift_flutter, file_selector, flutter, flutter_image_compress, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, in_app_purchase, intl, mocktail, path_provider, pdf, record, share_plus, sqlite3, timezone, wakelock_plus
+mime                                  # via build_runner, image_picker, share_plus
+native_toolchain_c                    # via drift, drift_dev, drift_flutter, sqlite3
+objective_c                           # via drift_flutter, path_provider, share_plus
+package_config                        # via build_runner, drift_dev, drift_flutter, path_provider, share_plus
+package_info_plus                     # via wakelock_plus
+package_info_plus_platform_interface  # via wakelock_plus
+path                                  # via accessibility_tools, archive, build_runner, device_info_plus, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, intl, mocktail, path_provider, pdf, share_plus, sqlite3, timezone, wakelock_plus
+path_parsing                          # via pdf
+path_provider_android                 # via drift_flutter, path_provider, share_plus
+path_provider_foundation              # via drift_flutter, path_provider, share_plus
+path_provider_linux                   # via drift_flutter, path_provider, share_plus
+path_provider_platform_interface      # via drift_flutter, path_provider, share_plus
+path_provider_windows                 # via drift_flutter, path_provider, share_plus
+petitparser                           # via flutter_local_notifications, pdf, wakelock_plus
+platform                              # via drift_flutter, path_provider, share_plus
+plugin_platform_interface             # via device_info_plus, drift_flutter, file_selector, flutter_image_compress, flutter_local_notifications, image_picker, in_app_purchase, path_provider, record, share_plus, wakelock_plus
+pool                                  # via build_runner
+posix                                 # via archive, pdf
+pub_semver                            # via build_runner, drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
+pubspec_parse                         # via build_runner, drift_dev
+qr                                    # via pdf
+recase                                # via drift_dev
+record_android                        # via record
+record_ios                            # via record
+record_linux                          # via record
+record_macos                          # via record
+record_platform_interface             # via record
+record_use                            # via drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
+record_web                            # via record
+record_windows                        # via record
+riverpod                              # via flutter_riverpod
+share_plus_platform_interface         # via share_plus
+shelf                                 # via build_runner
+shelf_web_socket                      # via build_runner
+sky_engine                            # SDK. Appears as transitive with source: sdk.
+source_gen                            # via drift_dev
+source_span                           # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_test, golden_screenshot, image_picker, mocktail, path_provider, share_plus, sqlite3, timezone, wakelock_plus
+sqlcipher_flutter_libs                # via drift_flutter
+sqlite3_flutter_libs                  # no-op EOL shim dragged in by drift_flutter. NOT flagged discontinued on
+# pub.dev, so a check keyed on that flag will not fire. Expected. Never a
+# direct dependency.
+sqlparser                             # via drift_dev
+stack_trace                           # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, flutter_riverpod, flutter_test, golden_screenshot, mocktail
+state_notifier                        # via flutter_riverpod
+stream_channel                        # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, flutter_test, golden_screenshot, mocktail
+stream_transform                      # via build_runner, drift_dev
+string_scanner                        # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_test, golden_screenshot, image_picker, mocktail, path_provider, share_plus, sqlite3, timezone, wakelock_plus
+term_glyph                            # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_test, golden_screenshot, image_picker, mocktail, path_provider, share_plus, sqlite3, timezone, wakelock_plus
+test_api                              # via accessibility_tools, flutter_test, golden_screenshot, mocktail
+typed_data                            # via build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, image_picker, path_provider, pdf, share_plus, sqlite3, timezone, uuid, wakelock_plus
+url_launcher_linux                    # via share_plus
+url_launcher_platform_interface       # via share_plus
+url_launcher_web                      # via share_plus
+url_launcher_windows                  # via share_plus
+vector_math                           # via accessibility_tools, device_info_plus, drift_flutter, file_selector, flutter, flutter_image_compress, flutter_local_notifications, flutter_localizations, flutter_riverpod, flutter_test, golden_screenshot, image_picker, in_app_purchase, path_provider, pdf, record, share_plus, wakelock_plus
+vm_service                            # via accessibility_tools, flutter_test, golden_screenshot
+wakelock_plus_platform_interface      # via wakelock_plus
+watcher                               # via build_runner, drift_dev
+web                                   # via build_runner, device_info_plus, drift, drift_dev, drift_flutter, file_selector, flutter_image_compress, flutter_local_notifications, golden_screenshot, image_picker, record, share_plus, sqlite3, timezone, wakelock_plus
+web_socket                            # via build_runner
+web_socket_channel                    # via build_runner
+win32                                 # via device_info_plus, share_plus, wakelock_plus
+win32_registry                        # via device_info_plus
+xdg_directories                       # via drift_flutter, flutter_local_notifications, path_provider, share_plus
+xml                                   # via flutter_local_notifications, pdf, wakelock_plus
+yaml                                  # via build_runner, drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
+
+[exempt] line with
+# no `::` are all refused with their line number: exit 2, which is a failure and
+# never a warning.
+#
+# NEVER add a line here to silence a gate (CLAUDE.md). An [exempt] line deletes
+# one rule for one file, forever, and silently. If a gate is genuinely wrong,
+# say so and stop.
+
+[dependencies]
 # direct main — every line is read against 00-tech-decisions §5.1 before it is
 # added. Empty until N03-T04, which is the commit that turns G2 on; until then
 # the lockfile is not read at all.

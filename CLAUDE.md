@@ -33,7 +33,7 @@ device by any route* — is **false**: the share sheet and the system photo pick
 Also never in our own prose: **"offline-first"** (Shed Book is offline-**only**; the Flutter
 offline-first pattern is cache-over-network and is banned outright), *"a lost phone is lost data"*
 unqualified, *"verified"*/*"secure"* about the backup checksum. A *"no `http` in `pubspec.lock`"* gate is
-**unsatisfiable** and must never be written — `http 1.6.0` sits on two load-bearing regular edges. The
+**unsatisfiable** and must never be written — `http 1.6.0` sits on four load-bearing regular edges. The
 gates are G1 (permission set on the shipped `.aab`), G2 (dependency allowlist), G3 (import scan).
 
 ### 2. The 3am test floor

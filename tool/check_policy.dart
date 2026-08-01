@@ -413,7 +413,78 @@ List<String> runPolicy({String root = '.'}) {
     violations.addAll(_checkImports(path, source, exempt));
   }
 
+  violations.addAll(_checkLockfile(allow, root: root));
   return violations..sort();
+}
+
+/// The lockfile's three dependency kinds → the allowlist section each is checked
+/// against. They are **separate lists**, not one list read three times:
+/// `build_runner` legitimately drags `shelf` and `web_socket_channel` into the
+/// graph as dev-only, and an undifferentiated allowlist fails on day one.
+const Map<String, String> _sectionFor = <String, String>{
+  'direct main': 'dependencies',
+  'direct dev': 'dev_dependencies',
+  'transitive': 'transitive',
+};
+
+/// Two spaces, and the line must **end** at the colon.
+///
+/// That anchor is why the `sdks:` block at the foot of the lockfile is skipped
+/// for free: its entries carry a value on the same line (`dart: ">=3.12.0 …"`),
+/// so they never match. Loosen it and the gate starts reporting `dart` and
+/// `flutter` as unknown packages.
+final RegExp _lockPackage = RegExp(r'^  ([a-z0-9_]+):$');
+
+/// Four spaces, exactly. A lockfile written by a different pub version with
+/// different indentation would match nothing and G2 would pass on everything —
+/// which is why `test/policy/gate_rules_test.dart` asserts the parser finds a
+/// plausible count on the real `pubspec.lock`.
+final RegExp _lockKind = RegExp(r'^    dependency: "?([a-z ]+)"?$');
+
+/// G2. Parses `pubspec.lock` by hand — no YAML package, because the gate has no
+/// dependencies (#9, #10).
+///
+/// It reads a committed file, so it is only as good as the commit discipline
+/// around it: `13 §1.2` makes a lockfile diff in a pull request that does not
+/// also change `pubspec.yaml` a **review stop** — something upstream moved and
+/// you are about to ship it. G2 cannot see that; a reviewer can.
+List<String> _checkLockfile(Map<String, Set<String>> allow, {required String root}) {
+  final Map<String, String> kinds = lockfileKinds(root);
+  return <String>[
+    for (final MapEntry<String, String> entry in kinds.entries)
+      if (!(allow[_sectionFor[entry.value] ?? ''] ?? const <String>{}).contains(entry.key))
+        '[dep.${entry.value.replaceAll(' ', '_')}] ${entry.key} is ${entry.value} and is not on '
+            'the allowlist — read its pubspec, confirm it opens no socket and merges no '
+            'permission, then add it to tool/policy_allowlist.txt',
+  ];
+}
+
+/// Every package in `<root>/pubspec.lock`, as name → dependency kind.
+///
+/// Exposed so a test can assert the parser found a plausible count: "parsed zero
+/// packages" must fail loudly rather than pass quietly. A missing lockfile is a
+/// [PolicyConfigProblem] and so exit 2 — it means `flutter pub get` has not run,
+/// and a gate that reports clean because it could not find its input is worse
+/// than no gate.
+Map<String, String> lockfileKinds(String root) {
+  final File lock = File(_join(root, 'pubspec.lock'));
+  if (!lock.existsSync()) {
+    throw const PolicyConfigProblem('pubspec.lock is missing — run `flutter pub get`');
+  }
+  final Map<String, String> kinds = <String, String>{};
+  String? current;
+  for (final String line in lock.readAsLinesSync()) {
+    final RegExpMatch? package = _lockPackage.firstMatch(line);
+    if (package != null) {
+      current = package.group(1);
+      continue;
+    }
+    final RegExpMatch? kind = _lockKind.firstMatch(line);
+    if (kind != null && current != null) {
+      kinds[current] = kind.group(1)!;
+    }
+  }
+  return kinds;
 }
 
 /// The layer rules, for one file. CONVENTIONS §1.1.

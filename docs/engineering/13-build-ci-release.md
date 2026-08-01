@@ -328,7 +328,7 @@ sqlite3_flutter_libs  # no-op EOL shim dragged in by drift_flutter. NOT flagged 
                       # pub.dev, so a check keyed on that flag will not fire. Expected. Never a direct dep.
 ```
 
-**Anti-pattern, and it is the one four notes wrote:** a gate that asserts "no `http` in `pubspec.lock`". It is **unsatisfiable** — `flutter_local_notifications → timezone → http ^1.6.0` and `wakelock_plus → package_info_plus → http ^1.6.0` are both regular dependency edges. Writing that gate means either deleting reminders and the wakelock, or disabling the gate. The claim G2 makes is narrower and true: *no package enters the graph unreviewed.*
+**Anti-pattern, and it is the one four notes wrote:** a gate that asserts "no `http` in `pubspec.lock`". It is **unsatisfiable** — `flutter_local_notifications → timezone → http`, `wakelock_plus → package_info_plus → http`, `file_selector → file_selector_platform_interface → http` and `image_picker → image_picker_platform_interface → http` are **four** regular dependency edges, measured 2026-08-01. Writing that gate means deleting reminders, the wakelock, the file picker and the photo picker, or disabling the gate. The claim G2 makes is narrower and true: *no package enters the graph unreviewed.*
 
 Also banned outright by this gate's `[dependencies]` section, because they are the ones that will be proposed: `connectivity_plus`, `workmanager`, `battery_plus`, `firebase_*`, `printing`, `google_fonts`, `google_mlkit_text_recognition`, `speech_to_text`, `permission_handler`, `purchases_flutter`. Every one has a rejection row in decision-record §5.3.
 

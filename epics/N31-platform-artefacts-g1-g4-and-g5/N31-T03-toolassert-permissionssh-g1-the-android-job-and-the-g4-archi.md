@@ -323,7 +323,7 @@ opens, and the PR body records that the drill was run and on which run number.
 
 - **Offline** — no network path may be added to the app. The job's own network use (`checkout`, the Flutter install, `pub get`, the `bundletool` fetch) is **build-machine** network, which is a different claim from the shipped app's, and it is the only kind permitted here. Decision-record §3.4 #3 keeps that distinction explicit.
 - **Never weaken a red gate to make a build green** (`CLAUDE.md`). If G1 goes red, the sequence is: read the G4 merger report, name the contributing library, decide whether that dependency stays. `android/expected_permissions.txt` changes last, never first, and never without a recorded reason.
-- **No gate may assert *"no `http` in `pubspec.lock`"*** (decision-record §3.4 #1; `12 §10.2`). It is unsatisfiable — `http 1.6.0` sits on two load-bearing regular edges — and *"a gate that cannot pass gets deleted, and the real gates get deleted alongside it."*
+- **No gate may assert *"no `http` in `pubspec.lock`"*** (decision-record §3.4 #1; `12 §10.2`). It is unsatisfiable — `http 1.6.0` sits on four load-bearing regular edges — and *"a gate that cannot pass gets deleted, and the real gates get deleted alongside it."*
 - **G1 asserts set equality, never the absence of one string.** A grep for `INTERNET` cannot see the failure mode this gate exists for.
 - **No CI step may fix rather than report** (`13 §4.6`). No auto-format commit, no bot that regenerates and pushes, no `continue-on-error: true`. *"If it is not worth failing on, delete it."*
 - **Vocabulary** — one word per concept (`CLAUDE.md`). The banned words are banned in the commit message too: no `draft`, no `save()`, no `sync`, no `Error` as a failure name.

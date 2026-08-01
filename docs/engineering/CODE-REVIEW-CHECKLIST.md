@@ -187,7 +187,7 @@ The offline contract is decision-record §3; the gates are G0–G5 there and, wi
 >
 > **One thing is settled and one is not.** ~~**G0 has not been run**~~ — **it ran on 2026-08-01** (N02-T01) and 13 §2.2's four rows each carry an answer and a date. Removing `INTERNET` is proven; `ACCESS_NETWORK_STATE` is **not removed at all**, because the *leave it* branch fired: billing 8.0.0's own manifest declares no network permission and `com.google.android.datatransport:transport-backend-cct:3.1.8`, a compile-scope dependency of it, declares both that and `INTERNET`. A diff that removes `ACCESS_NETWORK_STATE`, or that adds `WAKE_LOCK` back, or that omits `androidx.core`'s `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, is contradicting a measurement. And **iOS has no permission to remove**: G5 is construction plus one manual App Privacy Report / `nettop` check per release. Say so honestly; never imply parity with Android.
 >
-> **A gate that must never be written:** any *"no `http` in `pubspec.lock`"* rule. `http 1.6.0` sits on two regular edges (§2.17) and such a gate is unsatisfiable on day one. 08 §9 and decision-record §3.4 both say so; refuse it in review.
+> **A gate that must never be written:** any *"no `http` in `pubspec.lock`"* rule. `http 1.6.0` sits on four regular edges (§2.17) and such a gate is unsatisfiable on day one. 08 §9 and decision-record §3.4 both say so; refuse it in review.
 
 ### 1.12 Tests that gate
 
@@ -592,7 +592,7 @@ Ask, in this order:
 **The audit, by c1's method, and all five parts are required:**
 
 1. **Version and publisher from the pub.dev API** (`https://pub.dev/api/packages/<name>`), not from memory and not from a research note. Every version in this project comes from decision-record §5 and nowhere else.
-2. **The transitive graph**, read for network edges. `http 1.6.0` is already in the graph on two regular edges (`flutter_local_notifications → timezone` and `wakelock_plus → package_info_plus`); that is unavoidable and documented, and **any "no http in pubspec.lock" gate is unsatisfiable and must not be written.** A *new* http edge is a different conversation.
+2. **The transitive graph**, read for network edges. `http 1.6.0` is already in the graph on four regular edges (`timezone`, `package_info_plus`, `file_selector_platform_interface` and `image_picker_platform_interface`); that is unavoidable and documented, and **any "no http in pubspec.lock" gate is unsatisfiable and must not be written.** A *new* http edge is a different conversation.
 3. **The merged manifest** — which Android permissions it contributes. The permission set is eight entries and G1 asserts it exactly.
 4. **Resolution against Flutter stable's pins.** `meta: 1.18.0` governs the entire dev-dependency set: no Flutter app can resolve `analyzer ≥ 13.1.0`, `build_runner` is `">=2.15.0 <2.15.2"`, and `package:test` is never a direct dependency because `flutter_test` does not depend on it.
 5. **Whether it is even needed.** Decision-record §5.3 is a long rejected list, each row carrying the reason and the alternative. Read it before adding anything — `fl_chart`, `printing`, `google_fonts`, `freezed`, `go_router`, `custom_lint`, `permission_handler`, `file_picker`, `csv` and every charting package are all already answered.

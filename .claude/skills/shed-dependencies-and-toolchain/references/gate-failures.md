@@ -66,7 +66,7 @@ verified version in decision-record §5.1 or §5.2, and only then add the allowl
 into `[transitive]` because `[dependencies]` felt like a bigger commitment. Widening the parser.
 
 **Two `[transitive]` entries exist so nobody "fixes" them:** `http` (via `timezone` **and** via
-`package_info_plus` — two regular edges) and `sqlite3_flutter_libs` (a no-op EOL shim dragged in by
+`package_info_plus`, `file_selector_platform_interface` and `image_picker_platform_interface` — four regular edges) and `sqlite3_flutter_libs` (a no-op EOL shim dragged in by
 `drift_flutter`, **not** flagged discontinued on pub.dev, so a check keyed on that flag never fires).
 Deleting either line does not make the graph cleaner; it makes the build red for a fact that is
 documented and unavoidable.

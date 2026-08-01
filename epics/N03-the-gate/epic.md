@@ -120,7 +120,7 @@ in this epic is of a different kind and it is real:
   bare `Uri.parse(` and a bare `strftime`/`datetime`; decision #47 already excludes the last pair for
   exactly this reason.
 - **A *"no `http` in `pubspec.lock`"* rule is unsatisfiable and must never be written.** `http 1.6.0`
-  sits on two regular edges — `flutter_local_notifications → timezone → http` and
+  sits on four regular edges — `flutter_local_notifications → timezone → http` and
   `wakelock_plus → package_info_plus → http` — so the rule is permanently red and gets deleted by
   whoever meets it. Four research notes wrote it. Decision-record §3.4 #1 records why it is banned;
   N03-T03 puts that reason in the source, not only in a document.

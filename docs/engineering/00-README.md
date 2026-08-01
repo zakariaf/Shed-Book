@@ -30,7 +30,7 @@ Four things outrank everything else. Each is held by **one structural mechanism*
 
 Supporting gates: **G2** (direct-dependency allowlist over `pubspec.lock`, `dependencies` and `dev_dependencies` scanned separately), **G3** (import scan of `lib/`), **G4** (merger report, diagnostic only), **G5** (iOS: construction plus observation, honestly labelled as not mechanically enforced). **G0** — the manifest-merger check against a real release AAB — has not been run; until it is, G1 is *unwritten*, not merely unimplemented.
 
-→ [`13-build-ci-release.md`](13-build-ci-release.md) §2 (the gates), §3 (the permission set). Anti-patterns worth knowing before you propose one: a *"no `http` in `pubspec.lock`"* rule is **unsatisfiable** and must never be written — `http 1.6.0` sits on two load-bearing regular edges.
+→ [`13-build-ci-release.md`](13-build-ci-release.md) §2 (the gates), §3 (the permission set). Anti-patterns worth knowing before you propose one: a *"no `http` in `pubspec.lock`"* rule is **unsatisfiable** and must never be written — `http 1.6.0` sits on four load-bearing regular edges.
 
 ### 2.2 The 3am test (spec §5)
 

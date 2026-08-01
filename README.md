@@ -1,8 +1,16 @@
 # Shed Book
 
+[![CI](https://github.com/zakariaf/Shed-Book/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zakariaf/Shed-Book/actions/workflows/ci.yml)
+
 An offline lambing notebook for a phone, built around one fifteen-second interaction — pick the
 animal, tap what happened — performed at 03:20, one-handed, in a cold shed with a head torch and no
 signal.
+
+This repository is public as a **worked example**: it is the companion to a video series on building
+mobile applications with Claude Code. Everything is here on purpose — the decision record, the
+thirteen engineering documents, the design system, all thirty-three epics with one file per task, and
+the commit history that carries the measurements and the wrong turns. The interesting part is not the
+finished code; it is `docs/` and `epics/` next to the commits that came out of them.
 
 > Shed Book has no account, no server and no sync. The Android build ships without the internet
 > permission, so the app itself cannot connect to anything. Your records only leave the phone when
@@ -80,3 +88,22 @@ needs somebody else's diary.
 Open a pull request even when working alone — `.github/pull_request_template.md` is where the five
 spec §12 safety questions get asked, and **never `gh pr create --fill`**, which takes the body from
 the commit messages and skips the template entirely.
+
+`main` takes no direct push. It requires a pull request with **`gate`, `codegen` and `test` all
+green**, and it merges with a merge commit — squash and rebase are turned off at the repository, so
+the per-task commits survive. They are the record: each one carries what was measured, what a
+document got wrong, and what was left for the owner to rule on.
+
+## Licence
+
+**Apache License 2.0** — see [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+
+Fork it, read it, teach from it, build on it, ship it. Two things the licence asks in return: keep
+the copyright and `NOTICE` with any substantial portion you redistribute, and say what you changed.
+
+Apache rather than MIT for two reasons that matter to a repository people are meant to copy from. It
+carries an **express patent grant**, so anyone building on this gets that protection in writing
+rather than by implication. And **section 6 does not grant the name**: "Shed Book" is the
+application's name, not part of the grant. A derivative is welcome — under its own name.
+
+© 2026 Zakaria Fatahi.

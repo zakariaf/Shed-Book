@@ -24,8 +24,8 @@
 /// existing. The separation is real at compile time, which is the whole benefit.
 ///
 /// **No `implements Comparable`.** `extension type EweId(int value) implements
-/// Comparable<EweId>` fails with `extension_type_implements_not_supertype`,
-/// because `int` implements `Comparable<num>`. If ids need sorting, sort on
+/// Comparable&lt;EweId&gt;` fails with `extension_type_implements_not_supertype`,
+/// because `int` implements `Comparable&lt;num&gt;`. If ids need sorting, sort on
 /// `.value`. 05 §2.3 documents the same wall for `Instant`.
 ///
 /// **No `package:uuid` here.** `String newUid()` is `lib/core/db/uid.dart`'s, and

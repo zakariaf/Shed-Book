@@ -56,17 +56,20 @@ void main() {
     // assumed — writing this case found that the boundary is not where
     // 05 §2.3's summary suggests.
     //
-    // What the compiler DOES stop: an extension type declaring no `implements`
-    // is not assignable to Object. `Map<Object, String>{EweId(3): …}` is a
-    // compile error, not a lurking bug, so the most obvious form of "key one Map
-    // with two id types" cannot be written at all.
+    // What the compiler DOES stop, and it is more than expected:
     //
-    // What it does NOT stop is everything below. Anything that goes through
-    // `dynamic` — a JSON map, a `Map<dynamic, …>`, an `Object?` slot reached by
-    // inference — sees a bare int.
-    expect(const EweId(3) == const LambId(3), isTrue);
-
+    //   * an extension type declaring no `implements` is not assignable to
+    //     Object, so a Map keyed by Object cannot hold one at all;
+    //   * `EweId(3) == LambId(3)` written directly is an ANALYZER ERROR under
+    //     --fatal-infos (unrelated_type_equality_checks), not merely a lint.
+    //
+    // So the equality below has to be reached through `dynamic` — which is
+    // exactly the point. Everything that goes through `dynamic` (a JSON map, a
+    // Map<dynamic, …>, an Object? slot reached by inference) sees a bare int,
+    // and nothing warns there.
     final dynamic asDynamic = const EweId(3);
+    final dynamic otherType = const LambId(3);
+    expect(asDynamic == otherType, isTrue);
     expect(asDynamic.runtimeType, int, reason: 'the run-time type is the representation');
     expect(asDynamic is int, isTrue);
     expect(

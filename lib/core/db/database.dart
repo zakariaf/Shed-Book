@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/migrations.dart';
 import 'package:shed_book/core/db/seed/first_run.dart';
 import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
@@ -81,17 +82,20 @@ class AppDatabase extends _$AppDatabase {
   @override
   int get schemaVersion => schemaVersionOverride;
 
-  /// N08 replaces `onUpgrade` with `stepByStep(...)`. Until then there is no
-  /// upgrade path, and that is honest rather than missing: v1 is the only
-  /// version that exists, so an onUpgrade here would be untested code guarding
-  /// a transition nobody can perform.
+  /// The bodies live next door in `migrations.dart`, which is the one
+  /// hand-edited file in this package (04 §2.5) and the one that carries the
+  /// five rules where somebody will read them.
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (Migrator m) async {
       await m.createAll();
+      // Decision #42: the seed is part of creating the database, not a step the
+      // first screen performs. It is skipped on exactly two paths — a restore
+      // and tool/seed.dart — both of which are about to write their own rows.
       if (seedOnCreate) {
         await seedFirstRun(this);
       }
     },
+    onUpgrade: shedStepByStep(),
   );
 }

@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
+import 'package:shed_book/core/db/tables/lambing.dart';
 import 'package:shed_book/core/db/tables/seasons.dart';
 // The generated part file references these by bare name, so the library that
 // owns the part has to import them. Adding one here is what a new converter on
@@ -24,6 +25,7 @@ const int kSchemaVersion = 1;
 /// until T06 — which is precisely the defect the fourteen-into-eight re-cut
 /// existed to remove.
 @DriftDatabase(
+  include: <String>{'triggers.drift'},
   tables: <Type>[
     // N07-T03 — the flock cluster.
     Seasons,
@@ -31,6 +33,9 @@ const int kSchemaVersion = 1;
     EweSeasons,
     EweTouches,
     EweObservations,
+    // N07-T04 — the lambing cluster.
+    Lambings,
+    Lambs,
   ],
 )
 class AppDatabase extends _$AppDatabase {

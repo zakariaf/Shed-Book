@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
 import 'package:shed_book/core/db/tables/common.dart';
+import 'package:shed_book/core/db/tables/lambing.dart';
 import 'package:shed_book/core/db/tables/seasons.dart';
 
 @TableIndex(name: 'idx_ewe_status', columns: <Symbol>{#status})
@@ -133,11 +134,12 @@ class EweObservations extends Table with Identified, Struckable {
   late final ewe = integer().references(Ewes, #id, onDelete: KeyAction.cascade)();
   late final season = integer().references(Seasons, #id, onDelete: KeyAction.cascade)();
 
-  /// **Forward reference, deferred to N07-T04.** `Lambings` does not exist yet.
-  /// The column and its index land now — an index needs no parent table — and
-  /// `.references(Lambings, #id, onDelete: KeyAction.setNull)` is added when the
-  /// parent exists. Nothing is frozen until T08, so editing this in T04 is free.
-  late final lambing = integer().nullable()();
+  /// `setNull`: an observation outlives the lambing it was noticed at.
+  late final lambing = integer().nullable().references(
+    Lambings,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
 
   /// **Forward reference, deferred to N07-T06.** A user-editable vocabulary is a
   /// foreign key, never a `CHECK` (convention 6), and `VocabTerms` lands in T06:

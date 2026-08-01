@@ -106,11 +106,15 @@ void main() {
     final AppDatabase db = testDatabase();
 
     expect(db.allTables.map((TableInfo<Table, dynamic> t) => t.actualTableName).toSet(), <String>{
+      // N07-T03 — the flock cluster.
       'seasons',
       'ewes',
       'ewe_seasons',
       'ewe_touches',
       'ewe_observations',
+      // N07-T04 — the lambing cluster.
+      'lambings',
+      'lambs',
     });
   });
 }

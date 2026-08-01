@@ -15,12 +15,13 @@
 //   3. N07-T08 — the UNPERSISTABLE half, against
 //      drift_schemas/drift_schema_v1.json: treatment_withdrawals.days carries a
 //      null defaultValue and a null clientDefault, and NO ROW means not
-//      recorded.                                                      [MISSING]
+//      recorded.                                                      [present]
 //
 // The fourth proof is a widget test on the entry control, in N20-T02.
 //
-// If you are here because you added a half, add it to the list. If you are here
-// because one is still marked MISSING, it has not been written yet.
+// All three are present. If you are here because you added a fourth, add it to
+// the list — and note that the fourth PROOF, the widget test on the entry
+// control, is N20-T02's and lives with the screen.
 //
 // Why all of it is in ONE file: 12 §1.4 sends source-text assertions to
 // tool/check_policy.dart, and the rule immediately above it is decision #52's
@@ -30,6 +31,7 @@
 @Tags(<String>['policy'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -444,4 +446,72 @@ void main() {
     expect(hits, hasLength(1));
     expect(hits.single.line, 2);
   });
+
+  // -------------------------------------------------------------------------
+  // The unpersistable half (N07-T08): the committed snapshot itself.
+  // -------------------------------------------------------------------------
+
+  test('drift_schema_v1.json has null defaultValue and null clientDefault '
+      'for treatment_withdrawals.days', () {
+    // Read as a FILE, never reflected off AppDatabase. That is the whole point
+    // of decision #52: the assertion has to outlive the Dart source and read the
+    // artefact a 2029 SchemaVerifier will read — on a phone that has never been
+    // online, against a schema nobody can push a fix to.
+    final Object? schema = jsonDecode(
+      File('drift_schemas/drift_schema_v1.json').readAsStringSync(),
+    );
+
+    final Map<String, Object?> days = _columnInSnapshot(
+      schema,
+      table: 'treatment_withdrawals',
+      column: 'days',
+    );
+
+    expect(days['default_dart'], isNull, reason: 'no clientDefault');
+    expect(days['default_client_dart'], isNull, reason: 'no clientDefault');
+    expect(days['defaultConstraints'], anyOf(isNull, isNot(contains('DEFAULT'))));
+    expect(
+      days['nullable'],
+      isTrue,
+      reason: 'a NOT NULL days would need a default, which is the thing banned',
+    );
+  });
+
+  test('the snapshot carries both withdrawal targets and no third', () {
+    // 00-README §5.2 item 10, ruled 2026-08-01: milk ships in the v1 schema even
+    // though the dairy question is open, because retrofitting it is a migration
+    // and shipping it is free.
+    final String raw = File('drift_schemas/drift_schema_v1.json').readAsStringSync();
+
+    expect(raw, contains("target IN ('meat','milk')"));
+  });
+}
+
+/// One column's entry in the snapshot, by table and column name.
+///
+/// It walks the JSON rather than indexing it, because drift's snapshot shape is
+/// drift's to change between versions and a hard-coded path would fail as a
+/// missing key rather than as a missing column.
+Map<String, Object?> _columnInSnapshot(
+  Object? schema, {
+  required String table,
+  required String column,
+}) {
+  final List<Object?> entities = (schema! as Map<String, Object?>)['entities']! as List<Object?>;
+
+  for (final Object? entity in entities) {
+    final Map<String, Object?> e = entity! as Map<String, Object?>;
+    final Map<String, Object?> data = e['data']! as Map<String, Object?>;
+    if (data['name'] != table) {
+      continue;
+    }
+    for (final Object? c in data['columns']! as List<Object?>) {
+      final Map<String, Object?> col = c! as Map<String, Object?>;
+      if (col['name'] == column) {
+        return col;
+      }
+    }
+    fail('$table has no column $column in the snapshot');
+  }
+  fail('the snapshot has no table $table');
 }

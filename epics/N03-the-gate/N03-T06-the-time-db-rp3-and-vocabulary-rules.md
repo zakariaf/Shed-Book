@@ -128,8 +128,15 @@ const kBannedWords = <String>[
 ];
 
 ('copy.banned_word', /* built from kBannedWords */ 'lib/', 'CONVENTIONS §5.3'),
-('copy.tier3_claim', /* the four banned public phrases */ '',
+('copy.tier3_claim', /* the banned public phrases */ 'lib/',
     'only decision-record §3.1 wording is permitted'),
+// ~~scope ''~~ — amended 2026-08-01 in N03-T06. `13 §2.1` scopes this rule to
+// `lib/` AND `assets/`, never to `test/`, and the empty scope reaches `test/`:
+// `test/policy/offline_wording_test.dart` legitimately contains every one of
+// these phrases, because banning a phrase and claiming it are different things
+// — which is the same distinction that file's own marked region exists for.
+// `assets/` is not a walked root yet; N06-T11 lands `assets/content/` and
+// widens `_roots` with this reason on the line.
 ```
 
 **The ARB reader**, which `10 §10` requires and `01 §3.2`'s driver does not have:

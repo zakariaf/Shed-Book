@@ -816,6 +816,10 @@ http             # via timezone AND via package_info_plus. Two regular edges.
               'ui.',
             ].any(id.startsWith),
           )
+          // type.error_name shares the `type.` namespace and is a vocabulary
+          // row, not a design one — CONVENTIONS §4.7 gives namespaces, not
+          // ownership. Its case is in the vocabulary group.
+          .where((String id) => id != 'type.error_name')
           .toSet();
       expect(design.difference(covered), isEmpty, reason: 'design rows with no planting case');
       expect(
@@ -922,6 +926,358 @@ lib/core/ui/palettes.dart          :: token.primitives_import
         gateOn(<String, String>{'lib/core/db/database.g.dart': 'const c = Color(0xFF0B0D0E);\n'}),
         isEmpty,
       );
+    });
+  });
+
+  group('the time, db, rp3 and vocabulary rules', () {
+    // Every snippet for a row scoped to BOTH roots is assembled from halves, so
+    // this file — which lives under a scanned root — never contains the literal
+    // whole. That is one of the two ways out the epic names; the other is a
+    // fifth [exempt] line, and there is no fifth [exempt] line.
+    final String nowCall =
+        'DateTime'
+        '.now(';
+
+    // The anchor's own TITLE contains the literal `time.dart_clock` bans, and
+    // that rule reaches `test/`. Split across adjacent string literals: Dart
+    // concatenates them with no separator, so the test's NAME is the backlog's
+    // anchor verbatim while this file's source text never holds the needle whole.
+    test('time.wall_clock exits 1 on a second DateTime'
+        '.now( call site '
+        'and copy.banned_word exits 1 on the word dr'
+        'aft', () {
+      // The exemption is proved by the file that does NOT appear.
+      final List<String> violations = gateOn(
+        <String, String>{
+          'lib/core/time/app_clock.dart': 'final t = $nowCall);\n',
+          'lib/data/lambing_repository.dart': 'final t = $nowCall);\n',
+        },
+        allowlist:
+            '$_emptyAllowlist'
+            'lib/core/time/app_clock.dart :: time.dart_clock\n',
+      );
+      expect(violations, hasLength(1), reason: violations.join('\n'));
+      expect(violations.single, contains('[time.dart_clock]'));
+      expect(violations.single, contains('lib/data/lambing_repository.dart'));
+
+      final List<String> word = gateOn(<String, String>{
+        'lib/features/lambing/lambing_screen.dart':
+            'const s = '
+            "'dr"
+            "aft';\n",
+      });
+      expect(word, hasLength(1));
+      expect(word.single, contains('[copy.banned_word]'));
+    });
+
+    test('the five SQL-side time spellings each fire under their own id', () {
+      const Map<String, String> sql = <String, String>{
+        'time.sql_now_1': "const q = \"date('now')\";",
+        'time.sql_now_2': "const q = \"datetime('now')\";",
+        'time.sql_now_3': "const q = 'CURRENT_TIMESTAMP';",
+        'time.sql_now_4': "const q = 'CURRENT_DATE';",
+        'time.sql_now_5': "const q = 'CURRENT_TIME';",
+      };
+      sql.forEach((String id, String body) {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/core/db/queries.dart': '$body\n',
+        });
+        expect(violations.map((String v) => v.split(']').first.substring(1)), contains(id));
+      });
+    });
+
+    test('time.dart_clock reaches the test tier — a test that reads the real clock '
+        'depends on the day it runs', () {
+      final List<String> violations = gateOn(<String, String>{
+        'test/data/lambing_repository_test.dart': 'final t = $nowCall);\n',
+      });
+      expect(violations, hasLength(1));
+      expect(violations.single, contains('[time.dart_clock]'));
+    });
+
+    test('db.raw_statement fires under lib/data/ and not at the legal site', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/data/pen_repository.dart': 'void f() => customStatement(sql);\n',
+        }).single,
+        contains('[db.raw_statement]'),
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/core/db/connection.dart': 'void f() => customStatement(sql);\n',
+          'lib/core/db/queries.drift.dart': 'void f() => customStatement(sql);\n',
+        }),
+        isEmpty,
+        reason: 'lib/core/db/ is the single writer; the .drift.dart file is generated',
+      );
+    });
+
+    test('db.save_verb — there is no save(aggregate) anywhere', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/data/flock_repository.dart': 'Future<void> saveEwe(Ewe e) async {}\n',
+        }).single,
+        contains('[db.save_verb]'),
+      );
+    });
+
+    test('every rp3 row fires on the 3.x spelling it bans', () {
+      // Fragments again: eleven of the thirteen are scoped to both roots.
+      final Map<String, String> rp3 = <String, String>{
+        'rp3.retry':
+            'ProviderScope(re'
+            'try: r);',
+        'rp3.container_test':
+            'final c = ProviderContainer'
+            '.test();',
+        'rp3.is_auto_dispose':
+            'final b = p.is'
+            'AutoDispose;',
+        'rp3.mutation':
+            'final m = Muta'
+            'tion<int>();',
+        'rp3.value_or_null':
+            'final v = a.value'
+            'OrNull;',
+        'rp3.ref_mounted':
+            'if (ref.mou'
+            'nted) {}',
+        'rp3.observer_context':
+            'void f(ProviderObserver'
+            'Context c) {}',
+        'rp3.state_provider':
+            'final p = State'
+            'Provider((r) => 0);',
+        'rp3.state_notifier':
+            'class C extends State'
+            'Notifier<int> {}',
+        'rp3.annotation':
+            "import 'package:riverpod"
+            "_annotation/x.dart';",
+        'rp3.hooks':
+            "import 'package:hooks"
+            "_riverpod/x.dart';",
+      };
+      rp3.forEach((String id, String body) {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/features/flock/flock_controller.dart': '$body\n',
+        });
+        expect(
+          violations.map((String v) => v.split(']').first.substring(1)),
+          contains(id),
+          reason: '$id did not fire on: $body',
+        );
+      });
+    });
+
+    test('rp3.tester_container is test/ only and rp3.overrides is lib/ only', () {
+      final String testerContainer =
+          'tester'
+          '.container';
+      expect(
+        gateOn(<String, String>{
+          'test/features/flock_screen_test.dart': 'final c = $testerContainer;\n',
+        }).single,
+        contains('[rp3.tester_container]'),
+      );
+      // The harness at N12 is built entirely out of overrideWith. A row scoped
+      // to both roots would make it unwritable.
+      expect(
+        gateOn(<String, String>{
+          'test/support/harness.dart': 'final o = dbProvider.overrideWith((r) => fake);\n',
+        }),
+        isEmpty,
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/app.dart': 'final o = dbProvider.overrideWith((r) => fake);\n',
+        }).single,
+        contains('[rp3.overrides]'),
+      );
+    });
+
+    test('stream and stat rows fire, and stat is scoped to the two statistic surfaces', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/data/season_repository.dart': 'final s = combineLatest(a, b);\n',
+        }).single,
+        contains('[stream.combine]'),
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/features/season/season_controller.dart': 'void f() => ref.invalidate(p);\n',
+        }).map((String v) => v.split(']').first.substring(1)),
+        contains('stream.invalidate'),
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/features/season/season_controller.dart': 'final n = count ?? 0;\n',
+        }).single,
+        contains('[stat.zero_default]'),
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/features/pens/pen_board_controller.dart': 'final n = count ?? 0;\n',
+        }),
+        isEmpty,
+        reason: 'only the season and flock statistic surfaces are scoped',
+      );
+    });
+
+    group('the false positives that decide the vocabulary rule’s shape', () {
+      test('existsSync, readAsStringSync and listSync are not a banned word', () {
+        // If this case is red the rule is substring-matching `sync` and will be
+        // deleted by whoever meets it — which is how the real rules go too.
+        expect(
+          gateOn(<String, String>{
+            'lib/data/media_store.dart':
+                'final a = f.existsSync();\n'
+                'final b = f.readAsStringSync();\n'
+                'final c = d.listSync();\n',
+          }),
+          isEmpty,
+        );
+      });
+
+      test('the sync* generator keyword is not a banned word', () {
+        expect(
+          gateOn(<String, String>{
+            'lib/domain/stats/losses.dart': 'Iterable<int> f() sync* { yield 1; }\n',
+          }),
+          isEmpty,
+        );
+      });
+
+      test('framework error types are legal; a declared *Error class is not', () {
+        expect(
+          gateOn(<String, String>{
+            'lib/main.dart':
+                'void f() { throw StateError(m); }\n'
+                'void g() { FlutterError.onError = h; }\n'
+                'void i() { throw ArgumentError(m); }\n',
+          }),
+          isEmpty,
+        );
+        expect(
+          gateOn(<String, String>{
+            'lib/domain/validation/x.dart': 'class LambingError implements Exception {}\n',
+          }).single,
+          contains('[type.error_name]'),
+        );
+      });
+
+      test('pendingRequests is legal; the bare word is not', () {
+        expect(
+          gateOn(<String, String>{'lib/data/x.dart': 'final n = pendingRequests;\n'}),
+          isEmpty,
+        );
+        expect(
+          gateOn(<String, String>{
+            'lib/data/x.dart':
+                'const s = '
+                "'pend"
+                "ing';\n",
+          }).single,
+          contains('[copy.banned_word]'),
+        );
+      });
+    });
+
+    group('the ARB reader — 10 §10(a)', () {
+      String arb(String key, String value, {String? description}) =>
+          '{\n'
+          '  "$key": "$value",\n'
+          '  "@$key": {\n'
+          '    "description": "${description ?? 'a description'}"\n'
+          '  }\n'
+          '}\n';
+
+      test('a banned word in a message value is a violation, naming the key', () {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/l10n/app_en.arb': arb(
+            'quickEntryTitle',
+            'Your dr'
+                'aft is here',
+          ),
+        });
+        expect(violations, hasLength(1));
+        expect(violations.single, contains('[copy.banned_word]'));
+        expect(violations.single, contains('quickEntryTitle'));
+      });
+
+      test('the same word in a description is not', () {
+        // 10 §8 requires a description on every string, and the description of a
+        // message about one has to be able to say so.
+        expect(
+          gateOn(<String, String>{
+            'lib/l10n/app_en.arb': arb(
+              'quickEntryTitle',
+              'Quick Entry',
+              description:
+                  'Never says dr'
+                  'aft, because there is none',
+            ),
+          }),
+          isEmpty,
+        );
+      });
+
+      test('the FULL word list runs over the ARB, sync included', () {
+        // `existsSync` cannot appear in an ARB message, so the word that is
+        // unusable over Dart is usable here.
+        final List<String> violations = gateOn(<String, String>{
+          'lib/l10n/app_en.arb': arb(
+            'settingsBody',
+            'Nothing to sy'
+                'nc',
+          ),
+        });
+        expect(violations.single, contains('[copy.banned_word]'));
+      });
+
+      test('a tier-3 claim in the ARB is its own violation', () {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/l10n/app_en.arb': arb(
+            'aboutOffline',
+            'your data never leaves '
+                'your phone',
+          ),
+        });
+        expect(
+          violations.map((String v) => v.split(']').first.substring(1)),
+          contains('copy.tier3_claim'),
+        );
+      });
+
+      test('the real ARB is clean', () {
+        expect(runPolicy().where((String v) => v.contains('app_en.arb')), isEmpty);
+      });
+    });
+
+    test('copy.tier3_claim fires under lib/, and the permitted wording does not', () {
+      final List<String> violations = gateOn(<String, String>{
+        'lib/features/settings/about_screen.dart':
+            "const s = 'your data never leaves "
+            "your phone';\n",
+      });
+      expect(
+        violations.map((String v) => v.split(']').first.substring(1)),
+        contains('copy.tier3_claim'),
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/features/settings/about_screen.dart':
+              "const s = 'Shed Book has no account, no server and no s"
+              "ync.';\n",
+        }),
+        isEmpty,
+        reason: "decision-record §3.1's own paragraph must pass the rule that protects it",
+      );
+    });
+
+    test('the two copy.* CONTENT rules are deliberately absent until N06-T09', () {
+      expect(policyRuleIds, isNot(contains('copy.vet_advice')));
+      expect(policyRuleIds, isNot(contains('copy.disclaimer_retyped')));
     });
   });
 

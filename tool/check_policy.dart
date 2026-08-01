@@ -254,7 +254,129 @@ const List<(String, String, String, String)> _bannedText = <(String, String, Str
   // A tooltip is a long-press affordance on touch, and long-press is banned, so
   // the widget is banned. 00-README §2.2 and CLAUDE.md list the same three.
   ('gesture.tooltip', 'Tooltip(', 'lib/', 'gesture ban — #101'),
+
+  // -- time: one clock (#46, R23) and no SQL-side time (#47) ----------------
+  // An empty prefix means BOTH scanned roots and nothing else — `tool/` is never
+  // walked. 12 §5: the rule scans test/ too, because a test that reads the real
+  // clock depends on the day it runs. Two rows with one id would be the
+  // duplicate R54 forbids; one row scoped lib/ would leave the whole test tier
+  // reading wall-clock time.
+  //
+  // The exemption, lib/core/time/app_clock.dart, is a file that does not exist
+  // until N04. The rule is live from this commit, so the FIRST DateTime.now(
+  // written anywhere in this project has to be in that file. That is the
+  // intended order.
+  ('time.dart_clock', 'DateTime.now(', '', 'use appNow() — #46, R23'),
+  ('time.sql_now_1', "date('now')", 'lib/', 'no SQL-side time — #47'),
+  ('time.sql_now_2', "datetime('now')", 'lib/', 'no SQL-side time — #47'),
+  ('time.sql_now_3', 'CURRENT_TIMESTAMP', 'lib/', 'no SQL-side time — #47'),
+  ('time.sql_now_4', 'CURRENT_DATE', 'lib/', 'no SQL-side time — #47'),
+  ('time.sql_now_5', 'CURRENT_TIME', 'lib/', 'no SQL-side time — #47'),
+  // `strftime` and a bare `datetime` are deliberately NOT rows: 01 §3.3 and
+  // decision #47 both name them as the false-positive trap that gets a rule
+  // weakened and then deleted.
+
+  // -- the single writer's text half, and the stream rows that go with it ----
+  // layer.single_writer's IMPORT half is in _bannedPackages (N03-T02). This is
+  // the other half. One rule, two mechanisms — not two rules.
+  ('db.raw_statement', 'customStatement(', 'lib/data/', 'bypasses stream tracking — rule 8'),
+  ('stream.combine', 'combineLatest', 'lib/', 'torn state across drift streams — #12'),
+  (
+    'stream.invalidate',
+    'ref.invalidate(',
+    'lib/',
+    'drift tracks tables; manual invalidation is a stale read — #12',
+  ),
+  ('stat.zero_default', '?? 0', 'lib/features/season/', 'unknown is not zero — #58'),
+  ('stat.zero_default2', '?? 0', 'lib/features/flock/', 'unknown is not zero — #58'),
+
+  // -- rp3: THIRTEEN rows (13 §2.5), spellings from 02 §2.4 ------------------
+  // Every tutorial published after 2025 shows the 3.x form and the analyzer will
+  // not save you: several of them COMPILE against 2.6.1 and mean something else.
+  //
+  // 02 §2.4's table has six more rows that are NOT rp3.*: go_router, the
+  // restoration family, WillPopScope, pushNamed/onGenerateRoute, and the
+  // `.select(` fresh-collection heuristic. Those are navigation and read-path
+  // rules and they need a namespace CONVENTIONS §4.7 does not list — a §6
+  // ruling, not a decision at the keyboard. The count here is thirteen.
+  ('rp3.retry', 'retry:', '', 'Riverpod-3 only; 2.6.1 has no auto-retry — #18'),
+  (
+    'rp3.container_test',
+    'ProviderContainer.test',
+    '',
+    'use ProviderContainer(…) + addTearDown — #18',
+  ),
+  ('rp3.tester_container', 'tester.container', 'test/', 'use UncontrolledProviderScope — #18'),
+  ('rp3.is_auto_dispose', 'isAutoDispose', '', 'use the .autoDispose builder — #18'),
+  (
+    'rp3.mutation',
+    'Mutation<',
+    '',
+    'Riverpod-3 experimental API; use WriteController.guard() — #18',
+  ),
+  ('rp3.value_or_null', '.valueOrNull', '', 'switch on the AsyncValue instead — #18'),
+  ('rp3.ref_mounted', 'ref.mounted', '', '2.6.1 has no Ref.mounted; use a _disposed field — #18'),
+  (
+    'rp3.observer_context',
+    'ProviderObserverContext',
+    '',
+    "the 3.x ProviderObserver signature; use 2.6.1's four-argument form — #18",
+  ),
+  ('rp3.state_provider', 'StateProvider', '', 'legacy; use NotifierProvider — #18'),
+  ('rp3.state_notifier', 'StateNotifier', '', 'legacy; use NotifierProvider — #18'),
+  ('rp3.annotation', 'riverpod_annotation', '', 'unresolvable on this stack — #18'),
+  ('rp3.hooks', 'hooks_riverpod', '', 'not in this project — #18'),
+  // lib/ ONLY. Overrides are a test mechanism — 02 §5.2 says production has zero
+  // of them — and a row scoped to both roots would fire on test/support/harness.dart,
+  // which is built entirely out of overrideWith. Get this wrong and the harness
+  // is unwritable at N12.
+  ('rp3.overrides', 'overrideWith', 'lib/', 'production has zero overrides — 02 §5.2, #18'),
 ];
+
+/// CONVENTIONS §5.3 and `CLAUDE.md`, verbatim. **The only place a banned word is
+/// written down**; both vocabulary rows build their patterns from it, so adding
+/// one is a one-line change.
+const List<String> kBannedWords = <String>[
+  'draft',
+  'isDirty',
+  'commit(',
+  'submit(',
+  'pending',
+  'sync',
+  'synchronized',
+  'offline-first',
+  'flags',
+];
+
+/// The subset of [kBannedWords] that **cannot** false-positive in Dart source.
+///
+/// `sync` is the one this project already documented once and then nearly wrote
+/// anyway: a substring row for it fires on `existsSync(`, `readAsLinesSync()`,
+/// `listSync(`, `asyncMap`, `Future.sync` and the `sync*` generator keyword —
+/// which is to say, on this file's own driver. `01 §3.3` names the shape
+/// exactly, about `strftime`: they false-positive on legitimate code and get
+/// weakened. So the full list runs over the **ARB**, where `existsSync` cannot
+/// appear, and this subset runs over Dart. Two scopes, one word list.
+const List<String> _dartSafeBannedWords = <String>[
+  'draft',
+  'isDirty',
+  'commit(',
+  'submit(',
+  'pending',
+  'synchronized',
+  'offline-first',
+  'flags',
+];
+
+/// The phrasings that may never appear in shipped copy. Decision-record §3.1's
+/// paragraph is the only permitted public wording.
+///
+/// `13 §2.1` scopes this to `lib/` **and `assets/`** — not to `test/`, which the
+/// backlog's empty scope would have meant. `test/policy/offline_wording_test.dart`
+/// legitimately contains every one of these strings, because banning a phrase
+/// and claiming it are different things. `assets/` is not a walked root yet;
+/// N06-T11 lands `assets/content/` and widens `_roots` with the same reason.
+const List<String> _tier3Claims = <String>['your data never leaves your phone', 'offline-first'];
 
 /// Same tuple, a pattern instead of a literal — the same driver, the same
 /// allowlist keys (`'<path> :: <id>'`) and the same exit code. `final`, not
@@ -508,7 +630,57 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
     'lib/',
     'the only overlay is ShedBottomSheet — CONVENTIONS §4.7',
   ),
+
+  // -- vocabulary (CONVENTIONS §5) ------------------------------------------
+  // Word-anchored and case-sensitive, or `\bpending\b` would eat
+  // `pendingRequests` and `\bflags\b` would eat `flagsFor`. The three that are
+  // not bare words — `commit(`, `submit(`, `offline-first` — are escaped, not
+  // anchored, because `(` and `-` are not word characters.
+  (
+    'copy.banned_word',
+    RegExp(_dartSafeBannedWords.map(_wordPattern).join('|')),
+    'lib/',
+    'one word per concept — CONVENTIONS §5',
+  ),
+  // A CLASS-DECLARATION rule, not a word ban. A bare `Error` fires on
+  // StateError, ArgumentError, FlutterError.onError and ErrorWidget.builder,
+  // every one of which is the framework's and every one of which this app
+  // legitimately names — 01 §5.5 installs FlutterError.onError in main().
+  (
+    'type.error_name',
+    RegExp(r'class\s+\w*Error\b'),
+    'lib/',
+    'Error is never a failure-type name; the failure types are sealed — CONVENTIONS §5.3',
+  ),
+  // Repositories are event verbs. This is what makes "there is no
+  // save(aggregate) anywhere, so there is no aggregate in which a draft could be
+  // deferred" mechanical rather than aspirational (00-README §2.4). It also
+  // fires on saveAs(, savePoint( and savedAt, which is why it is scoped to
+  // lib/data/ and no wider.
+  (
+    'db.save_verb',
+    RegExp(r'\bsave\w*\('),
+    'lib/data/',
+    'repositories are event verbs; there is no save(aggregate) — CONVENTIONS §4.7',
+  ),
+  (
+    'copy.tier3_claim',
+    RegExp(_tier3Claims.map(RegExp.escape).join('|'), caseSensitive: false),
+    'lib/',
+    'only decision-record §3.1 wording is permitted — 13 §2.1',
+  ),
 ];
+
+/// A word-anchored pattern for one banned word, escaped.
+///
+/// `\b` only applies where the neighbouring character is a word character, so
+/// `commit(` and `offline-first` get a leading boundary and no trailing one.
+String _wordPattern(String word) {
+  final String escaped = RegExp.escape(word);
+  final String lead = RegExp(r'^\w').hasMatch(word) ? r'\b' : '';
+  final String tail = RegExp(r'\w$').hasMatch(word) ? r'\b' : '';
+  return '$lead$escaped$tail';
+}
 
 /// Every rule id this script can emit, in declaration order. N03-T07's
 /// inventory assertion iterates this; a rule that is not here cannot be proved.
@@ -611,10 +783,13 @@ bool _isGenerated(String path) =>
     path.contains('/app_localizations') ||
     path.contains('test/drift/generated/');
 
-/// The file kinds the gate reads. N03-T06 widens this to `.arb`, because the
-/// vocabulary rules have to read `lib/l10n/app_en.arb` — one predicate, so that
-/// is a one-line change and not a rewrite of the walk.
-bool _isScannable(String path) => path.endsWith('.dart');
+/// The file kinds the gate reads.
+///
+/// `.arb` joined `.dart` at N03-T06: `10 §10(a)` records that a walker which
+/// skips everything but Dart leaves the vocabulary rows with nothing to run
+/// against, because every user-facing string in this project is in
+/// `lib/l10n/app_en.arb`.
+bool _isScannable(String path) => path.endsWith('.dart') || path.endsWith('.arb');
 
 /// Every file the gate will read under [root], as repository-relative paths,
 /// **sorted**.
@@ -655,6 +830,11 @@ List<String> runPolicy({String root = '.'}) {
 
   for (final String path in scannedFiles(root)) {
     final String source = File(_join(root, path)).readAsStringSync();
+
+    if (path.endsWith('.arb')) {
+      violations.addAll(_checkArb(path, source, exempt));
+      continue;
+    }
 
     for (final (String id, String text, String under, String why) in _bannedText) {
       if (!path.startsWith(under) || !source.contains(text)) {
@@ -751,6 +931,72 @@ Map<String, String> lockfileKinds(String root) {
     }
   }
   return kinds;
+}
+
+/// The vocabulary rules over one ARB file.
+///
+/// A **separate reader** from the Dart one, and deliberately so. JSON has no
+/// adjacent-string-literal problem, so `05 §7.3`'s join-before-matching rule
+/// applies to the Dart half only and must not be copied here, where it would
+/// concatenate unrelated messages and invent matches that span two strings.
+///
+/// The `@`-prefixed entries are metadata. Scanning them makes every
+/// `description` — which `10 §8` requires on every string — a false positive on
+/// its own explanatory prose: the description of a message about a draft has to
+/// be able to say so.
+///
+/// The **full** [kBannedWords] list runs here, `sync` included, because
+/// `existsSync` cannot appear in an ARB message.
+List<String> _checkArb(String path, String source, Set<String> exempt) {
+  final List<String> violations = <String>[];
+  for (final (String key, String value) in _arbMessages(source)) {
+    for (final String word in kBannedWords) {
+      if (!RegExp(_wordPattern(word), caseSensitive: false).hasMatch(value)) {
+        continue;
+      }
+      if (exempt.contains('$path :: copy.banned_word')) {
+        continue;
+      }
+      violations.add('[copy.banned_word] $path: message "$key" contains "$word" — CONVENTIONS §5');
+    }
+    for (final String claim in _tier3Claims) {
+      if (!value.toLowerCase().contains(claim)) {
+        continue;
+      }
+      violations.add(
+        '[copy.tier3_claim] $path: message "$key" claims "$claim" — '
+        'only decision-record §3.1 wording is permitted',
+      );
+    }
+  }
+  return violations;
+}
+
+/// The non-metadata messages of an ARB file, as (key, value).
+///
+/// Hand-rolled, because the gate has no dependencies and an ARB message is one
+/// JSON string on one line in every file this project writes. A key beginning
+/// `@` is metadata and is skipped.
+/// Only entries at the **top level** are messages. Depth matters: `description`
+/// lives one level down, inside an `@`-prefixed object, and it does not begin
+/// with `@` itself — so a scan that only skipped `@` keys would read every
+/// description as a message and fire on its own explanatory prose.
+Iterable<(String, String)> _arbMessages(String source) sync* {
+  final RegExp entry = RegExp(r'^\s*"([^"]+)"\s*:\s*"((?:[^"\\]|\\.)*)"');
+  int depth = 0;
+  for (final String line in source.split('\n')) {
+    final int opens = '{'.allMatches(line).length;
+    final int closes = '}'.allMatches(line).length;
+    final RegExpMatch? match = entry.firstMatch(line);
+    // Depth BEFORE this line's braces: a top-level entry sits at depth 1.
+    if (depth == 1 && match != null) {
+      final String key = match.group(1)!;
+      if (!key.startsWith('@')) {
+        yield (key, match.group(2)!);
+      }
+    }
+    depth += opens - closes;
+  }
 }
 
 /// The layer rules, for one file. CONVENTIONS §1.1.

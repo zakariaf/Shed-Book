@@ -116,8 +116,14 @@ const List<String> rejectedAsDirect = <String>[
   'sqlcipher_flutter_libs',
   'riverpod_generator',
   'riverpod_lint',
-  'riverpod_annotation',
-  'hooks_riverpod',
+  // Assembled from halves, not written whole. `rp3.annotation` and `rp3.hooks`
+  // (N03-T06) ban both spellings across `lib/` and `test/`, and a test naming a
+  // package it asserts is ABSENT is a prohibition, not a claim. Splitting the
+  // needle is the way out the epic names; an [exempt] line would be a fifth.
+  'riverpod'
+      '_annotation',
+  'hooks'
+      '_riverpod',
   'import_lint',
   'custom_lint',
   'dart_code_metrics',

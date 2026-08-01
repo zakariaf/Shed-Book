@@ -110,6 +110,20 @@ class _ShedBookAppState extends ConsumerState<ShedBookApp> with WidgetsBindingOb
         if (hidden != null && ResumePolicy.shouldClearSelection(hidden, appNow())) {
           setState(() => selectionCleared = true);
         }
+        // TODO(owner): refresh minuteTickProvider here. Elapsed times are stale
+        // by however long the app was away — twenty minutes of "penned 2h" is a
+        // lie a shepherd acts on.
+        //
+        // N12-T03 §5.2 spells this as the app's ONE call to Riverpod's manual
+        // refresh — the one gate row stream.invalidate scans for — and
+        // anticipates an `[exempt]` line for `stream.invalidate` on this file.
+        // BOTH CANNOT BE TRUE AT ONCE: R56 fixes the allowlist at four lines and
+        // CLAUDE.md forbids adding one to silence a gate. A fifth line is a
+        // review conversation, not a keystroke — N09-T01's own comment says so —
+        // so the call is NOT written and the gap is named here and in N12's pull
+        // request rather than bought with an allowlist edit.
+        //
+        // The ticker itself is landed and tested; only this refresh is missing.
         _hiddenAt = null;
       // TODO(N12-T01): release the wakelock on `inactive`, not only on `hidden`
       // (decision #79). `wakelockProvider` does not exist yet, and a test

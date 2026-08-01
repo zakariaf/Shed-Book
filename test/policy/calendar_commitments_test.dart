@@ -46,6 +46,20 @@ const List<String> placeholderOutcomes = <String>[
 
 final RegExp _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+/// Spec §3's channels. The audience is smallholders and small commercial
+/// flocks, 20–400 ewes, lambing indoors or in a field within walking distance,
+/// one or two people doing all the work, often alongside a day job.
+const List<String> recruitmentChannels = <String>[
+  'The Farming Forum',
+  'Accidental Smallholder',
+  'r/sheep',
+  'r/homestead',
+  'National Sheep Association',
+  'breed societ',
+  'NFU',
+  'young farmer',
+];
+
 /// `recorded := an ISO civil date, YYYY-MM-DD, and nothing else`.
 bool isRecordedDate(String cell) => _isoDate.hasMatch(cell.trim());
 
@@ -182,6 +196,49 @@ void main() {
       expect(c.consequence.trim(), isNotEmpty, reason: c.key);
       expect(isRealOutcome(c.consequence), isTrue, reason: c.key);
     }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // N00-T07 — the field night and the twelve testers.
+  // ───────────────────────────────────────────────────────────────────────
+
+  Commitment row(String key) =>
+      ledger.firstWhere((Commitment c) => c.key == key);
+
+  test('the field night row and the twelve-tester row both carry a date', () {
+    for (final String key in <String>['field_night', 'twelve_testers']) {
+      expect(row(key).isComplete, isTrue,
+          reason: '$key — ${row(key).missing}');
+    }
+  });
+
+  test('the field night row names a location', () {
+    // A night with no shed named has not been booked. Deliberately NOT a
+    // check that the date is in the future: see 'the test reads no clock'.
+    final String outcome = row('field_night').outcome;
+    expect(isRealOutcome(outcome), isTrue,
+        reason: 'field_night — ${row('field_night').missing}');
+    expect(outcome.length, greaterThan(20),
+        reason: 'the outcome must name the shed, the flock size and roughly '
+            'how many lambings are expected. A night with two lambings is a '
+            'visit, not an observation');
+  });
+
+  test('the twelve-tester row names at least one channel from spec §3', () {
+    // So that "posted somewhere" cannot pass. Deliberately NOT `count >= 12`:
+    // that would go red every time somebody drops out, in an epic that merged
+    // months earlier, on a `main` everyone expects to be green.
+    final String outcome = row('twelve_testers').outcome;
+    expect(isRealOutcome(outcome), isTrue,
+        reason: 'twelve_testers — ${row('twelve_testers').missing}');
+    expect(
+      recruitmentChannels.any(
+          (String c) => outcome.toLowerCase().contains(c.toLowerCase())),
+      isTrue,
+      reason: 'the outcome names no channel from spec §3. It should also carry '
+          'both numbers — said yes, and opted in — because they diverge and '
+          'the second is the one N32-T03 needs',
+    );
   });
 
   test('the test reads no clock', () {

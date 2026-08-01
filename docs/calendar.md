@@ -42,6 +42,42 @@ complete  := owner is non-empty AND recorded is a date AND outcome is a real out
 the next reader does not think half of it is missing: N00-T01 fixed the identifier and wrote it into
 `RELEASES.md`; N00-T09 creates the product on both stores and records the date.
 
+## `field_night` and `twelve_testers` — what a filled row looks like
+
+Both are N00-T07's. Neither is closed, and the ledger test names both.
+
+**`field_night`.** The outcome cell names **the shed, the flock size, and roughly how many lambings
+are expected that night** — a night with two lambings is a visit, not an observation. What the night
+is for is the things nobody writes down: which hand holds the phone, what is in the other one, where
+the torch is, how long the phone is out of a pocket, and what actually happens between the ewe
+starting and the record being wanted. It also turns four desk estimates into observations — five taps
+from launch to a committed `beginLambing` row, six to a lambing with one lamb, one for a foster
+reassignment, two for a repeat treatment.
+
+The window is seasonal and does not reopen on demand: UK/Ireland lambing runs roughly February to
+April, the same three months `13 §11` freezes releases for. **If N13 lands outside that window the
+night cannot be booked before it, and the honest move is to record that in the outcome cell and say
+plainly that Quick Entry was designed from forum posts.** Do not quietly re-scope the row to a phone
+call with a shepherd and call it observed.
+
+**`twelve_testers`.** The outcome cell names the channels posted to and carries **two** numbers:
+how many said yes, and how many have **opted in**. They diverge, and the second is the one N32-T03
+needs — Play counts testers who joined the closed track via the opt-in link, for fourteen continuous
+days, so twelve people who said yes on a forum are twelve people who have not clicked anything.
+
+Spec §3's channels, which is what the test checks the outcome against: The Farming Forum (sheep
+board) · Accidental Smallholder · r/sheep · r/homestead · National Sheep Association · breed
+societies · local NFU and young farmer groups. The audience is smallholders and small commercial
+flocks, **20–400 ewes**, lambing indoors or in a field within walking distance, one or two people
+doing all the work, often alongside a day job. Spec §3 also records what they type into an app
+store — *lambing app · sheep records offline · flock book app · lambing records no subscription ·
+lambing notebook* — which is the vocabulary a recruitment post should use, because it is theirs.
+
+Twelve is the current floor, not a remembered one: it was reduced from twenty on 11 December 2024,
+and organisation accounts and personal accounts created before 13 November 2023 are exempt entirely.
+Whether this project is exempt is `developer_accounts`' question — recruit anyway, because the field
+night needs the same people for a different reason.
+
 ## What this file does not do
 
 **It never reads a clock.** No row is asserted to be in the future and no recorded date is compared

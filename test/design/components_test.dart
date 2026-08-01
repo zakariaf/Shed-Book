@@ -1,0 +1,1973 @@
+// test/design/components_test.dart — the component inventory.
+//
+// ONE FILE FOR THE WHOLE EPIC. Each of N10's eight tasks extends this file
+// rather than adding a ninth; `_pumpComponent` below is the shared helper all of
+// them use, and it is a private top-level function here rather than a thirteenth
+// file in test/support/, because 12 §5.3 closes that list.
+//
+// No sweep. These are component cases, not screen cases — N33-T02 and N33-T03
+// own the sweeps over kPumpableVariants, which does not exist until N12-T05.
+library;
+
+import 'dart:io';
+import 'dart:ui' show Tristate;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_banner.dart';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_choice_row.dart';
+import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
+import 'package:shed_book/core/ui/components/shed_countdown.dart';
+import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
+import 'package:shed_book/core/ui/components/shed_empty_state.dart';
+import 'package:shed_book/core/ui/components/shed_field_row.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:shed_book/core/ui/components/shed_receipt.dart';
+import 'package:shed_book/core/ui/components/shed_recents_strip.dart';
+import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
+import 'package:shed_book/core/ui/components/shed_status_badge.dart';
+import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/palettes.dart';
+import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/core/ui/theme.dart';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
+
+/// Pumps one component inside a real theme.
+///
+/// A real theme is not optional: every component reads `context.tokens`, and the
+/// accessor ends in `!` — a bare `MaterialApp` throws a null check on a widget
+/// deep in the tree with a message that never mentions tokens.
+///
+/// [scale] and [boldText] exist because the anchor runs at 200% with Bold Text
+/// on. Decision #99 says never clamp, so a 200% user is a real user, and the
+/// framework's bold-text merge is exactly what a hand-built `TextStyle` would
+/// silently drop.
+Future<void> _pumpComponent(
+  WidgetTester tester,
+  Widget component, {
+  double scale = 1.0,
+  bool boldText = false,
+  ShedPalette palette = nightPalette,
+}) => tester.pumpWidget(
+  MaterialApp(
+    theme: buildShedTheme(palette),
+    home: MediaQuery(
+      // fromView(...).copyWith(...), NOT a fresh MediaQueryData.
+      //
+      // MEASURED: a bare `MediaQueryData(textScaler: ...)` REPLACES the ambient
+      // one, so `size` is Size.zero and every component that reads
+      // MediaQuery.sizeOf lays out at nothing. ShedBottomSheet's
+      // fillsViewport case is what found it — it measured 0.0 against a 337.5
+      // floor — but the fault was in this helper and silently affected every
+      // component pumped through it.
+      data: MediaQueryData.fromView(
+        tester.view,
+      ).copyWith(textScaler: TextScaler.linear(scale), boldText: boldText),
+      child: Scaffold(body: Center(child: component)),
+    ),
+  ),
+);
+
+String _declarations(String path) =>
+    File(path).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+ShedPrimaryButton _slab({
+  ShedPrimaryButtonState state = ShedPrimaryButtonState.ready,
+  String label = '+ LAMB',
+}) => ShedPrimaryButton(label: label, onTap: () {}, semanticLabel: 'Add a lamb', state: state);
+
+void main() {
+  const String file = 'lib/core/ui/components/shed_primary_button.dart';
+
+  testWidgets('ShedPrimaryButton renders at textScale 2.0 with boldText, has a '
+      'semanticLabel, and no dimension below 64', (WidgetTester tester) async {
+    // THE ANCHOR, and it runs at the hard end of the range on purpose: 200% text
+    // with Bold Text on is where a slab either holds its box or overflows.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, _slab(), scale: 2.0, boldText: true);
+
+    expect(tester.takeException(), isNull, reason: 'the slab overflowed or threw');
+
+    final Rect rect = tester.getRect(find.byType(ShedPrimaryButton));
+    expect(rect.height, greaterThanOrEqualTo(88.0), reason: 'tapHero');
+    expect(rect.width, greaterThanOrEqualTo(144.0), reason: '2 x tapPrimary');
+    expect(rect.shortestSide, greaterThanOrEqualTo(64.0), reason: "indelible.md §4.5's build box");
+
+    final SemanticsNode node = tester.getSemantics(find.byType(ShedTapTarget));
+    expect(node.label, isNotEmpty);
+
+    handle.dispose();
+  });
+
+  testWidgets('the slab is one ShedTapTarget and the gates can find it', (
+    WidgetTester tester,
+  ) async {
+    // N33's two sweeps find targets BY TYPE. A control built on a bare InkWell
+    // is invisible to every one of them — it would pass this epic and vanish
+    // from the geometric gate, silently, forever.
+    await _pumpComponent(tester, _slab());
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+  });
+
+  testWidgets('every ShedPrimaryButtonState exposes SemanticsAction.tap', (
+    WidgetTester tester,
+  ) async {
+    // THE EXECUTABLE FORM OF "NEVER REFUSES A PRESS", including `refusing`
+    // itself. indelible.md §7.1: still a target — pressing it opens the tag
+    // sheet rather than doing nothing.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    for (final ShedPrimaryButtonState state in ShedPrimaryButtonState.values) {
+      await _pumpComponent(tester, _slab(state: state));
+      final SemanticsData data = tester.getSemantics(find.byType(ShedTapTarget)).getSemanticsData();
+      expect(data.hasAction(SemanticsAction.tap), isTrue, reason: '$state');
+      expect(data.flagsCollection.isEnabled, Tristate.isTrue, reason: '$state');
+    }
+
+    handle.dispose();
+  });
+
+  testWidgets('the refusing state changes the label and the outline, never the '
+      'enabled flag', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, _slab(label: '+ LAMB'));
+    final Rect ready = tester.getRect(find.byType(ShedPrimaryButton));
+
+    await _pumpComponent(tester, _slab(state: ShedPrimaryButtonState.refusing, label: 'TAG FIRST'));
+
+    final SemanticsData data = tester.getSemantics(find.byType(ShedTapTarget)).getSemanticsData();
+    expect(data.flagsCollection.isEnabled, Tristate.isTrue);
+    expect(find.text('TAG FIRST'), findsOneWidget);
+    expect(find.text('+ LAMB'), findsNothing);
+
+    // Same box. The state changes the verb and the outline, not the geometry —
+    // a slab that resized as it refused would move under a thumb already in
+    // flight.
+    expect(tester.getRect(find.byType(ShedPrimaryButton)).size, ready.size);
+
+    handle.dispose();
+  });
+
+  testWidgets('a press changes fill and nothing else', (WidgetTester tester) async {
+    // Catches an AnimatedScale or a Transform added later. indelible.md §5.1: a
+    // press is a fill change only — "a target that shrinks under a cold thumb is
+    // a target you miss".
+    await _pumpComponent(tester, _slab());
+    final Rect before = tester.getRect(find.byType(ShedPrimaryButton));
+
+    final TestGesture gesture = await tester.startGesture(
+      tester.getCenter(find.byType(ShedPrimaryButton)),
+    );
+    await tester.pump(const Duration(milliseconds: 40));
+
+    expect(tester.getRect(find.byType(ShedPrimaryButton)), before);
+
+    await gesture.up();
+    await tester.pump();
+  });
+
+  testWidgets('the label goes through labelLarge and never a constructed TextStyle', (
+    WidgetTester tester,
+  ) async {
+    // 06 §5.4's silent failure: a fresh TextStyle drops fontFeatures, and the
+    // pen board starts jittering as 412 and 108 take different widths.
+    late TextStyle expected;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: Builder(
+          builder: (BuildContext context) {
+            expected = Theme.of(context).textTheme.labelLarge!;
+            return Scaffold(body: Center(child: _slab()));
+          },
+        ),
+      ),
+    );
+
+    final Text text = tester.widget<Text>(find.text('+ LAMB'));
+    expect(text.style!.fontSize, expected.fontSize);
+    expect(text.style!.fontWeight, expected.fontWeight);
+    expect(text.style!.fontFamily, expected.fontFamily);
+  });
+
+  testWidgets('no dimension shrinks between textScale 1.0, 1.3 and 2.0', (
+    WidgetTester tester,
+  ) async {
+    // A box that shrinks as text grows is the FittedBox bug wearing a different
+    // hat.
+    Size? previous;
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(tester, _slab(), scale: scale);
+      final Size size = tester.getSize(find.byType(ShedPrimaryButton));
+      if (previous != null) {
+        expect(size.width, greaterThanOrEqualTo(previous.width), reason: 'scale $scale');
+        expect(size.height, greaterThanOrEqualTo(previous.height), reason: 'scale $scale');
+      }
+      previous = size;
+    }
+  });
+
+  test('ShedPrimaryButton constructs with no nullable onTap', () {
+    // THE NARROWING IS THE FEATURE. ShedTapTarget takes VoidCallback? and sets
+    // Semantics(enabled: onTap != null); passing null here would announce a
+    // disabled button, make 06 §6.3's geometric gate SKIP it, and leave a
+    // shepherd tapping a live-looking rectangle that does nothing.
+    final String source = _declarations(file);
+    expect(source, contains('required this.onTap'));
+    expect(source, contains('final VoidCallback onTap;'));
+    expect(source, isNot(contains('VoidCallback?')));
+    expect(source, isNot(contains('onTap: null')));
+  });
+
+  test('the component file contains no colorScheme, no raw colour and no literal fontSize', () {
+    // The gate proves this repo-wide; this case is what tells you WHICH
+    // component broke it. The raw-colour needle is split across two adjacent
+    // literals so this file does not fire on itself.
+    const String rawColour =
+        'Color'
+        '(0x';
+    final String source = _declarations(file);
+
+    expect(source, isNot(contains('colorScheme')));
+    expect(source, isNot(contains(rawColour)));
+    expect(source, isNot(matches(RegExp(r'fontSize:\s*[0-9]'))));
+  });
+
+  test('the file imports no provider, no localisation and nothing under lib/data', () {
+    // Layer rule 7 lists what lib/core/ui/ may import, and a component file is
+    // where the first violation gets introduced — a widget that reaches for a
+    // provider is a widget that cannot be pumped without a ProviderScope.
+    final String imports = _declarations(
+      file,
+    ).split('\n').where((String l) => l.trimLeft().startsWith('import ')).join('\n');
+
+    for (final String forbidden in <String>['riverpod', 'l10n', 'data/', 'drift']) {
+      expect(imports, isNot(contains(forbidden)), reason: forbidden);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T02 — ShedSecondaryButton and ShedDestructiveButton
+  // -------------------------------------------------------------------------
+
+  const String secondaryFile = 'lib/core/ui/components/shed_secondary_button.dart';
+  const String destructiveFile = 'lib/core/ui/components/shed_destructive_button.dart';
+
+  ShedDestructiveButton striker(VoidCallback onConfirmed) => ShedDestructiveButton(
+    label: 'STRIKE',
+    confirmLabel: 'STRIKE — TAP AGAIN',
+    onConfirmed: onConfirmed,
+    semanticLabel: 'Strike this record',
+    confirmSemanticLabel: 'Strike this record, tap again to confirm',
+  );
+
+  testWidgets('ShedDestructiveButton requires two taps and is separated by '
+      'gapDestructive from any other target', (WidgetTester tester) async {
+    // THE ANCHOR, and the separation half is the one a screen cannot get wrong:
+    // the widget reserves the gap inside its OWN box, so a flush neighbour is
+    // geometrically impossible rather than merely discouraged.
+    int struck = 0;
+    await _pumpComponent(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          striker(() => struck++),
+          ShedPrimaryButton(label: 'NEIGHBOUR', onTap: () {}, semanticLabel: 'Neighbour'),
+        ],
+      ),
+    );
+
+    await tester.tap(find.text('STRIKE'));
+    await tester.pump();
+    expect(struck, 0, reason: 'the first tap arms and writes nothing');
+
+    await tester.tap(find.text('STRIKE — TAP AGAIN'));
+    await tester.pump();
+    expect(struck, 1);
+
+    final Rect target = tester.getRect(find.byType(ShedTapTarget).first);
+    final Rect neighbour = tester.getRect(find.byType(ShedPrimaryButton));
+    expect(
+      neighbour.top - target.bottom,
+      greaterThanOrEqualTo(32.0),
+      reason: 'gapDestructive is not reserved inside the widget box',
+    );
+  });
+
+  testWidgets('tapping ShedDestructiveButton twice in the same frame strikes once', (
+    WidgetTester tester,
+  ) async {
+    // 00-README §8 step 28's literal case: two taps with NO pump between them —
+    // the fast thumb, not the deliberate second press.
+    //
+    // MEASURED: it strikes EXACTLY ONCE, and that is pinned rather than left as
+    // `lessThanOrEqualTo(1)`, because a range hides which of the two answers the
+    // widget actually gives.
+    //
+    // One, not zero, and that is the right answer. setState mutates _state
+    // immediately, so the second tap sees `confirming` even though no frame was
+    // painted in between — the shepherd pressed twice, which IS the
+    // confirmation. Requiring them to have SEEN the changed label would need a
+    // minimum dwell, i.e. a timer, and this component bans timers for a stronger
+    // reason: a state that unwinds itself changes under a thumb already moving.
+    // A mistaken strike is recoverable — undo is a time-boxed strike in the
+    // row's own margin.
+    //
+    // What this case actually guards is TWO: a naive implementation that read
+    // the state from a rebuilt widget rather than from the State object would
+    // fire onConfirmed on both taps.
+    int struck = 0;
+    await _pumpComponent(tester, striker(() => struck++));
+
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+
+    expect(struck, 1, reason: 'a double tap must strike once — never twice, never zero');
+  });
+
+  testWidgets('the confirming state changes the label, not only the colour', (
+    WidgetTester tester,
+  ) async {
+    // Decision #106 in one assertion. Somebody who cannot tell the madder ink
+    // from the outline still reads a different word.
+    await _pumpComponent(tester, striker(() {}));
+    expect(find.text('STRIKE'), findsOneWidget);
+
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+    expect(find.text('STRIKE'), findsNothing);
+  });
+
+  testWidgets('confirming reverts on dispose and never on a timer', (WidgetTester tester) async {
+    // A state that unwinds after n seconds changes under a thumb already moving:
+    // the shepherd reads TAP AGAIN, commits to the press, and the control
+    // reverts between the decision and the contact.
+    await _pumpComponent(tester, striker(() {}));
+    await tester.tap(find.byType(ShedTapTarget));
+    await tester.pump();
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+
+    // Thirty seconds, still mounted: unchanged.
+    await tester.pump(const Duration(seconds: 30));
+    expect(find.text('STRIKE — TAP AGAIN'), findsOneWidget);
+
+    // Pumped away and back: armed again.
+    await _pumpComponent(tester, const SizedBox.shrink());
+    await _pumpComponent(tester, striker(() {}));
+    expect(find.text('STRIKE'), findsOneWidget);
+
+    final String source = _declarations(destructiveFile);
+    expect(source, isNot(contains('Timer')));
+    expect(source, isNot(contains('Future.delayed')));
+  });
+
+  testWidgets('ShedDestructiveButton renders no filled surface behind the madder ink', (
+    WidgetTester tester,
+  ) async {
+    // indelible.md §7.13. A destructive control that fills is one that draws the
+    // eye, and this one is meant to be found only when looked for.
+    await _pumpComponent(tester, striker(() {}));
+
+    final Iterable<DecoratedBox> boxes = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(ShedDestructiveButton), matching: find.byType(DecoratedBox)),
+    );
+    for (final DecoratedBox box in boxes) {
+      expect((box.decoration as BoxDecoration).color, isNull, reason: 'a fill appeared');
+    }
+  });
+
+  testWidgets('ShedSecondaryButton is at least tapPrimary tall in both forms', (
+    WidgetTester tester,
+  ) async {
+    for (final ShedSecondaryButtonForm form in ShedSecondaryButtonForm.values) {
+      for (final double scale in <double>[1.0, 1.3, 2.0]) {
+        await _pumpComponent(
+          tester,
+          ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes', form: form),
+          scale: scale,
+        );
+        expect(
+          tester.getSize(find.byType(ShedSecondaryButton)).height,
+          greaterThanOrEqualTo(72.0),
+          reason: '$form at $scale',
+        );
+      }
+    }
+  });
+
+  testWidgets('ShedSecondaryButton renders at textScale 2.0 with boldText and every tap '
+      'surface carries a semanticLabel', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes'),
+      scale: 2.0,
+      boldText: true,
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, 'Ewes');
+
+    handle.dispose();
+  });
+
+  testWidgets('the inStream form draws an underline and no border, and outlined draws a '
+      'border and no underline', (WidgetTester tester) async {
+    // The two forms are distinguishable with the colour channel removed.
+    BoxDecoration decorationOf(ShedSecondaryButtonForm form) {
+      final DecoratedBox box = tester.widget<DecoratedBox>(
+        find
+            .descendant(of: find.byType(ShedSecondaryButton), matching: find.byType(DecoratedBox))
+            .first,
+      );
+      return box.decoration as BoxDecoration;
+    }
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(label: 'EWES', onTap: () {}, semanticLabel: 'Ewes'),
+    );
+    final BoxDecoration outlined = decorationOf(ShedSecondaryButtonForm.outlined);
+    expect(outlined.border, isA<Border>());
+    expect((outlined.border! as Border).top.width, greaterThan(0));
+    expect(outlined.color, isNotNull, reason: 'outlined carries a fill');
+
+    await _pumpComponent(
+      tester,
+      ShedSecondaryButton(
+        label: 'EWES',
+        onTap: () {},
+        semanticLabel: 'Ewes',
+        form: ShedSecondaryButtonForm.inStream,
+      ),
+    );
+    final BoxDecoration inStream = decorationOf(ShedSecondaryButtonForm.inStream);
+    expect(inStream.color, isNull, reason: 'inStream carries no fill');
+    expect((inStream.border! as Border).top, BorderSide.none);
+    expect((inStream.border! as Border).bottom.width, greaterThan(0));
+  });
+
+  testWidgets('selected lifts the underline ink and leaves the siblings alone', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String label in <String>['ALL', 'EWES', 'LAMBS'])
+            ShedSecondaryButton(
+              label: label,
+              onTap: () {},
+              semanticLabel: label,
+              form: ShedSecondaryButtonForm.inStream,
+              selected: label == 'EWES',
+            ),
+        ],
+      ),
+    );
+
+    final ShedTokens t = buildShedTheme(nightPalette).extension<ShedTokens>()!;
+    final Iterable<Text> texts = tester.widgetList<Text>(
+      find.descendant(of: find.byType(ShedSecondaryButton), matching: find.byType(Text)),
+    );
+
+    expect(
+      texts.where((Text x) => x.style!.color == t.textPrimary).length,
+      1,
+      reason: 'exactly one sibling is selected',
+    );
+  });
+
+  test('neither file names delete, remove, splice or hidden', () {
+    // indelible.md §11 test 1, made mechanical: nothing in this product is
+    // deleted, and a component that says so teaches the wrong verb to every
+    // screen that reads it.
+    for (final String file in <String>[secondaryFile, destructiveFile]) {
+      final String source = _declarations(file).toLowerCase();
+      for (final String word in <String>['delete', 'remove', 'splice', 'hidden']) {
+        expect(source, isNot(contains(word)), reason: '$file says $word');
+      }
+    }
+  });
+
+  test('neither file calls showDialog( or constructs an AlertDialog', () {
+    // ui.show_dialog allowlists two Settings files and neither is here. The
+    // whole reason `confirming` is a STATE of this component is so a screen
+    // never needs a modal to get a confirmation.
+    for (final String file in <String>[secondaryFile, destructiveFile]) {
+      final String source = _declarations(file);
+      expect(source, isNot(contains('showDialog')), reason: file);
+      expect(source, isNot(contains('AlertDialog')), reason: file);
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T03 — ShedConfirmBar and ShedRecentsStrip
+  // -------------------------------------------------------------------------
+
+  ShedRecentsEntry entry(String tag) => ShedRecentsEntry(
+    tag: tag,
+    summary: 'penned 2h',
+    semanticLabel: 'Ewe $tag, penned 2 hours ago',
+    onTap: () {},
+  );
+
+  List<ShedRecentsEntry> entries(int n) => <ShedRecentsEntry>[
+    for (int i = 0; i < n; i++) entry('${400 + i}'),
+  ];
+
+  testWidgets('ShedRecentsStrip occupies the same height empty and full', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR. A strip that grows as it fills moves the slab under a thumb
+    // already in flight — so all four states, at three text scales, are one
+    // height.
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      final List<double> heights = <double>[];
+      for (final List<ShedRecentsEntry>? state in <List<ShedRecentsEntry>?>[
+        null,
+        const <ShedRecentsEntry>[],
+        entries(2),
+        entries(6),
+      ]) {
+        await _pumpComponent(
+          tester,
+          ShedRecentsStrip(entries: state, emptyLabel: 'No recent animals.'),
+          scale: scale,
+        );
+        heights.add(tester.getSize(find.byType(ShedRecentsStrip)).height);
+      }
+      expect(heights.toSet(), hasLength(1), reason: 'scale $scale gave heights $heights');
+      expect(heights.first, greaterThanOrEqualTo(72.0), reason: 'tapPrimary at scale $scale');
+    }
+  });
+
+  testWidgets('a null entry list renders the frame-1 placeholder and an empty list '
+      'renders the empty copy', (WidgetTester tester) async {
+    // THE DAY-ONE BUG, CAUGHT. Frame 1 has not read the database; an empty list
+    // means it was read and there is nothing in it. Collapsing the two tells a
+    // shepherd on day one that the app lost their flock.
+    await _pumpComponent(
+      tester,
+      const ShedRecentsStrip(entries: null, emptyLabel: 'No recent animals.', placeholderLabel: ''),
+    );
+    expect(find.text('No recent animals.'), findsNothing);
+
+    await _pumpComponent(
+      tester,
+      const ShedRecentsStrip(entries: <ShedRecentsEntry>[], emptyLabel: 'No recent animals.'),
+    );
+    expect(find.text('No recent animals.'), findsOneWidget);
+  });
+
+  testWidgets('nine entries render six', (WidgetTester tester) async {
+    // maxEntries held IN THE LAYOUT, not only in an assert — an assert is
+    // stripped in release, which is the build where nobody is watching.
+    await _pumpComponent(
+      tester,
+      ShedRecentsStrip(entries: entries(9), emptyLabel: 'No recent animals.'),
+    );
+    expect(find.byType(ShedTapTarget), findsNWidgets(ShedRecentsStrip.maxEntries));
+    expect(ShedRecentsStrip.maxEntries, 6);
+  });
+
+  testWidgets('every recents entry is a ShedTapTarget at least tapPrimary tall with a '
+      'semanticLabel', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedRecentsStrip(entries: entries(6), emptyLabel: 'No recent animals.'),
+    );
+
+    final Finder targets = find.byType(ShedTapTarget);
+    expect(targets, findsNWidgets(6));
+    for (int i = 0; i < 6; i++) {
+      expect(tester.getSize(targets.at(i)).height, greaterThanOrEqualTo(72.0), reason: 'entry $i');
+      expect(tester.getSemantics(targets.at(i)).label, isNotEmpty, reason: 'entry $i');
+    }
+
+    handle.dispose();
+  });
+
+  testWidgets('adjacent recents entries are gapMin apart or touching', (WidgetTester tester) async {
+    // 0 or >= 16, never 4. Two targets 4 pt apart read as one wide target to a
+    // cold thumb, and the shepherd hits the wrong ewe.
+    await _pumpComponent(
+      tester,
+      ShedRecentsStrip(entries: entries(4), emptyLabel: 'No recent animals.'),
+    );
+
+    final Finder targets = find.byType(ShedTapTarget);
+    for (int i = 1; i < 4; i++) {
+      final double gap =
+          tester.getRect(targets.at(i)).left - tester.getRect(targets.at(i - 1)).right;
+      expect(gap == 0 || gap >= 16.0, isTrue, reason: 'entries $i and ${i - 1} are $gap apart');
+    }
+  });
+
+  testWidgets('ShedConfirmBar is full width and tapHero tall', (WidgetTester tester) async {
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(
+        tester,
+        ShedConfirmBar(outcomeLabel: 'Create 412', onTap: () {}, semanticLabel: 'Create ewe 412'),
+        scale: scale,
+      );
+      final Size size = tester.getSize(find.byType(ShedConfirmBar));
+      expect(size.height, greaterThanOrEqualTo(88.0), reason: 'scale $scale');
+      expect(size.width, 800.0, reason: 'full width at scale $scale');
+    }
+  });
+
+  test('ShedConfirmBar refuses OK, Done, Confirm, Submit and Save as its label', () {
+    // indelible.md §11 test 7 and 06 §8.2. At 03:20 a shepherd reading "OK" has
+    // to reconstruct what they are agreeing to from memory, and the whole point
+    // of the bar is that they do not have to.
+    //
+    // Case- and whitespace-insensitive, so `ok` and ` OK ` are caught too.
+    for (final String banned in <String>['OK', 'ok', ' Done ', 'Confirm', 'SUBMIT', 'Save']) {
+      expect(
+        () => ShedConfirmBar(outcomeLabel: banned, onTap: () {}, semanticLabel: 'x'),
+        throwsAssertionError,
+        reason: banned,
+      );
+    }
+
+    // And an outcome label is accepted.
+    expect(
+      () => ShedConfirmBar(outcomeLabel: 'Create 412', onTap: () {}, semanticLabel: 'x'),
+      returnsNormally,
+    );
+  });
+
+  testWidgets('ShedConfirmBar renders the outcome text verbatim', (WidgetTester tester) async {
+    // No truncation, no FittedBox (type.fitted_box bans it anyway), no ellipsis
+    // at 200%. A truncated outcome is a shepherd agreeing to something they
+    // cannot read.
+    await _pumpComponent(
+      tester,
+      ShedConfirmBar(
+        outcomeLabel: '7 days — as entered by you',
+        onTap: () {},
+        semanticLabel: 'Withdrawal 7 days as entered by you',
+      ),
+      scale: 2.0,
+    );
+
+    expect(find.text('7 days — as entered by you'), findsOneWidget);
+    final Text text = tester.widget<Text>(find.text('7 days — as entered by you'));
+    expect(text.overflow, isNot(TextOverflow.ellipsis));
+    expect(text.maxLines, isNull);
+  });
+
+  test('neither component constructs a CircularProgressIndicator', () {
+    // Covers the hole ui.spinner's lib/features/ scope leaves. There is no
+    // spinner in this product: frame 1 shows the page colour and then the
+    // records, and a spinner is a promise that something is happening off
+    // screen.
+    for (final String file in <String>[
+      'lib/core/ui/components/shed_confirm_bar.dart',
+      'lib/core/ui/components/shed_recents_strip.dart',
+    ]) {
+      final String source = _declarations(file);
+      expect(source, isNot(contains('CircularProgressIndicator')), reason: file);
+      expect(source, isNot(contains('LinearProgressIndicator')), reason: file);
+    }
+  });
+
+  test('neither component uses AnimatedSwitcher, AnimatedContainer or AnimatedOpacity', () {
+    // indelible.md §5.2. Nothing on these two animates: the strip changing
+    // content under a thumb is worse than the strip changing instantly.
+    for (final String file in <String>[
+      'lib/core/ui/components/shed_confirm_bar.dart',
+      'lib/core/ui/components/shed_recents_strip.dart',
+    ]) {
+      final String source = _declarations(file);
+      for (final String banned in <String>[
+        'AnimatedSwitcher',
+        'AnimatedContainer',
+        'AnimatedOpacity',
+        'AnimatedAlign',
+      ]) {
+        expect(source, isNot(contains(banned)), reason: '$file uses $banned');
+      }
+    }
+  });
+
+  testWidgets('both components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedConfirmBar(outcomeLabel: 'Create 412', onTap: () {}, semanticLabel: 'Create ewe 412'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedConfirmBar overflowed');
+
+    await _pumpComponent(
+      tester,
+      ShedRecentsStrip(entries: entries(3), emptyLabel: 'No recent animals.'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedRecentsStrip overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T04 — ShedAnimalRow and ShedSectionHeading
+  // -------------------------------------------------------------------------
+
+  const String rowFile = 'lib/core/ui/components/shed_animal_row.dart';
+  const String headingFile = 'lib/core/ui/components/shed_section_heading.dart';
+
+  ShedAnimalRow row(
+    String tag, {
+    ShedAnimalRowHeight height = ShedAnimalRowHeight.tall,
+    bool selected = false,
+    Widget? trailing,
+  }) => ShedAnimalRow(
+    tag: tag,
+    summary: '3 seasons · avg 2.0 · assisted twice',
+    semanticLabel: 'Ewe $tag',
+    onTap: () {},
+    height: height,
+    selected: selected,
+    trailing: trailing,
+  );
+
+  testWidgets('ShedSectionHeading exposes headingLevel and no widget in the tree sets '
+      'header: true', (WidgetTester tester) async {
+    // THE ANCHOR. `header: true` has been a NO-OP since 3.44 — a heading that
+    // announces nothing is a heading a screen-reader user cannot navigate by,
+    // and the failure is completely silent on a developer's machine.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, const ShedSectionHeading(label: 'Recent'));
+    expect(tester.getSemantics(find.byType(ShedSectionHeading)).headingLevel, 2);
+
+    await _pumpComponent(tester, const ShedSectionHeading(label: 'Flock', level: 1));
+    expect(tester.getSemantics(find.byType(ShedSectionHeading)).headingLevel, 1);
+
+    for (final FileSystemEntity f in Directory(
+      'lib/core/ui/components',
+    ).listSync().whereType<File>()) {
+      expect(
+        _declarations(f.path),
+        isNot(contains('header: true')),
+        reason: '${f.path} uses the no-op',
+      );
+    }
+
+    handle.dispose();
+  });
+
+  test('ShedSectionHeading refuses a level outside 1 and 2', () {
+    // 10 §3.4's table has no level 3 anywhere.
+    expect(() => ShedSectionHeading(label: 'x', level: 0), throwsAssertionError);
+    expect(() => ShedSectionHeading(label: 'x', level: 3), throwsAssertionError);
+    expect(() => ShedSectionHeading(label: 'x', level: 1), returnsNormally);
+    expect(() => ShedSectionHeading(label: 'x', level: 2), returnsNormally);
+  });
+
+  testWidgets('level 1 renders titleLarge and level 2 renders titleMedium', (
+    WidgetTester tester,
+  ) async {
+    // 24 and 20 at scale 1.0, never M3's 16.
+    late TextTheme theme;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: Builder(
+          builder: (BuildContext context) {
+            theme = Theme.of(context).textTheme;
+            return const Scaffold(
+              body: Column(
+                children: <Widget>[
+                  ShedSectionHeading(label: 'One', level: 1),
+                  ShedSectionHeading(label: 'Two'),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('One')).style!.fontSize, theme.titleLarge!.fontSize);
+    expect(tester.widget<Text>(find.text('Two')).style!.fontSize, theme.titleMedium!.fontSize);
+    expect(theme.titleMedium!.fontSize, greaterThanOrEqualTo(18.0));
+  });
+
+  testWidgets('ShedAnimalRow is tapPrimary tall standard and tapHero tall tall', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, row('412', height: ShedAnimalRowHeight.standard));
+    expect(tester.getSize(find.byType(ShedAnimalRow)).height, greaterThanOrEqualTo(72.0));
+
+    await _pumpComponent(tester, row('412'));
+    expect(tester.getSize(find.byType(ShedAnimalRow)).height, greaterThanOrEqualTo(88.0));
+  });
+
+  testWidgets('neither row height shrinks at textScaler 1.3 or 2.0', (WidgetTester tester) async {
+    for (final ShedAnimalRowHeight h in ShedAnimalRowHeight.values) {
+      double? previous;
+      for (final double scale in <double>[1.0, 1.3, 2.0]) {
+        await _pumpComponent(tester, row('412', height: h), scale: scale);
+        expect(tester.takeException(), isNull, reason: '$h overflowed at $scale');
+        final double got = tester.getSize(find.byType(ShedAnimalRow)).height;
+        if (previous != null) {
+          expect(got, greaterThanOrEqualTo(previous), reason: '$h shrank at $scale');
+        }
+        previous = got;
+      }
+    }
+  });
+
+  testWidgets('tags right-align on their units digit', (WidgetTester tester) async {
+    // indelible.md §7.4's WHOLE CLAIM, and the one that breaks the day someone
+    // left-aligns the cell: a shepherd scanning for 128 finds it by shape, not
+    // by reading.
+    await _pumpComponent(
+      tester,
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final String tag in <String>['412', '128', '77', '9']) row(tag),
+        ],
+      ),
+    );
+
+    final Set<double> rightEdges = <double>{
+      for (final String tag in <String>['412', '128', '77', '9'])
+        tester.getRect(find.text(tag)).right,
+    };
+    expect(rightEdges, hasLength(1), reason: 'the tag column is not right-aligned: $rightEdges');
+  });
+
+  testWidgets('the tag renders through displaySmall with tabularFigures', (
+    WidgetTester tester,
+  ) async {
+    // Catches the constructed-TextStyle regression 06 §5.4 warns about: a fresh
+    // TextStyle drops fontFeatures, and the column stops aligning.
+    await _pumpComponent(tester, row('412'));
+    final Text tag = tester.widget<Text>(find.text('412'));
+    expect(tag.style!.fontFeatures, contains(const FontFeature.tabularFigures()));
+  });
+
+  testWidgets('the summary is exactly one line', (WidgetTester tester) async {
+    // The row grows; the summary does not become two lines and push the trailing
+    // cell off the grid.
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(tester, row('412'), scale: scale);
+      final Text summary = tester.widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'));
+      expect(summary.maxLines, 1, reason: 'scale $scale');
+    }
+  });
+
+  testWidgets('the row draws a bottom rule and no top rule', (WidgetTester tester) async {
+    // Two rules per row is indelible.md §7.4's WARNING state and must not be the
+    // default — a list where every row is boxed reads as a list where every row
+    // needs attention.
+    await _pumpComponent(tester, row('412'));
+    final DecoratedBox box = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShedAnimalRow), matching: find.byType(DecoratedBox)).first,
+    );
+    final Border border = (box.decoration as BoxDecoration).border! as Border;
+
+    expect(border.bottom.width, greaterThan(0));
+    expect(border.top, BorderSide.none);
+    expect(border.left, BorderSide.none);
+    expect(border.right, BorderSide.none);
+  });
+
+  testWidgets('a selected row differs from an unselected one with colour removed', (
+    WidgetTester tester,
+  ) async {
+    // Decision #106. The difference has to survive a reader who cannot tell the
+    // inks apart, so it is an underline and a weight rather than a hue.
+    await _pumpComponent(tester, row('412'));
+    final TextStyle plain = tester
+        .widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'))
+        .style!;
+
+    await _pumpComponent(tester, row('412', selected: true));
+    final TextStyle picked = tester
+        .widget<Text>(find.text('3 seasons · avg 2.0 · assisted twice'))
+        .style!;
+
+    expect(
+      picked.decoration != plain.decoration || picked.fontWeight != plain.fontWeight,
+      isTrue,
+      reason: 'selection is carried by colour alone',
+    );
+  });
+
+  testWidgets('the row is one ShedTapTarget with a semanticLabel', (WidgetTester tester) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(tester, row('412'));
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+
+    final SemanticsData data = tester.getSemantics(find.byType(ShedTapTarget)).getSemanticsData();
+    expect(data.hasAction(SemanticsAction.tap), isTrue);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, 'Ewe 412');
+
+    handle.dispose();
+  });
+
+  test('neither file contains the literal 64, 76 or 88', () {
+    // The spine is the PAGE's (indelible.md §4.3) and the numbers are tokens.
+    // 76 is the one most likely to be pasted in: the document prints it as
+    // "76px fixed (3 tabular digits at 32px)", which is a MEASUREMENT AT SCALE
+    // 1.0 — hard-coding it makes a four-digit tag at 200% overflow.
+    for (final String f in <String>[rowFile, headingFile]) {
+      final String source = _declarations(f);
+      for (final String literal in <String>['64', '76', '88']) {
+        expect(
+          source,
+          isNot(matches(RegExp(r'(?<![\w.])' + literal + r'(?![\w.])'))),
+          reason: '$f hard-codes $literal',
+        );
+      }
+    }
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T05 — ShedStatusBadge and ShedCountdown
+  // -------------------------------------------------------------------------
+
+  const String badgeFile = 'lib/core/ui/components/shed_status_badge.dart';
+  const String countdownFile = 'lib/core/ui/components/shed_countdown.dart';
+
+  ShedCountdown countdown(int daysRemaining) {
+    final LocalDate today = LocalDate(2026, 8, 1);
+    return ShedCountdown(
+      clearsOn: ClearsOn(
+        today.plusDays(daysRemaining),
+        Instant.fromDateTime(DateTime.utc(2026, 8, 1 + daysRemaining)),
+        WithdrawalTarget.meat,
+      ),
+      now: Instant.fromDateTime(DateTime.utc(2026, 8, 1, 12)),
+      productName: 'Alamycin',
+      clearsOnLabel: 'CLEARS 12 AUG 2026',
+      semanticLabel: 'Alamycin, $daysRemaining days remaining',
+    );
+  }
+
+  testWidgets('every ShedStatusBadge state carries a word as well as a colour, and '
+      'notRecorded renders neither 0 nor blank', (WidgetTester tester) async {
+    // THE ANCHOR, exhaustive over ShedStamp.values. A stamp that rendered a
+    // shape and no word would be a state indistinguishable from another to
+    // anybody who cannot tell the inks apart — and `notRecorded` rendering `0`
+    // would be safety rule §12.1 broken in the one place it is most visible.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: stamp.name.toUpperCase()));
+      final Text word = tester.widget<Text>(
+        find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+      );
+      expect(word.data, isNotEmpty, reason: '$stamp');
+      expect(word.data, isNot('0'), reason: '$stamp');
+      expect(word.data, isNot('—'), reason: '$stamp');
+    }
+
+    expect(
+      () => ShedStatusBadge(stamp: ShedStamp.notRecorded, label: '  '),
+      throwsAssertionError,
+      reason: 'a wordless stamp must be unconstructible',
+    );
+  });
+
+  testWidgets('every boxed stamp draws a border and every unboxed stamp draws none', (
+    WidgetTester tester,
+  ) async {
+    // The form is a real second channel and not a naming convention: BOXED is a
+    // state of the animal, UNBOXED is a note about the record.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: 'WORD'));
+      final Finder boxes = find.descendant(
+        of: find.byType(ShedStatusBadge),
+        matching: find.byType(DecoratedBox),
+      );
+      switch (stamp.form) {
+        case ShedStampForm.boxed:
+          expect(boxes, findsOneWidget, reason: '$stamp is boxed');
+        case ShedStampForm.unboxed:
+          expect(boxes, findsNothing, reason: '$stamp is unboxed');
+      }
+    }
+  });
+
+  testWidgets('ShedStatusBadge is at least 24 tall and is not a ShedTapTarget', (
+    WidgetTester tester,
+  ) async {
+    // indelible.md §7.7: STAMPS ARE NOT TARGETS. A stamp that could be pressed
+    // is a stamp a shepherd presses at 03:20 expecting something to happen.
+    await _pumpComponent(tester, ShedStatusBadge(stamp: ShedStamp.penned, label: 'PENNED'));
+    expect(tester.getSize(find.byType(ShedStatusBadge)).height, greaterThanOrEqualTo(24.0));
+    expect(find.byType(ShedTapTarget), findsNothing);
+    expect(_declarations(badgeFile), isNot(contains('GestureDetector')));
+  });
+
+  testWidgets('no stamp renders below the 18 px floor', (WidgetTester tester) async {
+    // Closes the artefact's 14 px defect at the component boundary. The
+    // Indelible artefact sets stamps at 14 px; 02 §4.4 defect 2 rules that four
+    // of them are never the sole carrier of their meaning and must clear 18.
+    // Rather than split the set, every stamp takes the floor.
+    for (final ShedStamp stamp in ShedStamp.values) {
+      await _pumpComponent(tester, ShedStatusBadge(stamp: stamp, label: 'WORD'));
+      final Text word = tester.widget<Text>(
+        find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+      );
+      expect(word.style!.fontSize, greaterThanOrEqualTo(18.0), reason: '$stamp');
+    }
+  });
+
+  testWidgets('the dead stamp uses no status colour', (WidgetTester tester) async {
+    // indelible.md §2.7: a lamb that died prints the word DEAD, in full ink,
+    // with "colour: none, ever".
+    await _pumpComponent(tester, ShedStatusBadge(stamp: ShedStamp.dead, label: 'DEAD'));
+    final ShedTokens t = buildShedTheme(nightPalette).extension<ShedTokens>()!;
+    final Text word = tester.widget<Text>(
+      find.descendant(of: find.byType(ShedStatusBadge), matching: find.byType(Text)),
+    );
+
+    expect(word.style!.color, t.textPrimary);
+    expect(word.style!.color, isNot(t.statusLoss));
+  });
+
+  testWidgets('ShedCountdown renders a tally mark per remaining day', (WidgetTester tester) async {
+    await _pumpComponent(tester, countdown(9));
+    expect(find.text('9'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNWidgets(9),
+    );
+  });
+
+  testWidgets('ShedCountdown caps the tally at 28 marks and prints +n', (
+    WidgetTester tester,
+  ) async {
+    // Beyond 28 the strokes stop being countable and start being a texture, so
+    // the surplus is a figure instead.
+    await _pumpComponent(tester, countdown(41));
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNWidgets(ShedCountdown.maxMarks),
+    );
+    expect(find.text('+13'), findsOneWidget);
+  });
+
+  testWidgets('the last day renders LAST DAY, a dagger and a doubled rule, and does not '
+      'recolour the figure', (WidgetTester tester) async {
+    // FOUR CHANNELS, ONE ASSERTION EACH, and the fourth is the important one:
+    // the figure keeps its ink. The one thing a shepherd must not have to do at
+    // 03:20 is distinguish two reds.
+    await _pumpComponent(tester, countdown(5));
+    final TextStyle normalFigure = tester.widget<Text>(find.text('5')).style!;
+
+    await _pumpComponent(tester, countdown(1));
+    expect(find.text('LAST DAY'), findsOneWidget);
+    expect(find.text('†'), findsOneWidget);
+
+    final Iterable<DecoratedBox> rules = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(DecoratedBox)),
+    );
+    expect(
+      rules.any((DecoratedBox b) {
+        final Border border = (b.decoration as BoxDecoration).border! as Border;
+        return border.top.width > 0 && border.bottom.width > 0;
+      }),
+      isTrue,
+      reason: 'no doubled rule on the last day',
+    );
+
+    expect(tester.widget<Text>(find.text('1')).style!.color, normalFigure.color);
+  });
+
+  testWidgets("a cleared countdown keeps the tally's width as a solid rule", (
+    WidgetTester tester,
+  ) async {
+    // Nothing reflows on the day a withdrawal clears. A row that jumps that day
+    // is a row whose neighbour gets pressed.
+    await _pumpComponent(tester, countdown(3));
+    final double tallyWidth = tester
+        .getSize(
+          find.descendant(of: find.byType(ShedCountdown), matching: find.byType(SizedBox)).first,
+        )
+        .width;
+
+    await _pumpComponent(tester, countdown(0));
+    final double ruleWidth = tester
+        .getSize(
+          find.descendant(of: find.byType(ShedCountdown), matching: find.byType(SizedBox)).first,
+        )
+        .width;
+
+    expect(ruleWidth, tallyWidth);
+  });
+
+  testWidgets('ShedCountdown.notRecorded renders words and no figure, no tally and no date', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notRecorded(
+        productName: 'Alamycin',
+        words: 'Withdrawal not recorded',
+        semanticLabel: 'Alamycin, withdrawal not recorded',
+      ),
+    );
+
+    expect(find.text('Withdrawal not recorded'), findsOneWidget);
+    expect(find.text('0'), findsNothing, reason: 'safety rule §12.1: 0 is a real label value');
+    expect(
+      find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+      findsNothing,
+    );
+    expect(find.textContaining('CLEARS'), findsNothing);
+  });
+
+  testWidgets('notRecorded and notApplicable render different sentences', (
+    WidgetTester tester,
+  ) async {
+    // A gap and a fact off the label are different facts. Rendering one sentence
+    // for both is how the gap becomes invisible.
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notRecorded(
+        productName: 'Alamycin',
+        words: 'Withdrawal not recorded',
+        semanticLabel: 'x',
+      ),
+    );
+    expect(find.text('Withdrawal not recorded'), findsOneWidget);
+
+    await _pumpComponent(
+      tester,
+      const ShedCountdown.notApplicable(
+        productName: 'Alamycin',
+        words: 'No withdrawal period',
+        semanticLabel: 'x',
+      ),
+    );
+    expect(find.text('No withdrawal period'), findsOneWidget);
+    expect(find.text('Withdrawal not recorded'), findsNothing);
+  });
+
+  test('ShedCountdown cannot be constructed from a WithdrawalUnknown', () {
+    // CONVENTIONS §2.7 held AT THE TYPE LEVEL. The default constructor's
+    // parameter is ClearsOn, so a countdown for an unrecorded period is
+    // type-impossible rather than merely discouraged — which is safety rule
+    // §12.1's whole mechanism, because `0` is a real label value and a nullable
+    // int cannot carry the difference.
+    final String source = _declarations(countdownFile);
+    expect(source, contains('required ClearsOn this.clearsOn'));
+    expect(source, isNot(contains('WithdrawalStatus this.')));
+    expect(source, isNot(contains('required WithdrawalStatus')));
+  });
+
+  testWidgets('the days figure carries tabularFigures through headlineLarge', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, countdown(9));
+    expect(
+      tester.widget<Text>(find.text('9')).style!.fontFeatures,
+      contains(const FontFeature.tabularFigures()),
+    );
+    expect(_declarations(countdownFile), isNot(matches(RegExp(r'TextStyle\('))));
+  });
+
+  testWidgets(
+    'DST: seven days across UK spring-forward renders seven tally marks, not six',
+    (WidgetTester tester) async {
+      // THE Instant.difference().inDays REGRESSION, CAUGHT. 29 March 2026 is 23
+      // hours long, so seven civil days is 167 hours and truncating integer
+      // division gives SIX — one day short of a withdrawal period, in the
+      // direction that says meat is clear when it is not.
+      expect(
+        DateTime(2026, 7).timeZoneOffset,
+        const Duration(hours: 1),
+        reason: 'run with TZ=Europe/London',
+      );
+
+      final LocalDate start = LocalDate(2026, 3, 26);
+      await _pumpComponent(
+        tester,
+        ShedCountdown(
+          clearsOn: ClearsOn(
+            start.plusDays(7),
+            Instant.fromDateTime(DateTime.utc(2026, 4, 2)),
+            WithdrawalTarget.meat,
+          ),
+          now: Instant.fromDateTime(DateTime(2026, 3, 26, 12)),
+          productName: 'Alamycin',
+          clearsOnLabel: 'CLEARS 2 APR 2026',
+          semanticLabel: 'x',
+        ),
+      );
+
+      expect(find.text('7'), findsOneWidget);
+      expect(
+        find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+        findsNWidgets(7),
+      );
+    },
+    tags: <String>['uk-zone'],
+  );
+
+  testWidgets('DST: the tally is stable through the ambiguous hour 01:00 to 01:59', (
+    WidgetTester tester,
+  ) async {
+    // Both readings of the repeated local hour on the clocks-back night give
+    // the same LocalDate, so the count does not flicker as the hour repeats.
+    expect(DateTime(2026, 7).timeZoneOffset, const Duration(hours: 1));
+
+    final LocalDate clear = LocalDate(2026, 11, 1);
+    final List<int> counts = <int>[];
+
+    for (final DateTime utc in <DateTime>[
+      DateTime.utc(2026, 10, 25, 0, 30), // 01:30 BST
+      DateTime.utc(2026, 10, 25, 1, 30), // 01:30 GMT — the same wall time
+    ]) {
+      await _pumpComponent(
+        tester,
+        ShedCountdown(
+          clearsOn: ClearsOn(
+            clear,
+            Instant.fromDateTime(DateTime.utc(2026, 11)),
+            WithdrawalTarget.meat,
+          ),
+          now: Instant(utc.millisecondsSinceEpoch),
+          productName: 'Alamycin',
+          clearsOnLabel: 'CLEARS 1 NOV 2026',
+          semanticLabel: 'x',
+        ),
+      );
+      counts.add(
+        tester
+            .widgetList(
+              find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+            )
+            .length,
+      );
+    }
+
+    expect(counts.toSet(), hasLength(1), reason: 'the tally flickered across the repeated hour');
+  }, tags: <String>['uk-zone']);
+
+  testWidgets('both components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedStatusBadge(stamp: ShedStamp.withdrawal, label: 'WITHDRAWAL'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedStatusBadge overflowed');
+
+    await _pumpComponent(tester, countdown(9), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull, reason: 'ShedCountdown overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T06 — ShedChoiceRow (ease 1–5 only, P8) and ShedFieldRow
+  // -------------------------------------------------------------------------
+
+  const String choiceFile = 'lib/core/ui/components/shed_choice_row.dart';
+  const String fieldFile = 'lib/core/ui/components/shed_field_row.dart';
+
+  List<({int ordinal, String label, String semanticLabel})> easeChoices() =>
+      <({int ordinal, String label, String semanticLabel})>[
+        for (int i = 1; i <= 5; i++) (ordinal: i, label: '$i', semanticLabel: 'Lambing ease $i'),
+      ];
+
+  ShedChoiceRow easeRow({int? selected, ValueChanged<int>? onSelected}) => ShedChoiceRow(
+    choices: easeChoices(),
+    selected: selected,
+    onSelected: onSelected ?? (int _) {},
+    unsetLabel: 'EASE — NOT RECORDED · SKIPPABLE',
+    groupSemanticLabel: 'Lambing ease',
+  );
+
+  testWidgets('ShedFieldRow renders no placeholder inside the field and ShedChoiceRow is '
+      'documented as ease-only', (WidgetTester tester) async {
+    // THE ANCHOR, in both halves.
+    //
+    // A placeholder in the withdrawal-days field is a FOOD-CHAIN RISK (§12.1) —
+    // the shepherd reads a number the app suggested and the meat clears early —
+    // and in the dark a grey placeholder is indistinguishable from an entered
+    // value, so nobody can tell which fields they have filled in.
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(
+        label: 'WITHDRAWAL DAYS',
+        value: null,
+        onTap: () {},
+        semanticLabel: 'Withdrawal days, not recorded',
+      ),
+    );
+
+    expect(find.text('WITHDRAWAL DAYS'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(ShedFieldRow), matching: find.byType(Text)),
+      findsOneWidget,
+      reason: 'the unset row rendered a second glyph',
+    );
+
+    final String fieldSource = _declarations(fieldFile);
+    for (final String banned in <String>[
+      'hintText',
+      'placeholder',
+      'initialValue',
+      'defaultValue',
+      'InputDecoration',
+    ]) {
+      expect(fieldSource, isNot(contains(banned)), reason: banned);
+    }
+
+    // P8: the chooser exists for ease and for nothing else, and it says so.
+    final String choiceSource = File(choiceFile).readAsStringSync();
+    expect(choiceSource, contains('EASE 1–5 ONLY'));
+    expect(choiceSource, contains('P8'));
+  });
+
+  test('ShedFieldRow has no API surface that could carry a default', () {
+    // §12.1 held at UNCONSTRUCTIBLE, not at documented. The parameter list is
+    // read from source: label, value, onTap, semanticLabel, stamp — and nothing
+    // that could seed a number the shepherd did not read off the bottle.
+    final String source = _declarations(fieldFile);
+    final RegExpMatch? ctor = RegExp(r'ShedFieldRow\(\{([^}]*)\}\)').firstMatch(source);
+    expect(ctor, isNotNull);
+
+    final String params = ctor!.group(1)!;
+    for (final String banned in <String>['default', 'initial', 'hint', 'suggest', 'prefill']) {
+      expect(params.toLowerCase(), isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('an unset ShedFieldRow paints a dotted rule and no value glyph', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'Days'),
+    );
+    expect(
+      find.descendant(of: find.byType(ShedFieldRow), matching: find.byType(CustomPaint)),
+      findsWidgets,
+      reason: 'no dotted rule',
+    );
+
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days'),
+    );
+    expect(find.text('7'), findsOneWidget);
+  });
+
+  test('value: empty string is refused', () {
+    // '' and null are DIFFERENT FACTS: null is unset, '' is a value nobody can
+    // see. Collapsing them makes an empty field look answered.
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: '', onTap: () {}, semanticLabel: 'x'),
+      throwsAssertionError,
+    );
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: '  ', onTap: () {}, semanticLabel: 'x'),
+      throwsAssertionError,
+    );
+    expect(
+      () => ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'x'),
+      returnsNormally,
+    );
+  });
+
+  testWidgets('the label sits above the value at textScale 1.0, 1.3 and 2.0', (
+    WidgetTester tester,
+  ) async {
+    // A label that becomes a placeholder is a label that disappears the moment
+    // the field is filled — and then nobody can check what they answered.
+    for (final double scale in <double>[1.0, 1.3, 2.0]) {
+      await _pumpComponent(
+        tester,
+        ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days'),
+        scale: scale,
+      );
+      expect(tester.takeException(), isNull, reason: 'overflow at $scale');
+      expect(
+        tester.getRect(find.text('DAYS')).bottom,
+        lessThanOrEqualTo(tester.getRect(find.text('7')).top),
+        reason: 'scale $scale',
+      );
+    }
+  });
+
+  testWidgets('ShedFieldRow is at least tapMin tall and is one ShedTapTarget', (
+    WidgetTester tester,
+  ) async {
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: '7', onTap: () {}, semanticLabel: 'Days, 7'),
+    );
+
+    expect(tester.getSize(find.byType(ShedFieldRow)).height, greaterThanOrEqualTo(60.0));
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+    expect(tester.getSemantics(find.byType(ShedTapTarget)).label, isNotEmpty);
+
+    handle.dispose();
+  });
+
+  testWidgets('ShedChoiceRow lays out five cells of tapPrimary in a Wrap', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, easeRow());
+    expect(find.byType(Wrap), findsOneWidget);
+
+    final Finder cells = find.byType(ShedTapTarget);
+    expect(cells, findsNWidgets(5));
+    for (int i = 0; i < 5; i++) {
+      expect(tester.getSize(cells.at(i)).height, greaterThanOrEqualTo(72.0), reason: 'cell $i');
+    }
+  });
+
+  testWidgets('ShedChoiceRow reflows to two lines at textScale 2.0 without overflow', (
+    WidgetTester tester,
+  ) async {
+    // THE WRAP EARNING ITS KEEP. At 200% five cells of tapPrimary do not share
+    // one line, and a Row would overflow where a Wrap reflows.
+    await _pumpComponent(tester, easeRow(), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull);
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+  });
+
+  testWidgets('the unset group renders one dotted rule and one label, not a sixth cell', (
+    WidgetTester tester,
+  ) async {
+    // A sixth cell would make "not recorded" something you PICK, and then a
+    // shepherd who skipped the question and one who answered "unknown" become
+    // indistinguishable in the record.
+    await _pumpComponent(tester, easeRow());
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+    expect(find.text('EASE — NOT RECORDED · SKIPPABLE'), findsOneWidget);
+
+    await _pumpComponent(tester, easeRow(selected: 3));
+    expect(find.byType(ShedTapTarget), findsNWidgets(5));
+    expect(find.text('EASE — NOT RECORDED · SKIPPABLE'), findsNothing);
+  });
+
+  testWidgets('a selected cell differs from an unselected one with colour removed', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, easeRow(selected: 3));
+
+    final Iterable<Text> labels = tester.widgetList<Text>(
+      find.descendant(of: find.byType(Wrap), matching: find.byType(Text)),
+    );
+    expect(
+      labels.where((Text x) => x.style!.fontWeight == FontWeight.w700).length,
+      1,
+      reason: 'selection is carried by colour alone',
+    );
+
+    final Iterable<DecoratedBox> boxes = tester.widgetList<DecoratedBox>(
+      find.descendant(of: find.byType(Wrap), matching: find.byType(DecoratedBox)),
+    );
+    final Set<double> widths = boxes
+        .map((DecoratedBox b) => ((b.decoration as BoxDecoration).border! as Border).bottom.width)
+        .toSet();
+    expect(widths, hasLength(2), reason: 'the selected underline is not heavier');
+  });
+
+  testWidgets('selecting a cell reports its ordinal once', (WidgetTester tester) async {
+    final List<int> reported = <int>[];
+    await _pumpComponent(tester, easeRow(onSelected: reported.add));
+
+    await tester.tap(find.text('3'));
+    await tester.pump();
+
+    expect(reported, <int>[3]);
+  });
+
+  test('no file in this commit contains birth_type', () {
+    // P8. Birth type is DERIVED from the tally strokes and printed (COUNTED) —
+    // that is what makes safety rule §12.4 structural instead of procedural, and
+    // a five-cell chooser is exactly how it would be softened back.
+    //
+    // R59's stale example elsewhere in the doc set is left alone for N16-T02a.
+    for (final String f in <String>[choiceFile, fieldFile]) {
+      expect(File(f).readAsStringSync(), isNot(contains('birth_type')), reason: f);
+    }
+  });
+
+  test('neither file names Slider, CupertinoPicker, showDatePicker or showTimePicker', () {
+    for (final String f in <String>[choiceFile, fieldFile]) {
+      final String source = _declarations(f);
+      for (final String banned in <String>[
+        'Slider',
+        'CupertinoPicker',
+        'showDatePicker',
+        'showTimePicker',
+        'DropdownButton',
+      ]) {
+        expect(source, isNot(contains(banned)), reason: '$f names $banned');
+      }
+    }
+  });
+
+  testWidgets('both components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedFieldRow(label: 'DAYS', value: null, onTap: () {}, semanticLabel: 'Days'),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedFieldRow overflowed');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T07 — ShedBottomSheet, the only overlay in the app
+  // -------------------------------------------------------------------------
+
+  ShedBottomSheet sheet({bool fillsViewport = false}) => ShedBottomSheet(
+    dismissLabel: 'CLOSE',
+    dismissSemanticLabel: 'Close',
+    fillsViewport: fillsViewport,
+    child: const SizedBox(height: 120, child: Text('chooser')),
+  );
+
+  testWidgets('ShedBottomSheet draws a 2 px top rule and no shadow', (WidgetTester tester) async {
+    // indelible.md §4.2: nothing casts a shadow. A shadow is the first thing a
+    // Material default puts back, and under a head torch it reads as a smudge
+    // rather than as depth.
+    await _pumpComponent(tester, sheet());
+    final DecoratedBox box = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShedBottomSheet), matching: find.byType(DecoratedBox)).first,
+    );
+    final BoxDecoration decoration = box.decoration as BoxDecoration;
+    final Border border = decoration.border! as Border;
+
+    expect(border.top.width, greaterThan(0));
+    expect(border.bottom, BorderSide.none);
+    expect(decoration.boxShadow, isNull);
+  });
+
+  testWidgets('the dismiss control is at least tapPrimary in both axes and sits top-right', (
+    WidgetTester tester,
+  ) async {
+    // The scrim is NOT a target — it carries no label and Switch Control cannot
+    // reach it — so the sheet's only way out has to be one.
+    await _pumpComponent(tester, sheet());
+
+    final Size size = tester.getSize(find.byType(ShedTapTarget));
+    expect(size.width, greaterThanOrEqualTo(72.0));
+    expect(size.height, greaterThanOrEqualTo(72.0));
+
+    final Rect dismiss = tester.getRect(find.byType(ShedTapTarget));
+    final Rect whole = tester.getRect(find.byType(ShedBottomSheet));
+    expect(whole.right - dismiss.right, lessThanOrEqualTo(16.0));
+    expect(dismiss.top - whole.top, lessThanOrEqualTo(16.0));
+  });
+
+  test('the dismiss label cannot be Cancel or Save', () {
+    // 07 §15.5 and indelible.md §11 test 7. "Cancel" is not a verb here — the
+    // sheet closes, it does not undo — and "Save" is banned everywhere.
+    for (final String banned in <String>['Cancel', 'Save']) {
+      expect(
+        () => ShedBottomSheet(
+          dismissLabel: banned,
+          dismissSemanticLabel: 'x',
+          child: const SizedBox.shrink(),
+        ),
+        throwsAssertionError,
+        reason: banned,
+      );
+    }
+  });
+
+  testWidgets('fillsViewport true asks for more than half the viewport', (
+    WidgetTester tester,
+  ) async {
+    // The assertion that isScrollControlled is actually doing its job: 60% is
+    // above Flutter's 9/16 default cap, so the keypad sheet does not fit
+    // without it.
+    await _pumpComponent(tester, sheet(fillsViewport: true));
+    final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
+    final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    expect(height, greaterThan(viewport * 9 / 16));
+    expect(ShedBottomSheet.viewportFraction, 0.6);
+  });
+
+  testWidgets('a chooser sheet is content-height', (WidgetTester tester) async {
+    await _pumpComponent(tester, sheet());
+    final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
+    final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+
+    expect(height, lessThan(viewport * ShedBottomSheet.viewportFraction));
+  });
+
+  testWidgets('the sheet renders at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, sheet(), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('under reduce-motion the sheet is simply there', (WidgetTester tester) async {
+    // indelible.md §5.3: zero, not shorter. The sheet is at its final offset on
+    // the FIRST pump — no settle, no partial frame.
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: const MediaQuery(
+          data: MediaQueryData(disableAnimations: true),
+          child: Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildShedTheme(nightPalette),
+        home: MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: Scaffold(
+            body: Align(alignment: Alignment.bottomCenter, child: sheet()),
+          ),
+        ),
+      ),
+    );
+
+    final Rect first = tester.getRect(find.byType(ShedBottomSheet));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(find.byType(ShedBottomSheet)), first, reason: 'the sheet animated in');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T08 — ShedEmptyState, ShedBanner and ShedReceiptBar
+  // -------------------------------------------------------------------------
+
+  const String emptyFile = 'lib/core/ui/components/shed_empty_state.dart';
+  const String bannerFile = 'lib/core/ui/components/shed_banner.dart';
+  const String receiptFile = 'lib/core/ui/components/shed_receipt.dart';
+
+  Instant at(int hour) => Instant.fromDateTime(DateTime(2026, 8, 1, hour, 30));
+
+  ShedBanner banner(Instant now, {String message = 'Season ends soon.', bool twoActions = true}) =>
+      ShedBanner(
+        now: now,
+        message: message,
+        primary: (label: 'Export now', semanticLabel: 'Export now', onTap: () {}),
+        secondary: twoActions
+            ? (label: 'Not this season', semanticLabel: 'Not this season', onTap: () {})
+            : null,
+      );
+
+  testWidgets('ShedEmptyState occupies the same box as the content it replaces and '
+      'ShedBanner refuses to build during quiet hours', (WidgetTester tester) async {
+    // THE ANCHOR, both halves.
+    await _pumpComponent(
+      tester,
+      const SizedBox(width: 375, height: 500, child: ShedEmptyState(copy: 'No animals yet.')),
+    );
+    expect(tester.getSize(find.byType(ShedEmptyState)), const Size(375, 500));
+
+    await _pumpComponent(tester, banner(at(23)));
+    expect(tester.getSize(find.byType(ShedBanner)), Size.zero);
+    expect(find.text('Season ends soon.'), findsNothing);
+  });
+
+  testWidgets('ShedEmptyState takes the maximum of loose constraints, not the minimum', (
+    WidgetTester tester,
+  ) async {
+    // The real bug is an INTRINSIC WRAPPER that sizes to the copy: the empty
+    // state occupies a short box, the populated list a tall one, and the screen
+    // jumps the moment a shepherd records their first ewe. Catching it here is
+    // catching it before twelve screens have one.
+    await _pumpComponent(
+      tester,
+      const SizedBox(
+        width: 300,
+        height: 400,
+        child: Column(
+          children: <Widget>[Expanded(child: ShedEmptyState(copy: 'No animals yet.'))],
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byType(ShedEmptyState)), const Size(300, 400));
+  });
+
+  testWidgets('ShedEmptyState renders one line of copy and at most one action', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const SizedBox(height: 400, child: ShedEmptyState(copy: 'No animals yet.')),
+    );
+    expect(
+      find.descendant(of: find.byType(ShedEmptyState), matching: find.byType(Text)),
+      findsOneWidget,
+    );
+    expect(find.byType(ShedTapTarget), findsNothing);
+
+    await _pumpComponent(
+      tester,
+      SizedBox(
+        height: 400,
+        child: ShedEmptyState(
+          copy: 'No animals yet.',
+          action: ShedPrimaryButton(label: '+ EWE', onTap: () {}, semanticLabel: 'Add a ewe'),
+        ),
+      ),
+    );
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+  });
+
+  test('ShedEmptyState constructs no Image, Icon or progress indicator', () {
+    // Decision #71: the empty states ARE the onboarding. No illustration, no
+    // spinner, no tour, no multi-step anything.
+    final String source = _declarations(emptyFile);
+    for (final String banned in <String>[
+      'Image',
+      'Icon(',
+      'CircularProgressIndicator',
+      'LinearProgressIndicator',
+      'Lottie',
+    ]) {
+      expect(source, isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('ShedBanner renders at every hour from 06:00 to 21:59 and at none from '
+      '22:00 to 05:59', (WidgetTester tester) async {
+    // THE 24-HOUR SWEEP. The clock is the knob, never the entitlement.
+    for (int hour = 0; hour < 24; hour++) {
+      await _pumpComponent(tester, banner(at(hour)));
+      final bool quiet = hour >= 22 || hour < 6;
+      expect(
+        find.text('Season ends soon.'),
+        quiet ? findsNothing : findsOneWidget,
+        reason: 'hour $hour',
+      );
+    }
+  });
+
+  test('ShedBanner reads isQuietHours and defines no window of its own', () {
+    // Retyping `h >= 22 || h < 6` here is how the policy and the row end up
+    // disagreeing about when the app goes quiet — and the row is the half a
+    // shepherd actually sees at 03:20.
+    final String source = _declarations(bannerFile);
+    expect(source, contains('isQuietHours'));
+    expect(source, contains('free_tier.dart'));
+    expect(source, isNot(matches(RegExp(r'(?<![\w.])22(?![\w.])'))));
+    expect(source, isNot(matches(RegExp(r'hour\s*[<>=]'))));
+  });
+
+  testWidgets('ShedBanner is tapHero tall with two tapMin actions and no third', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, banner(at(10)));
+    expect(tester.getSize(find.byType(ShedBanner)).height, greaterThanOrEqualTo(88.0));
+
+    final Finder actions = find.byType(ShedTapTarget);
+    expect(actions, findsNWidgets(2));
+    for (int i = 0; i < 2; i++) {
+      expect(tester.getSize(actions.at(i)).height, greaterThanOrEqualTo(60.0), reason: 'action $i');
+    }
+
+    // No third, held IN THE TYPE: there are exactly two action parameters.
+    final String source = _declarations(bannerFile);
+    expect(source, isNot(contains('tertiary')));
+    expect(
+      '({String label, String semanticLabel, VoidCallback onTap})'.allMatches(source).length,
+      3,
+      reason: 'two fields plus one local helper parameter',
+    );
+  });
+
+  testWidgets('ShedBanner renders the same pixels with and without a cap value', (
+    WidgetTester tester,
+  ) async {
+    // 06 §12: "in the same pixels at 0 ewes as at 15." A banner that grows when
+    // it gains a number moves the content under it.
+    await _pumpComponent(tester, banner(at(10), message: 'Season ends soon.'));
+    final Size without = tester.getSize(find.byType(ShedBanner));
+
+    await _pumpComponent(tester, banner(at(10), message: '15 of 15 ewes recorded.'));
+    expect(tester.getSize(find.byType(ShedBanner)), without);
+  });
+
+  test('ShedBanner is not modal and opens no route', () {
+    final String source = _declarations(bannerFile);
+    const String sheet =
+        'showModal'
+        'BottomSheet';
+    const String dialog =
+        'show'
+        'Dialog';
+    for (final String banned in <String>[sheet, dialog, 'Navigator']) {
+      expect(source, isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('ShedReceiptBar is tapHero tall including its undo target', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo the lambing for 412',
+        onUndo: () {},
+      ),
+    );
+
+    expect(tester.getSize(find.byType(ShedReceiptBar)).height, greaterThanOrEqualTo(88.0));
+    final Size undo = tester.getSize(find.byType(ShedTapTarget));
+    expect(undo.width, greaterThanOrEqualTo(60.0));
+    expect(undo.height, greaterThanOrEqualTo(60.0));
+  });
+
+  testWidgets('ShedReceiptBar carries its own liveRegion', (WidgetTester tester) async {
+    // It inherits none from a framework it no longer uses. P2 removed the
+    // SnackBar, and with it every piece of wrapping the announcement relied on.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+    );
+
+    final SemanticsData data = tester.getSemantics(find.byType(ShedReceiptBar)).getSemanticsData();
+    expect(data.flagsCollection.isLiveRegion, isTrue);
+
+    handle.dispose();
+  });
+
+  testWidgets('two receipts for the same ewe in the same minute produce different '
+      'announcement text', (WidgetTester tester) async {
+    // THE didChangeLabel RULE. An assistive technology SKIPS a live-region
+    // update whose text has not changed, so a second lambing for 412 in the same
+    // minute would be silently unannounced.
+    //
+    // The component cannot enforce this — it renders what it is given — so what
+    // is asserted is that the API TAKES the whole message rather than composing
+    // it from a verb and a tag, which is what would make two receipts identical.
+    final String source = _declarations(receiptFile);
+    expect(source, contains('final String message;'));
+    expect(source, isNot(contains('tag')), reason: 'the bar must not compose its own text');
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21:04',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+    );
+    expect(find.text('Lambing recorded for 412 at 03:21:04'), findsOneWidget);
+  });
+
+  testWidgets('the undo label is whatever the receipt carries', (WidgetTester tester) async {
+    // No default in this file: the verb belongs to the screen that knows what is
+    // being undone.
+    for (final String label in <String>['UNDO', 'Correct this', 'Void this']) {
+      await _pumpComponent(
+        tester,
+        ShedReceiptBar(message: 'x', undoLabel: label, undoSemanticLabel: label, onUndo: () {}),
+      );
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(_declarations(receiptFile), isNot(contains("undoLabel = ")));
+  });
+
+  test('no file in this commit calls the snack-bar function', () {
+    // P2. The same property N14-T04's anchor holds repo-wide.
+    const String needle =
+        'show'
+        'SnackBar(';
+    for (final String f in <String>[emptyFile, bannerFile, receiptFile]) {
+      expect(File(f).readAsStringSync(), isNot(contains(needle)), reason: f);
+    }
+  });
+
+  testWidgets(
+    'DST: the quiet window is unambiguous through 01:00 to 01:59 on the clocks-back night',
+    (WidgetTester tester) async {
+      // 11 §9.2: "UK/Ireland's ambiguous DST hour sits inside this window under
+      // BOTH readings — so the one place in the app where a local hour is
+      // genuinely ambiguous is a place where the ambiguity cannot change the
+      // answer." Both readings of 01:30 render no banner.
+      expect(
+        DateTime(2026, 7).timeZoneOffset,
+        const Duration(hours: 1),
+        reason: 'run with TZ=Europe/London',
+      );
+
+      for (final DateTime utc in <DateTime>[
+        DateTime.utc(2026, 10, 25, 0, 30), // 01:30 BST
+        DateTime.utc(2026, 10, 25, 1, 30), // 01:30 GMT
+      ]) {
+        await _pumpComponent(tester, banner(Instant(utc.millisecondsSinceEpoch)));
+        expect(find.text('Season ends soon.'), findsNothing, reason: '$utc');
+      }
+    },
+    tags: <String>['uk-zone'],
+  );
+
+  testWidgets('all three components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const SizedBox(height: 400, child: ShedEmptyState(copy: 'No animals yet.')),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedEmptyState');
+
+    await _pumpComponent(tester, banner(at(10)), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull, reason: 'ShedBanner');
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedReceiptBar');
+  });
+}

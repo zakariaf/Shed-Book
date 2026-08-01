@@ -17,8 +17,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 const String _dir = 'test/design';
 
-/// The four gate files N09 lands, and the helper they share.
+/// Every file directly in test/design/, as an EXACT list.
+///
+/// N09 landed nine of these; components_test.dart is N10-T01's and is the one
+/// file all eight of that epic's tasks extend. The list grows by a deliberate
+/// edit in the commit that adds the file — which is the point.
 const List<String> _expected = <String>[
+  'components_test.dart',
   'contrast_test.dart',
   'formatters_test.dart',
   'gate_inventory_test.dart',

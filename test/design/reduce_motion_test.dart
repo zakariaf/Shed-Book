@@ -213,7 +213,19 @@ void main() {
       motionFile,
     ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
 
-    expect(source, isNot(contains('Haptic')));
+    // AMENDED BY T09. When T08 wrote this case, motion.dart held only the
+    // resolver, so "the file names no haptic" was a fair proxy. T09 adds the
+    // vocabulary to the same file — which is the epic's stated ordering — so the
+    // proxy is now false while the RULE is unchanged.
+    //
+    // The rule was never "they live apart". It is that the resolver and the
+    // vocabulary are never JOINED: no line reads a reduce-motion flag and a
+    // haptic together. That is what is asserted now, and it is the stronger
+    // claim — a file split would have satisfied the old form while a single
+    // gated call site broke the actual rule.
+    expect(source, isNot(matches(RegExp(r'prefersReducedMotion[^\n]*Haptic'))));
+    expect(source, isNot(matches(RegExp(r'Haptic[^\n]*prefersReducedMotion'))));
+    expect(source, isNot(matches(RegExp(r'reduced[^\n]*Haptic'))));
     expect(source, isNot(contains('vibrat')));
   });
 }

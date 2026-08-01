@@ -22,6 +22,7 @@ const List<String> _expected = <String>[
   'contrast_test.dart',
   'formatters_test.dart',
   'gate_inventory_test.dart',
+  'haptics_test.dart',
   'reduce_motion_test.dart',
   'tap_target_test.dart',
   'theme_test.dart',

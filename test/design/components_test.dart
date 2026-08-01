@@ -16,13 +16,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
 import 'package:shed_book/core/ui/components/shed_confirm_bar.dart';
 import 'package:shed_book/core/ui/components/shed_countdown.dart';
 import 'package:shed_book/core/ui/components/shed_destructive_button.dart';
+import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/components/shed_field_row.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:shed_book/core/ui/components/shed_receipt.dart';
 import 'package:shed_book/core/ui/components/shed_recents_strip.dart';
 import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
@@ -1659,5 +1662,312 @@ void main() {
     final Rect first = tester.getRect(find.byType(ShedBottomSheet));
     await tester.pumpAndSettle();
     expect(tester.getRect(find.byType(ShedBottomSheet)), first, reason: 'the sheet animated in');
+  });
+
+  // -------------------------------------------------------------------------
+  // N10-T08 — ShedEmptyState, ShedBanner and ShedReceiptBar
+  // -------------------------------------------------------------------------
+
+  const String emptyFile = 'lib/core/ui/components/shed_empty_state.dart';
+  const String bannerFile = 'lib/core/ui/components/shed_banner.dart';
+  const String receiptFile = 'lib/core/ui/components/shed_receipt.dart';
+
+  Instant at(int hour) => Instant.fromDateTime(DateTime(2026, 8, 1, hour, 30));
+
+  ShedBanner banner(Instant now, {String message = 'Season ends soon.', bool twoActions = true}) =>
+      ShedBanner(
+        now: now,
+        message: message,
+        primary: (label: 'Export now', semanticLabel: 'Export now', onTap: () {}),
+        secondary: twoActions
+            ? (label: 'Not this season', semanticLabel: 'Not this season', onTap: () {})
+            : null,
+      );
+
+  testWidgets('ShedEmptyState occupies the same box as the content it replaces and '
+      'ShedBanner refuses to build during quiet hours', (WidgetTester tester) async {
+    // THE ANCHOR, both halves.
+    await _pumpComponent(
+      tester,
+      const SizedBox(width: 375, height: 500, child: ShedEmptyState(copy: 'No animals yet.')),
+    );
+    expect(tester.getSize(find.byType(ShedEmptyState)), const Size(375, 500));
+
+    await _pumpComponent(tester, banner(at(23)));
+    expect(tester.getSize(find.byType(ShedBanner)), Size.zero);
+    expect(find.text('Season ends soon.'), findsNothing);
+  });
+
+  testWidgets('ShedEmptyState takes the maximum of loose constraints, not the minimum', (
+    WidgetTester tester,
+  ) async {
+    // The real bug is an INTRINSIC WRAPPER that sizes to the copy: the empty
+    // state occupies a short box, the populated list a tall one, and the screen
+    // jumps the moment a shepherd records their first ewe. Catching it here is
+    // catching it before twelve screens have one.
+    await _pumpComponent(
+      tester,
+      const SizedBox(
+        width: 300,
+        height: 400,
+        child: Column(
+          children: <Widget>[Expanded(child: ShedEmptyState(copy: 'No animals yet.'))],
+        ),
+      ),
+    );
+    expect(tester.getSize(find.byType(ShedEmptyState)), const Size(300, 400));
+  });
+
+  testWidgets('ShedEmptyState renders one line of copy and at most one action', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const SizedBox(height: 400, child: ShedEmptyState(copy: 'No animals yet.')),
+    );
+    expect(
+      find.descendant(of: find.byType(ShedEmptyState), matching: find.byType(Text)),
+      findsOneWidget,
+    );
+    expect(find.byType(ShedTapTarget), findsNothing);
+
+    await _pumpComponent(
+      tester,
+      SizedBox(
+        height: 400,
+        child: ShedEmptyState(
+          copy: 'No animals yet.',
+          action: ShedPrimaryButton(label: '+ EWE', onTap: () {}, semanticLabel: 'Add a ewe'),
+        ),
+      ),
+    );
+    expect(find.byType(ShedTapTarget), findsOneWidget);
+  });
+
+  test('ShedEmptyState constructs no Image, Icon or progress indicator', () {
+    // Decision #71: the empty states ARE the onboarding. No illustration, no
+    // spinner, no tour, no multi-step anything.
+    final String source = _declarations(emptyFile);
+    for (final String banned in <String>[
+      'Image',
+      'Icon(',
+      'CircularProgressIndicator',
+      'LinearProgressIndicator',
+      'Lottie',
+    ]) {
+      expect(source, isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('ShedBanner renders at every hour from 06:00 to 21:59 and at none from '
+      '22:00 to 05:59', (WidgetTester tester) async {
+    // THE 24-HOUR SWEEP. The clock is the knob, never the entitlement.
+    for (int hour = 0; hour < 24; hour++) {
+      await _pumpComponent(tester, banner(at(hour)));
+      final bool quiet = hour >= 22 || hour < 6;
+      expect(
+        find.text('Season ends soon.'),
+        quiet ? findsNothing : findsOneWidget,
+        reason: 'hour $hour',
+      );
+    }
+  });
+
+  test('ShedBanner reads isQuietHours and defines no window of its own', () {
+    // Retyping `h >= 22 || h < 6` here is how the policy and the row end up
+    // disagreeing about when the app goes quiet — and the row is the half a
+    // shepherd actually sees at 03:20.
+    final String source = _declarations(bannerFile);
+    expect(source, contains('isQuietHours'));
+    expect(source, contains('free_tier.dart'));
+    expect(source, isNot(matches(RegExp(r'(?<![\w.])22(?![\w.])'))));
+    expect(source, isNot(matches(RegExp(r'hour\s*[<>=]'))));
+  });
+
+  testWidgets('ShedBanner is tapHero tall with two tapMin actions and no third', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(tester, banner(at(10)));
+    expect(tester.getSize(find.byType(ShedBanner)).height, greaterThanOrEqualTo(88.0));
+
+    final Finder actions = find.byType(ShedTapTarget);
+    expect(actions, findsNWidgets(2));
+    for (int i = 0; i < 2; i++) {
+      expect(tester.getSize(actions.at(i)).height, greaterThanOrEqualTo(60.0), reason: 'action $i');
+    }
+
+    // No third, held IN THE TYPE: there are exactly two action parameters.
+    final String source = _declarations(bannerFile);
+    expect(source, isNot(contains('tertiary')));
+    expect(
+      '({String label, String semanticLabel, VoidCallback onTap})'.allMatches(source).length,
+      3,
+      reason: 'two fields plus one local helper parameter',
+    );
+  });
+
+  testWidgets('ShedBanner renders the same pixels with and without a cap value', (
+    WidgetTester tester,
+  ) async {
+    // 06 §12: "in the same pixels at 0 ewes as at 15." A banner that grows when
+    // it gains a number moves the content under it.
+    await _pumpComponent(tester, banner(at(10), message: 'Season ends soon.'));
+    final Size without = tester.getSize(find.byType(ShedBanner));
+
+    await _pumpComponent(tester, banner(at(10), message: '15 of 15 ewes recorded.'));
+    expect(tester.getSize(find.byType(ShedBanner)), without);
+  });
+
+  test('ShedBanner is not modal and opens no route', () {
+    final String source = _declarations(bannerFile);
+    const String sheet =
+        'showModal'
+        'BottomSheet';
+    const String dialog =
+        'show'
+        'Dialog';
+    for (final String banned in <String>[sheet, dialog, 'Navigator']) {
+      expect(source, isNot(contains(banned)), reason: banned);
+    }
+  });
+
+  testWidgets('ShedReceiptBar is tapHero tall including its undo target', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo the lambing for 412',
+        onUndo: () {},
+      ),
+    );
+
+    expect(tester.getSize(find.byType(ShedReceiptBar)).height, greaterThanOrEqualTo(88.0));
+    final Size undo = tester.getSize(find.byType(ShedTapTarget));
+    expect(undo.width, greaterThanOrEqualTo(60.0));
+    expect(undo.height, greaterThanOrEqualTo(60.0));
+  });
+
+  testWidgets('ShedReceiptBar carries its own liveRegion', (WidgetTester tester) async {
+    // It inherits none from a framework it no longer uses. P2 removed the
+    // SnackBar, and with it every piece of wrapping the announcement relied on.
+    final SemanticsHandle handle = tester.ensureSemantics();
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+    );
+
+    final SemanticsData data = tester.getSemantics(find.byType(ShedReceiptBar)).getSemanticsData();
+    expect(data.flagsCollection.isLiveRegion, isTrue);
+
+    handle.dispose();
+  });
+
+  testWidgets('two receipts for the same ewe in the same minute produce different '
+      'announcement text', (WidgetTester tester) async {
+    // THE didChangeLabel RULE. An assistive technology SKIPS a live-region
+    // update whose text has not changed, so a second lambing for 412 in the same
+    // minute would be silently unannounced.
+    //
+    // The component cannot enforce this — it renders what it is given — so what
+    // is asserted is that the API TAKES the whole message rather than composing
+    // it from a verb and a tag, which is what would make two receipts identical.
+    final String source = _declarations(receiptFile);
+    expect(source, contains('final String message;'));
+    expect(source, isNot(contains('tag')), reason: 'the bar must not compose its own text');
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412 at 03:21:04',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+    );
+    expect(find.text('Lambing recorded for 412 at 03:21:04'), findsOneWidget);
+  });
+
+  testWidgets('the undo label is whatever the receipt carries', (WidgetTester tester) async {
+    // No default in this file: the verb belongs to the screen that knows what is
+    // being undone.
+    for (final String label in <String>['UNDO', 'Correct this', 'Void this']) {
+      await _pumpComponent(
+        tester,
+        ShedReceiptBar(message: 'x', undoLabel: label, undoSemanticLabel: label, onUndo: () {}),
+      );
+      expect(find.text(label), findsOneWidget);
+    }
+    expect(_declarations(receiptFile), isNot(contains("undoLabel = ")));
+  });
+
+  test('no file in this commit calls the snack-bar function', () {
+    // P2. The same property N14-T04's anchor holds repo-wide.
+    const String needle =
+        'show'
+        'SnackBar(';
+    for (final String f in <String>[emptyFile, bannerFile, receiptFile]) {
+      expect(File(f).readAsStringSync(), isNot(contains(needle)), reason: f);
+    }
+  });
+
+  testWidgets(
+    'DST: the quiet window is unambiguous through 01:00 to 01:59 on the clocks-back night',
+    (WidgetTester tester) async {
+      // 11 §9.2: "UK/Ireland's ambiguous DST hour sits inside this window under
+      // BOTH readings — so the one place in the app where a local hour is
+      // genuinely ambiguous is a place where the ambiguity cannot change the
+      // answer." Both readings of 01:30 render no banner.
+      expect(
+        DateTime(2026, 7).timeZoneOffset,
+        const Duration(hours: 1),
+        reason: 'run with TZ=Europe/London',
+      );
+
+      for (final DateTime utc in <DateTime>[
+        DateTime.utc(2026, 10, 25, 0, 30), // 01:30 BST
+        DateTime.utc(2026, 10, 25, 1, 30), // 01:30 GMT
+      ]) {
+        await _pumpComponent(tester, banner(Instant(utc.millisecondsSinceEpoch)));
+        expect(find.text('Season ends soon.'), findsNothing, reason: '$utc');
+      }
+    },
+    tags: <String>['uk-zone'],
+  );
+
+  testWidgets('all three components render at textScale 2.0 with boldText with no overflow', (
+    WidgetTester tester,
+  ) async {
+    await _pumpComponent(
+      tester,
+      const SizedBox(height: 400, child: ShedEmptyState(copy: 'No animals yet.')),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedEmptyState');
+
+    await _pumpComponent(tester, banner(at(10)), scale: 2.0, boldText: true);
+    expect(tester.takeException(), isNull, reason: 'ShedBanner');
+
+    await _pumpComponent(
+      tester,
+      ShedReceiptBar(
+        message: 'Lambing recorded for 412',
+        undoLabel: 'UNDO',
+        undoSemanticLabel: 'Undo',
+        onUndo: () {},
+      ),
+      scale: 2.0,
+      boldText: true,
+    );
+    expect(tester.takeException(), isNull, reason: 'ShedReceiptBar');
   });
 }

@@ -238,11 +238,277 @@ const List<(String, String, String, String)> _bannedText = <(String, String, Str
     'per-row timers and refresh loops are both banned; the one ticker uses '
         'Future.delayed so this rule needs no exemption — #66, #7',
   ),
+
+  // -- design: the literal rows (06 §3.5) -----------------------------------
+  // R55: scoped lib/, NOT lib/features/ as 01 §3.2 prints them.
+  // lib/core/ui/components/ is exactly where a shared widget would hide a raw
+  // hex. The two [exempt] lines are the only escape, and they name one file each.
+  ('token.raw_color', 'Color(0x', 'lib/', 'read ShedTokens — #97'),
+  // Also matches Colors.transparent, and that is intended: context.tokens owns
+  // every colour including the absent one. Do not add an exemption; add a token.
+  ('token.material_color', 'Colors.', 'lib/', 'read ShedTokens — #97'),
+  ('a11y.scale_factor', 'textScaleFactor', 'lib/', 'deprecated; never clamp — #99'),
+  ('a11y.header_bool', 'header: true', 'lib/', 'no-op since 3.44 — use headingLevel — #104'),
+  ('gesture.dismissible', 'Dismissible(', 'lib/', 'gesture ban — #101'),
+  ('gesture.draggable', 'Draggable(', 'lib/', 'gesture ban — #101'),
+  // A tooltip is a long-press affordance on touch, and long-press is banned, so
+  // the widget is banned. 00-README §2.2 and CLAUDE.md list the same three.
+  ('gesture.tooltip', 'Tooltip(', 'lib/', 'gesture ban — #101'),
 ];
 
-/// Same tuple, a pattern instead of a literal. `final`, not `const`: RegExp has
-/// no const constructor.
-final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, String, String)>[];
+/// Same tuple, a pattern instead of a literal — the same driver, the same
+/// allowlist keys (`'<path> :: <id>'`) and the same exit code. `final`, not
+/// `const`: RegExp has no const constructor.
+///
+/// Grouped as `06 §3.5` groups them. **There is no `design` namespace** —
+/// CONVENTIONS §4.7 lists seventeen and `design` is not among them. The plan's
+/// shorthand (`design.raw_hex`, `design.magic_size`) would mean the id in an
+/// `[exempt]` line never matches the id in this table, and R54 exists because a
+/// duplicated rule is a rule that gets weakened twice.
+final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, String, String)>[
+  // -- tokens ---------------------------------------------------------------
+  (
+    'token.raw_color_ctor',
+    RegExp(r'Color\.from(ARGB|RGBO)\('),
+    'lib/',
+    'raw colour literal — read ShedTokens — #97',
+  ),
+  (
+    'token.seeded_scheme',
+    RegExp(r'ColorScheme\.fromSeed'),
+    'lib/',
+    'generated scheme; 3.41 changed four on*Container roles — #94',
+  ),
+  (
+    'token.literal_font_size',
+    RegExp(r'fontSize:\s*[0-9]'),
+    'lib/',
+    'literal fontSize — use a TextTheme role — 06 §5.1',
+  ),
+  // Two rows for one idea, because the tuple carries a single path prefix and
+  // the idea spans two. Do NOT merge them into one row with a widened scope:
+  // lib/core/ui/theme.dart and lib/core/ui/palettes.dart legitimately build a
+  // ColorScheme and would fire.
+  (
+    'token.color_scheme_read',
+    RegExp(r'\bcolorScheme\b'),
+    'lib/features/',
+    'widgets read ShedTokens, not ColorScheme — 06 §3.3',
+  ),
+  (
+    'token.color_scheme_read_ui',
+    RegExp(r'\bcolorScheme\b'),
+    'lib/core/ui/components/',
+    'components read ShedTokens, not ColorScheme — 06 §3.3',
+  ),
+  (
+    'token.primitives_import',
+    RegExp(r'''import\s+['"][^'"]*core/ui/primitives\.dart'''),
+    'lib/',
+    'primitives are private to lib/core/ui/ — 06 §3.1',
+  ),
+  // The negative lookahead IS the rule. `(?![01](?:\.0+)?\s*[,)])` lets
+  // EdgeInsets.all(0) and SizedBox(height: 1) through while catching
+  // SizedBox(height: 12). Simplify it — "surely [0-9] is enough" — and every
+  // hairline divider and every zero inset becomes a violation, the rule earns an
+  // exemption per file, and within a month it is dead.
+  //
+  // It fires on the LITERAL form only: SizedBox(height: kGap) passes, which is
+  // the point. What it therefore misses — `_gap * 2.5`, an opacity literal, an
+  // alpha inside withValues — is a reviewer's job and not a row
+  // (CODE-REVIEW-CHECKLIST §1.7).
+  (
+    'token.magic_size',
+    RegExp(
+      r'(EdgeInsets\.\w+\(|SizedBox\(|BoxConstraints\(|Size\(|'
+      r'(?:Border)?Radius\.circular\(|'
+      r'(?:width|height|minWidth|minHeight|maxWidth|maxHeight|spacing|'
+      r'strokeWidth|elevation|letterSpacing):)'
+      r'\s*(?![01](?:\.0+)?\s*[,)])[0-9]',
+    ),
+    'lib/',
+    'magic size — use the spacing or tap scale — 06 §3.2',
+  ),
+
+  // -- themes ---------------------------------------------------------------
+  ('theme.mode', RegExp(r'ThemeMode\.(system|light)'), 'lib/', 'no light theme exists — 06 §2.1'),
+  ('theme.brightness', RegExp(r'Brightness\.light'), 'lib/', 'no light theme exists — 06 §2.1'),
+  (
+    'theme.platform_brightness',
+    RegExp(r'platformBrightnessOf'),
+    'lib/',
+    'the OS brightness never changes this app — 06 §2.1',
+  ),
+  (
+    'theme.light_factory',
+    RegExp(r'ColorScheme\.light|ThemeData\.light'),
+    'lib/',
+    'no light theme exists — 06 §2.1',
+  ),
+  (
+    'theme.deprecated_scheme_role',
+    RegExp(r'\b(background|onBackground|surfaceVariant):'),
+    'lib/core/ui/',
+    'deprecated ColorScheme role — 06 §2.3',
+  ),
+
+  // -- typography -----------------------------------------------------------
+  (
+    'type.google_fonts',
+    RegExp(r'\bGoogleFonts\b|google_fonts'),
+    'lib/',
+    'runtime font fetch is a network path — 06 §5.2',
+  ),
+  (
+    'type.clamp',
+    RegExp(r'withClampedTextScaling|TextScaler\.clamp'),
+    'lib/',
+    'never clamp text scale — #99',
+  ),
+  (
+    'type.weight_cap',
+    RegExp(r'FontWeight\.w(8|9)00|FontWeight\.(black|extraBold)'),
+    'lib/',
+    'w800/w900 render LIGHTER under Bold Text (flutter#139712) — 06 §5.3',
+  ),
+  (
+    'type.fitted_box',
+    RegExp(r'\bFittedBox\b'),
+    'lib/',
+    'FittedBox undoes the user text size — 06 §5.5',
+  ),
+
+  // -- gestures (06 §7) -----------------------------------------------------
+  (
+    'gesture.long_press_draggable',
+    RegExp(r'\bLongPressDraggable\b'),
+    'lib/',
+    'banned gesture — #101',
+  ),
+  (
+    'gesture.interactive_viewer',
+    RegExp(r'\bInteractiveViewer\b|\bReorderableListView\b'),
+    'lib/',
+    'banned gesture — #101',
+  ),
+  (
+    'gesture.refresh',
+    RegExp(r'\bRefreshIndicator\b'),
+    'lib/',
+    'pull-to-refresh: there is nothing to refresh — 06 §7',
+  ),
+  (
+    'gesture.long_press',
+    RegExp(r'onLongPress(Start|End|MoveUpdate)?:'),
+    'lib/',
+    'long-press-only is banned — 06 §7',
+  ),
+  (
+    'gesture.scale',
+    RegExp(r'onScale(Start|Update|End):|onForcePress'),
+    'lib/',
+    'pinch / force touch — 06 §7',
+  ),
+  (
+    'gesture.drag',
+    RegExp(r'on(Horizontal|Vertical|Pan)Drag(Start|Update|End):'),
+    'lib/',
+    'drag — 06 §7',
+  ),
+  (
+    'gesture.drag_handle',
+    RegExp(r'showDragHandle:\s*true'),
+    'lib/',
+    'a drag handle advertises a banned gesture — 06 §7',
+  ),
+  // Catches the EXPLICIT spelling only. showModalBottomSheet defaults enableDrag
+  // to TRUE, so the default slips past this row. The gap is closed elsewhere and
+  // is recorded here rather than discovered: ShedBottomSheet is the only overlay
+  // in the app, it is constructed in one place, and that place sets
+  // enableDrag: false. ui.show_dialog holds the other half.
+  (
+    'gesture.sheet_drag',
+    RegExp(r'enableDrag:\s*true'),
+    'lib/',
+    'drag-to-dismiss is a drag; sheets set enableDrag: false — 06 §7',
+  ),
+  (
+    'gesture.slider',
+    RegExp(r'\bSlider\b|\bRangeSlider\b|\bCupertinoPicker\b'),
+    'lib/',
+    'drag-only control; use the keypad or a Wrap of 60 pt choices — 06 §7',
+  ),
+  (
+    'gesture.horizontal_swipe',
+    RegExp(r'\bPageView\b|\bTabBarView\b'),
+    'lib/',
+    'horizontal swipe; vertical scrolling is the only tracked gesture — 06 §7',
+  ),
+  // P2 (docs/skills/02-build-manifest §4.1) SUPERSEDES CONVENTIONS §2.11, R30
+  // and 06 §3.5's scope, all three of which are still on disk and all three of
+  // which call feedback.dart "the one file permitted to call showSnackBar(".
+  // Indelible §9 bans toasts, snackbars and modal dialogs outright, which made
+  // undo-until-the-snackbar-is-dismissed unimplementable — so Indelible won. The
+  // confirmation IS the committed row, in ink, one line above the one being
+  // written; undo is a time-boxed strike in that row's margin, its window stated
+  // in seconds. feedback.dart is no longer a legitimate call site, so this row is
+  // scoped lib/ and has NO allowlist entry, ever.
+  (
+    'gesture.raw_snackbar',
+    RegExp(r'showSnackBar\('),
+    'lib/',
+    'the receipt is the committed row — P2, indelible §9',
+  ),
+
+  // -- semantics (10-accessibility-and-i18n.md) -----------------------------
+  // 10 §10 records this as a live defect: as 06 §3.5 prints it the pattern is
+  // `SemanticsService\.announce`, which does NOT match sendAnnouncement — while
+  // 10 §3.8 bans both spellings and 10 §11 row 2 claims the gate catches both.
+  // As printed, the claim is false and the Android no-op ships. Widened here.
+  (
+    'a11y.announce',
+    RegExp(r'SemanticsService\.(announce|sendAnnouncement)\b'),
+    'lib/',
+    'no-op on Android — use a liveRegion — #103',
+  ),
+  (
+    'a11y.sort_key',
+    RegExp(r'\bOrdinalSortKey\b|sortKey:'),
+    'lib/',
+    'reading order is the tree — 10 §10',
+  ),
+  (
+    'a11y.merge_semantics',
+    RegExp(r'\bMergeSemantics\b'),
+    'lib/',
+    'a merged node loses the per-element target — 10 §10',
+  ),
+  // Grouped with the gesture ban rather than with accessibility: the dial is a
+  // drag, the keyboard mode is the system IME, and the cells are under 60 pt.
+  (
+    'a11y.material_picker',
+    RegExp(r'showDatePicker\(|showTimePicker\('),
+    'lib/',
+    'the shepherd enters a date on the keypad, never on a dial — 10 §10',
+  ),
+
+  // -- rows CONVENTIONS §4.7 adds that no document had ----------------------
+  (
+    'ui.spinner',
+    RegExp(r'\bCircularProgressIndicator\b'),
+    'lib/features/',
+    'a spinner is a screen that has not decided what it is — CONVENTIONS §4.7',
+  ),
+  // Two files will be allowlisted — delete-season (N29) and restore-from-backup
+  // (N23). Neither exists yet, so the rule has no exemption at all, which is
+  // correct: the exemptions arrive with the files, in the commits that need them.
+  (
+    'ui.show_dialog',
+    RegExp(r'showDialog\('),
+    'lib/',
+    'the only overlay is ShedBottomSheet — CONVENTIONS §4.7',
+  ),
+];
 
 /// Every rule id this script can emit, in declaration order. N03-T07's
 /// inventory assertion iterates this; a rule that is not here cannot be proved.
@@ -588,6 +854,15 @@ Map<String, Set<String>> readAllowlist(String root) {
         );
       }
       continue;
+    }
+    if (line.startsWith('[')) {
+      // Opens like a header and does not close like one. Almost always a header
+      // that has had text appended to it — which the parser would otherwise
+      // accept as an ENTRY in whatever section came before, silently. Found by
+      // exactly that accident on 2026-08-01, in this file's own allowlist.
+      throw PolicyConfigProblem(
+        '$name line $number: "$line" opens a section header and does not close it',
+      );
     }
     if (section == null) {
       throw PolicyConfigProblem(

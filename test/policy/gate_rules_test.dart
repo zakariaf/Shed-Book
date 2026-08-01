@@ -134,6 +134,22 @@ void main() {
     );
   });
 
+  test('a header with text appended to it is refused, not read as an entry', () {
+    // `[exempt] line with` opens like a header and does not close like one, so
+    // the parser would otherwise add it as an ENTRY under whatever section came
+    // before. Found by exactly that accident in this project's own allowlist.
+    expect(
+      () => gateOn(const <String, String>{}, allowlist: '[dependencies]\n[exempt] line with\n'),
+      throwsA(
+        isA<PolicyConfigProblem>().having(
+          (PolicyConfigProblem p) => p.message,
+          'message',
+          allOf(contains('line 2'), contains('does not close it')),
+        ),
+      ),
+    );
+  });
+
   test('an exempt line with no :: separator is refused', () {
     expect(
       () => gateOn(
@@ -501,8 +517,15 @@ http             # via timezone AND via package_info_plus. Two regular edges.
         final List<String> violations = gateOn(<String, String>{
           'lib/data/export_repository.dart': "import '$uri';\n",
         });
-        expect(violations, hasLength(1), reason: '$uri: ${violations.join("\n")}');
-        expect(violations.single, contains(uri));
+        // At least one, not exactly one: `package:google_fonts/…` also trips
+        // type.google_fonts, which matches the identifier as well as the URI.
+        // Two rows firing on one line is two documents agreeing, not a defect.
+        expect(
+          violations.where((String v) => v.contains('[layer.import]')),
+          hasLength(1),
+          reason: '$uri: ${violations.join("\n")}',
+        );
+        expect(violations.first, contains(uri));
       }
     });
 
@@ -662,6 +685,243 @@ http             # via timezone AND via package_info_plus. Two regular edges.
       // file picker and the photo picker.
       expect(readAllowlist('.')['transitive'], contains('http'));
       expect(lockfileKinds('.')['http'], 'transitive');
+    });
+  });
+
+  group('the design rules — 06 §3.5, CONVENTIONS §4.7', () {
+    /// Rule id → the smallest source that must trip it.
+    ///
+    /// Data, not thirty hand-written `test()` bodies: that is where a row lands
+    /// with no case and N03-T07's inventory goes red two tasks later for a
+    /// reason nobody can find. The count is never written down as a number —
+    /// derive it from the table, because three documents already disagree about
+    /// how many `gesture.*` rows there are (CODE-REVIEW-CHECKLIST §1.8: count
+    /// the table, never the sentence).
+    const Map<String, String> trips = <String, String>{
+      'token.raw_color': 'const c = Color(0xFF0B0D0E);',
+      'token.material_color': 'const c = Colors.transparent;',
+      'token.raw_color_ctor': 'const c = Color.fromARGB(255, 1, 2, 3);',
+      'token.seeded_scheme': 'final s = ColorScheme.fromSeed(seedColor: c);',
+      'token.literal_font_size': 'const t = TextStyle(fontSize: 20);',
+      'token.primitives_import': "import 'package:shed_book/core/ui/primitives.dart';",
+      'token.magic_size': 'Widget b() => SizedBox(height: 12);',
+      'theme.mode': 'final m = ThemeMode.system;',
+      'theme.brightness': 'final b = Brightness.light;',
+      'theme.platform_brightness': 'final b = MediaQuery.platformBrightnessOf(context);',
+      'theme.light_factory': 'final s = ColorScheme.light();',
+      'type.google_fonts': 'final f = GoogleFonts.inter();',
+      'type.clamp': 'Widget b() => MediaQuery.withClampedTextScaling(child: c);',
+      'type.weight_cap': 'const w = FontWeight.w800;',
+      'type.fitted_box': 'Widget b() => FittedBox(child: c);',
+      'gesture.dismissible': 'Widget b() => Dismissible(key: k, child: c);',
+      'gesture.draggable': 'Widget b() => Draggable(child: c, feedback: f);',
+      'gesture.tooltip': 'Widget b() => Tooltip(message: m, child: c);',
+      'gesture.long_press_draggable': 'Widget b() => LongPressDraggable(child: c, feedback: f);',
+      'gesture.interactive_viewer': 'Widget b() => InteractiveViewer(child: c);',
+      'gesture.refresh': 'Widget b() => RefreshIndicator(child: c, onRefresh: r);',
+      'gesture.long_press': 'Widget b() => GestureDetector(onLongPress: f);',
+      'gesture.scale': 'Widget b() => GestureDetector(onScaleStart: f);',
+      'gesture.drag': 'Widget b() => GestureDetector(onHorizontalDragStart: f);',
+      'gesture.drag_handle': 'void f() => showModalBottomSheet(showDragHandle: true);',
+      'gesture.sheet_drag': 'void f() => showModalBottomSheet(enableDrag: true);',
+      'gesture.slider': 'Widget b() => Slider(value: v, onChanged: c);',
+      'gesture.horizontal_swipe': 'Widget b() => PageView(children: c);',
+      'gesture.raw_snackbar': 'void f() { m.showSnackBar(s); }',
+      'a11y.scale_factor': 'final s = MediaQuery.of(context).textScaleFactor;',
+      'a11y.header_bool': 'Widget b() => Semantics(header: true, child: c);',
+      'a11y.announce': 'void f() => SemanticsService.announce(m, d);',
+      'a11y.sort_key': 'Widget b() => Semantics(sortKey: const OrdinalSortKey(1), child: c);',
+      'a11y.merge_semantics': 'Widget b() => MergeSemantics(child: c);',
+      'a11y.material_picker': 'void f() => showDatePicker(context: c);',
+      'ui.show_dialog': 'void f() => showDialog(context: c, builder: b);',
+    };
+
+    /// Two rows are scoped narrower than `lib/` and need their own path.
+    const Map<String, String> scopedPath = <String, String>{
+      'token.color_scheme_read': 'lib/features/flock/flock_screen.dart',
+      'token.color_scheme_read_ui': 'lib/core/ui/components/shed_pen_tile.dart',
+      'theme.deprecated_scheme_role': 'lib/core/ui/theme.dart',
+      'ui.spinner': 'lib/features/flock/flock_screen.dart',
+    };
+
+    /// The body each narrowly-scoped row needs, since the three do not share one.
+    const Map<String, String> scopedBody = <String, String>{
+      'token.color_scheme_read': 'final c = Theme.of(context).colorScheme;',
+      'token.color_scheme_read_ui': 'final c = Theme.of(context).colorScheme;',
+      'theme.deprecated_scheme_role': 'const s = ColorScheme(background: c);',
+      'ui.spinner': 'Widget b() => CircularProgressIndicator();',
+    };
+
+    test('design.raw_hex, design.magic_size, design.banned_gesture, design.snackbar, '
+        'design.spinner and design.dialog each exit 1 on their planted violation', () {
+      // The anchor. The six names are the plan's shorthand; the ids are
+      // CONVENTIONS §4.7's, because there is no `design` namespace.
+      const Map<String, String> six = <String, String>{
+        'token.raw_color': 'const c = Color(0xFF0B0D0E);',
+        'token.magic_size': 'Widget b() => SizedBox(height: 12);',
+        'gesture.dismissible': 'Widget b() => Dismissible(key: k, child: c);',
+        'gesture.raw_snackbar': 'void f() { m.showSnackBar(s); }',
+        'ui.show_dialog': 'void f() => showDialog(context: c, builder: b);',
+      };
+      six.forEach((String id, String body) {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/features/lambing/lambing_screen.dart': '$body\n',
+        });
+        expect(violations.map((String v) => v.split(']').first.substring(1)), contains(id));
+      });
+      // ui.spinner is scoped lib/features/ and gets its own planting.
+      expect(
+        gateOn(<String, String>{
+          'lib/features/flock/flock_screen.dart': 'Widget b() => CircularProgressIndicator();\n',
+        }).single,
+        contains('[ui.spinner]'),
+      );
+    });
+
+    test('every design row fires on its own planted violation', () {
+      for (final MapEntry<String, String> entry in trips.entries) {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/features/lambing/lambing_screen.dart': '${entry.value}\n',
+        });
+        expect(
+          violations.map((String v) => v.split(']').first.substring(1)),
+          contains(entry.key),
+          reason: '${entry.key} did not fire on: ${entry.value}',
+        );
+      }
+      for (final MapEntry<String, String> entry in scopedPath.entries) {
+        final List<String> violations = gateOn(<String, String>{
+          entry.value: '${scopedBody[entry.key]}\n',
+        });
+        expect(
+          violations.map((String v) => v.split(']').first.substring(1)),
+          contains(entry.key),
+          reason: '${entry.key} did not fire under ${entry.value}',
+        );
+      }
+    });
+
+    test('every rule id in the two text tables has a case in this file', () {
+      // The half of N03-T07's inventory this task can already hold: nothing in
+      // the design tables may exist without a planting above.
+      final Set<String> covered = <String>{...trips.keys, ...scopedPath.keys};
+      final Set<String> design = policyRuleIds
+          .where(
+            (String id) => <String>[
+              'token.',
+              'theme.',
+              'type.',
+              'gesture.',
+              'a11y.',
+              'ui.',
+            ].any(id.startsWith),
+          )
+          .toSet();
+      expect(design.difference(covered), isEmpty, reason: 'design rows with no planting case');
+      expect(
+        covered.difference(design),
+        isEmpty,
+        reason: 'planting cases for rows that do not exist',
+      );
+    });
+
+    void allowsBody(String title, String path, String body) {
+      test(title, () => expect(gateOn(<String, String>{path: '$body\n'}), isEmpty));
+    }
+
+    const String pens = 'lib/features/pens/pen_board_screen.dart';
+    allowsBody(
+      'EdgeInsets.all(0) — 0 is not magic',
+      pens,
+      'Widget b() => Padding(padding: EdgeInsets.all(0));',
+    );
+    allowsBody('SizedBox(height: 1) — 1 is not magic', pens, 'Widget b() => SizedBox(height: 1);');
+    allowsBody('SizedBox(height: 1.0) — nor is 1.0', pens, 'Widget b() => SizedBox(height: 1.0);');
+    allowsBody(
+      'SizedBox(height: kGap) — a named constant is the remedy the rule asks for',
+      pens,
+      'Widget b() => SizedBox(height: kGap);',
+    );
+    allowsBody(
+      'enableDrag: false is the sheet the app actually builds',
+      pens,
+      'void f() => s(enableDrag: false);',
+    );
+
+    test(
+      'SizedBox(height: 1.5) is one violation — a hairline that is not a token is still magic',
+      () {
+        final List<String> violations = gateOn(<String, String>{
+          pens: 'Widget b() => SizedBox(height: 1.5);\n',
+        });
+        expect(violations, hasLength(1));
+        expect(violations.single, contains('[token.magic_size]'));
+      },
+    );
+
+    test('both announce spellings fire, and the second is the one 06 §3.5 would have missed', () {
+      final List<String> violations = gateOn(<String, String>{
+        'lib/features/pens/a.dart': 'void f() => SemanticsService.announce(m, d);\n',
+        'lib/features/pens/b.dart': 'void f() => SemanticsService.sendAnnouncement(m, d);\n',
+      });
+      expect(violations, hasLength(2));
+      expect(violations.every((String v) => v.contains('[a11y.announce]')), isTrue);
+    });
+
+    test('feedback.dart has NO exemption for showSnackBar — this is P2', () {
+      // The case a future contributor will try to delete, in good faith, after
+      // reading CONVENTIONS §2.11 or R30. Both are superseded.
+      final List<String> violations = gateOn(<String, String>{
+        'lib/core/ui/feedback.dart': 'void f() { m.showSnackBar(s); }\n',
+      });
+      expect(violations, hasLength(1));
+      expect(violations.single, contains('[gesture.raw_snackbar]'));
+    });
+
+    group('the R56 exemptions, live for the first time', () {
+      const String r56 = '''
+[dependencies]
+[dev_dependencies]
+[transitive]
+[exempt]
+lib/core/time/app_clock.dart       :: time.dart_clock
+lib/core/ui/night_error_panel.dart :: token.raw_color
+lib/core/ui/primitives.dart        :: token.raw_color
+lib/core/ui/palettes.dart          :: token.primitives_import
+''';
+
+      test('primitives.dart may hold a raw hex', () {
+        expect(
+          gateOn(<String, String>{
+            'lib/core/ui/primitives.dart': 'const c = Color(0xFF0B0D0E);\n',
+          }, allowlist: r56),
+          isEmpty,
+        );
+      });
+
+      test('palettes.dart may import primitives', () {
+        expect(
+          gateOn(<String, String>{
+            'lib/core/ui/palettes.dart': "import 'package:shed_book/core/ui/primitives.dart';\n",
+          }, allowlist: r56),
+          isEmpty,
+        );
+      });
+
+      test('a third file importing primitives is not exempt — the waiver names one path', () {
+        final List<String> violations = gateOn(<String, String>{
+          'lib/core/ui/components/shed_pen_tile.dart':
+              "import 'package:shed_book/core/ui/primitives.dart';\n",
+        }, allowlist: r56);
+        expect(violations.single, contains('[token.primitives_import]'));
+      });
+    });
+
+    test('a raw hex in a generated file is never scanned', () {
+      expect(
+        gateOn(<String, String>{'lib/core/db/database.g.dart': 'const c = Color(0xFF0B0D0E);\n'}),
+        isEmpty,
+      );
     });
   });
 

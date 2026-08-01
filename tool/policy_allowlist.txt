@@ -225,27 +225,6 @@ xdg_directories                       # via drift_flutter, flutter_local_notific
 xml                                   # via flutter_local_notifications, pdf, wakelock_plus
 yaml                                  # via build_runner, drift, drift_dev, drift_flutter, path_provider, share_plus, sqlite3
 
-[exempt] line with
-# no `::` are all refused with their line number: exit 2, which is a failure and
-# never a warning.
-#
-# NEVER add a line here to silence a gate (CLAUDE.md). An [exempt] line deletes
-# one rule for one file, forever, and silently. If a gate is genuinely wrong,
-# say so and stop.
-
-[dependencies]
-# direct main — every line is read against 00-tech-decisions §5.1 before it is
-# added. Empty until N03-T04, which is the commit that turns G2 on; until then
-# the lockfile is not read at all.
-
-[dev_dependencies]
-# direct dev — never ships. build_runner legitimately drags shelf and
-# web_socket_channel into the graph, which is why this is its own section.
-# Empty until N03-T04.
-
-[transitive]
-# documented, with the reason on the line. Empty until N03-T04.
-
 [exempt]
 # Per-file rule waivers. Each line carries its reason in the commit that adds
 # it. Exactly four on day one (CONVENTIONS R56, §4.7); a fifth is a review

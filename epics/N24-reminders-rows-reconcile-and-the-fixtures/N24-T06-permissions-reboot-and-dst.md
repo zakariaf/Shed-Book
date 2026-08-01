@@ -81,7 +81,7 @@ at all.
 | §8 step | File | What changes in it, and why |
 |---|---|---|
 | 0 — native | `android/app/src/main/AndroidManifest.xml` | **Edit.** Two `uses-permission` lines and **two receiver declarations** — the plugin declares neither, deliberately, since v16. `08 §8.3` prints the block; copy it |
-| 0 — native | `android/app/build.gradle.kts` | **Edit.** `coreLibraryDesugaringEnabled = true` and `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")` — `flutter_local_notifications` **22.2.0**'s documented minimum. Without it the release build fails, and nothing on this branch builds Android |
+| 0 — native | `android/app/build.gradle.kts` | **Already done at N02-T01 (2026-08-01).** `isCoreLibraryDesugaringEnabled = true` and `coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")` — `flutter_local_notifications` **22.2.0**'s documented minimum. It landed there because without it `flutter build appbundle --release` fails at `:app:checkReleaseAarMetadata` and G0 has no artefact to read. **Verify it is still present; do not add a second copy.** |
 | 0 — native | `ios/Runner/AppDelegate.swift` | **Edit.** `UNUserNotificationCenter.current().delegate = self`, **and nothing more**. No notification entitlement, no `UIBackgroundModes`, no push capability (`08 §8.4`) |
 | 3 — data | `lib/data/notification_scheduler.dart` | **Edit.** Bodies for `requestAlerts()`, `alertsGranted()`, `canBeExact()`, `requestExactAlarms()`. The resolver types are resolved against the **installed** 22.2.0 surface, in this one file |
 | 7 — tests | `test/data/reminder_permissions_test.dart` | **New.** The anchor plus §5.4's cases |

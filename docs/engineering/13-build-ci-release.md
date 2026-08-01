@@ -91,7 +91,28 @@ integration:              ## decision #117 — four journeys, real device, repor
 	$(FLUTTER) test integration_test -d $(DEVICE)
 ```
 
-**Where the network is genuinely needed, stated precisely, because "offline build" is a claim this project will be held to.** `package:sqlite3`'s build hooks download a sha256-verified prebuilt binary from GitHub (decision-record §3.4 #3). That fetch happens on a **cold** cache — a fresh clone, a new pub cache, or after `flutter clean` — and the artefact is cached afterwards, so a warm laptop builds in plane mode. `flutter pub get` needs a network for the same reason and always has. **Which target trips the fetch first — `pub get`, `gen`, `test` or `build` — is unverified**; find out once, in plane mode, and write the answer in the README. Without that paragraph the first offline build failure gets mistaken for a regression, and somebody spends an evening on it.
+**Where the network is genuinely needed, stated precisely, because "offline build" is a claim this project will be held to.** `package:sqlite3`'s build hooks download a sha256-verified prebuilt binary from GitHub (decision-record §3.4 #3). That fetch happens on a **cold** cache — a fresh clone, a new pub cache, or after `flutter clean` — and the artefact is cached afterwards, so a warm laptop builds in plane mode. `flutter pub get` needs a network for the same reason and always has.
+
+~~**Which target trips the fetch first — `pub get`, `gen`, `test` or `build` — is unverified**~~ —
+**measured 2026-08-01, N02-T01; `REFERENCES` §22 B20 is closed and the answer is in `README.md`.**
+It was measured on a fresh clone with an empty `PUB_CACHE`, with the network blocked one command at a
+time by pointing the proxy environment variables at a closed port — `HttpClient.findProxyFromEnvironment`
+is what the hook installs, at `sqlite3/lib/src/hook/compile/description.dart:260`, so the block is
+the one the hook itself honours. In order:
+
+| Target | Needs the network on a cold cache | What it fetches |
+|---|---|---|
+| `flutter pub get` | **Yes, first** | the packages. Trivially, with an empty pub cache |
+| `make gen` | **Not measurable at N02** | there is no `lib/core/db/database.dart`, so `drift_dev make-migrations` has nothing to do. N08 re-checks it |
+| `flutter test` | **Yes** | `libsqlite3.dylib` for the host, via the hook |
+| `flutter build appbundle` | **Yes** | three `libsqlite3.so`, one per Android ABI — **different artefacts**, so warming `test` does not warm `build` |
+
+Two details that cost an evening each if they are not written down. The hook's cache is
+`.dart_tool/hooks_runner/shared/`, which **`flutter clean` deletes** — so `flutter clean` is
+genuinely cold for the hook even though it leaves `~/.pub-cache` alone. And `flutter test` runs an
+implicit `pub get`, which contacts pub.dev for **security advisories** on a schedule of its own; a
+warm tree can still fail offline on the first run after a resolution, and `--no-pub` is what isolates
+it. Without this paragraph the first offline build failure gets mistaken for a regression.
 
 ---
 
@@ -130,21 +151,71 @@ flutter build apk --debug
 # then read the debug merged manifest and confirm android.permission.INTERNET is present.
 ```
 
-**What you record, in this file, in the commit that closes G0** (replace this block; do not delete it):
+**What you record, in this file, in the commit that closes G0** (replace this block; do not delete it).
+**G0 ran on 2026-08-01** — N02-T01, macOS 26.5.2 arm64, Flutter 3.44.8 / Dart 3.12.2 via FVM, AGP
+9.0.1, Gradle 9.1.0, JDK 17.0.11, `bundletool` **1.18.3**, against the `pubspec.lock` on that day.
+The report the answers are read from is archived at `docs/gates/manifest-merger-release-report.txt`.
 
 | Question | Answer | Recorded on |
 |---|---|---|
-| Exact `uses-permission` set in the release AAB | *not yet run* | — |
-| Does Play Billing 8.0.0 contribute `ACCESS_NETWORK_STATE`? | **UNVERIFIED — G0 has not been run** | — |
-| Does `tools:node="remove"` in `src/main` leave the `src/debug` `INTERNET` intact? | **UNVERIFIED** — merge priority says build type outranks main, so it should; confirm, do not assume | — |
-| Effective `minSdk` after plugin merging | **UNVERIFIED** — read it from the merged manifest; never set it from memory | — |
+| Exact `uses-permission` set in the release AAB | Seven, each with the manifest the merger attributed it to: `android.permission.POST_NOTIFICATIONS` and `android.permission.VIBRATE` ← `flutter_local_notifications` 22.2.0 · `android.permission.RECORD_AUDIO` ← `record_android` · `com.android.vending.BILLING` ← `com.android.billingclient:billing:8.0.0` · `com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` ← `androidx.core:core:1.18.0` · `android.permission.ACCESS_NETWORK_STATE` and `android.permission.INTERNET` ← `com.google.android.datatransport:transport-backend-cct:3.1.8` | 2026-08-01 |
+| Does Play Billing 8.0.0 contribute `ACCESS_NETWORK_STATE`? | **Yes, transitively — and no, not from its own manifest.** `billing-8.0.0/AndroidManifest.xml` declares `com.android.vending.BILLING` and nothing else. Both network permissions come from `transport-backend-cct:3.1.8`, a compile-scope dependency of billing 8.0.0, at its `AndroidManifest.xml:24` and `:25`. §2.2's *present → leave it* branch fires | 2026-08-01 |
+| Does `tools:node="remove"` in `src/main` leave the `src/debug` `INTERNET` intact? | **Yes.** The debug merger report logs the `src/main` node itself `REJECTED` — build type outranks main, as merge priority says — and `aapt2 dump permissions` on the debug APK lists `android.permission.INTERNET`. The **profile** variant keeps it too, which `make perf` depends on and no document had asked about | 2026-08-01 |
+| Effective `minSdk` after plugin merging | **24**, read from the merged manifest's `<uses-sdk android:minSdkVersion="24" android:targetSdkVersion="36"/>`. It agrees with §3.1's expectation, which is the outcome that needed proving rather than the one that could be assumed | 2026-08-01 |
+
+**Two things the table's four questions did not ask, and both change what gets committed later.**
+
+- **`WAKE_LOCK` is contributed by nothing.** §3.1 and decision-record §3.3 both listed it as merged
+  from `wakelock_plus`; the string appears **zero** times in the merger report. `wakelock_plus` 1.7.0
+  merges `<application>` attributes only and keeps the screen on with the `FLAG_KEEP_SCREEN_ON`
+  window flag, which needs no permission. Both documents are struck and corrected.
+- **`androidx.core:core:1.18.0` contributes a permission nobody listed** —
+  `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`, signature-level, defined and held by
+  the app itself, used by `ContextCompat.registerReceiver`. It is invisible in the Play listing, but
+  G1 asserts **exact set equality**, so an expected file without it is red on the first Android job.
+
+`flutter_image_compress_common` contributes `<application>` attributes and no permission —
+`REFERENCES` §22 D8 recorded that as never having been verified at all, and now it is.
+
+**The release build does not build at all without core-library desugaring.** `flutter build
+appbundle --release` fails at `:app:checkReleaseAarMetadata` with *"Dependency
+':flutter_local_notifications' requires core library desugaring to be enabled for :app"*. §3.1 lists
+`coreLibraryDesugaringEnabled` as configuration; it is in fact the precondition for G0 existing, so
+N02-T01 committed the two lines that N31-T02 and N24-T06 would otherwise have added. They contribute
+nothing to the manifest — `desugar_jdk_libs` appears zero times in the merger report — so the
+archived report describes the tree as committed.
 
 **The ruling G0 produces.** Removing `INTERNET` is safe and proven — commit that line. For `ACCESS_NETWORK_STATE` there are exactly two permitted outcomes and *neither is a removal on faith*:
 
-- **Absent from the merged manifest** → nothing to do. The canonical set stays at §3.1's **eight entries**, of which seven are `uses-permission` lines G1 asserts and the eighth is `INTERNET`, asserted by its *absence*. `android/expected_permissions.txt` therefore holds **seven** uncommented lines. Whenever this document says "eight", it means §3.1's table; whenever it says "seven", it means lines in the expected file. They are the same fact counted two ways, and confusing them is how somebody adds a ninth line to make a red build green.
-- **Present, contributed by billing** → **leave it.** Add it to `android/expected_permissions.txt` with its source in a comment, and record the copy consequence: the Play listing will show "view network connections". That does not contradict the §2.1 wording, because `ACCESS_NETWORK_STATE` cannot open a socket — but a shepherd reading the permission list will see it, so it belongs in the store listing's own honesty paragraph.
+- **Absent from the merged manifest** → nothing to do. ~~The canonical set stays at §3.1's **eight entries**, of which seven are `uses-permission` lines G1 asserts~~ — **this branch did not fire; struck 2026-08-01.**
+- **Present, contributed by billing** → **leave it.** This is the branch that fired. Add it to `android/expected_permissions.txt` with its source in a comment, and record the copy consequence: the Play listing will show "view network connections". That does not contradict the §2.1 wording, because `ACCESS_NETWORK_STATE` cannot open a socket — but a shepherd reading the permission list will see it, so it belongs in the store listing's own honesty paragraph.
 
-Until this table is filled in, `android/expected_permissions.txt` does not exist and G1 cannot be written.
+**Ruled 2026-08-01, N02-T02.** `INTERNET` is **removed**, and the removal rests on a dated artefact
+rather than on merge-priority reasoning: the release `.aab` built with `tools:node="remove"` in
+`src/main` drops it and keeps the other six, and the debug and profile variants keep theirs.
+`ACCESS_NETWORK_STATE` **stays**, contributed by `transport-backend-cct:3.1.8` and not by billing's own
+manifest. The paragraph a shepherd reads about that is `docs/store/offline-honesty.md` §2 —
+**authored once, quoted by N21, N29-T07 and N32-T02, never re-typed.**
+
+**The harder question the evidence raised is not `ACCESS_NETWORK_STATE`.** It is that
+`transport-backend-cct` exists to upload telemetry and is inside our process. Decision-record §3.1
+tier 2 used to read *"no dependency **attempts** a network call from our process"*; it now reads *"no
+dependency **can reach** a network from our process"*, because the first is a claim about somebody
+else's code that no gate here reads, and the second is what the missing `INTERNET` permission
+actually guarantees. §2.1's public wording is unchanged and did not need to change — *"the app itself
+cannot connect to anything"* was already the **cannot** framing.
+
+**The counts, as measured.** §3.1's table is **nine names**; `android/expected_permissions.txt` holds **eight** uncommented lines, because `INTERNET` is asserted by its *absence*. Whenever this document says "nine", it means §3.1's table; whenever it says "eight", it means lines in the expected file. They are the same fact counted two ways, and confusing them is how somebody adds a ninth line to make a red build green.
+
+~~Until this table is filled in, `android/expected_permissions.txt` does not exist and G1 cannot be written.~~ **Struck 2026-08-01: the table is filled in.** The expected file and G1 are N31-T03's to write; what changed is that they are now writable, and §2.3 below prints the eight lines they will hold.
+
+**That sentence is now executable, and it lives in `test/policy/g0_recorded_test.dart`** (N02-T03),
+in the `test` job on every push. Its second case reads this table and the three source-set manifests
+and fails if a removal directive exists while any row is unfilled — keyed on the *Recorded on* column
+as well as on the word UNVERIFIED, and matching `tools:node="removeAll"` and `tools:remove=` as well
+as the one spelling. It is deliberately **conditional**: N31-T01 legitimately writes the directive, and
+a guard hardened into an absolute ban is a guard somebody deletes. It was watched failing on all three
+spellings, on a blanked date, on a renamed §2.2 and on an absent `13`, before it was committed.
 
 ### 2.3 G1 — the permission assertion on the shipped AAB
 
@@ -188,33 +259,56 @@ fi
 echo "G1 ok — permission set matches exactly."
 ```
 
+Eight uncommented lines, every one of them read off the artefact on 2026-08-01 or added by
+N31-T02. `WAKE_LOCK` is **not** among them: G0 found it contributed by nothing (§2.2).
+
 ```
 # android/expected_permissions.txt
 # Sorted, one per line. Every line names the library that contributes it.
 # Editing this file to silence G1 is the single worst thing you can do to this project.
+android.permission.ACCESS_NETWORK_STATE    # com.google.android.datatransport:transport-backend-cct
+#                                            :3.1.8, a compile-scope dependency of Play Billing
+#                                            8.0.0. NOT removed — G0, 2026-08-01. It cannot open a
+#                                            socket, and without INTERNET nothing in this process can.
 android.permission.POST_NOTIFICATIONS      # flutter_local_notifications (merged)
 android.permission.RECEIVE_BOOT_COMPLETED  # we add — reschedule after reboot
 android.permission.RECORD_AUDIO            # record (merged) — the voice NOTE, not voice tag entry
 android.permission.SCHEDULE_EXACT_ALARM    # we add — user-granted. NEVER USE_EXACT_ALARM
 android.permission.VIBRATE                 # flutter_local_notifications (merged)
-android.permission.WAKE_LOCK               # wakelock_plus (merged)
-com.android.vending.BILLING                # Play Billing 8.0.0 AAR via in_app_purchase (merged)
-# android.permission.INTERNET              — ABSENT. Removed at merge time. If this line
-#                                             ever becomes real, the product's central claim is void.
-# android.permission.ACCESS_NETWORK_STATE  — PENDING G0. Do not add or remove on faith.
+com.android.vending.BILLING                # com.android.billingclient:billing:8.0.0 (merged)
+com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+#                                          # androidx.core:core:1.18.0 (merged). Signature-level,
+#                                            defined and held by this app, used by
+#                                            ContextCompat.registerReceiver. Invisible in the Play
+#                                            listing; visible to G1, which asserts EXACT equality.
+# android.permission.INTERNET              — ABSENT. Removed at merge time; proven 2026-08-01. If
+#                                             this line ever becomes real, the product's central
+#                                             claim is void.
 ```
 
 Exit codes: `0` match · `1` set mismatch · `2` the gate could not run (missing expected file, missing bundletool, missing AAB) — which is still a failure, never a skip.
 
 **`bundletool` is fetched in CI**, not committed:
 
+~~`curl -sSL -o bundletool.jar https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar`~~ —
+**struck 2026-08-01. That URL 404s.** The release asset is named `bundletool-all-<version>.jar`, so
+`latest/download/bundletool-all.jar` matches nothing, and `curl -sSL` writes a **nine-byte** file
+called `Not Found` and exits **0**. G1 would then fail at `java -jar` with *"Invalid or corrupt
+jarfile"* — exit 2, the could-not-run code, which is at least the right direction, but the message
+names the jar and not the fetch. Ask the API for the asset by name:
+
 ```yaml
 - name: Fetch bundletool
-  run: curl -sSL -o bundletool.jar \
-       https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar
+  run: |
+    url=$(curl -sSL https://api.github.com/repos/google/bundletool/releases/latest \
+          | grep -o '"browser_download_url": *"[^"]*bundletool-all[^"]*"' \
+          | head -1 | sed 's/.*"\(https[^"]*\)"/\1/')
+    [ -n "$url" ] || { echo "::error::no bundletool-all asset in the latest release"; exit 1; }
+    curl -sSL --fail -o bundletool.jar "$url"
+    java -jar bundletool.jar version   # fails loudly here, not thirty lines later
 ```
 
-> **Unverified:** using `latest` here means the gate's tool floats. It has been stable for years and `dump manifest` is its oldest command, but if a bundletool release ever changes the dump format this gate fails closed (exit 1 on a diff), which is the correct direction. Pin a version if that ever happens once.
+> **Unverified:** using `latest` here means the gate's tool floats. G0 ran on **1.18.3** (2026-08-01) and `dump manifest` is bundletool's oldest command, but if a release ever changes the dump format this gate fails closed (exit 1 on a diff), which is the correct direction. Pin a version if that ever happens once.
 
 ### 2.4 G2 — the direct-dependency allowlist
 
@@ -286,20 +380,24 @@ The reason it is a grep and not a review item: every tutorial published after 20
 
 `08-platform-integration.md` owns *how* each permission is requested and when. This section owns *what the shipped artefacts declare*, because that is what G1 and G5 assert against.
 
-### 3.1 Android — eight entries, not seven
+### 3.1 Android — nine names, eight lines
+
+Every *Source* below was read off the merger report on 2026-08-01 (§2.2), not from a plugin README.
 
 | Permission | Source | Why |
 |---|---|---|
-| `android.permission.POST_NOTIFICATIONS` | `flutter_local_notifications` (merged) | Reminders (spec §7.6). Requested the first time the user creates a reminder, never at first launch. |
-| `android.permission.VIBRATE` | `flutter_local_notifications` (merged) | Notification vibration. No custom sound, no badge count. |
+| `android.permission.POST_NOTIFICATIONS` | `flutter_local_notifications` 22.2.0 (merged) | Reminders (spec §7.6). Requested the first time the user creates a reminder, never at first launch. |
+| `android.permission.VIBRATE` | `flutter_local_notifications` 22.2.0 (merged) | Notification vibration. No custom sound, no badge count. |
 | `android.permission.RECEIVE_BOOT_COMPLETED` | **we add** | Reminders survive a reboot; `ReminderReconciler` rebuilds the OS projection. |
 | `android.permission.SCHEDULE_EXACT_ALARM` | **we add** | A colostrum reminder that fires 40 minutes late is useless. **Never `USE_EXACT_ALARM`** — Play rejects it for this app category. |
-| `android.permission.RECORD_AUDIO` | `record` (merged) | The voice **note** (spec §7.2). Not voice tag entry — that is cut (§7.0 ruling). |
-| `android.permission.WAKE_LOCK` | `wakelock_plus` (merged) | The default-off "Keep screen on" toggle. |
-| `com.android.vending.BILLING` | Play Billing 8.0.0 AAR via `in_app_purchase` (merged) | The one-time unlock. The billing AAR is a **Play-Services-adjacent artifact** whose transitive Gradle graph is reviewed on every Billing Library bump. |
-| `android.permission.INTERNET` | — | **ABSENT.** Explicitly removed at merge time. |
+| `android.permission.RECORD_AUDIO` | `record_android`, via `record` 7.1.1 (merged) | The voice **note** (spec §7.2). Not voice tag entry — that is cut (§7.0 ruling). |
+| ~~`android.permission.WAKE_LOCK`~~ | ~~`wakelock_plus` (merged)~~ | **Struck 2026-08-01. It is not in the merged manifest and never was.** The string appears zero times in the merger report; `wakelock_plus` 1.7.0 merges `<application>` attributes only and uses the `FLAG_KEEP_SCREEN_ON` window flag, which needs no permission. The "Keep screen on" toggle is unaffected — only this row was wrong. |
+| `com.android.vending.BILLING` | `com.android.billingclient:billing:8.0.0` (merged, via `in_app_purchase`) | The one-time unlock. The billing AAR is a **Play-Services-adjacent artifact** whose transitive Gradle graph is reviewed on every Billing Library bump. |
+| `com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | `androidx.core:core:1.18.0` (merged) | **Added to this table 2026-08-01.** Signature-level, defined and held by this app, used by `ContextCompat.registerReceiver`. Invisible in the Play listing. It is here because G1 asserts exact set equality. |
+| `android.permission.ACCESS_NETWORK_STATE` | `com.google.android.datatransport:transport-backend-cct:3.1.8`, a compile-scope dependency of Play Billing 8.0.0 (merged) | **Added to this table 2026-08-01, and not removed.** §2.2's *leave it* branch. It cannot open a socket, and with `INTERNET` gone nothing in this process can. |
+| `android.permission.INTERNET` | Contributed by `transport-backend-cct:3.1.8`; removed by us | **ABSENT.** Explicitly removed at merge time, and proven removed on 2026-08-01 — the merger logs `REJECTED from [transport-backend-cct:3.1.8]`. |
 
-Zero permissions come from `image_picker` (it uses the system camera UI and the system photo picker) and zero from `path_provider`, `share_plus`, `file_selector`, `drift`/`sqlite3`, `pdf` or `device_info_plus`. That is not luck — it is why each of them was chosen over its more popular alternative (decision-record §5.3).
+Zero permissions come from `image_picker` (it uses the system camera UI and the system photo picker) and zero from `path_provider`, `share_plus`, `file_selector`, `drift`/`sqlite3`, `pdf`, `device_info_plus` or `flutter_image_compress` — the last of which had never been checked until G0 ran. That is not luck for the rest of them; it is why each was chosen over its more popular alternative (decision-record §5.3).
 
 ```xml
 <!-- android/app/src/main/AndroidManifest.xml — the removal, and only the proven one -->
@@ -328,9 +426,9 @@ The elision above is deliberate and it is the one place in this document where "
 Build configuration that belongs here rather than in a plugin's README. The floors are [`08-platform-integration.md`](08-platform-integration.md) §8.3's, taken as the maximum across the plugin set; this document only says where they are asserted:
 
 - `targetSdk = 36`, `compileSdk = 36` from day one. Play requires API 36 for new apps and updates from **31 August 2026** (extensions to 1 November 2026). A greenfield project has no reason to be behind.
-- `minSdk = 24`, which is `flutter_local_notifications`' floor and the highest in the set (08 §8.3). It is not left at `flutter.minSdkVersion` and hoped for: **read the effective value out of the merged manifest during G0, record it in §2.2's table, and set it explicitly.** A `minSdk` that moves because a plugin bumped its own is a silent change to who can install the app.
+- `minSdk = 24` — **read out of the merged manifest on 2026-08-01 and recorded in §2.2's table**, which is what §8.3's checklist requires and is the only reason the number may appear here at all. It is `flutter_local_notifications`' floor and the highest in the set (08 §8.3), and the merged value agrees. It is still not to be left at `flutter.minSdkVersion` and hoped for: N31-T02 sets it explicitly. A `minSdk` that moves because a plugin bumped its own is a silent change to who can install the app, and inheritance is what makes that move invisible.
 - **Java 17** (`actions/setup-java` in §4.3 and §4.4 sets exactly this) and **AGP ≥ 8.12.1**, which is `share_plus`'s floor and above `flutter_local_notifications`' 8.11.1.
-- `coreLibraryDesugaringEnabled = true` with `desugar_jdk_libs 2.1.4` — required by `flutter_local_notifications` 22.2.0.
+- `coreLibraryDesugaringEnabled = true` with `desugar_jdk_libs 2.1.4` — required by `flutter_local_notifications` 22.2.0. **Not optional and not deferrable: without it `flutter build appbundle --release` fails at `:app:checkReleaseAarMetadata` and there is no artefact to gate.** N02-T01 committed the two lines for that reason; N31-T02 and N24-T06 find them already present.
 - **Ship an AAB, never a fat APK** (decision #127). `--split-per-abi` is for direct download, which we do not do. Play App Signing is mandatory for new apps: you hold the *upload* key, Google holds the *app signing* key.
 - **The application id / bundle id is chosen once, before the first upload, and can never change on either store.** No document in this set has fixed the string yet; the shell snippets below write it as `$APP_ID`. Fix it in `android/app/build.gradle.kts` and the Xcode target in the same commit, and record it in `RELEASES.md`'s header so nobody has to go and read a Gradle file to find out what the app is called.
 

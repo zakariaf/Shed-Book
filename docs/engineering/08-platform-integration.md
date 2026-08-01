@@ -1063,14 +1063,14 @@ Carried forward honestly; none is papered over.
 | 4 | `getNotificationAppLaunchDetails()`'s shape on 22.2.0, after v20 made every parameter named. | Verify against the installed 22.2.0 |
 | 5 | `flutter_image_compress`'s `minWidth`/`minHeight` — floors or caps (04 §4.4). Decision #40 specifies *longest edge* 2048. | Measure on one portrait and one landscape frame |
 | 6 | Typical bytes for a 2048 px / q80 photo. Only the 1600 px figures were ever measured. | Measure; record in `docs/perf/measurements.md` |
-| 7 | `flutter_image_compress`'s Android manifest contribution was never verified. | G1 catches it; verify at G0 time |
+| ~~7~~ | ~~`flutter_image_compress`'s Android manifest contribution was never verified.~~ **Closed 2026-08-01 by G0:** `flutter_image_compress_common` merges `<application>` attributes and contributes **no** permission. | Closed — evidence in `docs/gates/manifest-merger-release-report.txt` |
 | 8 | `ShareResultStatus`'s member set on `share_plus` 13.3.0. | Verify before writing the `switch` |
 | 9 | `timezone`'s `latest_10y` vs `latest` byte cost (85 KB vs 361 KB, from note 06). | Read from `--analyze-size` output |
 | 10 | The iOS 64-request over-limit behaviour. Three conflicting descriptions; the issue was closed `not planned`. | **Permanently undefined.** The 56 budget exists because of it |
 | 11 | §7.1 #17 — does the free tier cap reminders? 15 ewes fits inside 56 comfortably; 400 does not. | Owner. Changes the budget, not the architecture |
 | 12 | §7.1 #18 — voice-note cap 60 s or 120 s. | Owner. One-line change to `kVoiceNoteMaxSeconds` |
-| 13 | **G0 has not been run.** `ACCESS_NETWORK_STATE`'s removal must not be committed until it has. | Blocking the offline gate |
-| 14 | The effective `minSdk` after plugin manifest merging (§8.3). 13 §3.1 forbids setting it from memory; note 06 reports `flutter_local_notifications` raising it, but that is a changelog line, not a merged manifest. | Read at G0 and record in 13 §2.2's table |
+| ~~13~~ | ~~**G0 has not been run.**~~ **Run 2026-08-01** (N02-T01). `ACCESS_NETWORK_STATE` is **not** removed: billing 8.0.0's own manifest declares no network permission, and `com.google.android.datatransport:transport-backend-cct:3.1.8` — a compile-scope dependency of it — declares both that and `INTERNET`. Two corrections came with it: `WAKE_LOCK` is contributed by nothing, and `androidx.core:core:1.18.0` contributes `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`. | Closed — the offline gate is writable; N31-T03 writes it |
+| ~~14~~ | ~~The effective `minSdk` after plugin manifest merging (§8.3).~~ **Read 2026-08-01: `minSdkVersion="24"`, `targetSdkVersion="36"`,** off the merged manifest and not off a changelog line. It agrees with 13 §3.1's expectation — which is the outcome that needed proving, not the one that could be assumed. | Closed — recorded in 13 §2.2's table. N31-T02 still sets it **explicitly**, because an inherited value moves silently |
 | 15 | AGP's real floor for `share_plus` 13.3.0 and `flutter_local_notifications` 22.2.0 (§8.3 quotes 8.12.1 and 8.11.1 from their READMEs). | Verify against the installed versions before the first release build |
 
 Six edits this document requires elsewhere, flagged rather than made silently:

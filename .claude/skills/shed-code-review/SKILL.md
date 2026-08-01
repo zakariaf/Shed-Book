@@ -37,8 +37,8 @@ one allowlist, one exit code), and never weaken a rule, an allowlist or an exit 
 
 **The boxed notes are the only part of §1 you carry in your head:** §1.3 (`clock.now(` has no row),
 §1.5 (`stream.invalidate` has no exemption and `lib/app.dart` legitimately needs one), §1.10
-(*"your data never leaves your phone"* is a human check), §1.11 (**G0 has not been run, so G1 is
-unwritten — do not review as if the eight-permission set were asserted**), §1.13. Count the rule
+(*"your data never leaves your phone"* is a human check), §1.11 (**G0 ran 2026-08-01, but G1 is still
+unwritten until N31-T03 — do not review as if the permission set were asserted on every push**), §1.13. Count the rule
 table, never a sentence about it: §1.8 is **fourteen** `gesture.*` rows, not eleven.
 
 ## 2. Read in this order — irreversibility, not print order

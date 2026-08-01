@@ -145,13 +145,15 @@ the lock or release one the screen underneath still wants. The permitted routes 
 unconditional and idempotent, never reference-counted: a leaked lock drains the phone silently
 overnight, and a dead phone at 05:00 is worse than a screen timeout.
 
-## Permissions — the eight entries
+## Permissions — the nine names
 
 `13-build-ci-release.md` §3.1 is the authority for **what ships** and holds the table — read it, never
-retype it. The count that confuses everyone: the eight entries are seven *declared* permissions plus
-`INTERNET`, which is an entry asserted by its **absence**, so the expected file holds seven lines.
-`ACCESS_NETWORK_STATE` is **pending gate G0**: do not add or remove that line on faith. 08 §8.2 owns
-**who asks and when**; **shed-release** owns the gate that checks the set.
+retype it. The count that confuses everyone: the nine names are eight *declared* permissions plus
+`INTERNET`, which is a name asserted by its **absence**, so the expected file holds eight lines.
+`ACCESS_NETWORK_STATE` **stays** — G0 measured it on 2026-08-01, contributed by a transitive
+dependency of Play Billing and not by billing itself. `WAKE_LOCK` is **not** in the set: the same
+build found it contributed by nothing. 08 §8.2 owns **who asks and when**; **shed-release** owns the
+gate that checks the set.
 
 > **Editing `android/expected_permissions.txt` to silence G1 is named in 13 §2.3 as the single worst
 > thing you can do to this project.** G1 asserts exact set equality against the shipped `.aab` to

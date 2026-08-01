@@ -1,6 +1,6 @@
 ---
 name: shed-release
-description: Cuts a Shed Book release — the offline gates G0 to G5 against a real release bundle, the exact eight-entry permission set, signing and the off-machine symbols archive, size and startup budgets on two real devices, version and build number rules, the closed test track, and the release freeze between 1 February and 30 April. This builds, signs and tags, so it runs only when the developer asks for it by name.
+description: Cuts a Shed Book release — the offline gates G0 to G5 against a real release bundle, the exact nine-name permission set, signing and the off-machine symbols archive, size and startup budgets on two real devices, version and build number rules, the closed test track, and the release freeze between 1 February and 30 April. This builds, signs and tags, so it runs only when the developer asks for it by name.
 disable-model-invocation: true
 ---
 
@@ -22,11 +22,13 @@ requests which permission, when, and with what usage string → **shed-platform-
 
 ## Stop conditions — check these before you build anything
 
-1. **G0 has not been run.** Until §2.2's table is filled in from a real release AAB,
-   `android/expected_permissions.txt` **does not exist and G1 is UNWRITTEN — not merely
-   unimplemented**. Do not author G1, do not invent the expected file, do not commit a
-   `tools:node="remove"` line for `ACCESS_NETWORK_STATE`. G0 is a one-afternoon empirical procedure
-   on a machine with the Android toolchain (§2.2), and closing it is its own commit.
+1. **G0 ran on 2026-08-01 and §2.2's table is filled in.** What that unblocked is *writing* G1;
+   `android/expected_permissions.txt`, `tool/assert_permissions.sh` and the `android` CI job are
+   still N31-T02/T03's and do not exist. Do not treat a green pipeline as a permission assertion.
+   **`ACCESS_NETWORK_STATE` is not removed** — the measured answer is that billing 8.0.0's own
+   manifest declares no network permission and `com.google.android.datatransport:transport-backend-cct:3.1.8`,
+   a compile-scope dependency of it, declares both that and `INTERNET`. The `tools:node="remove"`
+   line for `INTERNET` is N31-T01's and is guarded by `test/policy/g0_recorded_test.dart`.
 2. **Is it between 1 February and 30 April?** The lambing freeze (§11). Only a defect that destroys
    or corrupts records, or prevents the app opening at all, ships. If you have to argue for it, the
    answer is no.
@@ -45,9 +47,12 @@ stop. User instructions outrank this skill; your own convenience does not.
 
 ## The gates (§2.8 has the table; this is what an agent gets wrong)
 
-- **G0** — prerequisite, manual, once. Blocks *writing* G1 at all. Records the real merged permission
-  set, the `ACCESS_NETWORK_STATE` answer, that debug builds keep `INTERNET`, and the effective
-  `minSdk` read out of the merged manifest rather than set from memory.
+- **G0** — prerequisite, manual, once. **Closed 2026-08-01**; the record is 13 §2.2 and
+  decision-record §3.3, the artefact is `docs/gates/manifest-merger-release-report.txt`. It recorded
+  the real merged permission set, that `ACCESS_NETWORK_STATE` is present and stays, that debug **and
+  profile** builds keep `INTERNET`, and `minSdk` **24** read out of the merged manifest. Re-run it on
+  any Billing Library bump — the permissions were one Gradle edge further out than four documents
+  assumed.
 - **G1** — `tool/assert_permissions.sh` on the release `.aab`, blocking every push. It asserts **exact
   set equality**, not the absence of `INTERNET`: the failure it exists for is a plugin bump in month
   six merging a *new* permission, which a grep for one string cannot see. It reads the **built
@@ -61,12 +66,17 @@ stop. User instructions outrank this skill; your own convenience does not.
   (§2.7): the `NSAppTransportSecurity` text check in CI, plus the privacy report, the "Data Not
   Collected" answers and one airplane-mode/`nettop` observation pass per release, by hand.
 
-## The permission set — eight entries, and seven lines
+## The permission set — nine names, and eight lines
 
-§3.1 and decision-record §3.3 list **eight**. `android/expected_permissions.txt` holds **seven**
-uncommented lines. They are the same fact counted two ways: the eighth entry is `INTERNET`, asserted
+§3.1 and decision-record §3.3 list **nine**. `android/expected_permissions.txt` holds **eight**
+uncommented lines. They are the same fact counted two ways: the ninth name is `INTERNET`, asserted
 by its **absence**. Confusing the two counts is how somebody adds a ninth line to green a red build.
-Read the table in §3.1; do not retype it. Two rules from it that get broken:
+Read the table in §3.1; do not retype it. Three rules from it that get broken:
+
+- **`WAKE_LOCK` is not in the set.** G0 found it contributed by nothing; `wakelock_plus` uses the
+  `FLAG_KEEP_SCREEN_ON` window flag. Adding it back is contradicting a measurement.
+- **`androidx.core`'s `${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` is in the set.**
+  Invisible in the Play listing, visible to G1, which asserts exact equality.
 
 - **Never `USE_EXACT_ALARM`** — `SCHEDULE_EXACT_ALARM` is the one we declare, user-granted. Play
   rejects `USE_EXACT_ALARM` for this app category.
@@ -175,9 +185,9 @@ channel this app has.
 ## Done when
 
 - [ ] G0's table in §2.2 is filled in from a real release AAB, and `android/expected_permissions.txt`
-      exists, is sorted, holds seven uncommented lines, and names each line's contributing library.
-- [ ] G1 ran on the artefact being uploaded and asserted set equality; the seven `uses-permission`
-      lines were read by a human and `INTERNET` is not the eighth.
+      exists, is sorted, holds eight uncommented lines, and names each line's contributing library.
+- [ ] G1 ran on the artefact being uploaded and asserted set equality; the eight `uses-permission`
+      lines were read by a human and `INTERNET` is not among them.
 - [ ] No gate file, allowlist, rule table or exit code was edited to make anything pass.
 - [ ] Build name came from the tag; build number is `release.yml`'s run number; both `--dart-define`s
       were passed; the uploaded artefact came from `release.yml` and no other workflow.

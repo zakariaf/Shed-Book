@@ -189,7 +189,7 @@ never something you add to clear a red build.
 
 | Gate | Owner | Fires when | Real fix | Forbidden fix |
 |---|---|---|---|---|
-| **G0** | `shed-release` | Not a job — a one-afternoon empirical procedure that must complete before any `tools:node="remove"` line is committed. Until it has run, `android/expected_permissions.txt` does not exist and G1 cannot be written | Run it, fill in the table in `13-build-ci-release.md` §2.2 | Committing the `ACCESS_NETWORK_STATE` removal on faith. Three research notes hard-coded it; the only billing AAR anyone could fetch was six majors behind |
+| **G0** | `shed-release` | Not a job — a one-afternoon empirical procedure that must complete before any `tools:node="remove"` line is committed. **Closed 2026-08-01**; `13-build-ci-release.md` §2.2's table carries four answers and four dates | Nothing, unless the dependency set moved. Re-run on any Billing Library bump | Committing the `ACCESS_NETWORK_STATE` removal on faith. Three research notes hard-coded it; the measured answer is that it stays, and that a **transitive** telemetry library, not the billing AAR, is what declares it |
 | **G1** | `shed-release` | The shipped AAB's `uses-permission` set differs from `android/expected_permissions.txt`. It asserts **exact set equality**, not the absence of `INTERNET`, because the failure it exists for is a plugin bump quietly merging a *new* permission | Read `manifest-merger-release-report.txt` (G4) to find the contributing library, then decide whether that library stays | Editing `android/expected_permissions.txt`. If `android.permission.INTERNET` ever appears there, the product's central claim is void |
 | **G2** | this skill | §2 above | §2 above | §2 above |
 | **G3** | this skill | §4 above | §4 above | §4 above |

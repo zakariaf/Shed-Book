@@ -235,7 +235,14 @@ make check
 make test
 ```
 
-Both greps must return nothing. Then read `docs/store/offline-honesty.md` aloud once — it is the text
+~~Both greps must return nothing.~~ **Amended 2026-08-01: they must return only lines inside
+`offline-honesty.md`'s marked prohibition region.** §5.3's own outline puts block 3 — the list of
+banned phrasings — in this file, so a bare grep over the file contradicts the file it verifies. The
+resolution is a comment-pair marker, `<!-- prohibitions: … -->` / `<!-- end prohibitions -->`, at most
+one region per file: `offline_wording_test.dart` scans everything outside it for the phrases **and**
+asserts the region inside it still names all four, so the list cannot quietly go missing either. A
+code fence was rejected for the marker because a fence is a formatting choice somebody makes for
+other reasons, and this exemption must be impossible to acquire by accident. Then read `docs/store/offline-honesty.md` aloud once — it is the text
 a shepherd reads on a store page, and it is the only paragraph in this project that is judged by
 somebody who will never open the app.
 

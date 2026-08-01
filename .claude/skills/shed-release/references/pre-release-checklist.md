@@ -9,8 +9,9 @@ every item below is one a pipeline structurally cannot see, and every one has bi
 
 ## A. Before you build (any of these can stop the release)
 
-1. **G0 is closed.** §2.2's table is filled in from a real release AAB. If it is not, there is no
-   `android/expected_permissions.txt` and G1 is unwritten — close G0 first, in its own commit.
+1. **G0 is closed** — 2026-08-01, and §2.2's table carries four answers and four dates. Re-run it
+   whenever the Billing Library, `androidx.core` or the plugin set moves: the record is true of one
+   `pubspec.lock`, which is exactly what G1 re-checks on every push.
 2. **Freeze check.** Is today between 1 February and 30 April? If yes, this release must be a defect
    that destroys or corrupts records or prevents the app opening at all (§11.1). Not a crash on a
    secondary screen, not a wrong statistic, not a layout bug. If you have to argue for it, stop and
@@ -29,8 +30,8 @@ every item below is one a pipeline structurally cannot see, and every one has bi
    G1, and archives the AAB, the symbols, `merged-manifest.xml`, the merger report and the
    `--analyze-size` JSON.
 7. **Read the permission list yourself.** `bundletool dump manifest` on the artefact you are about to
-   upload — not on a rebuild, not on the per-push AAB. Read the seven `uses-permission` lines and
-   confirm `INTERNET` is not the eighth. A green G1 is not a substitute for looking.
+   upload — not on a rebuild, not on the per-push AAB. Read the eight `uses-permission` lines and
+   confirm `INTERNET` is not among them. A green G1 is not a substitute for looking.
 8. **Xcode → Archive → Generate Privacy Report.** Read the aggregate report, not just your own
    `PrivacyInfo.xcprivacy`. Redo after any plugin bump and after the SwiftPM migration.
 9. **Goldens.** If any changed, they were deliberately re-baselined with `make goldens-update` and

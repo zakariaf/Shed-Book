@@ -29,28 +29,39 @@ not this README, not `pub add`, not memory.
 `flutter pub get` needs a network and always has. Beyond that there is exactly one build-time fetch,
 and it is worth knowing about before it surprises you offline:
 
-**`package:sqlite3` 3.5.0 downloads a prebuilt SQLite binary through a Dart build hook, and
-`flutter pub get` does *not* trigger it — `flutter test` is the first command that does.** Measured
-on 2026-08-01 by deleting `.dart_tool/hooks_runner/` and running the two commands in order:
+**`package:sqlite3` 3.5.0 downloads a prebuilt SQLite binary through a Dart build hook.** Measured on
+2026-08-01 on a fresh clone with an empty pub cache, blocking one command at a time by pointing the
+proxy environment variables at a closed port — which is the block the hook itself honours, because it
+installs `HttpClient.findProxyFromEnvironment`.
 
-| Command | `make` target | Trips the fetch? |
+| Command | `make` target | Trips a fetch? |
 |---|---|---|
-| `fvm flutter pub get` | — | **no** — `.dart_tool/hooks_runner/` is not even created |
+| `fvm flutter pub get` | — | **yes, on an empty pub cache** — it is downloading the packages. With a warm `~/.pub-cache` it needs nothing, and `.dart_tool/hooks_runner/` is not even created |
 | `fvm flutter analyze` | `make check` | **no** |
-| `fvm flutter test` | **`make test`** | **yes** — writes `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/libsqlite3.dylib` |
+| `fvm flutter test` | **`make test`** | **yes** — one `libsqlite3.dylib` for the host, into `.dart_tool/hooks_runner/shared/sqlite3/build/download-<hash>/` |
+| `fvm flutter build appbundle` | — | **yes, again** — three `libsqlite3.so`, one per Android ABI. **Different artefacts**, so having run `make test` does not warm this |
+| `make gen` | `make gen` | **not yet measurable** — there is no database, so `drift_dev make-migrations` has nothing to do. N08 re-checks it |
 
-So **`make test` is the first target that needs the network on a cold cache**, and `make check` never
-does: its four steps are the two Python validators, `dart format` and `flutter analyze`.
+So on a warm pub cache **`make test` is the first target that needs the network**, and `make check`
+never does: its four steps are the two Python validators, `dart format` and `flutter analyze`.
 
 The hook fetches from `https://github.com/simolus3/sqlite3.dart/releases/download/…` and verifies
 the file against a sha256 compiled into the package, failing with *"Hash of downloaded file … is …,
-expected …"* on a mismatch. It caches into `.dart_tool/`, so a warm working copy builds and tests in
-plane mode; a **cold** cache is a fresh clone, a new pub cache, or anything after `flutter clean`.
+expected …"* on a mismatch. It caches into `.dart_tool/hooks_runner/shared/`, so a warm working copy
+builds and tests in plane mode — measured: the same `flutter test` that failed cold passes with the
+network blocked once the artefact is there. A **cold** cache is a fresh clone, a new pub cache, or
+anything after `flutter clean`, and `flutter clean` counts because it deletes `.dart_tool/` outright.
 
-So: on a fresh clone, run `fvm flutter test` once with a network before you get on the plane. **A
-build-hook failure in plane mode is `pub get` and a download, not a regression in the offline
-claim** — the claim is about the shipped app, which makes no network call at all. Decision-record
-§3.4 #3 says the same thing in one line.
+One more thing that looks like a hook failure and is not: **`flutter test` runs an implicit
+`pub get`**, and pub contacts pub.dev for security advisories on a schedule of its own. A warm tree
+can still fail offline on the first run after a resolution, with *"Got socket error trying to find
+package …"* or an advisories URL in the message. `--no-pub` isolates it.
+
+So: on a fresh clone, run `fvm flutter test` once — and `fvm flutter build appbundle --release` too
+if you need Android — with a network, before you get on the plane. **A build-hook failure in plane
+mode is `pub get` and a download, not a regression in the offline claim.** Every row above is about
+the machine that builds the app; the shipped app makes no network call at all, and cannot, because
+the release manifest carries no internet permission. Decision-record §3.4 #3 says the same in a line.
 
 ## Working in this repository
 

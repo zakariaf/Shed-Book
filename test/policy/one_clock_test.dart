@@ -99,8 +99,26 @@ void main() {
   test('no file under lib/domain/ imports package:clock', () {
     // The D3/R24 half, cross-checking layer.domain from the test side. A pure
     // function that needs the current instant takes it as a parameter.
+    //
+    // It reads DIRECTIVES, with the same regex tool/check_policy.dart uses, and
+    // not the whole file text. That is the difference between the property this
+    // test is named for and a substring search that also fires on a doc comment
+    // saying "package:clock is banned here" — which is the sentence a
+    // lib/domain/ file most wants to carry. Found by clear_date.dart (N05-T02)
+    // carrying exactly that sentence: the gate stayed green, because the gate
+    // was already reading directives, and only the looser cross-check went red.
+    //
+    // Nothing is lost by narrowing it: the package cannot be used without being
+    // imported or exported, and both are directives.
+    final RegExp directive = RegExp(
+      r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''',
+      multiLine: true,
+    );
     for (final String path in _libSources().where((String p) => p.startsWith('lib/domain/'))) {
-      expect(File(path).readAsStringSync(), isNot(contains('package:clock')), reason: path);
+      final Iterable<String> targets = directive
+          .allMatches(File(path).readAsStringSync())
+          .map((RegExpMatch m) => m.group(1)!);
+      expect(targets, isNot(contains(startsWith('package:clock'))), reason: path);
     }
   });
 

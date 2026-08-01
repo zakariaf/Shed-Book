@@ -26,7 +26,9 @@ trigger no skill at all and can still break all four.
 
 **Never write "your data never leaves your phone."** It does, the moment they AirDrop a CSV — which is
 the backup story this product depends on. Only tiers 1 and 2 are claimable (no network code and no
-`INTERNET` permission; no dependency calls a network from our process). Tier 3 — *no data leaves the
+`INTERNET` permission; **no dependency *can* reach** a network from our process — amended 2026-08-01
+by G0, which found a Google telemetry library transitively inside Play Billing: what is provable is
+that it cannot succeed, not that it does not try). Tier 3 — *no data leaves the
 device by any route* — is **false**: the share sheet and the system photo picker are other processes.
 Also never in our own prose: **"offline-first"** (Shed Book is offline-**only**; the Flutter
 offline-first pattern is cache-over-network and is banned outright), *"a lost phone is lost data"*

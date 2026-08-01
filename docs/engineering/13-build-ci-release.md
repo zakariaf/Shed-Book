@@ -188,7 +188,22 @@ archived report describes the tree as committed.
 **The ruling G0 produces.** Removing `INTERNET` is safe and proven — commit that line. For `ACCESS_NETWORK_STATE` there are exactly two permitted outcomes and *neither is a removal on faith*:
 
 - **Absent from the merged manifest** → nothing to do. ~~The canonical set stays at §3.1's **eight entries**, of which seven are `uses-permission` lines G1 asserts~~ — **this branch did not fire; struck 2026-08-01.**
-- **Present, contributed by billing** → **leave it.** This is the branch that fired. Add it to `android/expected_permissions.txt` with its source in a comment, and record the copy consequence: the Play listing will show "view network connections". That does not contradict the §2.1 wording, because `ACCESS_NETWORK_STATE` cannot open a socket — but a shepherd reading the permission list will see it, so it belongs in the store listing's own honesty paragraph. **N02-T02 owns that paragraph**, and it owns the harder question the evidence raised, which is not `ACCESS_NETWORK_STATE` at all but the library that contributed it.
+- **Present, contributed by billing** → **leave it.** This is the branch that fired. Add it to `android/expected_permissions.txt` with its source in a comment, and record the copy consequence: the Play listing will show "view network connections". That does not contradict the §2.1 wording, because `ACCESS_NETWORK_STATE` cannot open a socket — but a shepherd reading the permission list will see it, so it belongs in the store listing's own honesty paragraph.
+
+**Ruled 2026-08-01, N02-T02.** `INTERNET` is **removed**, and the removal rests on a dated artefact
+rather than on merge-priority reasoning: the release `.aab` built with `tools:node="remove"` in
+`src/main` drops it and keeps the other six, and the debug and profile variants keep theirs.
+`ACCESS_NETWORK_STATE` **stays**, contributed by `transport-backend-cct:3.1.8` and not by billing's own
+manifest. The paragraph a shepherd reads about that is `docs/store/offline-honesty.md` §2 —
+**authored once, quoted by N21, N29-T07 and N32-T02, never re-typed.**
+
+**The harder question the evidence raised is not `ACCESS_NETWORK_STATE`.** It is that
+`transport-backend-cct` exists to upload telemetry and is inside our process. Decision-record §3.1
+tier 2 used to read *"no dependency **attempts** a network call from our process"*; it now reads *"no
+dependency **can reach** a network from our process"*, because the first is a claim about somebody
+else's code that no gate here reads, and the second is what the missing `INTERNET` permission
+actually guarantees. §2.1's public wording is unchanged and did not need to change — *"the app itself
+cannot connect to anything"* was already the **cannot** framing.
 
 **The counts, as measured.** §3.1's table is **nine names**; `android/expected_permissions.txt` holds **eight** uncommented lines, because `INTERNET` is asserted by its *absence*. Whenever this document says "nine", it means §3.1's table; whenever it says "eight", it means lines in the expected file. They are the same fact counted two ways, and confusing them is how somebody adds a ninth line to make a red build green.
 

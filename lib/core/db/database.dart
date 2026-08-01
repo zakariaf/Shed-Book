@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/seed/first_run.dart';
 import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
 import 'package:shed_book/core/db/tables/lambing.dart';
@@ -28,7 +29,7 @@ const int kSchemaVersion = 1;
 /// until T06 — which is precisely the defect the fourteen-into-eight re-cut
 /// existed to remove.
 @DriftDatabase(
-  include: <String>{'triggers.drift'},
+  include: <String>{'views.drift', 'search.drift', 'queries.drift'},
   tables: <Type>[
     // N07-T03 — the flock cluster.
     Seasons,
@@ -79,4 +80,18 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   int get schemaVersion => schemaVersionOverride;
+
+  /// N08 replaces `onUpgrade` with `stepByStep(...)`. Until then there is no
+  /// upgrade path, and that is honest rather than missing: v1 is the only
+  /// version that exists, so an onUpgrade here would be untested code guarding
+  /// a transition nobody can perform.
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (Migrator m) async {
+      await m.createAll();
+      if (seedOnCreate) {
+        await seedFirstRun(this);
+      }
+    },
+  );
 }

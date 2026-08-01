@@ -1,0 +1,69 @@
+import 'tables/lambing.dart';
+
+-- lib/core/db/views.drift — 03 §7 and §5.4, R22.
+--
+-- The import above is what lets drift ORDER this after the table it fires on.
+-- Without it, createAll() emits the trigger before lambs exists and every test
+-- in this epic fails on "no such table: main.lambs" — measured, not feared.
+--
+-- The one thing in this schema that is enforced by SQLite rather than by Dart,
+-- and the reason is the same reason `birth_dam` exists at all: a Dart guard is
+-- one repository method away from being bypassed, and a lamb whose birth dam
+-- moved has lost the fact the two-dam model exists to keep. Fostering changes
+-- the REARING dam; the birth dam is a fact about a birth that happened.
+--
+-- `IS NOT` rather than `<>`, so a change to or from NULL is caught too.
+CREATE TRIGGER lamb_birth_dam_is_immutable
+BEFORE UPDATE OF birth_dam ON lambs
+WHEN old.birth_dam IS NOT new.birth_dam
+BEGIN
+  SELECT RAISE(ABORT, 'birth_dam is immutable; record a foster instead');
+END;
+
+-- R22 puts every CREATE VIEW in this file, beside the trigger above, so there
+-- is one place to look for "what SQL does this schema define that is not a
+-- table".
+
+-- Spec §12.4's contradiction surfaces as a VIEW, never a trigger and never a
+-- correction. Both numbers are preserved verbatim.
+CREATE VIEW lambing_consistency AS
+SELECT
+  l.id                  AS lambing_id,
+  l.declared_birth_type AS declared,
+  COUNT(lb.id)          AS recorded,
+  -- declared = 5 means "more than four, count not declared", so five or more
+  -- attached lambs is NOT a mismatch. Getting this wrong shows a false badge on
+  -- every large litter.
+  --
+  -- declared IS NULL means "not tapped yet" (R6) — no contradiction is possible,
+  -- and the guard is explicit because `COUNT(…) <> NULL` is NULL, which would
+  -- make this column three-valued for every in-progress lambing.
+  (l.declared_birth_type IS NOT NULL
+     AND COUNT(lb.id) <> l.declared_birth_type
+     AND NOT (l.declared_birth_type = 5 AND COUNT(lb.id) >= 5)) AS is_mismatched
+FROM lambings l
+LEFT JOIN lambs lb ON lb.lambing = l.id
+GROUP BY l.id;
+
+-- The invariant that keeps the birth ewe's litter size honest. Every BORN count
+-- aggregates lambs by birth_dam; every REARED count aggregates the same rows by
+-- rearing_dam. The two are never mixed in one query, so a lamb cannot appear
+-- twice in either.
+CREATE VIEW lamb_rearing AS
+SELECT
+  lb.id        AS lamb_id,
+  lb.birth_dam AS birth_dam,
+  COALESCE(
+    (SELECT fe.rearing_dam
+       FROM foster_events fe
+      WHERE fe.lamb = lb.id
+      ORDER BY fe.effective_at DESC, fe.id DESC
+      LIMIT 1),
+    -- No foster event: she is rearing what she bore. That is a fact at birth,
+    -- not a guess — and it is why the CASE is needed rather than a bare
+    -- COALESCE, which would credit a bottle lamb back to its birth dam.
+    CASE WHEN EXISTS (SELECT 1 FROM foster_events fe2 WHERE fe2.lamb = lb.id)
+         THEN NULL ELSE lb.birth_dam END
+  ) AS rearing_dam,
+  EXISTS (SELECT 1 FROM foster_events fe3 WHERE fe3.lamb = lb.id) AS was_fostered
+FROM lambs lb;

@@ -31,6 +31,7 @@ const Map<String, String> kNotIdentified = <String, String>{
   // the one: two foreign keys and a composite primary key, no identity of its
   // own, nothing to export that is not already in its parents.
   'pen_occupancy_lambs': 'a pure join table — its identity is its two parents',
+  'search_fts': "the FTS5 index itself — its columns are the module's, not ours",
 };
 
 /// The four Identified tables that carry no strike, and why the act already has
@@ -139,6 +140,9 @@ void main() {
       'app_settings',
       'entitlements',
       'ewe_summaries',
+      // N07-T07 — search.
+      'search_docs',
+      'search_fts',
     });
   });
 }

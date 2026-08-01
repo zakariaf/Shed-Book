@@ -109,19 +109,11 @@ void main() {
     // vocabulary is a foreign key, never a CHECK (convention 6).
     final AppDatabase db = testDatabase();
 
-    final int term = await db
-        .into(db.vocabTerms)
-        .insert(
-          VocabTermsCompanion.insert(
-            uid: newUid(),
-            createdAt: appNow(),
-            updatedAt: appNow(),
-            list: 'ewe_observation',
-            key: 'obs_prolapse',
-            sortOrder: 1,
-            origin: 'seeded',
-          ),
-        );
+    // The seed has already inserted obs_prolapse — which is the realistic case,
+    // and is why this reads the seeded row rather than inserting its own.
+    final VocabTerm seeded = await (db.select(
+      db.vocabTerms,
+    )..where(($VocabTermsTable t) => t.key.equals('obs_prolapse'))).getSingle();
 
     final int season = await db
         .into(db.seasons)
@@ -151,7 +143,7 @@ void main() {
         );
 
     await expectLater(
-      (db.delete(db.vocabTerms)..where(($VocabTermsTable t) => t.id.equals(term))).go(),
+      (db.delete(db.vocabTerms)..where(($VocabTermsTable t) => t.id.equals(seeded.id))).go(),
       throwsA(isA<SqliteException>()),
     );
   });
@@ -180,9 +172,10 @@ void main() {
   });
 
   test('app_settings holds exactly one row and no locale column', () async {
+    // The seed already wrote row 1, so this asserts the CHECK refuses a SECOND
+    // row rather than inserting the first.
     final AppDatabase db = testDatabase();
 
-    await db.into(db.appSettings).insert(const AppSettingsCompanion());
     await expectLater(
       db.into(db.appSettings).insert(const AppSettingsCompanion(id: Value<int>(2))),
       throwsA(isA<SqliteException>()),

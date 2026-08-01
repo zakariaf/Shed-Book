@@ -1,0 +1,75 @@
+import 'tables/ancillary.dart';
+import 'tables/flock.dart';
+import 'tables/lambing.dart';
+import 'tables/pens.dart';
+
+-- lib/core/db/queries.drift — the named queries whose SQL is worth reading.
+--
+-- Everything expressible in drift's Dart API stays in the Dart API. What is here
+-- is a GROUP BY, a window over an open occupancy, and two maintenance sweeps —
+-- the shapes where the SQL is the specification.
+
+-- The live pen board: one row per active pen, with whoever is in it now.
+-- A LEFT JOIN, because an empty pen is a tile too — the gaps are the board.
+penBoard:
+SELECT
+  p.id            AS pen_id,
+  p.label         AS pen_label,
+  p.sort_order    AS sort_order,
+  o.id            AS occupancy_id,
+  o.ewe           AS ewe_id,
+  e.tag           AS ewe_tag,
+  o.entered_at    AS entered_at
+FROM pens p
+LEFT JOIN pen_occupancies o
+       ON o.pen = p.id AND o.exited_at IS NULL AND o.struck = 0
+LEFT JOIN ewes e ON e.id = o.ewe
+WHERE p.is_active = 1 AND p.struck = 0
+ORDER BY p.sort_order, p.label;
+
+-- Everything currently penned, oldest first — the "who has been in longest"
+-- question the turn-out badge is about.
+inThePens:
+SELECT
+  o.id         AS occupancy_id,
+  o.pen        AS pen_id,
+  p.label      AS pen_label,
+  o.ewe        AS ewe_id,
+  e.tag        AS ewe_tag,
+  o.entered_at AS entered_at
+FROM pen_occupancies o
+JOIN pens p ON p.id = o.pen
+LEFT JOIN ewes e ON e.id = o.ewe
+WHERE o.exited_at IS NULL AND o.struck = 0
+ORDER BY o.entered_at;
+
+-- "Was there an earlier 412?" — the history a released tag leaves behind.
+-- Deliberately NOT filtered to active: the whole point is the ones that are not.
+earlierAnimalsWithTag:
+SELECT
+  e.id         AS ewe_id,
+  e.tag        AS tag,
+  e.status     AS status,
+  e.created_at AS created_at
+FROM ewes e
+WHERE e.tag = :tag AND e.status <> 'active'
+ORDER BY e.created_at DESC;
+
+-- Season delete leaves search_docs rows for subjects that no longer exist,
+-- because the cascade removes the parent rows without firing a DELETE trigger on
+-- every one of them under every configuration. SeasonRepository runs this inside
+-- the season-delete transaction (§9.2) — it is the ONE Dart-invoked write to
+-- either search table.
+sweepSearchDocs:
+DELETE FROM search_docs
+WHERE (subject_kind = 'note'      AND subject_id NOT IN (SELECT id FROM notes))
+   OR (subject_kind = 'ewe'       AND subject_id NOT IN (SELECT id FROM ewes))
+   OR (subject_kind = 'lambing'   AND subject_id NOT IN (SELECT id FROM lambings))
+   OR (subject_kind = 'lamb'      AND subject_id NOT IN (SELECT id FROM lambs))
+   OR (subject_kind = 'treatment' AND subject_id NOT IN (SELECT id FROM treatments));
+
+-- FTS5's own rebuild command, for after a restore. The index is a cache and is
+-- never restored — it is rebuilt from search_docs, which is rebuilt from the
+-- source tables.
+rebuildSearchIndex:
+INSERT INTO search_fts(search_fts) VALUES ('rebuild');

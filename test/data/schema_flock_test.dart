@@ -155,7 +155,15 @@ void main() {
 
     for (final QueryRow row in rows) {
       final String name = row.read<String>('name');
+      final String sql = row.read<String>('sql');
       if (name.startsWith('sqlite_')) {
+        continue;
+      }
+      // FTS5's virtual table and its four shadow tables. A virtual table has no
+      // STRICT to declare — its storage is the module's — and the shadow tables
+      // are created by SQLite, not by us. Skipping them by SHAPE rather than by
+      // name means a sixth shadow table in a future SQLite is skipped too.
+      if (sql.toUpperCase().contains('CREATE VIRTUAL TABLE') || name.startsWith('search_fts')) {
         continue;
       }
       expect(row.read<String>('sql').toUpperCase(), contains('STRICT'), reason: name);

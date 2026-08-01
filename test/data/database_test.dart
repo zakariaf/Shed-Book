@@ -25,6 +25,8 @@ const Map<String, String> kNotIdentified = <String, String>{
   'search_docs': 'a cache — FTS5 contentless, rebuilt from the notes',
   'app_settings': 'a singleton — nothing to distinguish',
   'entitlements': 'a singleton',
+  'reminder_rules': 'settings-shaped — keyed by kind, no identity of its own',
+  'terminology_overrides': 'keyed by the AnimalClass name, no identity of its own',
   // 03 §2.1 excludes "pure join tables" generically and names none. This is
   // the one: two foreign keys and a composite primary key, no identity of its
   // own, nothing to export that is not already in its parents.
@@ -125,6 +127,18 @@ void main() {
       'pens',
       'pen_occupancies',
       'pen_occupancy_lambs',
+      // N07-T06 — the ancillary cluster.
+      'care_events',
+      'foster_events',
+      'reminders',
+      'reminder_rules',
+      'notes',
+      'media_assets',
+      'vocab_terms',
+      'terminology_overrides',
+      'app_settings',
+      'entitlements',
+      'ewe_summaries',
     });
   });
 }

@@ -20,6 +20,18 @@ mixin Identified on Table {
   late final createdAt = integer().map(const InstantConverter())();
 
   late final updatedAt = integer().map(const InstantConverter())();
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  late final unknownJson = text().nullable()();
 }
 
 /// Indelible Rule 1 — *nothing is ever removed, only struck*.

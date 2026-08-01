@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/common.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
 import 'package:shed_book/core/db/tables/seasons.dart';
@@ -47,10 +48,11 @@ class Lambings extends Table with Identified, Struckable {
 
   late final assistedBy = text().nullable()();
 
-  /// **Forward reference, deferred to N07-T06** — a user-editable vocabulary is
-  /// a foreign key, never a `CHECK` (convention 6):
-  /// `.references(VocabTerms, #key, onDelete: KeyAction.restrict)`.
-  late final presentation = text().nullable()();
+  late final presentation = text().nullable().references(
+    VocabTerms,
+    #key,
+    onDelete: KeyAction.restrict,
+  )();
 
   late final presentationNote = text().nullable()();
   late final note = text().nullable()();
@@ -66,6 +68,7 @@ class Lambings extends Table with Identified, Struckable {
     'CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override
@@ -111,8 +114,11 @@ class Lambs extends Table with Identified, Struckable {
   /// would invent precision the mortality buckets then over-claim.
   late final deathDate = text().map(const LocalDateConverter()).nullable()();
 
-  /// **Forward reference, deferred to N07-T06** (`VocabTerms`, `RESTRICT`).
-  late final deathCause = text().nullable()();
+  late final deathCause = text().nullable().references(
+    VocabTerms,
+    #key,
+    onDelete: KeyAction.restrict,
+  )();
 
   late final petLamb = boolean().withDefault(const Constant(false))();
   late final bottleFeeds = integer().withDefault(const Constant(0))();
@@ -141,6 +147,7 @@ class Lambs extends Table with Identified, Struckable {
     'CHECK (bottle_feeds >= 0)',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override

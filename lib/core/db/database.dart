@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
 import 'package:shed_book/core/db/tables/lambing.dart';
 import 'package:shed_book/core/db/tables/pens.dart';
@@ -44,6 +45,18 @@ const int kSchemaVersion = 1;
     Pens,
     PenOccupancies,
     PenOccupancyLambs,
+    // N07-T06 — the ancillary cluster.
+    CareEvents,
+    FosterEvents,
+    Reminders,
+    ReminderRules,
+    Notes,
+    MediaAssets,
+    VocabTerms,
+    TerminologyOverrides,
+    AppSettings,
+    Entitlements,
+    EweSummaries,
   ],
 )
 class AppDatabase extends _$AppDatabase {

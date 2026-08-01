@@ -46,6 +46,15 @@ class $SeasonsTable extends Seasons with TableInfo<$SeasonsTable, Season> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($SeasonsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -145,6 +154,7 @@ class $SeasonsTable extends Seasons with TableInfo<$SeasonsTable, Season> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     year,
@@ -172,6 +182,12 @@ class $SeasonsTable extends Seasons with TableInfo<$SeasonsTable, Season> {
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -223,6 +239,10 @@ class $SeasonsTable extends Seasons with TableInfo<$SeasonsTable, Season> {
       ),
       updatedAt: $SeasonsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -297,6 +317,18 @@ class Season extends DataClass implements Insertable<Season> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -330,6 +362,7 @@ class Season extends DataClass implements Insertable<Season> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.year,
@@ -351,6 +384,9 @@ class Season extends DataClass implements Insertable<Season> {
     }
     {
       map['updated_at'] = Variable<int>($SeasonsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -383,6 +419,7 @@ class Season extends DataClass implements Insertable<Season> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       year: Value(year),
@@ -405,6 +442,7 @@ class Season extends DataClass implements Insertable<Season> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       year: serializer.fromJson<int>(json['year']),
@@ -425,6 +463,7 @@ class Season extends DataClass implements Insertable<Season> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'year': serializer.toJson<int>(year),
@@ -443,6 +482,7 @@ class Season extends DataClass implements Insertable<Season> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? year,
@@ -458,6 +498,7 @@ class Season extends DataClass implements Insertable<Season> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     year: year ?? this.year,
@@ -475,6 +516,7 @@ class Season extends DataClass implements Insertable<Season> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       year: data.year.present ? data.year.value : this.year,
@@ -495,6 +537,7 @@ class Season extends DataClass implements Insertable<Season> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('year: $year, ')
@@ -515,6 +558,7 @@ class Season extends DataClass implements Insertable<Season> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     year,
@@ -534,6 +578,7 @@ class Season extends DataClass implements Insertable<Season> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.year == this.year &&
@@ -551,6 +596,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> year;
@@ -566,6 +612,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.year = const Value.absent(),
@@ -582,6 +629,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int year,
@@ -603,6 +651,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? year,
@@ -619,6 +668,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (year != null) 'year': year,
@@ -637,6 +687,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? year,
@@ -653,6 +704,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       year: year ?? this.year,
@@ -680,6 +732,9 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>($SeasonsTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -723,6 +778,7 @@ class SeasonsCompanion extends UpdateCompanion<Season> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('year: $year, ')
@@ -781,6 +837,15 @@ class $EwesTable extends Ewes with TableInfo<$EwesTable, Ewe> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($EwesTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -893,6 +958,7 @@ class $EwesTable extends Ewes with TableInfo<$EwesTable, Ewe> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     tag,
@@ -921,6 +987,12 @@ class $EwesTable extends Ewes with TableInfo<$EwesTable, Ewe> {
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -975,6 +1047,10 @@ class $EwesTable extends Ewes with TableInfo<$EwesTable, Ewe> {
       ),
       updatedAt: $EwesTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -1050,6 +1126,18 @@ class Ewe extends DataClass implements Insertable<Ewe> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -1090,6 +1178,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.tag,
@@ -1112,6 +1201,9 @@ class Ewe extends DataClass implements Insertable<Ewe> {
     }
     {
       map['updated_at'] = Variable<int>($EwesTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -1145,6 +1237,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       tag: Value(tag),
@@ -1166,6 +1259,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       tag: serializer.fromJson<String>(json['tag']),
@@ -1187,6 +1281,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'tag': serializer.toJson<String>(tag),
@@ -1206,6 +1301,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     String? tag,
@@ -1222,6 +1318,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     tag: tag ?? this.tag,
@@ -1240,6 +1337,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       tag: data.tag.present ? data.tag.value : this.tag,
@@ -1261,6 +1359,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('tag: $tag, ')
@@ -1282,6 +1381,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     tag,
@@ -1302,6 +1402,7 @@ class Ewe extends DataClass implements Insertable<Ewe> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.tag == this.tag &&
@@ -1320,6 +1421,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<String> tag;
@@ -1336,6 +1438,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.tag = const Value.absent(),
@@ -1353,6 +1456,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required String tag,
@@ -1374,6 +1478,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<String>? tag,
@@ -1391,6 +1496,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (tag != null) 'tag': tag,
@@ -1410,6 +1516,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<String>? tag,
@@ -1427,6 +1534,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       tag: tag ?? this.tag,
@@ -1455,6 +1563,9 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>($EwesTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -1501,6 +1612,7 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('tag: $tag, ')
@@ -1512,6 +1624,617 @@ class EwesCompanion extends UpdateCompanion<Ewe> {
           ..write('status: $status, ')
           ..write('notes: $notes, ')
           ..write('overFreeCap: $overFreeCap')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VocabTermsTable extends VocabTerms with TableInfo<$VocabTermsTable, VocabTerm> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VocabTermsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($VocabTermsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($VocabTermsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _listMeta = const VerificationMeta('list');
+  @override
+  late final GeneratedColumn<String> list = GeneratedColumn<String>(
+    'list',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+    'label',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _originMeta = const VerificationMeta('origin');
+  @override
+  late final GeneratedColumn<String> origin = GeneratedColumn<String>(
+    'origin',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> hiddenAt = GeneratedColumn<int>(
+    'hidden_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($VocabTermsTable.$converterhiddenAtn);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    list,
+    key,
+    label,
+    sortOrder,
+    origin,
+    hiddenAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'vocab_terms';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VocabTerm> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('list')) {
+      context.handle(_listMeta, list.isAcceptableOrUnknown(data['list']!, _listMeta));
+    } else if (isInserting) {
+      context.missing(_listMeta);
+    }
+    if (data.containsKey('key')) {
+      context.handle(_keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(_labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('origin')) {
+      context.handle(_originMeta, origin.isAcceptableOrUnknown(data['origin']!, _originMeta));
+    } else if (isInserting) {
+      context.missing(_originMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  VocabTerm map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VocabTerm(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $VocabTermsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $VocabTermsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      list: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}list'])!,
+      key: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}key'])!,
+      label: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}label'],
+      ),
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      origin: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}origin'],
+      )!,
+      hiddenAt: $VocabTermsTable.$converterhiddenAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}hidden_at']),
+      ),
+    );
+  }
+
+  @override
+  $VocabTermsTable createAlias(String alias) {
+    return $VocabTermsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterhiddenAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterhiddenAtn = NullAwareTypeConverter.wrap(
+    $converterhiddenAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class VocabTerm extends DataClass implements Insertable<VocabTerm> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+  final String list;
+
+  /// Globally unique, list-prefixed, ASCII, **stable forever**. This is what
+  /// goes in the database, the CSV and the JSON. It is never translated and
+  /// never edited. Foreign keys point at it, which is why it is `UNIQUE` on its
+  /// own.
+  final String key;
+
+  /// The user's override. **NULL means "use the shipped en-GB default for this
+  /// key"**, so a locale change or an app update cannot overwrite a user's
+  /// wording, and the data layer never touches `AppLocalizations`.
+  final String? label;
+  final int sortOrder;
+  final String origin;
+
+  /// Hidden, **never deleted** — a term in use is referenced by a foreign key.
+  final Instant? hiddenAt;
+  const VocabTerm({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.list,
+    required this.key,
+    this.label,
+    required this.sortOrder,
+    required this.origin,
+    this.hiddenAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($VocabTermsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($VocabTermsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['list'] = Variable<String>(list);
+    map['key'] = Variable<String>(key);
+    if (!nullToAbsent || label != null) {
+      map['label'] = Variable<String>(label);
+    }
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['origin'] = Variable<String>(origin);
+    if (!nullToAbsent || hiddenAt != null) {
+      map['hidden_at'] = Variable<int>($VocabTermsTable.$converterhiddenAtn.toSql(hiddenAt));
+    }
+    return map;
+  }
+
+  VocabTermsCompanion toCompanion(bool nullToAbsent) {
+    return VocabTermsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      list: Value(list),
+      key: Value(key),
+      label: label == null && nullToAbsent ? const Value.absent() : Value(label),
+      sortOrder: Value(sortOrder),
+      origin: Value(origin),
+      hiddenAt: hiddenAt == null && nullToAbsent ? const Value.absent() : Value(hiddenAt),
+    );
+  }
+
+  factory VocabTerm.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VocabTerm(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      list: serializer.fromJson<String>(json['list']),
+      key: serializer.fromJson<String>(json['key']),
+      label: serializer.fromJson<String?>(json['label']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      origin: serializer.fromJson<String>(json['origin']),
+      hiddenAt: serializer.fromJson<Instant?>(json['hiddenAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'list': serializer.toJson<String>(list),
+      'key': serializer.toJson<String>(key),
+      'label': serializer.toJson<String?>(label),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'origin': serializer.toJson<String>(origin),
+      'hiddenAt': serializer.toJson<Instant?>(hiddenAt),
+    };
+  }
+
+  VocabTerm copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    String? list,
+    String? key,
+    Value<String?> label = const Value.absent(),
+    int? sortOrder,
+    String? origin,
+    Value<Instant?> hiddenAt = const Value.absent(),
+  }) => VocabTerm(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    list: list ?? this.list,
+    key: key ?? this.key,
+    label: label.present ? label.value : this.label,
+    sortOrder: sortOrder ?? this.sortOrder,
+    origin: origin ?? this.origin,
+    hiddenAt: hiddenAt.present ? hiddenAt.value : this.hiddenAt,
+  );
+  VocabTerm copyWithCompanion(VocabTermsCompanion data) {
+    return VocabTerm(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      list: data.list.present ? data.list.value : this.list,
+      key: data.key.present ? data.key.value : this.key,
+      label: data.label.present ? data.label.value : this.label,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      origin: data.origin.present ? data.origin.value : this.origin,
+      hiddenAt: data.hiddenAt.present ? data.hiddenAt.value : this.hiddenAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VocabTerm(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('list: $list, ')
+          ..write('key: $key, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('origin: $origin, ')
+          ..write('hiddenAt: $hiddenAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    list,
+    key,
+    label,
+    sortOrder,
+    origin,
+    hiddenAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VocabTerm &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.list == this.list &&
+          other.key == this.key &&
+          other.label == this.label &&
+          other.sortOrder == this.sortOrder &&
+          other.origin == this.origin &&
+          other.hiddenAt == this.hiddenAt);
+}
+
+class VocabTermsCompanion extends UpdateCompanion<VocabTerm> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<String> list;
+  final Value<String> key;
+  final Value<String?> label;
+  final Value<int> sortOrder;
+  final Value<String> origin;
+  final Value<Instant?> hiddenAt;
+  const VocabTermsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.list = const Value.absent(),
+    this.key = const Value.absent(),
+    this.label = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.hiddenAt = const Value.absent(),
+  });
+  VocabTermsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    required String list,
+    required String key,
+    this.label = const Value.absent(),
+    required int sortOrder,
+    required String origin,
+    this.hiddenAt = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       list = Value(list),
+       key = Value(key),
+       sortOrder = Value(sortOrder),
+       origin = Value(origin);
+  static Insertable<VocabTerm> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<String>? list,
+    Expression<String>? key,
+    Expression<String>? label,
+    Expression<int>? sortOrder,
+    Expression<String>? origin,
+    Expression<int>? hiddenAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (list != null) 'list': list,
+      if (key != null) 'key': key,
+      if (label != null) 'label': label,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (origin != null) 'origin': origin,
+      if (hiddenAt != null) 'hidden_at': hiddenAt,
+    });
+  }
+
+  VocabTermsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<String>? list,
+    Value<String>? key,
+    Value<String?>? label,
+    Value<int>? sortOrder,
+    Value<String>? origin,
+    Value<Instant?>? hiddenAt,
+  }) {
+    return VocabTermsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      list: list ?? this.list,
+      key: key ?? this.key,
+      label: label ?? this.label,
+      sortOrder: sortOrder ?? this.sortOrder,
+      origin: origin ?? this.origin,
+      hiddenAt: hiddenAt ?? this.hiddenAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $VocabTermsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $VocabTermsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (list.present) {
+      map['list'] = Variable<String>(list.value);
+    }
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (origin.present) {
+      map['origin'] = Variable<String>(origin.value);
+    }
+    if (hiddenAt.present) {
+      map['hidden_at'] = Variable<int>($VocabTermsTable.$converterhiddenAtn.toSql(hiddenAt.value));
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VocabTermsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('list: $list, ')
+          ..write('key: $key, ')
+          ..write('label: $label, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('origin: $origin, ')
+          ..write('hiddenAt: $hiddenAt')
           ..write(')'))
         .toString();
   }
@@ -1560,6 +2283,15 @@ class $LambingsTable extends Lambings with TableInfo<$LambingsTable, Lambing> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($LambingsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -1684,6 +2416,9 @@ class $LambingsTable extends Lambings with TableInfo<$LambingsTable, Lambing> {
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES vocab_terms ("key") ON DELETE RESTRICT',
+    ),
   );
   static const VerificationMeta _presentationNoteMeta = const VerificationMeta('presentationNote');
   @override
@@ -1709,6 +2444,7 @@ class $LambingsTable extends Lambings with TableInfo<$LambingsTable, Lambing> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     season,
@@ -1741,6 +2477,12 @@ class $LambingsTable extends Lambings with TableInfo<$LambingsTable, Lambing> {
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -1810,6 +2552,10 @@ class $LambingsTable extends Lambings with TableInfo<$LambingsTable, Lambing> {
       ),
       updatedAt: $LambingsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -1901,6 +2647,18 @@ class Lambing extends DataClass implements Insertable<Lambing> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -1945,10 +2703,6 @@ class Lambing extends DataClass implements Insertable<Lambing> {
   /// which is a different fact from *"unassisted"* (decision #59).
   final int? ease;
   final String? assistedBy;
-
-  /// **Forward reference, deferred to N07-T06** — a user-editable vocabulary is
-  /// a foreign key, never a `CHECK` (convention 6):
-  /// `.references(VocabTerms, #key, onDelete: KeyAction.restrict)`.
   final String? presentation;
   final String? presentationNote;
   final String? note;
@@ -1957,6 +2711,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.season,
@@ -1983,6 +2738,9 @@ class Lambing extends DataClass implements Insertable<Lambing> {
     }
     {
       map['updated_at'] = Variable<int>($LambingsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -2032,6 +2790,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       season: Value(season),
@@ -2065,6 +2824,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       season: serializer.fromJson<int>(json['season']),
@@ -2090,6 +2850,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'season': serializer.toJson<int>(season),
@@ -2113,6 +2874,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? season,
@@ -2133,6 +2895,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     season: season ?? this.season,
@@ -2155,6 +2918,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       season: data.season.present ? data.season.value : this.season,
@@ -2186,6 +2950,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('season: $season, ')
@@ -2211,6 +2976,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     season,
@@ -2235,6 +3001,7 @@ class Lambing extends DataClass implements Insertable<Lambing> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.season == this.season &&
@@ -2257,6 +3024,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> season;
@@ -2277,6 +3045,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.season = const Value.absent(),
@@ -2298,6 +3067,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int season,
@@ -2326,6 +3096,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? season,
@@ -2347,6 +3118,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (season != null) 'season': season,
@@ -2370,6 +3142,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? season,
@@ -2391,6 +3164,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       season: season ?? this.season,
@@ -2423,6 +3197,9 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>($LambingsTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -2487,6 +3264,7 @@ class LambingsCompanion extends UpdateCompanion<Lambing> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('season: $season, ')
@@ -2550,6 +3328,15 @@ class $LambsTable extends Lambs with TableInfo<$LambsTable, Lamb> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($LambsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -2656,6 +3443,9 @@ class $LambsTable extends Lambs with TableInfo<$LambsTable, Lamb> {
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES vocab_terms ("key") ON DELETE RESTRICT',
+    ),
   );
   static const VerificationMeta _petLambMeta = const VerificationMeta('petLamb');
   @override
@@ -2705,6 +3495,7 @@ class $LambsTable extends Lambs with TableInfo<$LambsTable, Lamb> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     lambing,
@@ -2737,6 +3528,12 @@ class $LambsTable extends Lambs with TableInfo<$LambsTable, Lamb> {
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -2815,6 +3612,10 @@ class $LambsTable extends Lambs with TableInfo<$LambsTable, Lamb> {
       ),
       updatedAt: $LambsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -2906,6 +3707,18 @@ class Lamb extends DataClass implements Insertable<Lamb> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -2935,8 +3748,6 @@ class Lamb extends DataClass implements Insertable<Lamb> {
   /// Civil date: the shepherd knows the day, not the minute. Forcing a time
   /// would invent precision the mortality buckets then over-claim.
   final LocalDate? deathDate;
-
-  /// **Forward reference, deferred to N07-T06** (`VocabTerms`, `RESTRICT`).
   final String? deathCause;
   final bool petLamb;
   final int bottleFeeds;
@@ -2953,6 +3764,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.lambing,
@@ -2979,6 +3791,9 @@ class Lamb extends DataClass implements Insertable<Lamb> {
     }
     {
       map['updated_at'] = Variable<int>($LambsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -3022,6 +3837,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       lambing: Value(lambing),
@@ -3049,6 +3865,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       lambing: serializer.fromJson<int>(json['lambing']),
@@ -3074,6 +3891,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'lambing': serializer.toJson<int>(lambing),
@@ -3097,6 +3915,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? lambing,
@@ -3117,6 +3936,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     lambing: lambing ?? this.lambing,
@@ -3139,6 +3959,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       lambing: data.lambing.present ? data.lambing.value : this.lambing,
@@ -3164,6 +3985,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('lambing: $lambing, ')
@@ -3189,6 +4011,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     lambing,
@@ -3213,6 +4036,7 @@ class Lamb extends DataClass implements Insertable<Lamb> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.lambing == this.lambing &&
@@ -3235,6 +4059,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> lambing;
@@ -3255,6 +4080,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.lambing = const Value.absent(),
@@ -3276,6 +4102,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int lambing,
@@ -3301,6 +4128,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? lambing,
@@ -3322,6 +4150,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (lambing != null) 'lambing': lambing,
@@ -3345,6 +4174,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? lambing,
@@ -3366,6 +4196,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       lambing: lambing ?? this.lambing,
@@ -3398,6 +4229,9 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>($LambsTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -3454,6 +4288,7 @@ class LambsCompanion extends UpdateCompanion<Lamb> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('lambing: $lambing, ')
@@ -3517,6 +4352,15 @@ class $EweSeasonsTable extends EweSeasons with TableInfo<$EweSeasonsTable, EweSe
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($EweSeasonsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -3593,6 +4437,7 @@ class $EweSeasonsTable extends EweSeasons with TableInfo<$EweSeasonsTable, EweSe
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     season,
@@ -3620,6 +4465,12 @@ class $EweSeasonsTable extends EweSeasons with TableInfo<$EweSeasonsTable, EweSe
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -3668,6 +4519,10 @@ class $EweSeasonsTable extends EweSeasons with TableInfo<$EweSeasonsTable, EweSe
       ),
       updatedAt: $EweSeasonsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -3724,6 +4579,18 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -3748,6 +4615,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.season,
@@ -3766,6 +4634,9 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
     }
     {
       map['updated_at'] = Variable<int>($EweSeasonsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -3789,6 +4660,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       season: Value(season),
@@ -3808,6 +4680,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       season: serializer.fromJson<int>(json['season']),
@@ -3825,6 +4698,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'season': serializer.toJson<int>(season),
@@ -3840,6 +4714,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? season,
@@ -3852,6 +4727,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     season: season ?? this.season,
@@ -3866,6 +4742,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       season: data.season.present ? data.season.value : this.season,
@@ -3883,6 +4760,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('season: $season, ')
@@ -3900,6 +4778,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     season,
@@ -3916,6 +4795,7 @@ class EweSeason extends DataClass implements Insertable<EweSeason> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.season == this.season &&
@@ -3930,6 +4810,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> season;
@@ -3942,6 +4823,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.season = const Value.absent(),
@@ -3955,6 +4837,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int season,
@@ -3973,6 +4856,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? season,
@@ -3986,6 +4870,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (season != null) 'season': season,
@@ -4001,6 +4886,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? season,
@@ -4014,6 +4900,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       season: season ?? this.season,
@@ -4042,6 +4929,9 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
       map['updated_at'] = Variable<int>(
         $EweSeasonsTable.$converterupdatedAt.toSql(updatedAt.value),
       );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -4074,6 +4964,7 @@ class EweSeasonsCompanion extends UpdateCompanion<EweSeason> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('season: $season, ')
@@ -4299,6 +5190,15 @@ class $EweObservationsTable extends EweObservations
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($EweObservationsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -4362,6 +5262,9 @@ class $EweObservationsTable extends EweObservations
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES vocab_terms ("key") ON DELETE RESTRICT',
+    ),
   );
   @override
   late final GeneratedColumnWithTypeConverter<Instant, int> occurredAt = GeneratedColumn<int>(
@@ -4413,6 +5316,7 @@ class $EweObservationsTable extends EweObservations
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     ewe,
@@ -4444,6 +5348,12 @@ class $EweObservationsTable extends EweObservations
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -4491,6 +5401,10 @@ class $EweObservationsTable extends EweObservations
       ),
       updatedAt: $EweObservationsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -4563,6 +5477,18 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -4579,9 +5505,9 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
   /// `setNull`: an observation outlives the lambing it was noticed at.
   final int? lambing;
 
-  /// **Forward reference, deferred to N07-T06.** A user-editable vocabulary is a
-  /// foreign key, never a `CHECK` (convention 6), and `VocabTerms` lands in T06:
-  /// `.references(VocabTerms, #key, onDelete: KeyAction.restrict)`.
+  /// A user-editable vocabulary is a **foreign key, never a `CHECK`**
+  /// (convention 6). `RESTRICT`, because a term in use cannot be deleted — it is
+  /// hidden instead.
   final String kind;
   final Instant occurredAt;
   final Instant capturedAt;
@@ -4593,6 +5519,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.ewe,
@@ -4615,6 +5542,9 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
     }
     {
       map['updated_at'] = Variable<int>($EweObservationsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -4654,6 +5584,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       ewe: Value(ewe),
@@ -4677,6 +5608,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       ewe: serializer.fromJson<int>(json['ewe']),
@@ -4698,6 +5630,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'ewe': serializer.toJson<int>(ewe),
@@ -4717,6 +5650,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? ewe,
@@ -4733,6 +5667,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     ewe: ewe ?? this.ewe,
@@ -4751,6 +5686,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       ewe: data.ewe.present ? data.ewe.value : this.ewe,
@@ -4774,6 +5710,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('ewe: $ewe, ')
@@ -4795,6 +5732,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     ewe,
@@ -4815,6 +5753,7 @@ class EweObservation extends DataClass implements Insertable<EweObservation> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.ewe == this.ewe &&
@@ -4833,6 +5772,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> ewe;
@@ -4849,6 +5789,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.ewe = const Value.absent(),
@@ -4866,6 +5807,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int ewe,
@@ -4890,6 +5832,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? ewe,
@@ -4907,6 +5850,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (ewe != null) 'ewe': ewe,
@@ -4926,6 +5870,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? ewe,
@@ -4943,6 +5888,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       ewe: ewe ?? this.ewe,
@@ -4975,6 +5921,9 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
       map['updated_at'] = Variable<int>(
         $EweObservationsTable.$converterupdatedAt.toSql(updatedAt.value),
       );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -5027,6 +5976,7 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('ewe: $ewe, ')
@@ -5037,6 +5987,1878 @@ class EweObservationsCompanion extends UpdateCompanion<EweObservation> {
           ..write('capturedAt: $capturedAt, ')
           ..write('originalEffective: $originalEffective, ')
           ..write('timeSource: $timeSource, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $CareEventsTable extends CareEvents with TableInfo<$CareEventsTable, CareEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CareEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($CareEventsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($CareEventsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($CareEventsTable.$converterstruckAtn);
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
+  @override
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambings (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> occurredAt = GeneratedColumn<int>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($CareEventsTable.$converteroccurredAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> capturedAt = GeneratedColumn<int>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($CareEventsTable.$convertercapturedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> originalEffective =
+      GeneratedColumn<int>(
+        'original_effective',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($CareEventsTable.$converteroriginalEffectiven);
+  static const VerificationMeta _timeSourceMeta = const VerificationMeta('timeSource');
+  @override
+  late final GeneratedColumn<String> timeSource = GeneratedColumn<String>(
+    'time_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  static const VerificationMeta _volumeMlMeta = const VerificationMeta('volumeMl');
+  @override
+  late final GeneratedColumn<int> volumeMl = GeneratedColumn<int>(
+    'volume_ml',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    season,
+    lambing,
+    lamb,
+    kind,
+    occurredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    volumeMl,
+    method,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'care_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<CareEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    } else if (isInserting) {
+      context.missing(_seasonMeta);
+    }
+    if (data.containsKey('lambing')) {
+      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('time_source')) {
+      context.handle(
+        _timeSourceMeta,
+        timeSource.isAcceptableOrUnknown(data['time_source']!, _timeSourceMeta),
+      );
+    }
+    if (data.containsKey('volume_ml')) {
+      context.handle(
+        _volumeMlMeta,
+        volumeMl.isAcceptableOrUnknown(data['volume_ml']!, _volumeMlMeta),
+      );
+    }
+    if (data.containsKey('method')) {
+      context.handle(_methodMeta, method.isAcceptableOrUnknown(data['method']!, _methodMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CareEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CareEvent(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $CareEventsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $CareEventsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $CareEventsTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      season: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season'],
+      )!,
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      occurredAt: $CareEventsTable.$converteroccurredAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}occurred_at'])!,
+      ),
+      capturedAt: $CareEventsTable.$convertercapturedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}captured_at'])!,
+      ),
+      originalEffective: $CareEventsTable.$converteroriginalEffectiven.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}original_effective'],
+        ),
+      ),
+      timeSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_source'],
+      )!,
+      volumeMl: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}volume_ml'],
+      ),
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      ),
+      note: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}note']),
+    );
+  }
+
+  @override
+  $CareEventsTable createAlias(String alias) {
+    return $CareEventsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  static TypeConverter<Instant, int> $converteroccurredAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercapturedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteroriginalEffective = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converteroriginalEffectiven = NullAwareTypeConverter.wrap(
+    $converteroriginalEffective,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class CareEvent extends DataClass implements Insertable<CareEvent> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final int season;
+  final int? lambing;
+  final int? lamb;
+  final String kind;
+  final Instant occurredAt;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final String timeSource;
+  final int? volumeMl;
+  final String? method;
+  final String? note;
+  const CareEvent({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.struck,
+    this.struckAt,
+    required this.season,
+    this.lambing,
+    this.lamb,
+    required this.kind,
+    required this.occurredAt,
+    required this.capturedAt,
+    this.originalEffective,
+    required this.timeSource,
+    this.volumeMl,
+    this.method,
+    this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($CareEventsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($CareEventsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($CareEventsTable.$converterstruckAtn.toSql(struckAt));
+    }
+    map['season'] = Variable<int>(season);
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    map['kind'] = Variable<String>(kind);
+    {
+      map['occurred_at'] = Variable<int>($CareEventsTable.$converteroccurredAt.toSql(occurredAt));
+    }
+    {
+      map['captured_at'] = Variable<int>($CareEventsTable.$convertercapturedAt.toSql(capturedAt));
+    }
+    if (!nullToAbsent || originalEffective != null) {
+      map['original_effective'] = Variable<int>(
+        $CareEventsTable.$converteroriginalEffectiven.toSql(originalEffective),
+      );
+    }
+    map['time_source'] = Variable<String>(timeSource);
+    if (!nullToAbsent || volumeMl != null) {
+      map['volume_ml'] = Variable<int>(volumeMl);
+    }
+    if (!nullToAbsent || method != null) {
+      map['method'] = Variable<String>(method);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  CareEventsCompanion toCompanion(bool nullToAbsent) {
+    return CareEventsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      season: Value(season),
+      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      kind: Value(kind),
+      occurredAt: Value(occurredAt),
+      capturedAt: Value(capturedAt),
+      originalEffective: originalEffective == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalEffective),
+      timeSource: Value(timeSource),
+      volumeMl: volumeMl == null && nullToAbsent ? const Value.absent() : Value(volumeMl),
+      method: method == null && nullToAbsent ? const Value.absent() : Value(method),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory CareEvent.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CareEvent(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      season: serializer.fromJson<int>(json['season']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      kind: serializer.fromJson<String>(json['kind']),
+      occurredAt: serializer.fromJson<Instant>(json['occurredAt']),
+      capturedAt: serializer.fromJson<Instant>(json['capturedAt']),
+      originalEffective: serializer.fromJson<Instant?>(json['originalEffective']),
+      timeSource: serializer.fromJson<String>(json['timeSource']),
+      volumeMl: serializer.fromJson<int?>(json['volumeMl']),
+      method: serializer.fromJson<String?>(json['method']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'season': serializer.toJson<int>(season),
+      'lambing': serializer.toJson<int?>(lambing),
+      'lamb': serializer.toJson<int?>(lamb),
+      'kind': serializer.toJson<String>(kind),
+      'occurredAt': serializer.toJson<Instant>(occurredAt),
+      'capturedAt': serializer.toJson<Instant>(capturedAt),
+      'originalEffective': serializer.toJson<Instant?>(originalEffective),
+      'timeSource': serializer.toJson<String>(timeSource),
+      'volumeMl': serializer.toJson<int?>(volumeMl),
+      'method': serializer.toJson<String?>(method),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  CareEvent copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    int? season,
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    String? kind,
+    Instant? occurredAt,
+    Instant? capturedAt,
+    Value<Instant?> originalEffective = const Value.absent(),
+    String? timeSource,
+    Value<int?> volumeMl = const Value.absent(),
+    Value<String?> method = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+  }) => CareEvent(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    season: season ?? this.season,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    kind: kind ?? this.kind,
+    occurredAt: occurredAt ?? this.occurredAt,
+    capturedAt: capturedAt ?? this.capturedAt,
+    originalEffective: originalEffective.present ? originalEffective.value : this.originalEffective,
+    timeSource: timeSource ?? this.timeSource,
+    volumeMl: volumeMl.present ? volumeMl.value : this.volumeMl,
+    method: method.present ? method.value : this.method,
+    note: note.present ? note.value : this.note,
+  );
+  CareEvent copyWithCompanion(CareEventsCompanion data) {
+    return CareEvent(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      season: data.season.present ? data.season.value : this.season,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      occurredAt: data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      capturedAt: data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      originalEffective: data.originalEffective.present
+          ? data.originalEffective.value
+          : this.originalEffective,
+      timeSource: data.timeSource.present ? data.timeSource.value : this.timeSource,
+      volumeMl: data.volumeMl.present ? data.volumeMl.value : this.volumeMl,
+      method: data.method.present ? data.method.value : this.method,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareEvent(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('season: $season, ')
+          ..write('lambing: $lambing, ')
+          ..write('lamb: $lamb, ')
+          ..write('kind: $kind, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('volumeMl: $volumeMl, ')
+          ..write('method: $method, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    season,
+    lambing,
+    lamb,
+    kind,
+    occurredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    volumeMl,
+    method,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CareEvent &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.season == this.season &&
+          other.lambing == this.lambing &&
+          other.lamb == this.lamb &&
+          other.kind == this.kind &&
+          other.occurredAt == this.occurredAt &&
+          other.capturedAt == this.capturedAt &&
+          other.originalEffective == this.originalEffective &&
+          other.timeSource == this.timeSource &&
+          other.volumeMl == this.volumeMl &&
+          other.method == this.method &&
+          other.note == this.note);
+}
+
+class CareEventsCompanion extends UpdateCompanion<CareEvent> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<int> season;
+  final Value<int?> lambing;
+  final Value<int?> lamb;
+  final Value<String> kind;
+  final Value<Instant> occurredAt;
+  final Value<Instant> capturedAt;
+  final Value<Instant?> originalEffective;
+  final Value<String> timeSource;
+  final Value<int?> volumeMl;
+  final Value<String?> method;
+  final Value<String?> note;
+  const CareEventsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.season = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.volumeMl = const Value.absent(),
+    this.method = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  CareEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    required int season,
+    this.lambing = const Value.absent(),
+    this.lamb = const Value.absent(),
+    required String kind,
+    required Instant occurredAt,
+    required Instant capturedAt,
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.volumeMl = const Value.absent(),
+    this.method = const Value.absent(),
+    this.note = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       season = Value(season),
+       kind = Value(kind),
+       occurredAt = Value(occurredAt),
+       capturedAt = Value(capturedAt);
+  static Insertable<CareEvent> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<int>? season,
+    Expression<int>? lambing,
+    Expression<int>? lamb,
+    Expression<String>? kind,
+    Expression<int>? occurredAt,
+    Expression<int>? capturedAt,
+    Expression<int>? originalEffective,
+    Expression<String>? timeSource,
+    Expression<int>? volumeMl,
+    Expression<String>? method,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (season != null) 'season': season,
+      if (lambing != null) 'lambing': lambing,
+      if (lamb != null) 'lamb': lamb,
+      if (kind != null) 'kind': kind,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (originalEffective != null) 'original_effective': originalEffective,
+      if (timeSource != null) 'time_source': timeSource,
+      if (volumeMl != null) 'volume_ml': volumeMl,
+      if (method != null) 'method': method,
+      if (note != null) 'note': note,
+    });
+  }
+
+  CareEventsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<int>? season,
+    Value<int?>? lambing,
+    Value<int?>? lamb,
+    Value<String>? kind,
+    Value<Instant>? occurredAt,
+    Value<Instant>? capturedAt,
+    Value<Instant?>? originalEffective,
+    Value<String>? timeSource,
+    Value<int?>? volumeMl,
+    Value<String?>? method,
+    Value<String?>? note,
+  }) {
+    return CareEventsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      season: season ?? this.season,
+      lambing: lambing ?? this.lambing,
+      lamb: lamb ?? this.lamb,
+      kind: kind ?? this.kind,
+      occurredAt: occurredAt ?? this.occurredAt,
+      capturedAt: capturedAt ?? this.capturedAt,
+      originalEffective: originalEffective ?? this.originalEffective,
+      timeSource: timeSource ?? this.timeSource,
+      volumeMl: volumeMl ?? this.volumeMl,
+      method: method ?? this.method,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $CareEventsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $CareEventsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>($CareEventsTable.$converterstruckAtn.toSql(struckAt.value));
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<int>(
+        $CareEventsTable.$converteroccurredAt.toSql(occurredAt.value),
+      );
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<int>(
+        $CareEventsTable.$convertercapturedAt.toSql(capturedAt.value),
+      );
+    }
+    if (originalEffective.present) {
+      map['original_effective'] = Variable<int>(
+        $CareEventsTable.$converteroriginalEffectiven.toSql(originalEffective.value),
+      );
+    }
+    if (timeSource.present) {
+      map['time_source'] = Variable<String>(timeSource.value);
+    }
+    if (volumeMl.present) {
+      map['volume_ml'] = Variable<int>(volumeMl.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CareEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('season: $season, ')
+          ..write('lambing: $lambing, ')
+          ..write('lamb: $lamb, ')
+          ..write('kind: $kind, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('volumeMl: $volumeMl, ')
+          ..write('method: $method, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FosterEventsTable extends FosterEvents with TableInfo<$FosterEventsTable, FosterEvent> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FosterEventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($FosterEventsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($FosterEventsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($FosterEventsTable.$converterstruckAtn);
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _rearingDamMeta = const VerificationMeta('rearingDam');
+  @override
+  late final GeneratedColumn<int> rearingDam = GeneratedColumn<int>(
+    'rearing_dam',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _outcomeMeta = const VerificationMeta('outcome');
+  @override
+  late final GeneratedColumn<String> outcome = GeneratedColumn<String>(
+    'outcome',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _correctsMeta = const VerificationMeta('corrects');
+  @override
+  late final GeneratedColumn<int> corrects = GeneratedColumn<int>(
+    'corrects',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES foster_events (id) ON DELETE RESTRICT',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> effectiveAt = GeneratedColumn<int>(
+    'effective_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($FosterEventsTable.$convertereffectiveAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> capturedAt = GeneratedColumn<int>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($FosterEventsTable.$convertercapturedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> originalEffective =
+      GeneratedColumn<int>(
+        'original_effective',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($FosterEventsTable.$converteroriginalEffectiven);
+  static const VerificationMeta _timeSourceMeta = const VerificationMeta('timeSource');
+  @override
+  late final GeneratedColumn<String> timeSource = GeneratedColumn<String>(
+    'time_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  static const VerificationMeta _methodMeta = const VerificationMeta('method');
+  @override
+  late final GeneratedColumn<String> method = GeneratedColumn<String>(
+    'method',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES vocab_terms ("key") ON DELETE RESTRICT',
+    ),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    lamb,
+    season,
+    rearingDam,
+    outcome,
+    corrects,
+    effectiveAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    method,
+    note,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'foster_events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FosterEvent> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    } else if (isInserting) {
+      context.missing(_lambMeta);
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    } else if (isInserting) {
+      context.missing(_seasonMeta);
+    }
+    if (data.containsKey('rearing_dam')) {
+      context.handle(
+        _rearingDamMeta,
+        rearingDam.isAcceptableOrUnknown(data['rearing_dam']!, _rearingDamMeta),
+      );
+    }
+    if (data.containsKey('outcome')) {
+      context.handle(_outcomeMeta, outcome.isAcceptableOrUnknown(data['outcome']!, _outcomeMeta));
+    } else if (isInserting) {
+      context.missing(_outcomeMeta);
+    }
+    if (data.containsKey('corrects')) {
+      context.handle(
+        _correctsMeta,
+        corrects.isAcceptableOrUnknown(data['corrects']!, _correctsMeta),
+      );
+    }
+    if (data.containsKey('time_source')) {
+      context.handle(
+        _timeSourceMeta,
+        timeSource.isAcceptableOrUnknown(data['time_source']!, _timeSourceMeta),
+      );
+    }
+    if (data.containsKey('method')) {
+      context.handle(_methodMeta, method.isAcceptableOrUnknown(data['method']!, _methodMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FosterEvent map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FosterEvent(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $FosterEventsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $FosterEventsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $FosterEventsTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb'])!,
+      season: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}season'],
+      )!,
+      rearingDam: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}rearing_dam'],
+      ),
+      outcome: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}outcome'],
+      )!,
+      corrects: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}corrects'],
+      ),
+      effectiveAt: $FosterEventsTable.$convertereffectiveAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}effective_at'],
+        )!,
+      ),
+      capturedAt: $FosterEventsTable.$convertercapturedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}captured_at'])!,
+      ),
+      originalEffective: $FosterEventsTable.$converteroriginalEffectiven.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}original_effective'],
+        ),
+      ),
+      timeSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_source'],
+      )!,
+      method: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}method'],
+      ),
+      note: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}note']),
+    );
+  }
+
+  @override
+  $FosterEventsTable createAlias(String alias) {
+    return $FosterEventsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  static TypeConverter<Instant, int> $convertereffectiveAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercapturedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteroriginalEffective = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converteroriginalEffectiven = NullAwareTypeConverter.wrap(
+    $converteroriginalEffective,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class FosterEvent extends DataClass implements Insertable<FosterEvent> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final int lamb;
+  final int season;
+
+  /// NULL when the lamb leaves a rearing dam without gaining a new one.
+  final int? rearingDam;
+
+  /// `'to_ewe'` | `'to_bottle'` | `'removed_unknown'`.
+  ///
+  /// Bottle (null by intent) and unknown (null by omission) are **different
+  /// facts** and the rearing-credit numbers differ. Do not merge them — which is
+  /// also why `setRearingDam(lambId, eweId?)` is a banned signature.
+  final String outcome;
+
+  /// Decision #69: undo for a foster is a **compensating event** pointing at the
+  /// one it reverses, visible in history. The log is append-only; nothing is
+  /// ever deleted from it.
+  final int? corrects;
+
+  /// The third documented exception to the `occurred_at` column-name rule
+  /// (R37): a graft is dated by when it took effect.
+  final Instant effectiveAt;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final String timeSource;
+
+  /// **Forward reference, deferred to the VocabTerms declaration below** — it is
+  /// in this same file, so it lands with it.
+  final String? method;
+  final String? note;
+  const FosterEvent({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.struck,
+    this.struckAt,
+    required this.lamb,
+    required this.season,
+    this.rearingDam,
+    required this.outcome,
+    this.corrects,
+    required this.effectiveAt,
+    required this.capturedAt,
+    this.originalEffective,
+    required this.timeSource,
+    this.method,
+    this.note,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($FosterEventsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($FosterEventsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($FosterEventsTable.$converterstruckAtn.toSql(struckAt));
+    }
+    map['lamb'] = Variable<int>(lamb);
+    map['season'] = Variable<int>(season);
+    if (!nullToAbsent || rearingDam != null) {
+      map['rearing_dam'] = Variable<int>(rearingDam);
+    }
+    map['outcome'] = Variable<String>(outcome);
+    if (!nullToAbsent || corrects != null) {
+      map['corrects'] = Variable<int>(corrects);
+    }
+    {
+      map['effective_at'] = Variable<int>(
+        $FosterEventsTable.$convertereffectiveAt.toSql(effectiveAt),
+      );
+    }
+    {
+      map['captured_at'] = Variable<int>($FosterEventsTable.$convertercapturedAt.toSql(capturedAt));
+    }
+    if (!nullToAbsent || originalEffective != null) {
+      map['original_effective'] = Variable<int>(
+        $FosterEventsTable.$converteroriginalEffectiven.toSql(originalEffective),
+      );
+    }
+    map['time_source'] = Variable<String>(timeSource);
+    if (!nullToAbsent || method != null) {
+      map['method'] = Variable<String>(method);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    return map;
+  }
+
+  FosterEventsCompanion toCompanion(bool nullToAbsent) {
+    return FosterEventsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      lamb: Value(lamb),
+      season: Value(season),
+      rearingDam: rearingDam == null && nullToAbsent ? const Value.absent() : Value(rearingDam),
+      outcome: Value(outcome),
+      corrects: corrects == null && nullToAbsent ? const Value.absent() : Value(corrects),
+      effectiveAt: Value(effectiveAt),
+      capturedAt: Value(capturedAt),
+      originalEffective: originalEffective == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalEffective),
+      timeSource: Value(timeSource),
+      method: method == null && nullToAbsent ? const Value.absent() : Value(method),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+    );
+  }
+
+  factory FosterEvent.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FosterEvent(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      lamb: serializer.fromJson<int>(json['lamb']),
+      season: serializer.fromJson<int>(json['season']),
+      rearingDam: serializer.fromJson<int?>(json['rearingDam']),
+      outcome: serializer.fromJson<String>(json['outcome']),
+      corrects: serializer.fromJson<int?>(json['corrects']),
+      effectiveAt: serializer.fromJson<Instant>(json['effectiveAt']),
+      capturedAt: serializer.fromJson<Instant>(json['capturedAt']),
+      originalEffective: serializer.fromJson<Instant?>(json['originalEffective']),
+      timeSource: serializer.fromJson<String>(json['timeSource']),
+      method: serializer.fromJson<String?>(json['method']),
+      note: serializer.fromJson<String?>(json['note']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'lamb': serializer.toJson<int>(lamb),
+      'season': serializer.toJson<int>(season),
+      'rearingDam': serializer.toJson<int?>(rearingDam),
+      'outcome': serializer.toJson<String>(outcome),
+      'corrects': serializer.toJson<int?>(corrects),
+      'effectiveAt': serializer.toJson<Instant>(effectiveAt),
+      'capturedAt': serializer.toJson<Instant>(capturedAt),
+      'originalEffective': serializer.toJson<Instant?>(originalEffective),
+      'timeSource': serializer.toJson<String>(timeSource),
+      'method': serializer.toJson<String?>(method),
+      'note': serializer.toJson<String?>(note),
+    };
+  }
+
+  FosterEvent copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    int? lamb,
+    int? season,
+    Value<int?> rearingDam = const Value.absent(),
+    String? outcome,
+    Value<int?> corrects = const Value.absent(),
+    Instant? effectiveAt,
+    Instant? capturedAt,
+    Value<Instant?> originalEffective = const Value.absent(),
+    String? timeSource,
+    Value<String?> method = const Value.absent(),
+    Value<String?> note = const Value.absent(),
+  }) => FosterEvent(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    lamb: lamb ?? this.lamb,
+    season: season ?? this.season,
+    rearingDam: rearingDam.present ? rearingDam.value : this.rearingDam,
+    outcome: outcome ?? this.outcome,
+    corrects: corrects.present ? corrects.value : this.corrects,
+    effectiveAt: effectiveAt ?? this.effectiveAt,
+    capturedAt: capturedAt ?? this.capturedAt,
+    originalEffective: originalEffective.present ? originalEffective.value : this.originalEffective,
+    timeSource: timeSource ?? this.timeSource,
+    method: method.present ? method.value : this.method,
+    note: note.present ? note.value : this.note,
+  );
+  FosterEvent copyWithCompanion(FosterEventsCompanion data) {
+    return FosterEvent(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      season: data.season.present ? data.season.value : this.season,
+      rearingDam: data.rearingDam.present ? data.rearingDam.value : this.rearingDam,
+      outcome: data.outcome.present ? data.outcome.value : this.outcome,
+      corrects: data.corrects.present ? data.corrects.value : this.corrects,
+      effectiveAt: data.effectiveAt.present ? data.effectiveAt.value : this.effectiveAt,
+      capturedAt: data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      originalEffective: data.originalEffective.present
+          ? data.originalEffective.value
+          : this.originalEffective,
+      timeSource: data.timeSource.present ? data.timeSource.value : this.timeSource,
+      method: data.method.present ? data.method.value : this.method,
+      note: data.note.present ? data.note.value : this.note,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FosterEvent(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('lamb: $lamb, ')
+          ..write('season: $season, ')
+          ..write('rearingDam: $rearingDam, ')
+          ..write('outcome: $outcome, ')
+          ..write('corrects: $corrects, ')
+          ..write('effectiveAt: $effectiveAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('method: $method, ')
+          ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    lamb,
+    season,
+    rearingDam,
+    outcome,
+    corrects,
+    effectiveAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    method,
+    note,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FosterEvent &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.lamb == this.lamb &&
+          other.season == this.season &&
+          other.rearingDam == this.rearingDam &&
+          other.outcome == this.outcome &&
+          other.corrects == this.corrects &&
+          other.effectiveAt == this.effectiveAt &&
+          other.capturedAt == this.capturedAt &&
+          other.originalEffective == this.originalEffective &&
+          other.timeSource == this.timeSource &&
+          other.method == this.method &&
+          other.note == this.note);
+}
+
+class FosterEventsCompanion extends UpdateCompanion<FosterEvent> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<int> lamb;
+  final Value<int> season;
+  final Value<int?> rearingDam;
+  final Value<String> outcome;
+  final Value<int?> corrects;
+  final Value<Instant> effectiveAt;
+  final Value<Instant> capturedAt;
+  final Value<Instant?> originalEffective;
+  final Value<String> timeSource;
+  final Value<String?> method;
+  final Value<String?> note;
+  const FosterEventsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.season = const Value.absent(),
+    this.rearingDam = const Value.absent(),
+    this.outcome = const Value.absent(),
+    this.corrects = const Value.absent(),
+    this.effectiveAt = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.method = const Value.absent(),
+    this.note = const Value.absent(),
+  });
+  FosterEventsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    required int lamb,
+    required int season,
+    this.rearingDam = const Value.absent(),
+    required String outcome,
+    this.corrects = const Value.absent(),
+    required Instant effectiveAt,
+    required Instant capturedAt,
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+    this.method = const Value.absent(),
+    this.note = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       lamb = Value(lamb),
+       season = Value(season),
+       outcome = Value(outcome),
+       effectiveAt = Value(effectiveAt),
+       capturedAt = Value(capturedAt);
+  static Insertable<FosterEvent> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<int>? lamb,
+    Expression<int>? season,
+    Expression<int>? rearingDam,
+    Expression<String>? outcome,
+    Expression<int>? corrects,
+    Expression<int>? effectiveAt,
+    Expression<int>? capturedAt,
+    Expression<int>? originalEffective,
+    Expression<String>? timeSource,
+    Expression<String>? method,
+    Expression<String>? note,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (lamb != null) 'lamb': lamb,
+      if (season != null) 'season': season,
+      if (rearingDam != null) 'rearing_dam': rearingDam,
+      if (outcome != null) 'outcome': outcome,
+      if (corrects != null) 'corrects': corrects,
+      if (effectiveAt != null) 'effective_at': effectiveAt,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (originalEffective != null) 'original_effective': originalEffective,
+      if (timeSource != null) 'time_source': timeSource,
+      if (method != null) 'method': method,
+      if (note != null) 'note': note,
+    });
+  }
+
+  FosterEventsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<int>? lamb,
+    Value<int>? season,
+    Value<int?>? rearingDam,
+    Value<String>? outcome,
+    Value<int?>? corrects,
+    Value<Instant>? effectiveAt,
+    Value<Instant>? capturedAt,
+    Value<Instant?>? originalEffective,
+    Value<String>? timeSource,
+    Value<String?>? method,
+    Value<String?>? note,
+  }) {
+    return FosterEventsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      lamb: lamb ?? this.lamb,
+      season: season ?? this.season,
+      rearingDam: rearingDam ?? this.rearingDam,
+      outcome: outcome ?? this.outcome,
+      corrects: corrects ?? this.corrects,
+      effectiveAt: effectiveAt ?? this.effectiveAt,
+      capturedAt: capturedAt ?? this.capturedAt,
+      originalEffective: originalEffective ?? this.originalEffective,
+      timeSource: timeSource ?? this.timeSource,
+      method: method ?? this.method,
+      note: note ?? this.note,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $FosterEventsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $FosterEventsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>(
+        $FosterEventsTable.$converterstruckAtn.toSql(struckAt.value),
+      );
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (rearingDam.present) {
+      map['rearing_dam'] = Variable<int>(rearingDam.value);
+    }
+    if (outcome.present) {
+      map['outcome'] = Variable<String>(outcome.value);
+    }
+    if (corrects.present) {
+      map['corrects'] = Variable<int>(corrects.value);
+    }
+    if (effectiveAt.present) {
+      map['effective_at'] = Variable<int>(
+        $FosterEventsTable.$convertereffectiveAt.toSql(effectiveAt.value),
+      );
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<int>(
+        $FosterEventsTable.$convertercapturedAt.toSql(capturedAt.value),
+      );
+    }
+    if (originalEffective.present) {
+      map['original_effective'] = Variable<int>(
+        $FosterEventsTable.$converteroriginalEffectiven.toSql(originalEffective.value),
+      );
+    }
+    if (timeSource.present) {
+      map['time_source'] = Variable<String>(timeSource.value);
+    }
+    if (method.present) {
+      map['method'] = Variable<String>(method.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FosterEventsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('lamb: $lamb, ')
+          ..write('season: $season, ')
+          ..write('rearingDam: $rearingDam, ')
+          ..write('outcome: $outcome, ')
+          ..write('corrects: $corrects, ')
+          ..write('effectiveAt: $effectiveAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource, ')
+          ..write('method: $method, ')
           ..write('note: $note')
           ..write(')'))
         .toString();
@@ -5086,6 +7908,15 @@ class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treat
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($TreatmentsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _seasonMeta = const VerificationMeta('season');
   @override
   late final GeneratedColumn<int> season = GeneratedColumn<int>(
@@ -5149,6 +7980,9 @@ class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treat
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES vocab_terms ("key") ON DELETE RESTRICT',
+    ),
   );
   static const VerificationMeta _batchNoMeta = const VerificationMeta('batchNo');
   @override
@@ -5217,6 +8051,7 @@ class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treat
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     season,
     ewe,
     lamb,
@@ -5250,6 +8085,12 @@ class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treat
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('season')) {
       context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
@@ -5307,6 +8148,10 @@ class $TreatmentsTable extends Treatments with TableInfo<$TreatmentsTable, Treat
       ),
       updatedAt: $TreatmentsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       season: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -5389,13 +8234,23 @@ class Treatment extends DataClass implements Insertable<Treatment> {
   /// Instants: UTC epoch millis (§4).
   final Instant createdAt;
   final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
   final int season;
   final int? ewe;
   final int? lamb;
   final String productName;
   final String? doseText;
-
-  /// **Forward reference, deferred to N07-T06** (`VocabTerms`, `RESTRICT`).
   final String? route;
   final String? batchNo;
 
@@ -5415,6 +8270,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.season,
     this.ewe,
     this.lamb,
@@ -5439,6 +8295,9 @@ class Treatment extends DataClass implements Insertable<Treatment> {
     }
     {
       map['updated_at'] = Variable<int>($TreatmentsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['season'] = Variable<int>(season);
     if (!nullToAbsent || ewe != null) {
@@ -5486,6 +8345,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       season: Value(season),
       ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
       lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
@@ -5511,6 +8371,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       season: serializer.fromJson<int>(json['season']),
       ewe: serializer.fromJson<int?>(json['ewe']),
       lamb: serializer.fromJson<int?>(json['lamb']),
@@ -5534,6 +8395,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'season': serializer.toJson<int>(season),
       'ewe': serializer.toJson<int?>(ewe),
       'lamb': serializer.toJson<int?>(lamb),
@@ -5555,6 +8417,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     int? season,
     Value<int?> ewe = const Value.absent(),
     Value<int?> lamb = const Value.absent(),
@@ -5573,6 +8436,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     season: season ?? this.season,
     ewe: ewe.present ? ewe.value : this.ewe,
     lamb: lamb.present ? lamb.value : this.lamb,
@@ -5593,6 +8457,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       season: data.season.present ? data.season.value : this.season,
       ewe: data.ewe.present ? data.ewe.value : this.ewe,
       lamb: data.lamb.present ? data.lamb.value : this.lamb,
@@ -5618,6 +8483,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('season: $season, ')
           ..write('ewe: $ewe, ')
           ..write('lamb: $lamb, ')
@@ -5641,6 +8507,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     season,
     ewe,
     lamb,
@@ -5663,6 +8530,7 @@ class Treatment extends DataClass implements Insertable<Treatment> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.season == this.season &&
           other.ewe == this.ewe &&
           other.lamb == this.lamb &&
@@ -5683,6 +8551,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<int> season;
   final Value<int?> ewe;
   final Value<int?> lamb;
@@ -5701,6 +8570,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.season = const Value.absent(),
     this.ewe = const Value.absent(),
     this.lamb = const Value.absent(),
@@ -5720,6 +8590,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     required int season,
     this.ewe = const Value.absent(),
     this.lamb = const Value.absent(),
@@ -5745,6 +8616,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<int>? season,
     Expression<int>? ewe,
     Expression<int>? lamb,
@@ -5764,6 +8636,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (season != null) 'season': season,
       if (ewe != null) 'ewe': ewe,
       if (lamb != null) 'lamb': lamb,
@@ -5785,6 +8658,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<int>? season,
     Value<int?>? ewe,
     Value<int?>? lamb,
@@ -5804,6 +8678,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       season: season ?? this.season,
       ewe: ewe ?? this.ewe,
       lamb: lamb ?? this.lamb,
@@ -5838,6 +8713,9 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
       map['updated_at'] = Variable<int>(
         $TreatmentsTable.$converterupdatedAt.toSql(updatedAt.value),
       );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (season.present) {
       map['season'] = Variable<int>(season.value);
@@ -5894,6 +8772,7 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('season: $season, ')
           ..write('ewe: $ewe, ')
           ..write('lamb: $lamb, ')
@@ -5907,6 +8786,4692 @@ class TreatmentsCompanion extends UpdateCompanion<Treatment> {
           ..write('timeSource: $timeSource, ')
           ..write('voidedAt: $voidedAt, ')
           ..write('note: $note')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $RemindersTable extends Reminders with TableInfo<$RemindersTable, Reminder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RemindersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($RemindersTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($RemindersTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($RemindersTable.$converterstruckAtn);
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
+  @override
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambings (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _treatmentMeta = const VerificationMeta('treatment');
+  @override
+  late final GeneratedColumn<int> treatment = GeneratedColumn<int>(
+    'treatment',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES treatments (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> dueAt = GeneratedColumn<int>(
+    'due_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($RemindersTable.$converterdueAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> completedAt = GeneratedColumn<int>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($RemindersTable.$convertercompletedAtn);
+  static const VerificationMeta _mutedMeta = const VerificationMeta('muted');
+  @override
+  late final GeneratedColumn<bool> muted = GeneratedColumn<bool>(
+    'muted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("muted" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    season,
+    ewe,
+    lamb,
+    lambing,
+    treatment,
+    kind,
+    title,
+    dueAt,
+    completedAt,
+    muted,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminders';
+  @override
+  VerificationContext validateIntegrity(Insertable<Reminder> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('lambing')) {
+      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
+    }
+    if (data.containsKey('treatment')) {
+      context.handle(
+        _treatmentMeta,
+        treatment.isAcceptableOrUnknown(data['treatment']!, _treatmentMeta),
+      );
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(_titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('muted')) {
+      context.handle(_mutedMeta, muted.isAcceptableOrUnknown(data['muted']!, _mutedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Reminder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Reminder(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $RemindersTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $RemindersTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $RemindersTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      season: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}season']),
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      treatment: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}treatment'],
+      ),
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      dueAt: $RemindersTable.$converterdueAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}due_at'])!,
+      ),
+      completedAt: $RemindersTable.$convertercompletedAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}completed_at']),
+      ),
+      muted: attachedDatabase.typeMapping.read(DriftSqlType.bool, data['${effectivePrefix}muted'])!,
+    );
+  }
+
+  @override
+  $RemindersTable createAlias(String alias) {
+    return $RemindersTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  static TypeConverter<Instant, int> $converterdueAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercompletedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $convertercompletedAtn = NullAwareTypeConverter.wrap(
+    $convertercompletedAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class Reminder extends DataClass implements Insertable<Reminder> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final int? season;
+  final int? ewe;
+  final int? lamb;
+  final int? lambing;
+  final int? treatment;
+  final String kind;
+  final String title;
+  final Instant dueAt;
+  final Instant? completedAt;
+  final bool muted;
+  const Reminder({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.struck,
+    this.struckAt,
+    this.season,
+    this.ewe,
+    this.lamb,
+    this.lambing,
+    this.treatment,
+    required this.kind,
+    required this.title,
+    required this.dueAt,
+    this.completedAt,
+    required this.muted,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($RemindersTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($RemindersTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($RemindersTable.$converterstruckAtn.toSql(struckAt));
+    }
+    if (!nullToAbsent || season != null) {
+      map['season'] = Variable<int>(season);
+    }
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || treatment != null) {
+      map['treatment'] = Variable<int>(treatment);
+    }
+    map['kind'] = Variable<String>(kind);
+    map['title'] = Variable<String>(title);
+    {
+      map['due_at'] = Variable<int>($RemindersTable.$converterdueAt.toSql(dueAt));
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<int>(
+        $RemindersTable.$convertercompletedAtn.toSql(completedAt),
+      );
+    }
+    map['muted'] = Variable<bool>(muted);
+    return map;
+  }
+
+  RemindersCompanion toCompanion(bool nullToAbsent) {
+    return RemindersCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      season: season == null && nullToAbsent ? const Value.absent() : Value(season),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
+      treatment: treatment == null && nullToAbsent ? const Value.absent() : Value(treatment),
+      kind: Value(kind),
+      title: Value(title),
+      dueAt: Value(dueAt),
+      completedAt: completedAt == null && nullToAbsent ? const Value.absent() : Value(completedAt),
+      muted: Value(muted),
+    );
+  }
+
+  factory Reminder.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Reminder(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      season: serializer.fromJson<int?>(json['season']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      treatment: serializer.fromJson<int?>(json['treatment']),
+      kind: serializer.fromJson<String>(json['kind']),
+      title: serializer.fromJson<String>(json['title']),
+      dueAt: serializer.fromJson<Instant>(json['dueAt']),
+      completedAt: serializer.fromJson<Instant?>(json['completedAt']),
+      muted: serializer.fromJson<bool>(json['muted']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'season': serializer.toJson<int?>(season),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'lambing': serializer.toJson<int?>(lambing),
+      'treatment': serializer.toJson<int?>(treatment),
+      'kind': serializer.toJson<String>(kind),
+      'title': serializer.toJson<String>(title),
+      'dueAt': serializer.toJson<Instant>(dueAt),
+      'completedAt': serializer.toJson<Instant?>(completedAt),
+      'muted': serializer.toJson<bool>(muted),
+    };
+  }
+
+  Reminder copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    Value<int?> season = const Value.absent(),
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> treatment = const Value.absent(),
+    String? kind,
+    String? title,
+    Instant? dueAt,
+    Value<Instant?> completedAt = const Value.absent(),
+    bool? muted,
+  }) => Reminder(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    season: season.present ? season.value : this.season,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    treatment: treatment.present ? treatment.value : this.treatment,
+    kind: kind ?? this.kind,
+    title: title ?? this.title,
+    dueAt: dueAt ?? this.dueAt,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
+    muted: muted ?? this.muted,
+  );
+  Reminder copyWithCompanion(RemindersCompanion data) {
+    return Reminder(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      season: data.season.present ? data.season.value : this.season,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      treatment: data.treatment.present ? data.treatment.value : this.treatment,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      title: data.title.present ? data.title.value : this.title,
+      dueAt: data.dueAt.present ? data.dueAt.value : this.dueAt,
+      completedAt: data.completedAt.present ? data.completedAt.value : this.completedAt,
+      muted: data.muted.present ? data.muted.value : this.muted,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Reminder(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('treatment: $treatment, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('muted: $muted')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    season,
+    ewe,
+    lamb,
+    lambing,
+    treatment,
+    kind,
+    title,
+    dueAt,
+    completedAt,
+    muted,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Reminder &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.season == this.season &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.lambing == this.lambing &&
+          other.treatment == this.treatment &&
+          other.kind == this.kind &&
+          other.title == this.title &&
+          other.dueAt == this.dueAt &&
+          other.completedAt == this.completedAt &&
+          other.muted == this.muted);
+}
+
+class RemindersCompanion extends UpdateCompanion<Reminder> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<int?> season;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<int?> lambing;
+  final Value<int?> treatment;
+  final Value<String> kind;
+  final Value<String> title;
+  final Value<Instant> dueAt;
+  final Value<Instant?> completedAt;
+  final Value<bool> muted;
+  const RemindersCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.season = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.treatment = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.title = const Value.absent(),
+    this.dueAt = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.muted = const Value.absent(),
+  });
+  RemindersCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.season = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.treatment = const Value.absent(),
+    required String kind,
+    required String title,
+    required Instant dueAt,
+    this.completedAt = const Value.absent(),
+    this.muted = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       kind = Value(kind),
+       title = Value(title),
+       dueAt = Value(dueAt);
+  static Insertable<Reminder> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<int>? season,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<int>? lambing,
+    Expression<int>? treatment,
+    Expression<String>? kind,
+    Expression<String>? title,
+    Expression<int>? dueAt,
+    Expression<int>? completedAt,
+    Expression<bool>? muted,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (season != null) 'season': season,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (lambing != null) 'lambing': lambing,
+      if (treatment != null) 'treatment': treatment,
+      if (kind != null) 'kind': kind,
+      if (title != null) 'title': title,
+      if (dueAt != null) 'due_at': dueAt,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (muted != null) 'muted': muted,
+    });
+  }
+
+  RemindersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<int?>? season,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<int?>? lambing,
+    Value<int?>? treatment,
+    Value<String>? kind,
+    Value<String>? title,
+    Value<Instant>? dueAt,
+    Value<Instant?>? completedAt,
+    Value<bool>? muted,
+  }) {
+    return RemindersCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      season: season ?? this.season,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      lambing: lambing ?? this.lambing,
+      treatment: treatment ?? this.treatment,
+      kind: kind ?? this.kind,
+      title: title ?? this.title,
+      dueAt: dueAt ?? this.dueAt,
+      completedAt: completedAt ?? this.completedAt,
+      muted: muted ?? this.muted,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>($RemindersTable.$convertercreatedAt.toSql(createdAt.value));
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>($RemindersTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>($RemindersTable.$converterstruckAtn.toSql(struckAt.value));
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (treatment.present) {
+      map['treatment'] = Variable<int>(treatment.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (dueAt.present) {
+      map['due_at'] = Variable<int>($RemindersTable.$converterdueAt.toSql(dueAt.value));
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<int>(
+        $RemindersTable.$convertercompletedAtn.toSql(completedAt.value),
+      );
+    }
+    if (muted.present) {
+      map['muted'] = Variable<bool>(muted.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RemindersCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('season: $season, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('treatment: $treatment, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('dueAt: $dueAt, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('muted: $muted')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReminderRulesTable extends ReminderRules with TableInfo<$ReminderRulesTable, ReminderRule> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReminderRulesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _enabledMeta = const VerificationMeta('enabled');
+  @override
+  late final GeneratedColumn<bool> enabled = GeneratedColumn<bool>(
+    'enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("enabled" IN (0, 1))'),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _offsetMinutesMeta = const VerificationMeta('offsetMinutes');
+  @override
+  late final GeneratedColumn<int> offsetMinutes = GeneratedColumn<int>(
+    'offset_minutes',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [kind, enabled, offsetMinutes];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reminder_rules';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReminderRule> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('enabled')) {
+      context.handle(_enabledMeta, enabled.isAcceptableOrUnknown(data['enabled']!, _enabledMeta));
+    }
+    if (data.containsKey('offset_minutes')) {
+      context.handle(
+        _offsetMinutesMeta,
+        offsetMinutes.isAcceptableOrUnknown(data['offset_minutes']!, _offsetMinutesMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_offsetMinutesMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {kind};
+  @override
+  ReminderRule map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReminderRule(
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      enabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}enabled'],
+      )!,
+      offsetMinutes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}offset_minutes'],
+      )!,
+    );
+  }
+
+  @override
+  $ReminderRulesTable createAlias(String alias) {
+    return $ReminderRulesTable(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+}
+
+class ReminderRule extends DataClass implements Insertable<ReminderRule> {
+  final String kind;
+  final bool enabled;
+  final int offsetMinutes;
+  const ReminderRule({required this.kind, required this.enabled, required this.offsetMinutes});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['kind'] = Variable<String>(kind);
+    map['enabled'] = Variable<bool>(enabled);
+    map['offset_minutes'] = Variable<int>(offsetMinutes);
+    return map;
+  }
+
+  ReminderRulesCompanion toCompanion(bool nullToAbsent) {
+    return ReminderRulesCompanion(
+      kind: Value(kind),
+      enabled: Value(enabled),
+      offsetMinutes: Value(offsetMinutes),
+    );
+  }
+
+  factory ReminderRule.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReminderRule(
+      kind: serializer.fromJson<String>(json['kind']),
+      enabled: serializer.fromJson<bool>(json['enabled']),
+      offsetMinutes: serializer.fromJson<int>(json['offsetMinutes']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'kind': serializer.toJson<String>(kind),
+      'enabled': serializer.toJson<bool>(enabled),
+      'offsetMinutes': serializer.toJson<int>(offsetMinutes),
+    };
+  }
+
+  ReminderRule copyWith({String? kind, bool? enabled, int? offsetMinutes}) => ReminderRule(
+    kind: kind ?? this.kind,
+    enabled: enabled ?? this.enabled,
+    offsetMinutes: offsetMinutes ?? this.offsetMinutes,
+  );
+  ReminderRule copyWithCompanion(ReminderRulesCompanion data) {
+    return ReminderRule(
+      kind: data.kind.present ? data.kind.value : this.kind,
+      enabled: data.enabled.present ? data.enabled.value : this.enabled,
+      offsetMinutes: data.offsetMinutes.present ? data.offsetMinutes.value : this.offsetMinutes,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderRule(')
+          ..write('kind: $kind, ')
+          ..write('enabled: $enabled, ')
+          ..write('offsetMinutes: $offsetMinutes')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(kind, enabled, offsetMinutes);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReminderRule &&
+          other.kind == this.kind &&
+          other.enabled == this.enabled &&
+          other.offsetMinutes == this.offsetMinutes);
+}
+
+class ReminderRulesCompanion extends UpdateCompanion<ReminderRule> {
+  final Value<String> kind;
+  final Value<bool> enabled;
+  final Value<int> offsetMinutes;
+  final Value<int> rowid;
+  const ReminderRulesCompanion({
+    this.kind = const Value.absent(),
+    this.enabled = const Value.absent(),
+    this.offsetMinutes = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ReminderRulesCompanion.insert({
+    required String kind,
+    this.enabled = const Value.absent(),
+    required int offsetMinutes,
+    this.rowid = const Value.absent(),
+  }) : kind = Value(kind),
+       offsetMinutes = Value(offsetMinutes);
+  static Insertable<ReminderRule> custom({
+    Expression<String>? kind,
+    Expression<bool>? enabled,
+    Expression<int>? offsetMinutes,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (kind != null) 'kind': kind,
+      if (enabled != null) 'enabled': enabled,
+      if (offsetMinutes != null) 'offset_minutes': offsetMinutes,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ReminderRulesCompanion copyWith({
+    Value<String>? kind,
+    Value<bool>? enabled,
+    Value<int>? offsetMinutes,
+    Value<int>? rowid,
+  }) {
+    return ReminderRulesCompanion(
+      kind: kind ?? this.kind,
+      enabled: enabled ?? this.enabled,
+      offsetMinutes: offsetMinutes ?? this.offsetMinutes,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (enabled.present) {
+      map['enabled'] = Variable<bool>(enabled.value);
+    }
+    if (offsetMinutes.present) {
+      map['offset_minutes'] = Variable<int>(offsetMinutes.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReminderRulesCompanion(')
+          ..write('kind: $kind, ')
+          ..write('enabled: $enabled, ')
+          ..write('offsetMinutes: $offsetMinutes, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($NotesTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($NotesTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _struckMeta = const VerificationMeta('struck');
+  @override
+  late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
+    'struck',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("struck" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> struckAt = GeneratedColumn<int>(
+    'struck_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($NotesTable.$converterstruckAtn);
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
+  @override
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambings (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _seasonMeta = const VerificationMeta('season');
+  @override
+  late final GeneratedColumn<int> season = GeneratedColumn<int>(
+    'season',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> occurredAt = GeneratedColumn<int>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($NotesTable.$converteroccurredAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> capturedAt = GeneratedColumn<int>(
+    'captured_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($NotesTable.$convertercapturedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> originalEffective =
+      GeneratedColumn<int>(
+        'original_effective',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($NotesTable.$converteroriginalEffectiven);
+  static const VerificationMeta _timeSourceMeta = const VerificationMeta('timeSource');
+  @override
+  late final GeneratedColumn<String> timeSource = GeneratedColumn<String>(
+    'time_source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('auto'),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    ewe,
+    lamb,
+    lambing,
+    season,
+    body,
+    occurredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notes';
+  @override
+  VerificationContext validateIntegrity(Insertable<Note> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('struck')) {
+      context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('lambing')) {
+      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
+    }
+    if (data.containsKey('season')) {
+      context.handle(_seasonMeta, season.isAcceptableOrUnknown(data['season']!, _seasonMeta));
+    }
+    if (data.containsKey('body')) {
+      context.handle(_bodyMeta, body.isAcceptableOrUnknown(data['body']!, _bodyMeta));
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('time_source')) {
+      context.handle(
+        _timeSourceMeta,
+        timeSource.isAcceptableOrUnknown(data['time_source']!, _timeSourceMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Note map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Note(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $NotesTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $NotesTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      struck: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}struck'],
+      )!,
+      struckAt: $NotesTable.$converterstruckAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}struck_at']),
+      ),
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      season: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}season']),
+      body: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}body'])!,
+      occurredAt: $NotesTable.$converteroccurredAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}occurred_at'])!,
+      ),
+      capturedAt: $NotesTable.$convertercapturedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}captured_at'])!,
+      ),
+      originalEffective: $NotesTable.$converteroriginalEffectiven.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}original_effective'],
+        ),
+      ),
+      timeSource: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}time_source'],
+      )!,
+    );
+  }
+
+  @override
+  $NotesTable createAlias(String alias) {
+    return $NotesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterstruckAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterstruckAtn = NullAwareTypeConverter.wrap(
+    $converterstruckAt,
+  );
+  static TypeConverter<Instant, int> $converteroccurredAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertercapturedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converteroriginalEffective = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converteroriginalEffectiven = NullAwareTypeConverter.wrap(
+    $converteroriginalEffective,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class Note extends DataClass implements Insertable<Note> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
+  ///
+  /// The default is **not** a violation of 03 §2 point 5: that rule bans
+  /// defaults on columns that could encode veterinary advice — `days`, `ease`,
+  /// `status` — and an unstruck row is the only thing a new row can be.
+  final bool struck;
+
+  /// An [Instant], not a civil date: a strike happened at a moment, and that is
+  /// what makes one recorded at 01:30 on the clocks-back night unambiguous.
+  final Instant? struckAt;
+  final int? ewe;
+  final int? lamb;
+  final int? lambing;
+  final int? season;
+  final String body;
+
+  /// **`occurred_at` is WHEN THE THING HAPPENED** and is distinct from the
+  /// mixin's `created_at`, which is when the row was written: a note typed at
+  /// 06:00 about 03:20 has two different instants, and the timeline sorts on the
+  /// first.
+  final Instant occurredAt;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final String timeSource;
+  const Note({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.struck,
+    this.struckAt,
+    this.ewe,
+    this.lamb,
+    this.lambing,
+    this.season,
+    required this.body,
+    required this.occurredAt,
+    required this.capturedAt,
+    this.originalEffective,
+    required this.timeSource,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($NotesTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($NotesTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['struck'] = Variable<bool>(struck);
+    if (!nullToAbsent || struckAt != null) {
+      map['struck_at'] = Variable<int>($NotesTable.$converterstruckAtn.toSql(struckAt));
+    }
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || season != null) {
+      map['season'] = Variable<int>(season);
+    }
+    map['body'] = Variable<String>(body);
+    {
+      map['occurred_at'] = Variable<int>($NotesTable.$converteroccurredAt.toSql(occurredAt));
+    }
+    {
+      map['captured_at'] = Variable<int>($NotesTable.$convertercapturedAt.toSql(capturedAt));
+    }
+    if (!nullToAbsent || originalEffective != null) {
+      map['original_effective'] = Variable<int>(
+        $NotesTable.$converteroriginalEffectiven.toSql(originalEffective),
+      );
+    }
+    map['time_source'] = Variable<String>(timeSource);
+    return map;
+  }
+
+  NotesCompanion toCompanion(bool nullToAbsent) {
+    return NotesCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      struck: Value(struck),
+      struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
+      season: season == null && nullToAbsent ? const Value.absent() : Value(season),
+      body: Value(body),
+      occurredAt: Value(occurredAt),
+      capturedAt: Value(capturedAt),
+      originalEffective: originalEffective == null && nullToAbsent
+          ? const Value.absent()
+          : Value(originalEffective),
+      timeSource: Value(timeSource),
+    );
+  }
+
+  factory Note.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Note(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      struck: serializer.fromJson<bool>(json['struck']),
+      struckAt: serializer.fromJson<Instant?>(json['struckAt']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      season: serializer.fromJson<int?>(json['season']),
+      body: serializer.fromJson<String>(json['body']),
+      occurredAt: serializer.fromJson<Instant>(json['occurredAt']),
+      capturedAt: serializer.fromJson<Instant>(json['capturedAt']),
+      originalEffective: serializer.fromJson<Instant?>(json['originalEffective']),
+      timeSource: serializer.fromJson<String>(json['timeSource']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'struck': serializer.toJson<bool>(struck),
+      'struckAt': serializer.toJson<Instant?>(struckAt),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'lambing': serializer.toJson<int?>(lambing),
+      'season': serializer.toJson<int?>(season),
+      'body': serializer.toJson<String>(body),
+      'occurredAt': serializer.toJson<Instant>(occurredAt),
+      'capturedAt': serializer.toJson<Instant>(capturedAt),
+      'originalEffective': serializer.toJson<Instant?>(originalEffective),
+      'timeSource': serializer.toJson<String>(timeSource),
+    };
+  }
+
+  Note copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    bool? struck,
+    Value<Instant?> struckAt = const Value.absent(),
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> season = const Value.absent(),
+    String? body,
+    Instant? occurredAt,
+    Instant? capturedAt,
+    Value<Instant?> originalEffective = const Value.absent(),
+    String? timeSource,
+  }) => Note(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    struck: struck ?? this.struck,
+    struckAt: struckAt.present ? struckAt.value : this.struckAt,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    season: season.present ? season.value : this.season,
+    body: body ?? this.body,
+    occurredAt: occurredAt ?? this.occurredAt,
+    capturedAt: capturedAt ?? this.capturedAt,
+    originalEffective: originalEffective.present ? originalEffective.value : this.originalEffective,
+    timeSource: timeSource ?? this.timeSource,
+  );
+  Note copyWithCompanion(NotesCompanion data) {
+    return Note(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      struck: data.struck.present ? data.struck.value : this.struck,
+      struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      season: data.season.present ? data.season.value : this.season,
+      body: data.body.present ? data.body.value : this.body,
+      occurredAt: data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      capturedAt: data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      originalEffective: data.originalEffective.present
+          ? data.originalEffective.value
+          : this.originalEffective,
+      timeSource: data.timeSource.present ? data.timeSource.value : this.timeSource,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Note(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('season: $season, ')
+          ..write('body: $body, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    ewe,
+    lamb,
+    lambing,
+    season,
+    body,
+    occurredAt,
+    capturedAt,
+    originalEffective,
+    timeSource,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Note &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.struck == this.struck &&
+          other.struckAt == this.struckAt &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.lambing == this.lambing &&
+          other.season == this.season &&
+          other.body == this.body &&
+          other.occurredAt == this.occurredAt &&
+          other.capturedAt == this.capturedAt &&
+          other.originalEffective == this.originalEffective &&
+          other.timeSource == this.timeSource);
+}
+
+class NotesCompanion extends UpdateCompanion<Note> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<bool> struck;
+  final Value<Instant?> struckAt;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<int?> lambing;
+  final Value<int?> season;
+  final Value<String> body;
+  final Value<Instant> occurredAt;
+  final Value<Instant> capturedAt;
+  final Value<Instant?> originalEffective;
+  final Value<String> timeSource;
+  const NotesCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.season = const Value.absent(),
+    this.body = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+  });
+  NotesCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    this.struck = const Value.absent(),
+    this.struckAt = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.season = const Value.absent(),
+    required String body,
+    required Instant occurredAt,
+    required Instant capturedAt,
+    this.originalEffective = const Value.absent(),
+    this.timeSource = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       body = Value(body),
+       occurredAt = Value(occurredAt),
+       capturedAt = Value(capturedAt);
+  static Insertable<Note> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<bool>? struck,
+    Expression<int>? struckAt,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<int>? lambing,
+    Expression<int>? season,
+    Expression<String>? body,
+    Expression<int>? occurredAt,
+    Expression<int>? capturedAt,
+    Expression<int>? originalEffective,
+    Expression<String>? timeSource,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (struck != null) 'struck': struck,
+      if (struckAt != null) 'struck_at': struckAt,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (lambing != null) 'lambing': lambing,
+      if (season != null) 'season': season,
+      if (body != null) 'body': body,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (originalEffective != null) 'original_effective': originalEffective,
+      if (timeSource != null) 'time_source': timeSource,
+    });
+  }
+
+  NotesCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<bool>? struck,
+    Value<Instant?>? struckAt,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<int?>? lambing,
+    Value<int?>? season,
+    Value<String>? body,
+    Value<Instant>? occurredAt,
+    Value<Instant>? capturedAt,
+    Value<Instant?>? originalEffective,
+    Value<String>? timeSource,
+  }) {
+    return NotesCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      struck: struck ?? this.struck,
+      struckAt: struckAt ?? this.struckAt,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      lambing: lambing ?? this.lambing,
+      season: season ?? this.season,
+      body: body ?? this.body,
+      occurredAt: occurredAt ?? this.occurredAt,
+      capturedAt: capturedAt ?? this.capturedAt,
+      originalEffective: originalEffective ?? this.originalEffective,
+      timeSource: timeSource ?? this.timeSource,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>($NotesTable.$convertercreatedAt.toSql(createdAt.value));
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>($NotesTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (struck.present) {
+      map['struck'] = Variable<bool>(struck.value);
+    }
+    if (struckAt.present) {
+      map['struck_at'] = Variable<int>($NotesTable.$converterstruckAtn.toSql(struckAt.value));
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (season.present) {
+      map['season'] = Variable<int>(season.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<int>($NotesTable.$converteroccurredAt.toSql(occurredAt.value));
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<int>($NotesTable.$convertercapturedAt.toSql(capturedAt.value));
+    }
+    if (originalEffective.present) {
+      map['original_effective'] = Variable<int>(
+        $NotesTable.$converteroriginalEffectiven.toSql(originalEffective.value),
+      );
+    }
+    if (timeSource.present) {
+      map['time_source'] = Variable<String>(timeSource.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotesCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('struck: $struck, ')
+          ..write('struckAt: $struckAt, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('season: $season, ')
+          ..write('body: $body, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('originalEffective: $originalEffective, ')
+          ..write('timeSource: $timeSource')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MediaAssetsTable extends MediaAssets with TableInfo<$MediaAssetsTable, MediaAsset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MediaAssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($MediaAssetsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($MediaAssetsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta('relativePath');
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteSizeMeta = const VerificationMeta('byteSize');
+  @override
+  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
+    'byte_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta('durationMs');
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
+  @override
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambings (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<int> note = GeneratedColumn<int>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES notes (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> missingSince = GeneratedColumn<int>(
+    'missing_since',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($MediaAssetsTable.$convertermissingSincen);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media_assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MediaAsset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(data['relative_path']!, _relativePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('byte_size')) {
+      context.handle(
+        _byteSizeMeta,
+        byteSize.isAcceptableOrUnknown(data['byte_size']!, _byteSizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteSizeMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(_sha256Meta, sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta));
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('lambing')) {
+      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {relativePath},
+  ];
+  @override
+  MediaAsset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaAsset(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $MediaAssetsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $MediaAssetsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      byteSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_size'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      ),
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      note: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}note']),
+      missingSince: $MediaAssetsTable.$convertermissingSincen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}missing_since'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $MediaAssetsTable createAlias(String alias) {
+    return $MediaAssetsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertermissingSince = const InstantConverter();
+  static TypeConverter<Instant?, int?> $convertermissingSincen = NullAwareTypeConverter.wrap(
+    $convertermissingSince,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class MediaAsset extends DataClass implements Insertable<MediaAsset> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// **RELATIVE to the media root**, e.g. `"2026/03/019524f7-….jpg"`.
+  ///
+  /// The iOS container UUID is not stable across launches, so an absolute path
+  /// 404s after every restore, update and re-install — and never reproduces on
+  /// the developer's Android phone.
+  final String relativePath;
+  final String kind;
+  final int byteSize;
+  final int? durationMs;
+  final String? sha256;
+  final int? ewe;
+  final int? lamb;
+  final int? lambing;
+  final int? note;
+
+  /// Set when a sweep finds the file gone. **The row is NEVER deleted**:
+  /// *"photo taken 14 March, file missing"* is more honest than silence.
+  final Instant? missingSince;
+  const MediaAsset({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.relativePath,
+    required this.kind,
+    required this.byteSize,
+    this.durationMs,
+    this.sha256,
+    this.ewe,
+    this.lamb,
+    this.lambing,
+    this.note,
+    this.missingSince,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($MediaAssetsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($MediaAssetsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['relative_path'] = Variable<String>(relativePath);
+    map['kind'] = Variable<String>(kind);
+    map['byte_size'] = Variable<int>(byteSize);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || sha256 != null) {
+      map['sha256'] = Variable<String>(sha256);
+    }
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<int>(note);
+    }
+    if (!nullToAbsent || missingSince != null) {
+      map['missing_since'] = Variable<int>(
+        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince),
+      );
+    }
+    return map;
+  }
+
+  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
+    return MediaAssetsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      relativePath: Value(relativePath),
+      kind: Value(kind),
+      byteSize: Value(byteSize),
+      durationMs: durationMs == null && nullToAbsent ? const Value.absent() : Value(durationMs),
+      sha256: sha256 == null && nullToAbsent ? const Value.absent() : Value(sha256),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      missingSince: missingSince == null && nullToAbsent
+          ? const Value.absent()
+          : Value(missingSince),
+    );
+  }
+
+  factory MediaAsset.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaAsset(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      kind: serializer.fromJson<String>(json['kind']),
+      byteSize: serializer.fromJson<int>(json['byteSize']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      sha256: serializer.fromJson<String?>(json['sha256']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      note: serializer.fromJson<int?>(json['note']),
+      missingSince: serializer.fromJson<Instant?>(json['missingSince']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'kind': serializer.toJson<String>(kind),
+      'byteSize': serializer.toJson<int>(byteSize),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'sha256': serializer.toJson<String?>(sha256),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'lambing': serializer.toJson<int?>(lambing),
+      'note': serializer.toJson<int?>(note),
+      'missingSince': serializer.toJson<Instant?>(missingSince),
+    };
+  }
+
+  MediaAsset copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    String? relativePath,
+    String? kind,
+    int? byteSize,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> sha256 = const Value.absent(),
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> note = const Value.absent(),
+    Value<Instant?> missingSince = const Value.absent(),
+  }) => MediaAsset(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    relativePath: relativePath ?? this.relativePath,
+    kind: kind ?? this.kind,
+    byteSize: byteSize ?? this.byteSize,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    sha256: sha256.present ? sha256.value : this.sha256,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    note: note.present ? note.value : this.note,
+    missingSince: missingSince.present ? missingSince.value : this.missingSince,
+  );
+  MediaAsset copyWithCompanion(MediaAssetsCompanion data) {
+    return MediaAsset(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      relativePath: data.relativePath.present ? data.relativePath.value : this.relativePath,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
+      durationMs: data.durationMs.present ? data.durationMs.value : this.durationMs,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      note: data.note.present ? data.note.value : this.note,
+      missingSince: data.missingSince.present ? data.missingSince.value : this.missingSince,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAsset(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAsset &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.relativePath == this.relativePath &&
+          other.kind == this.kind &&
+          other.byteSize == this.byteSize &&
+          other.durationMs == this.durationMs &&
+          other.sha256 == this.sha256 &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.lambing == this.lambing &&
+          other.note == this.note &&
+          other.missingSince == this.missingSince);
+}
+
+class MediaAssetsCompanion extends UpdateCompanion<MediaAsset> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<String> relativePath;
+  final Value<String> kind;
+  final Value<int> byteSize;
+  final Value<int?> durationMs;
+  final Value<String?> sha256;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<int?> lambing;
+  final Value<int?> note;
+  final Value<Instant?> missingSince;
+  const MediaAssetsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.byteSize = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  });
+  MediaAssetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    required String relativePath,
+    required String kind,
+    required int byteSize,
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       relativePath = Value(relativePath),
+       kind = Value(kind),
+       byteSize = Value(byteSize);
+  static Insertable<MediaAsset> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<String>? relativePath,
+    Expression<String>? kind,
+    Expression<int>? byteSize,
+    Expression<int>? durationMs,
+    Expression<String>? sha256,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<int>? lambing,
+    Expression<int>? note,
+    Expression<int>? missingSince,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (kind != null) 'kind': kind,
+      if (byteSize != null) 'byte_size': byteSize,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (sha256 != null) 'sha256': sha256,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (lambing != null) 'lambing': lambing,
+      if (note != null) 'note': note,
+      if (missingSince != null) 'missing_since': missingSince,
+    });
+  }
+
+  MediaAssetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<String>? relativePath,
+    Value<String>? kind,
+    Value<int>? byteSize,
+    Value<int?>? durationMs,
+    Value<String?>? sha256,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<int?>? lambing,
+    Value<int?>? note,
+    Value<Instant?>? missingSince,
+  }) {
+    return MediaAssetsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      relativePath: relativePath ?? this.relativePath,
+      kind: kind ?? this.kind,
+      byteSize: byteSize ?? this.byteSize,
+      durationMs: durationMs ?? this.durationMs,
+      sha256: sha256 ?? this.sha256,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      lambing: lambing ?? this.lambing,
+      note: note ?? this.note,
+      missingSince: missingSince ?? this.missingSince,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $MediaAssetsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $MediaAssetsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (byteSize.present) {
+      map['byte_size'] = Variable<int>(byteSize.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<int>(note.value);
+    }
+    if (missingSince.present) {
+      map['missing_since'] = Variable<int>(
+        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TerminologyOverridesTable extends TerminologyOverrides
+    with TableInfo<$TerminologyOverridesTable, TerminologyOverride> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TerminologyOverridesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _singularMeta = const VerificationMeta('singular');
+  @override
+  late final GeneratedColumn<String> singular = GeneratedColumn<String>(
+    'singular',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _pluralMeta = const VerificationMeta('plural');
+  @override
+  late final GeneratedColumn<String> plural = GeneratedColumn<String>(
+    'plural',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, singular, plural];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'terminology_overrides';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TerminologyOverride> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(_keyMeta, key.isAcceptableOrUnknown(data['key']!, _keyMeta));
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('singular')) {
+      context.handle(
+        _singularMeta,
+        singular.isAcceptableOrUnknown(data['singular']!, _singularMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_singularMeta);
+    }
+    if (data.containsKey('plural')) {
+      context.handle(_pluralMeta, plural.isAcceptableOrUnknown(data['plural']!, _pluralMeta));
+    } else if (isInserting) {
+      context.missing(_pluralMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  TerminologyOverride map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TerminologyOverride(
+      key: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}key'])!,
+      singular: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}singular'],
+      )!,
+      plural: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}plural'],
+      )!,
+    );
+  }
+
+  @override
+  $TerminologyOverridesTable createAlias(String alias) {
+    return $TerminologyOverridesTable(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+}
+
+class TerminologyOverride extends DataClass implements Insertable<TerminologyOverride> {
+  final String key;
+  final String singular;
+  final String plural;
+  const TerminologyOverride({required this.key, required this.singular, required this.plural});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['singular'] = Variable<String>(singular);
+    map['plural'] = Variable<String>(plural);
+    return map;
+  }
+
+  TerminologyOverridesCompanion toCompanion(bool nullToAbsent) {
+    return TerminologyOverridesCompanion(
+      key: Value(key),
+      singular: Value(singular),
+      plural: Value(plural),
+    );
+  }
+
+  factory TerminologyOverride.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TerminologyOverride(
+      key: serializer.fromJson<String>(json['key']),
+      singular: serializer.fromJson<String>(json['singular']),
+      plural: serializer.fromJson<String>(json['plural']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'singular': serializer.toJson<String>(singular),
+      'plural': serializer.toJson<String>(plural),
+    };
+  }
+
+  TerminologyOverride copyWith({String? key, String? singular, String? plural}) =>
+      TerminologyOverride(
+        key: key ?? this.key,
+        singular: singular ?? this.singular,
+        plural: plural ?? this.plural,
+      );
+  TerminologyOverride copyWithCompanion(TerminologyOverridesCompanion data) {
+    return TerminologyOverride(
+      key: data.key.present ? data.key.value : this.key,
+      singular: data.singular.present ? data.singular.value : this.singular,
+      plural: data.plural.present ? data.plural.value : this.plural,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TerminologyOverride(')
+          ..write('key: $key, ')
+          ..write('singular: $singular, ')
+          ..write('plural: $plural')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, singular, plural);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TerminologyOverride &&
+          other.key == this.key &&
+          other.singular == this.singular &&
+          other.plural == this.plural);
+}
+
+class TerminologyOverridesCompanion extends UpdateCompanion<TerminologyOverride> {
+  final Value<String> key;
+  final Value<String> singular;
+  final Value<String> plural;
+  final Value<int> rowid;
+  const TerminologyOverridesCompanion({
+    this.key = const Value.absent(),
+    this.singular = const Value.absent(),
+    this.plural = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TerminologyOverridesCompanion.insert({
+    required String key,
+    required String singular,
+    required String plural,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       singular = Value(singular),
+       plural = Value(plural);
+  static Insertable<TerminologyOverride> custom({
+    Expression<String>? key,
+    Expression<String>? singular,
+    Expression<String>? plural,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (singular != null) 'singular': singular,
+      if (plural != null) 'plural': plural,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TerminologyOverridesCompanion copyWith({
+    Value<String>? key,
+    Value<String>? singular,
+    Value<String>? plural,
+    Value<int>? rowid,
+  }) {
+    return TerminologyOverridesCompanion(
+      key: key ?? this.key,
+      singular: singular ?? this.singular,
+      plural: plural ?? this.plural,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (singular.present) {
+      map['singular'] = Variable<String>(singular.value);
+    }
+    if (plural.present) {
+      map['plural'] = Variable<String>(plural.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TerminologyOverridesCompanion(')
+          ..write('key: $key, ')
+          ..write('singular: $singular, ')
+          ..write('plural: $plural, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AppSettingsTable extends AppSettings with TableInfo<$AppSettingsTable, AppSetting> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _weightUnitMeta = const VerificationMeta('weightUnit');
+  @override
+  late final GeneratedColumn<String> weightUnit = GeneratedColumn<String>(
+    'weight_unit',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('kg'),
+  );
+  static const VerificationMeta _paletteMeta = const VerificationMeta('palette');
+  @override
+  late final GeneratedColumn<String> palette = GeneratedColumn<String>(
+    'palette',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('night'),
+  );
+  static const VerificationMeta _highContrastMeta = const VerificationMeta('highContrast');
+  @override
+  late final GeneratedColumn<bool> highContrast = GeneratedColumn<bool>(
+    'high_contrast',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("high_contrast" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _wakelockEnabledMeta = const VerificationMeta('wakelockEnabled');
+  @override
+  late final GeneratedColumn<bool> wakelockEnabled = GeneratedColumn<bool>(
+    'wakelock_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("wakelock_enabled" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _leftHandedMeta = const VerificationMeta('leftHanded');
+  @override
+  late final GeneratedColumn<bool> leftHanded = GeneratedColumn<bool>(
+    'left_handed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("left_handed" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _currentSeasonMeta = const VerificationMeta('currentSeason');
+  @override
+  late final GeneratedColumn<int> currentSeason = GeneratedColumn<int>(
+    'current_season',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _percentageDefinitionMeta = const VerificationMeta(
+    'percentageDefinition',
+  );
+  @override
+  late final GeneratedColumn<String> percentageDefinition = GeneratedColumn<String>(
+    'percentage_definition',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('born_alive_per_ewe_to_ram'),
+  );
+  static const VerificationMeta _turnOutThresholdHoursMeta = const VerificationMeta(
+    'turnOutThresholdHours',
+  );
+  @override
+  late final GeneratedColumn<int> turnOutThresholdHours = GeneratedColumn<int>(
+    'turn_out_threshold_hours',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(24),
+  );
+  static const VerificationMeta _cycleDaysMeta = const VerificationMeta('cycleDays');
+  @override
+  late final GeneratedColumn<int> cycleDays = GeneratedColumn<int>(
+    'cycle_days',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(17),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> lastReconcileScheduled =
+      GeneratedColumn<int>(
+        'last_reconcile_scheduled',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($AppSettingsTable.$converterlastReconcileScheduledn);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> lastExportedAt = GeneratedColumn<int>(
+    'last_exported_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($AppSettingsTable.$converterlastExportedAtn);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> lastExportPromptedAt =
+      GeneratedColumn<int>(
+        'last_export_prompted_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($AppSettingsTable.$converterlastExportPromptedAtn);
+  static const VerificationMeta _exportPromptDismissedForSeasonMeta = const VerificationMeta(
+    'exportPromptDismissedForSeason',
+  );
+  @override
+  late final GeneratedColumn<int> exportPromptDismissedForSeason = GeneratedColumn<int>(
+    'export_prompt_dismissed_for_season',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE SET NULL',
+    ),
+  );
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    weightUnit,
+    palette,
+    highContrast,
+    wakelockEnabled,
+    leftHanded,
+    currentSeason,
+    percentageDefinition,
+    turnOutThresholdHours,
+    cycleDays,
+    lastReconcileScheduled,
+    lastExportedAt,
+    lastExportPromptedAt,
+    exportPromptDismissedForSeason,
+    unknownJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_settings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppSetting> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('weight_unit')) {
+      context.handle(
+        _weightUnitMeta,
+        weightUnit.isAcceptableOrUnknown(data['weight_unit']!, _weightUnitMeta),
+      );
+    }
+    if (data.containsKey('palette')) {
+      context.handle(_paletteMeta, palette.isAcceptableOrUnknown(data['palette']!, _paletteMeta));
+    }
+    if (data.containsKey('high_contrast')) {
+      context.handle(
+        _highContrastMeta,
+        highContrast.isAcceptableOrUnknown(data['high_contrast']!, _highContrastMeta),
+      );
+    }
+    if (data.containsKey('wakelock_enabled')) {
+      context.handle(
+        _wakelockEnabledMeta,
+        wakelockEnabled.isAcceptableOrUnknown(data['wakelock_enabled']!, _wakelockEnabledMeta),
+      );
+    }
+    if (data.containsKey('left_handed')) {
+      context.handle(
+        _leftHandedMeta,
+        leftHanded.isAcceptableOrUnknown(data['left_handed']!, _leftHandedMeta),
+      );
+    }
+    if (data.containsKey('current_season')) {
+      context.handle(
+        _currentSeasonMeta,
+        currentSeason.isAcceptableOrUnknown(data['current_season']!, _currentSeasonMeta),
+      );
+    }
+    if (data.containsKey('percentage_definition')) {
+      context.handle(
+        _percentageDefinitionMeta,
+        percentageDefinition.isAcceptableOrUnknown(
+          data['percentage_definition']!,
+          _percentageDefinitionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('turn_out_threshold_hours')) {
+      context.handle(
+        _turnOutThresholdHoursMeta,
+        turnOutThresholdHours.isAcceptableOrUnknown(
+          data['turn_out_threshold_hours']!,
+          _turnOutThresholdHoursMeta,
+        ),
+      );
+    }
+    if (data.containsKey('cycle_days')) {
+      context.handle(
+        _cycleDaysMeta,
+        cycleDays.isAcceptableOrUnknown(data['cycle_days']!, _cycleDaysMeta),
+      );
+    }
+    if (data.containsKey('export_prompt_dismissed_for_season')) {
+      context.handle(
+        _exportPromptDismissedForSeasonMeta,
+        exportPromptDismissedForSeason.isAcceptableOrUnknown(
+          data['export_prompt_dismissed_for_season']!,
+          _exportPromptDismissedForSeasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AppSetting map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppSetting(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      weightUnit: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}weight_unit'],
+      )!,
+      palette: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}palette'],
+      )!,
+      highContrast: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}high_contrast'],
+      )!,
+      wakelockEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}wakelock_enabled'],
+      )!,
+      leftHanded: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}left_handed'],
+      )!,
+      currentSeason: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}current_season'],
+      ),
+      percentageDefinition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}percentage_definition'],
+      )!,
+      turnOutThresholdHours: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}turn_out_threshold_hours'],
+      )!,
+      cycleDays: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}cycle_days'],
+      )!,
+      lastReconcileScheduled: $AppSettingsTable.$converterlastReconcileScheduledn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}last_reconcile_scheduled'],
+        ),
+      ),
+      lastExportedAt: $AppSettingsTable.$converterlastExportedAtn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}last_exported_at'],
+        ),
+      ),
+      lastExportPromptedAt: $AppSettingsTable.$converterlastExportPromptedAtn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}last_export_prompted_at'],
+        ),
+      ),
+      exportPromptDismissedForSeason: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}export_prompt_dismissed_for_season'],
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+    );
+  }
+
+  @override
+  $AppSettingsTable createAlias(String alias) {
+    return $AppSettingsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $converterlastReconcileScheduled = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterlastReconcileScheduledn =
+      NullAwareTypeConverter.wrap($converterlastReconcileScheduled);
+  static TypeConverter<Instant, int> $converterlastExportedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterlastExportedAtn = NullAwareTypeConverter.wrap(
+    $converterlastExportedAt,
+  );
+  static TypeConverter<Instant, int> $converterlastExportPromptedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterlastExportPromptedAtn =
+      NullAwareTypeConverter.wrap($converterlastExportPromptedAt);
+  @override
+  bool get isStrict => true;
+}
+
+class AppSetting extends DataClass implements Insertable<AppSetting> {
+  final int id;
+
+  /// Keys are `WeightUnit`'s, byte-identical (R68).
+  final String weightUnit;
+
+  /// Byte-identical to `ShedPaletteId`'s keys (R35): `night` · `amber` · `red`.
+  /// **There is no `dark` key** — the palette that used to be called that is
+  /// `night`, and the enum and the column must spell it the same way.
+  final String palette;
+  final bool highContrast;
+  final bool wakelockEnabled;
+
+  /// Mirrors the primary action column for a left-handed shepherd (R40). A
+  /// layout preference, **never a capability switch**.
+  final bool leftHanded;
+  final int? currentSeason;
+  final String percentageDefinition;
+
+  /// A **display** threshold the user sets, never a recommendation. It decides
+  /// when the pen tile shows its badge and nothing else — not in any export, and
+  /// no other column is derived from it. A blank threshold would mean no badge
+  /// ever.
+  final int turnOutThresholdHours;
+
+  /// Used only to zero-fill the lambing-spread histogram's first-cycle bucket.
+  /// Display arithmetic, never advice.
+  final int cycleDays;
+
+  /// Nullable: *"never reconciled"* is a real state, and it is what the honest
+  /// reminder line reads. **Not** a cache of the projection itself.
+  final Instant? lastReconcileScheduled;
+  final Instant? lastExportedAt;
+  final Instant? lastExportPromptedAt;
+  final int? exportPromptDismissedForSeason;
+
+  /// An unknown *table* in a backup is preserved here under its table name
+  /// (04 §6.4). Never dropped silently.
+  final String? unknownJson;
+  const AppSetting({
+    required this.id,
+    required this.weightUnit,
+    required this.palette,
+    required this.highContrast,
+    required this.wakelockEnabled,
+    required this.leftHanded,
+    this.currentSeason,
+    required this.percentageDefinition,
+    required this.turnOutThresholdHours,
+    required this.cycleDays,
+    this.lastReconcileScheduled,
+    this.lastExportedAt,
+    this.lastExportPromptedAt,
+    this.exportPromptDismissedForSeason,
+    this.unknownJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['weight_unit'] = Variable<String>(weightUnit);
+    map['palette'] = Variable<String>(palette);
+    map['high_contrast'] = Variable<bool>(highContrast);
+    map['wakelock_enabled'] = Variable<bool>(wakelockEnabled);
+    map['left_handed'] = Variable<bool>(leftHanded);
+    if (!nullToAbsent || currentSeason != null) {
+      map['current_season'] = Variable<int>(currentSeason);
+    }
+    map['percentage_definition'] = Variable<String>(percentageDefinition);
+    map['turn_out_threshold_hours'] = Variable<int>(turnOutThresholdHours);
+    map['cycle_days'] = Variable<int>(cycleDays);
+    if (!nullToAbsent || lastReconcileScheduled != null) {
+      map['last_reconcile_scheduled'] = Variable<int>(
+        $AppSettingsTable.$converterlastReconcileScheduledn.toSql(lastReconcileScheduled),
+      );
+    }
+    if (!nullToAbsent || lastExportedAt != null) {
+      map['last_exported_at'] = Variable<int>(
+        $AppSettingsTable.$converterlastExportedAtn.toSql(lastExportedAt),
+      );
+    }
+    if (!nullToAbsent || lastExportPromptedAt != null) {
+      map['last_export_prompted_at'] = Variable<int>(
+        $AppSettingsTable.$converterlastExportPromptedAtn.toSql(lastExportPromptedAt),
+      );
+    }
+    if (!nullToAbsent || exportPromptDismissedForSeason != null) {
+      map['export_prompt_dismissed_for_season'] = Variable<int>(exportPromptDismissedForSeason);
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    return map;
+  }
+
+  AppSettingsCompanion toCompanion(bool nullToAbsent) {
+    return AppSettingsCompanion(
+      id: Value(id),
+      weightUnit: Value(weightUnit),
+      palette: Value(palette),
+      highContrast: Value(highContrast),
+      wakelockEnabled: Value(wakelockEnabled),
+      leftHanded: Value(leftHanded),
+      currentSeason: currentSeason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(currentSeason),
+      percentageDefinition: Value(percentageDefinition),
+      turnOutThresholdHours: Value(turnOutThresholdHours),
+      cycleDays: Value(cycleDays),
+      lastReconcileScheduled: lastReconcileScheduled == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastReconcileScheduled),
+      lastExportedAt: lastExportedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastExportedAt),
+      lastExportPromptedAt: lastExportPromptedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastExportPromptedAt),
+      exportPromptDismissedForSeason: exportPromptDismissedForSeason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(exportPromptDismissedForSeason),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+    );
+  }
+
+  factory AppSetting.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppSetting(
+      id: serializer.fromJson<int>(json['id']),
+      weightUnit: serializer.fromJson<String>(json['weightUnit']),
+      palette: serializer.fromJson<String>(json['palette']),
+      highContrast: serializer.fromJson<bool>(json['highContrast']),
+      wakelockEnabled: serializer.fromJson<bool>(json['wakelockEnabled']),
+      leftHanded: serializer.fromJson<bool>(json['leftHanded']),
+      currentSeason: serializer.fromJson<int?>(json['currentSeason']),
+      percentageDefinition: serializer.fromJson<String>(json['percentageDefinition']),
+      turnOutThresholdHours: serializer.fromJson<int>(json['turnOutThresholdHours']),
+      cycleDays: serializer.fromJson<int>(json['cycleDays']),
+      lastReconcileScheduled: serializer.fromJson<Instant?>(json['lastReconcileScheduled']),
+      lastExportedAt: serializer.fromJson<Instant?>(json['lastExportedAt']),
+      lastExportPromptedAt: serializer.fromJson<Instant?>(json['lastExportPromptedAt']),
+      exportPromptDismissedForSeason: serializer.fromJson<int?>(
+        json['exportPromptDismissedForSeason'],
+      ),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'weightUnit': serializer.toJson<String>(weightUnit),
+      'palette': serializer.toJson<String>(palette),
+      'highContrast': serializer.toJson<bool>(highContrast),
+      'wakelockEnabled': serializer.toJson<bool>(wakelockEnabled),
+      'leftHanded': serializer.toJson<bool>(leftHanded),
+      'currentSeason': serializer.toJson<int?>(currentSeason),
+      'percentageDefinition': serializer.toJson<String>(percentageDefinition),
+      'turnOutThresholdHours': serializer.toJson<int>(turnOutThresholdHours),
+      'cycleDays': serializer.toJson<int>(cycleDays),
+      'lastReconcileScheduled': serializer.toJson<Instant?>(lastReconcileScheduled),
+      'lastExportedAt': serializer.toJson<Instant?>(lastExportedAt),
+      'lastExportPromptedAt': serializer.toJson<Instant?>(lastExportPromptedAt),
+      'exportPromptDismissedForSeason': serializer.toJson<int?>(exportPromptDismissedForSeason),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+    };
+  }
+
+  AppSetting copyWith({
+    int? id,
+    String? weightUnit,
+    String? palette,
+    bool? highContrast,
+    bool? wakelockEnabled,
+    bool? leftHanded,
+    Value<int?> currentSeason = const Value.absent(),
+    String? percentageDefinition,
+    int? turnOutThresholdHours,
+    int? cycleDays,
+    Value<Instant?> lastReconcileScheduled = const Value.absent(),
+    Value<Instant?> lastExportedAt = const Value.absent(),
+    Value<Instant?> lastExportPromptedAt = const Value.absent(),
+    Value<int?> exportPromptDismissedForSeason = const Value.absent(),
+    Value<String?> unknownJson = const Value.absent(),
+  }) => AppSetting(
+    id: id ?? this.id,
+    weightUnit: weightUnit ?? this.weightUnit,
+    palette: palette ?? this.palette,
+    highContrast: highContrast ?? this.highContrast,
+    wakelockEnabled: wakelockEnabled ?? this.wakelockEnabled,
+    leftHanded: leftHanded ?? this.leftHanded,
+    currentSeason: currentSeason.present ? currentSeason.value : this.currentSeason,
+    percentageDefinition: percentageDefinition ?? this.percentageDefinition,
+    turnOutThresholdHours: turnOutThresholdHours ?? this.turnOutThresholdHours,
+    cycleDays: cycleDays ?? this.cycleDays,
+    lastReconcileScheduled: lastReconcileScheduled.present
+        ? lastReconcileScheduled.value
+        : this.lastReconcileScheduled,
+    lastExportedAt: lastExportedAt.present ? lastExportedAt.value : this.lastExportedAt,
+    lastExportPromptedAt: lastExportPromptedAt.present
+        ? lastExportPromptedAt.value
+        : this.lastExportPromptedAt,
+    exportPromptDismissedForSeason: exportPromptDismissedForSeason.present
+        ? exportPromptDismissedForSeason.value
+        : this.exportPromptDismissedForSeason,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+  );
+  AppSetting copyWithCompanion(AppSettingsCompanion data) {
+    return AppSetting(
+      id: data.id.present ? data.id.value : this.id,
+      weightUnit: data.weightUnit.present ? data.weightUnit.value : this.weightUnit,
+      palette: data.palette.present ? data.palette.value : this.palette,
+      highContrast: data.highContrast.present ? data.highContrast.value : this.highContrast,
+      wakelockEnabled: data.wakelockEnabled.present
+          ? data.wakelockEnabled.value
+          : this.wakelockEnabled,
+      leftHanded: data.leftHanded.present ? data.leftHanded.value : this.leftHanded,
+      currentSeason: data.currentSeason.present ? data.currentSeason.value : this.currentSeason,
+      percentageDefinition: data.percentageDefinition.present
+          ? data.percentageDefinition.value
+          : this.percentageDefinition,
+      turnOutThresholdHours: data.turnOutThresholdHours.present
+          ? data.turnOutThresholdHours.value
+          : this.turnOutThresholdHours,
+      cycleDays: data.cycleDays.present ? data.cycleDays.value : this.cycleDays,
+      lastReconcileScheduled: data.lastReconcileScheduled.present
+          ? data.lastReconcileScheduled.value
+          : this.lastReconcileScheduled,
+      lastExportedAt: data.lastExportedAt.present ? data.lastExportedAt.value : this.lastExportedAt,
+      lastExportPromptedAt: data.lastExportPromptedAt.present
+          ? data.lastExportPromptedAt.value
+          : this.lastExportPromptedAt,
+      exportPromptDismissedForSeason: data.exportPromptDismissedForSeason.present
+          ? data.exportPromptDismissedForSeason.value
+          : this.exportPromptDismissedForSeason,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSetting(')
+          ..write('id: $id, ')
+          ..write('weightUnit: $weightUnit, ')
+          ..write('palette: $palette, ')
+          ..write('highContrast: $highContrast, ')
+          ..write('wakelockEnabled: $wakelockEnabled, ')
+          ..write('leftHanded: $leftHanded, ')
+          ..write('currentSeason: $currentSeason, ')
+          ..write('percentageDefinition: $percentageDefinition, ')
+          ..write('turnOutThresholdHours: $turnOutThresholdHours, ')
+          ..write('cycleDays: $cycleDays, ')
+          ..write('lastReconcileScheduled: $lastReconcileScheduled, ')
+          ..write('lastExportedAt: $lastExportedAt, ')
+          ..write('lastExportPromptedAt: $lastExportPromptedAt, ')
+          ..write('exportPromptDismissedForSeason: $exportPromptDismissedForSeason, ')
+          ..write('unknownJson: $unknownJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    weightUnit,
+    palette,
+    highContrast,
+    wakelockEnabled,
+    leftHanded,
+    currentSeason,
+    percentageDefinition,
+    turnOutThresholdHours,
+    cycleDays,
+    lastReconcileScheduled,
+    lastExportedAt,
+    lastExportPromptedAt,
+    exportPromptDismissedForSeason,
+    unknownJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppSetting &&
+          other.id == this.id &&
+          other.weightUnit == this.weightUnit &&
+          other.palette == this.palette &&
+          other.highContrast == this.highContrast &&
+          other.wakelockEnabled == this.wakelockEnabled &&
+          other.leftHanded == this.leftHanded &&
+          other.currentSeason == this.currentSeason &&
+          other.percentageDefinition == this.percentageDefinition &&
+          other.turnOutThresholdHours == this.turnOutThresholdHours &&
+          other.cycleDays == this.cycleDays &&
+          other.lastReconcileScheduled == this.lastReconcileScheduled &&
+          other.lastExportedAt == this.lastExportedAt &&
+          other.lastExportPromptedAt == this.lastExportPromptedAt &&
+          other.exportPromptDismissedForSeason == this.exportPromptDismissedForSeason &&
+          other.unknownJson == this.unknownJson);
+}
+
+class AppSettingsCompanion extends UpdateCompanion<AppSetting> {
+  final Value<int> id;
+  final Value<String> weightUnit;
+  final Value<String> palette;
+  final Value<bool> highContrast;
+  final Value<bool> wakelockEnabled;
+  final Value<bool> leftHanded;
+  final Value<int?> currentSeason;
+  final Value<String> percentageDefinition;
+  final Value<int> turnOutThresholdHours;
+  final Value<int> cycleDays;
+  final Value<Instant?> lastReconcileScheduled;
+  final Value<Instant?> lastExportedAt;
+  final Value<Instant?> lastExportPromptedAt;
+  final Value<int?> exportPromptDismissedForSeason;
+  final Value<String?> unknownJson;
+  const AppSettingsCompanion({
+    this.id = const Value.absent(),
+    this.weightUnit = const Value.absent(),
+    this.palette = const Value.absent(),
+    this.highContrast = const Value.absent(),
+    this.wakelockEnabled = const Value.absent(),
+    this.leftHanded = const Value.absent(),
+    this.currentSeason = const Value.absent(),
+    this.percentageDefinition = const Value.absent(),
+    this.turnOutThresholdHours = const Value.absent(),
+    this.cycleDays = const Value.absent(),
+    this.lastReconcileScheduled = const Value.absent(),
+    this.lastExportedAt = const Value.absent(),
+    this.lastExportPromptedAt = const Value.absent(),
+    this.exportPromptDismissedForSeason = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+  });
+  AppSettingsCompanion.insert({
+    this.id = const Value.absent(),
+    this.weightUnit = const Value.absent(),
+    this.palette = const Value.absent(),
+    this.highContrast = const Value.absent(),
+    this.wakelockEnabled = const Value.absent(),
+    this.leftHanded = const Value.absent(),
+    this.currentSeason = const Value.absent(),
+    this.percentageDefinition = const Value.absent(),
+    this.turnOutThresholdHours = const Value.absent(),
+    this.cycleDays = const Value.absent(),
+    this.lastReconcileScheduled = const Value.absent(),
+    this.lastExportedAt = const Value.absent(),
+    this.lastExportPromptedAt = const Value.absent(),
+    this.exportPromptDismissedForSeason = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+  });
+  static Insertable<AppSetting> custom({
+    Expression<int>? id,
+    Expression<String>? weightUnit,
+    Expression<String>? palette,
+    Expression<bool>? highContrast,
+    Expression<bool>? wakelockEnabled,
+    Expression<bool>? leftHanded,
+    Expression<int>? currentSeason,
+    Expression<String>? percentageDefinition,
+    Expression<int>? turnOutThresholdHours,
+    Expression<int>? cycleDays,
+    Expression<int>? lastReconcileScheduled,
+    Expression<int>? lastExportedAt,
+    Expression<int>? lastExportPromptedAt,
+    Expression<int>? exportPromptDismissedForSeason,
+    Expression<String>? unknownJson,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (weightUnit != null) 'weight_unit': weightUnit,
+      if (palette != null) 'palette': palette,
+      if (highContrast != null) 'high_contrast': highContrast,
+      if (wakelockEnabled != null) 'wakelock_enabled': wakelockEnabled,
+      if (leftHanded != null) 'left_handed': leftHanded,
+      if (currentSeason != null) 'current_season': currentSeason,
+      if (percentageDefinition != null) 'percentage_definition': percentageDefinition,
+      if (turnOutThresholdHours != null) 'turn_out_threshold_hours': turnOutThresholdHours,
+      if (cycleDays != null) 'cycle_days': cycleDays,
+      if (lastReconcileScheduled != null) 'last_reconcile_scheduled': lastReconcileScheduled,
+      if (lastExportedAt != null) 'last_exported_at': lastExportedAt,
+      if (lastExportPromptedAt != null) 'last_export_prompted_at': lastExportPromptedAt,
+      if (exportPromptDismissedForSeason != null)
+        'export_prompt_dismissed_for_season': exportPromptDismissedForSeason,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+    });
+  }
+
+  AppSettingsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? weightUnit,
+    Value<String>? palette,
+    Value<bool>? highContrast,
+    Value<bool>? wakelockEnabled,
+    Value<bool>? leftHanded,
+    Value<int?>? currentSeason,
+    Value<String>? percentageDefinition,
+    Value<int>? turnOutThresholdHours,
+    Value<int>? cycleDays,
+    Value<Instant?>? lastReconcileScheduled,
+    Value<Instant?>? lastExportedAt,
+    Value<Instant?>? lastExportPromptedAt,
+    Value<int?>? exportPromptDismissedForSeason,
+    Value<String?>? unknownJson,
+  }) {
+    return AppSettingsCompanion(
+      id: id ?? this.id,
+      weightUnit: weightUnit ?? this.weightUnit,
+      palette: palette ?? this.palette,
+      highContrast: highContrast ?? this.highContrast,
+      wakelockEnabled: wakelockEnabled ?? this.wakelockEnabled,
+      leftHanded: leftHanded ?? this.leftHanded,
+      currentSeason: currentSeason ?? this.currentSeason,
+      percentageDefinition: percentageDefinition ?? this.percentageDefinition,
+      turnOutThresholdHours: turnOutThresholdHours ?? this.turnOutThresholdHours,
+      cycleDays: cycleDays ?? this.cycleDays,
+      lastReconcileScheduled: lastReconcileScheduled ?? this.lastReconcileScheduled,
+      lastExportedAt: lastExportedAt ?? this.lastExportedAt,
+      lastExportPromptedAt: lastExportPromptedAt ?? this.lastExportPromptedAt,
+      exportPromptDismissedForSeason:
+          exportPromptDismissedForSeason ?? this.exportPromptDismissedForSeason,
+      unknownJson: unknownJson ?? this.unknownJson,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (weightUnit.present) {
+      map['weight_unit'] = Variable<String>(weightUnit.value);
+    }
+    if (palette.present) {
+      map['palette'] = Variable<String>(palette.value);
+    }
+    if (highContrast.present) {
+      map['high_contrast'] = Variable<bool>(highContrast.value);
+    }
+    if (wakelockEnabled.present) {
+      map['wakelock_enabled'] = Variable<bool>(wakelockEnabled.value);
+    }
+    if (leftHanded.present) {
+      map['left_handed'] = Variable<bool>(leftHanded.value);
+    }
+    if (currentSeason.present) {
+      map['current_season'] = Variable<int>(currentSeason.value);
+    }
+    if (percentageDefinition.present) {
+      map['percentage_definition'] = Variable<String>(percentageDefinition.value);
+    }
+    if (turnOutThresholdHours.present) {
+      map['turn_out_threshold_hours'] = Variable<int>(turnOutThresholdHours.value);
+    }
+    if (cycleDays.present) {
+      map['cycle_days'] = Variable<int>(cycleDays.value);
+    }
+    if (lastReconcileScheduled.present) {
+      map['last_reconcile_scheduled'] = Variable<int>(
+        $AppSettingsTable.$converterlastReconcileScheduledn.toSql(lastReconcileScheduled.value),
+      );
+    }
+    if (lastExportedAt.present) {
+      map['last_exported_at'] = Variable<int>(
+        $AppSettingsTable.$converterlastExportedAtn.toSql(lastExportedAt.value),
+      );
+    }
+    if (lastExportPromptedAt.present) {
+      map['last_export_prompted_at'] = Variable<int>(
+        $AppSettingsTable.$converterlastExportPromptedAtn.toSql(lastExportPromptedAt.value),
+      );
+    }
+    if (exportPromptDismissedForSeason.present) {
+      map['export_prompt_dismissed_for_season'] = Variable<int>(
+        exportPromptDismissedForSeason.value,
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettingsCompanion(')
+          ..write('id: $id, ')
+          ..write('weightUnit: $weightUnit, ')
+          ..write('palette: $palette, ')
+          ..write('highContrast: $highContrast, ')
+          ..write('wakelockEnabled: $wakelockEnabled, ')
+          ..write('leftHanded: $leftHanded, ')
+          ..write('currentSeason: $currentSeason, ')
+          ..write('percentageDefinition: $percentageDefinition, ')
+          ..write('turnOutThresholdHours: $turnOutThresholdHours, ')
+          ..write('cycleDays: $cycleDays, ')
+          ..write('lastReconcileScheduled: $lastReconcileScheduled, ')
+          ..write('lastExportedAt: $lastExportedAt, ')
+          ..write('lastExportPromptedAt: $lastExportPromptedAt, ')
+          ..write('exportPromptDismissedForSeason: $exportPromptDismissedForSeason, ')
+          ..write('unknownJson: $unknownJson')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EntitlementsTable extends Entitlements with TableInfo<$EntitlementsTable, Entitlement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EntitlementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _unlockedMeta = const VerificationMeta('unlocked');
+  @override
+  late final GeneratedColumn<bool> unlocked = GeneratedColumn<bool>(
+    'unlocked',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('CHECK ("unlocked" IN (0, 1))'),
+    defaultValue: const Constant(false),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> unlockedAt = GeneratedColumn<int>(
+    'unlocked_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($EntitlementsTable.$converterunlockedAtn);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> purchaseInFlightAt =
+      GeneratedColumn<int>(
+        'purchase_in_flight_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<Instant?>($EntitlementsTable.$converterpurchaseInFlightAtn);
+  @override
+  List<GeneratedColumn> get $columns => [id, unlocked, unlockedAt, purchaseInFlightAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'entitlements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Entitlement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('unlocked')) {
+      context.handle(
+        _unlockedMeta,
+        unlocked.isAcceptableOrUnknown(data['unlocked']!, _unlockedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Entitlement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Entitlement(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      unlocked: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}unlocked'],
+      )!,
+      unlockedAt: $EntitlementsTable.$converterunlockedAtn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}unlocked_at']),
+      ),
+      purchaseInFlightAt: $EntitlementsTable.$converterpurchaseInFlightAtn.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}purchase_in_flight_at'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $EntitlementsTable createAlias(String alias) {
+    return $EntitlementsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $converterunlockedAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterunlockedAtn = NullAwareTypeConverter.wrap(
+    $converterunlockedAt,
+  );
+  static TypeConverter<Instant, int> $converterpurchaseInFlightAt = const InstantConverter();
+  static TypeConverter<Instant?, int?> $converterpurchaseInFlightAtn = NullAwareTypeConverter.wrap(
+    $converterpurchaseInFlightAt,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class Entitlement extends DataClass implements Insertable<Entitlement> {
+  final int id;
+  final bool unlocked;
+  final Instant? unlockedAt;
+  final Instant? purchaseInFlightAt;
+  const Entitlement({
+    required this.id,
+    required this.unlocked,
+    this.unlockedAt,
+    this.purchaseInFlightAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['unlocked'] = Variable<bool>(unlocked);
+    if (!nullToAbsent || unlockedAt != null) {
+      map['unlocked_at'] = Variable<int>(
+        $EntitlementsTable.$converterunlockedAtn.toSql(unlockedAt),
+      );
+    }
+    if (!nullToAbsent || purchaseInFlightAt != null) {
+      map['purchase_in_flight_at'] = Variable<int>(
+        $EntitlementsTable.$converterpurchaseInFlightAtn.toSql(purchaseInFlightAt),
+      );
+    }
+    return map;
+  }
+
+  EntitlementsCompanion toCompanion(bool nullToAbsent) {
+    return EntitlementsCompanion(
+      id: Value(id),
+      unlocked: Value(unlocked),
+      unlockedAt: unlockedAt == null && nullToAbsent ? const Value.absent() : Value(unlockedAt),
+      purchaseInFlightAt: purchaseInFlightAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(purchaseInFlightAt),
+    );
+  }
+
+  factory Entitlement.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Entitlement(
+      id: serializer.fromJson<int>(json['id']),
+      unlocked: serializer.fromJson<bool>(json['unlocked']),
+      unlockedAt: serializer.fromJson<Instant?>(json['unlockedAt']),
+      purchaseInFlightAt: serializer.fromJson<Instant?>(json['purchaseInFlightAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'unlocked': serializer.toJson<bool>(unlocked),
+      'unlockedAt': serializer.toJson<Instant?>(unlockedAt),
+      'purchaseInFlightAt': serializer.toJson<Instant?>(purchaseInFlightAt),
+    };
+  }
+
+  Entitlement copyWith({
+    int? id,
+    bool? unlocked,
+    Value<Instant?> unlockedAt = const Value.absent(),
+    Value<Instant?> purchaseInFlightAt = const Value.absent(),
+  }) => Entitlement(
+    id: id ?? this.id,
+    unlocked: unlocked ?? this.unlocked,
+    unlockedAt: unlockedAt.present ? unlockedAt.value : this.unlockedAt,
+    purchaseInFlightAt: purchaseInFlightAt.present
+        ? purchaseInFlightAt.value
+        : this.purchaseInFlightAt,
+  );
+  Entitlement copyWithCompanion(EntitlementsCompanion data) {
+    return Entitlement(
+      id: data.id.present ? data.id.value : this.id,
+      unlocked: data.unlocked.present ? data.unlocked.value : this.unlocked,
+      unlockedAt: data.unlockedAt.present ? data.unlockedAt.value : this.unlockedAt,
+      purchaseInFlightAt: data.purchaseInFlightAt.present
+          ? data.purchaseInFlightAt.value
+          : this.purchaseInFlightAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Entitlement(')
+          ..write('id: $id, ')
+          ..write('unlocked: $unlocked, ')
+          ..write('unlockedAt: $unlockedAt, ')
+          ..write('purchaseInFlightAt: $purchaseInFlightAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, unlocked, unlockedAt, purchaseInFlightAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Entitlement &&
+          other.id == this.id &&
+          other.unlocked == this.unlocked &&
+          other.unlockedAt == this.unlockedAt &&
+          other.purchaseInFlightAt == this.purchaseInFlightAt);
+}
+
+class EntitlementsCompanion extends UpdateCompanion<Entitlement> {
+  final Value<int> id;
+  final Value<bool> unlocked;
+  final Value<Instant?> unlockedAt;
+  final Value<Instant?> purchaseInFlightAt;
+  const EntitlementsCompanion({
+    this.id = const Value.absent(),
+    this.unlocked = const Value.absent(),
+    this.unlockedAt = const Value.absent(),
+    this.purchaseInFlightAt = const Value.absent(),
+  });
+  EntitlementsCompanion.insert({
+    this.id = const Value.absent(),
+    this.unlocked = const Value.absent(),
+    this.unlockedAt = const Value.absent(),
+    this.purchaseInFlightAt = const Value.absent(),
+  });
+  static Insertable<Entitlement> custom({
+    Expression<int>? id,
+    Expression<bool>? unlocked,
+    Expression<int>? unlockedAt,
+    Expression<int>? purchaseInFlightAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (unlocked != null) 'unlocked': unlocked,
+      if (unlockedAt != null) 'unlocked_at': unlockedAt,
+      if (purchaseInFlightAt != null) 'purchase_in_flight_at': purchaseInFlightAt,
+    });
+  }
+
+  EntitlementsCompanion copyWith({
+    Value<int>? id,
+    Value<bool>? unlocked,
+    Value<Instant?>? unlockedAt,
+    Value<Instant?>? purchaseInFlightAt,
+  }) {
+    return EntitlementsCompanion(
+      id: id ?? this.id,
+      unlocked: unlocked ?? this.unlocked,
+      unlockedAt: unlockedAt ?? this.unlockedAt,
+      purchaseInFlightAt: purchaseInFlightAt ?? this.purchaseInFlightAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (unlocked.present) {
+      map['unlocked'] = Variable<bool>(unlocked.value);
+    }
+    if (unlockedAt.present) {
+      map['unlocked_at'] = Variable<int>(
+        $EntitlementsTable.$converterunlockedAtn.toSql(unlockedAt.value),
+      );
+    }
+    if (purchaseInFlightAt.present) {
+      map['purchase_in_flight_at'] = Variable<int>(
+        $EntitlementsTable.$converterpurchaseInFlightAtn.toSql(purchaseInFlightAt.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EntitlementsCompanion(')
+          ..write('id: $id, ')
+          ..write('unlocked: $unlocked, ')
+          ..write('unlockedAt: $unlockedAt, ')
+          ..write('purchaseInFlightAt: $purchaseInFlightAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $EweSummariesTable extends EweSummaries with TableInfo<$EweSummariesTable, EweSummary> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EweSummariesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _seasonsRecordedMeta = const VerificationMeta('seasonsRecorded');
+  @override
+  late final GeneratedColumn<int> seasonsRecorded = GeneratedColumn<int>(
+    'seasons_recorded',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lambingsRecordedMeta = const VerificationMeta('lambingsRecorded');
+  @override
+  late final GeneratedColumn<int> lambingsRecorded = GeneratedColumn<int>(
+    'lambings_recorded',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lambsBornMeta = const VerificationMeta('lambsBorn');
+  @override
+  late final GeneratedColumn<int> lambsBorn = GeneratedColumn<int>(
+    'lambs_born',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lambsBornAliveMeta = const VerificationMeta('lambsBornAlive');
+  @override
+  late final GeneratedColumn<int> lambsBornAlive = GeneratedColumn<int>(
+    'lambs_born_alive',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _assistedLambingsMeta = const VerificationMeta('assistedLambings');
+  @override
+  late final GeneratedColumn<int> assistedLambings = GeneratedColumn<int>(
+    'assisted_lambings',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _scoredLambingsMeta = const VerificationMeta('scoredLambings');
+  @override
+  late final GeneratedColumn<int> scoredLambings = GeneratedColumn<int>(
+    'scored_lambings',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastObservationSeasonMeta = const VerificationMeta(
+    'lastObservationSeason',
+  );
+  @override
+  late final GeneratedColumn<int> lastObservationSeason = GeneratedColumn<int>(
+    'last_observation_season',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES seasons (id) ON DELETE SET NULL',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> rebuiltAt = GeneratedColumn<int>(
+    'rebuilt_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($EweSummariesTable.$converterrebuiltAt);
+  @override
+  List<GeneratedColumn> get $columns => [
+    ewe,
+    seasonsRecorded,
+    lambingsRecorded,
+    lambsBorn,
+    lambsBornAlive,
+    assistedLambings,
+    scoredLambings,
+    lastObservationSeason,
+    rebuiltAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ewe_summaries';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EweSummary> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('seasons_recorded')) {
+      context.handle(
+        _seasonsRecordedMeta,
+        seasonsRecorded.isAcceptableOrUnknown(data['seasons_recorded']!, _seasonsRecordedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_seasonsRecordedMeta);
+    }
+    if (data.containsKey('lambings_recorded')) {
+      context.handle(
+        _lambingsRecordedMeta,
+        lambingsRecorded.isAcceptableOrUnknown(data['lambings_recorded']!, _lambingsRecordedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lambingsRecordedMeta);
+    }
+    if (data.containsKey('lambs_born')) {
+      context.handle(
+        _lambsBornMeta,
+        lambsBorn.isAcceptableOrUnknown(data['lambs_born']!, _lambsBornMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lambsBornMeta);
+    }
+    if (data.containsKey('lambs_born_alive')) {
+      context.handle(
+        _lambsBornAliveMeta,
+        lambsBornAlive.isAcceptableOrUnknown(data['lambs_born_alive']!, _lambsBornAliveMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lambsBornAliveMeta);
+    }
+    if (data.containsKey('assisted_lambings')) {
+      context.handle(
+        _assistedLambingsMeta,
+        assistedLambings.isAcceptableOrUnknown(data['assisted_lambings']!, _assistedLambingsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_assistedLambingsMeta);
+    }
+    if (data.containsKey('scored_lambings')) {
+      context.handle(
+        _scoredLambingsMeta,
+        scoredLambings.isAcceptableOrUnknown(data['scored_lambings']!, _scoredLambingsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_scoredLambingsMeta);
+    }
+    if (data.containsKey('last_observation_season')) {
+      context.handle(
+        _lastObservationSeasonMeta,
+        lastObservationSeason.isAcceptableOrUnknown(
+          data['last_observation_season']!,
+          _lastObservationSeasonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {ewe};
+  @override
+  EweSummary map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EweSummary(
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe'])!,
+      seasonsRecorded: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}seasons_recorded'],
+      )!,
+      lambingsRecorded: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambings_recorded'],
+      )!,
+      lambsBorn: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambs_born'],
+      )!,
+      lambsBornAlive: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambs_born_alive'],
+      )!,
+      assistedLambings: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}assisted_lambings'],
+      )!,
+      scoredLambings: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}scored_lambings'],
+      )!,
+      lastObservationSeason: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_observation_season'],
+      ),
+      rebuiltAt: $EweSummariesTable.$converterrebuiltAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}rebuilt_at'])!,
+      ),
+    );
+  }
+
+  @override
+  $EweSummariesTable createAlias(String alias) {
+    return $EweSummariesTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $converterrebuiltAt = const InstantConverter();
+  @override
+  bool get isStrict => true;
+}
+
+class EweSummary extends DataClass implements Insertable<EweSummary> {
+  final int ewe;
+  final int seasonsRecorded;
+  final int lambingsRecorded;
+  final int lambsBorn;
+  final int lambsBornAlive;
+
+  /// Stored as a **pair** with [scoredLambings] so the assisted rate can exclude
+  /// unscored lambings from *both* sides and report coverage (decision #59).
+  final int assistedLambings;
+  final int scoredLambings;
+
+  /// A real foreign key, not a loose integer. *"prolapsed 2025"* is rendered
+  /// from the season this points at; a dangling id would render a blank year on
+  /// the one line the retention feature is built on. Cache or not, convention 2
+  /// has no exceptions.
+  final int? lastObservationSeason;
+  final Instant rebuiltAt;
+  const EweSummary({
+    required this.ewe,
+    required this.seasonsRecorded,
+    required this.lambingsRecorded,
+    required this.lambsBorn,
+    required this.lambsBornAlive,
+    required this.assistedLambings,
+    required this.scoredLambings,
+    this.lastObservationSeason,
+    required this.rebuiltAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['ewe'] = Variable<int>(ewe);
+    map['seasons_recorded'] = Variable<int>(seasonsRecorded);
+    map['lambings_recorded'] = Variable<int>(lambingsRecorded);
+    map['lambs_born'] = Variable<int>(lambsBorn);
+    map['lambs_born_alive'] = Variable<int>(lambsBornAlive);
+    map['assisted_lambings'] = Variable<int>(assistedLambings);
+    map['scored_lambings'] = Variable<int>(scoredLambings);
+    if (!nullToAbsent || lastObservationSeason != null) {
+      map['last_observation_season'] = Variable<int>(lastObservationSeason);
+    }
+    {
+      map['rebuilt_at'] = Variable<int>($EweSummariesTable.$converterrebuiltAt.toSql(rebuiltAt));
+    }
+    return map;
+  }
+
+  EweSummariesCompanion toCompanion(bool nullToAbsent) {
+    return EweSummariesCompanion(
+      ewe: Value(ewe),
+      seasonsRecorded: Value(seasonsRecorded),
+      lambingsRecorded: Value(lambingsRecorded),
+      lambsBorn: Value(lambsBorn),
+      lambsBornAlive: Value(lambsBornAlive),
+      assistedLambings: Value(assistedLambings),
+      scoredLambings: Value(scoredLambings),
+      lastObservationSeason: lastObservationSeason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastObservationSeason),
+      rebuiltAt: Value(rebuiltAt),
+    );
+  }
+
+  factory EweSummary.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EweSummary(
+      ewe: serializer.fromJson<int>(json['ewe']),
+      seasonsRecorded: serializer.fromJson<int>(json['seasonsRecorded']),
+      lambingsRecorded: serializer.fromJson<int>(json['lambingsRecorded']),
+      lambsBorn: serializer.fromJson<int>(json['lambsBorn']),
+      lambsBornAlive: serializer.fromJson<int>(json['lambsBornAlive']),
+      assistedLambings: serializer.fromJson<int>(json['assistedLambings']),
+      scoredLambings: serializer.fromJson<int>(json['scoredLambings']),
+      lastObservationSeason: serializer.fromJson<int?>(json['lastObservationSeason']),
+      rebuiltAt: serializer.fromJson<Instant>(json['rebuiltAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'ewe': serializer.toJson<int>(ewe),
+      'seasonsRecorded': serializer.toJson<int>(seasonsRecorded),
+      'lambingsRecorded': serializer.toJson<int>(lambingsRecorded),
+      'lambsBorn': serializer.toJson<int>(lambsBorn),
+      'lambsBornAlive': serializer.toJson<int>(lambsBornAlive),
+      'assistedLambings': serializer.toJson<int>(assistedLambings),
+      'scoredLambings': serializer.toJson<int>(scoredLambings),
+      'lastObservationSeason': serializer.toJson<int?>(lastObservationSeason),
+      'rebuiltAt': serializer.toJson<Instant>(rebuiltAt),
+    };
+  }
+
+  EweSummary copyWith({
+    int? ewe,
+    int? seasonsRecorded,
+    int? lambingsRecorded,
+    int? lambsBorn,
+    int? lambsBornAlive,
+    int? assistedLambings,
+    int? scoredLambings,
+    Value<int?> lastObservationSeason = const Value.absent(),
+    Instant? rebuiltAt,
+  }) => EweSummary(
+    ewe: ewe ?? this.ewe,
+    seasonsRecorded: seasonsRecorded ?? this.seasonsRecorded,
+    lambingsRecorded: lambingsRecorded ?? this.lambingsRecorded,
+    lambsBorn: lambsBorn ?? this.lambsBorn,
+    lambsBornAlive: lambsBornAlive ?? this.lambsBornAlive,
+    assistedLambings: assistedLambings ?? this.assistedLambings,
+    scoredLambings: scoredLambings ?? this.scoredLambings,
+    lastObservationSeason: lastObservationSeason.present
+        ? lastObservationSeason.value
+        : this.lastObservationSeason,
+    rebuiltAt: rebuiltAt ?? this.rebuiltAt,
+  );
+  EweSummary copyWithCompanion(EweSummariesCompanion data) {
+    return EweSummary(
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      seasonsRecorded: data.seasonsRecorded.present
+          ? data.seasonsRecorded.value
+          : this.seasonsRecorded,
+      lambingsRecorded: data.lambingsRecorded.present
+          ? data.lambingsRecorded.value
+          : this.lambingsRecorded,
+      lambsBorn: data.lambsBorn.present ? data.lambsBorn.value : this.lambsBorn,
+      lambsBornAlive: data.lambsBornAlive.present ? data.lambsBornAlive.value : this.lambsBornAlive,
+      assistedLambings: data.assistedLambings.present
+          ? data.assistedLambings.value
+          : this.assistedLambings,
+      scoredLambings: data.scoredLambings.present ? data.scoredLambings.value : this.scoredLambings,
+      lastObservationSeason: data.lastObservationSeason.present
+          ? data.lastObservationSeason.value
+          : this.lastObservationSeason,
+      rebuiltAt: data.rebuiltAt.present ? data.rebuiltAt.value : this.rebuiltAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EweSummary(')
+          ..write('ewe: $ewe, ')
+          ..write('seasonsRecorded: $seasonsRecorded, ')
+          ..write('lambingsRecorded: $lambingsRecorded, ')
+          ..write('lambsBorn: $lambsBorn, ')
+          ..write('lambsBornAlive: $lambsBornAlive, ')
+          ..write('assistedLambings: $assistedLambings, ')
+          ..write('scoredLambings: $scoredLambings, ')
+          ..write('lastObservationSeason: $lastObservationSeason, ')
+          ..write('rebuiltAt: $rebuiltAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    ewe,
+    seasonsRecorded,
+    lambingsRecorded,
+    lambsBorn,
+    lambsBornAlive,
+    assistedLambings,
+    scoredLambings,
+    lastObservationSeason,
+    rebuiltAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EweSummary &&
+          other.ewe == this.ewe &&
+          other.seasonsRecorded == this.seasonsRecorded &&
+          other.lambingsRecorded == this.lambingsRecorded &&
+          other.lambsBorn == this.lambsBorn &&
+          other.lambsBornAlive == this.lambsBornAlive &&
+          other.assistedLambings == this.assistedLambings &&
+          other.scoredLambings == this.scoredLambings &&
+          other.lastObservationSeason == this.lastObservationSeason &&
+          other.rebuiltAt == this.rebuiltAt);
+}
+
+class EweSummariesCompanion extends UpdateCompanion<EweSummary> {
+  final Value<int> ewe;
+  final Value<int> seasonsRecorded;
+  final Value<int> lambingsRecorded;
+  final Value<int> lambsBorn;
+  final Value<int> lambsBornAlive;
+  final Value<int> assistedLambings;
+  final Value<int> scoredLambings;
+  final Value<int?> lastObservationSeason;
+  final Value<Instant> rebuiltAt;
+  const EweSummariesCompanion({
+    this.ewe = const Value.absent(),
+    this.seasonsRecorded = const Value.absent(),
+    this.lambingsRecorded = const Value.absent(),
+    this.lambsBorn = const Value.absent(),
+    this.lambsBornAlive = const Value.absent(),
+    this.assistedLambings = const Value.absent(),
+    this.scoredLambings = const Value.absent(),
+    this.lastObservationSeason = const Value.absent(),
+    this.rebuiltAt = const Value.absent(),
+  });
+  EweSummariesCompanion.insert({
+    this.ewe = const Value.absent(),
+    required int seasonsRecorded,
+    required int lambingsRecorded,
+    required int lambsBorn,
+    required int lambsBornAlive,
+    required int assistedLambings,
+    required int scoredLambings,
+    this.lastObservationSeason = const Value.absent(),
+    required Instant rebuiltAt,
+  }) : seasonsRecorded = Value(seasonsRecorded),
+       lambingsRecorded = Value(lambingsRecorded),
+       lambsBorn = Value(lambsBorn),
+       lambsBornAlive = Value(lambsBornAlive),
+       assistedLambings = Value(assistedLambings),
+       scoredLambings = Value(scoredLambings),
+       rebuiltAt = Value(rebuiltAt);
+  static Insertable<EweSummary> custom({
+    Expression<int>? ewe,
+    Expression<int>? seasonsRecorded,
+    Expression<int>? lambingsRecorded,
+    Expression<int>? lambsBorn,
+    Expression<int>? lambsBornAlive,
+    Expression<int>? assistedLambings,
+    Expression<int>? scoredLambings,
+    Expression<int>? lastObservationSeason,
+    Expression<int>? rebuiltAt,
+  }) {
+    return RawValuesInsertable({
+      if (ewe != null) 'ewe': ewe,
+      if (seasonsRecorded != null) 'seasons_recorded': seasonsRecorded,
+      if (lambingsRecorded != null) 'lambings_recorded': lambingsRecorded,
+      if (lambsBorn != null) 'lambs_born': lambsBorn,
+      if (lambsBornAlive != null) 'lambs_born_alive': lambsBornAlive,
+      if (assistedLambings != null) 'assisted_lambings': assistedLambings,
+      if (scoredLambings != null) 'scored_lambings': scoredLambings,
+      if (lastObservationSeason != null) 'last_observation_season': lastObservationSeason,
+      if (rebuiltAt != null) 'rebuilt_at': rebuiltAt,
+    });
+  }
+
+  EweSummariesCompanion copyWith({
+    Value<int>? ewe,
+    Value<int>? seasonsRecorded,
+    Value<int>? lambingsRecorded,
+    Value<int>? lambsBorn,
+    Value<int>? lambsBornAlive,
+    Value<int>? assistedLambings,
+    Value<int>? scoredLambings,
+    Value<int?>? lastObservationSeason,
+    Value<Instant>? rebuiltAt,
+  }) {
+    return EweSummariesCompanion(
+      ewe: ewe ?? this.ewe,
+      seasonsRecorded: seasonsRecorded ?? this.seasonsRecorded,
+      lambingsRecorded: lambingsRecorded ?? this.lambingsRecorded,
+      lambsBorn: lambsBorn ?? this.lambsBorn,
+      lambsBornAlive: lambsBornAlive ?? this.lambsBornAlive,
+      assistedLambings: assistedLambings ?? this.assistedLambings,
+      scoredLambings: scoredLambings ?? this.scoredLambings,
+      lastObservationSeason: lastObservationSeason ?? this.lastObservationSeason,
+      rebuiltAt: rebuiltAt ?? this.rebuiltAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (seasonsRecorded.present) {
+      map['seasons_recorded'] = Variable<int>(seasonsRecorded.value);
+    }
+    if (lambingsRecorded.present) {
+      map['lambings_recorded'] = Variable<int>(lambingsRecorded.value);
+    }
+    if (lambsBorn.present) {
+      map['lambs_born'] = Variable<int>(lambsBorn.value);
+    }
+    if (lambsBornAlive.present) {
+      map['lambs_born_alive'] = Variable<int>(lambsBornAlive.value);
+    }
+    if (assistedLambings.present) {
+      map['assisted_lambings'] = Variable<int>(assistedLambings.value);
+    }
+    if (scoredLambings.present) {
+      map['scored_lambings'] = Variable<int>(scoredLambings.value);
+    }
+    if (lastObservationSeason.present) {
+      map['last_observation_season'] = Variable<int>(lastObservationSeason.value);
+    }
+    if (rebuiltAt.present) {
+      map['rebuilt_at'] = Variable<int>(
+        $EweSummariesTable.$converterrebuiltAt.toSql(rebuiltAt.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EweSummariesCompanion(')
+          ..write('ewe: $ewe, ')
+          ..write('seasonsRecorded: $seasonsRecorded, ')
+          ..write('lambingsRecorded: $lambingsRecorded, ')
+          ..write('lambsBorn: $lambsBorn, ')
+          ..write('lambsBornAlive: $lambsBornAlive, ')
+          ..write('assistedLambings: $assistedLambings, ')
+          ..write('scoredLambings: $scoredLambings, ')
+          ..write('lastObservationSeason: $lastObservationSeason, ')
+          ..write('rebuiltAt: $rebuiltAt')
           ..write(')'))
         .toString();
   }
@@ -5956,6 +13521,15 @@ class $TreatmentWithdrawalsTable extends TreatmentWithdrawals
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($TreatmentWithdrawalsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _treatmentMeta = const VerificationMeta('treatment');
   @override
   late final GeneratedColumn<int> treatment = GeneratedColumn<int>(
@@ -6010,6 +13584,7 @@ class $TreatmentWithdrawalsTable extends TreatmentWithdrawals
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     treatment,
     target,
     kind,
@@ -6035,6 +13610,12 @@ class $TreatmentWithdrawalsTable extends TreatmentWithdrawals
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('treatment')) {
       context.handle(
@@ -6077,6 +13658,10 @@ class $TreatmentWithdrawalsTable extends TreatmentWithdrawals
       ),
       updatedAt: $TreatmentWithdrawalsTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       treatment: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -6124,6 +13709,18 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
   /// Instants: UTC epoch millis (§4).
   final Instant createdAt;
   final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
   final int treatment;
 
   /// `'meat'` | `'milk'`. One product routinely prints different figures.
@@ -6150,6 +13747,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.treatment,
     required this.target,
     required this.kind,
@@ -6171,6 +13769,9 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
         $TreatmentWithdrawalsTable.$converterupdatedAt.toSql(updatedAt),
       );
     }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
     map['treatment'] = Variable<int>(treatment);
     map['target'] = Variable<String>(target);
     map['kind'] = Variable<String>(kind);
@@ -6191,6 +13792,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       treatment: Value(treatment),
       target: Value(target),
       kind: Value(kind),
@@ -6206,6 +13808,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       treatment: serializer.fromJson<int>(json['treatment']),
       target: serializer.fromJson<String>(json['target']),
       kind: serializer.fromJson<String>(json['kind']),
@@ -6221,6 +13824,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'treatment': serializer.toJson<int>(treatment),
       'target': serializer.toJson<String>(target),
       'kind': serializer.toJson<String>(kind),
@@ -6234,6 +13838,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     int? treatment,
     String? target,
     String? kind,
@@ -6244,6 +13849,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     treatment: treatment ?? this.treatment,
     target: target ?? this.target,
     kind: kind ?? this.kind,
@@ -6256,6 +13862,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       treatment: data.treatment.present ? data.treatment.value : this.treatment,
       target: data.target.present ? data.target.value : this.target,
       kind: data.kind.present ? data.kind.value : this.kind,
@@ -6271,6 +13878,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('treatment: $treatment, ')
           ..write('target: $target, ')
           ..write('kind: $kind, ')
@@ -6281,8 +13889,18 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, uid, createdAt, updatedAt, treatment, target, kind, days, clearDate);
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    treatment,
+    target,
+    kind,
+    days,
+    clearDate,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6291,6 +13909,7 @@ class TreatmentWithdrawal extends DataClass implements Insertable<TreatmentWithd
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.treatment == this.treatment &&
           other.target == this.target &&
           other.kind == this.kind &&
@@ -6303,6 +13922,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<int> treatment;
   final Value<String> target;
   final Value<String> kind;
@@ -6313,6 +13933,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.treatment = const Value.absent(),
     this.target = const Value.absent(),
     this.kind = const Value.absent(),
@@ -6324,6 +13945,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     required int treatment,
     required String target,
     required String kind,
@@ -6340,6 +13962,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<int>? treatment,
     Expression<String>? target,
     Expression<String>? kind,
@@ -6351,6 +13974,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (treatment != null) 'treatment': treatment,
       if (target != null) 'target': target,
       if (kind != null) 'kind': kind,
@@ -6364,6 +13988,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<int>? treatment,
     Value<String>? target,
     Value<String>? kind,
@@ -6375,6 +14000,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       treatment: treatment ?? this.treatment,
       target: target ?? this.target,
       kind: kind ?? this.kind,
@@ -6401,6 +14027,9 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
       map['updated_at'] = Variable<int>(
         $TreatmentWithdrawalsTable.$converterupdatedAt.toSql(updatedAt.value),
       );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (treatment.present) {
       map['treatment'] = Variable<int>(treatment.value);
@@ -6429,6 +14058,7 @@ class TreatmentWithdrawalsCompanion extends UpdateCompanion<TreatmentWithdrawal>
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('treatment: $treatment, ')
           ..write('target: $target, ')
           ..write('kind: $kind, ')
@@ -6482,6 +14112,15 @@ class $PensTable extends Pens with TableInfo<$PensTable, Pen> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($PensTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -6538,6 +14177,7 @@ class $PensTable extends Pens with TableInfo<$PensTable, Pen> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     label,
@@ -6560,6 +14200,12 @@ class $PensTable extends Pens with TableInfo<$PensTable, Pen> {
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -6601,6 +14247,10 @@ class $PensTable extends Pens with TableInfo<$PensTable, Pen> {
       ),
       updatedAt: $PensTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -6652,6 +14302,18 @@ class Pen extends DataClass implements Insertable<Pen> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -6670,6 +14332,7 @@ class Pen extends DataClass implements Insertable<Pen> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.label,
@@ -6687,6 +14350,9 @@ class Pen extends DataClass implements Insertable<Pen> {
     {
       map['updated_at'] = Variable<int>($PensTable.$converterupdatedAt.toSql(updatedAt));
     }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
       map['struck_at'] = Variable<int>($PensTable.$converterstruckAtn.toSql(struckAt));
@@ -6703,6 +14369,7 @@ class Pen extends DataClass implements Insertable<Pen> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       label: Value(label),
@@ -6718,6 +14385,7 @@ class Pen extends DataClass implements Insertable<Pen> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       label: serializer.fromJson<String>(json['label']),
@@ -6733,6 +14401,7 @@ class Pen extends DataClass implements Insertable<Pen> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'label': serializer.toJson<String>(label),
@@ -6746,6 +14415,7 @@ class Pen extends DataClass implements Insertable<Pen> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     String? label,
@@ -6756,6 +14426,7 @@ class Pen extends DataClass implements Insertable<Pen> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     label: label ?? this.label,
@@ -6768,6 +14439,7 @@ class Pen extends DataClass implements Insertable<Pen> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       label: data.label.present ? data.label.value : this.label,
@@ -6783,6 +14455,7 @@ class Pen extends DataClass implements Insertable<Pen> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('label: $label, ')
@@ -6793,8 +14466,18 @@ class Pen extends DataClass implements Insertable<Pen> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, uid, createdAt, updatedAt, struck, struckAt, label, sortOrder, isActive);
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    struck,
+    struckAt,
+    label,
+    sortOrder,
+    isActive,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -6803,6 +14486,7 @@ class Pen extends DataClass implements Insertable<Pen> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.label == this.label &&
@@ -6815,6 +14499,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<String> label;
@@ -6825,6 +14510,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.label = const Value.absent(),
@@ -6836,6 +14522,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required String label,
@@ -6850,6 +14537,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<String>? label,
@@ -6861,6 +14549,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (label != null) 'label': label,
@@ -6874,6 +14563,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<String>? label,
@@ -6885,6 +14575,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       label: label ?? this.label,
@@ -6907,6 +14598,9 @@ class PensCompanion extends UpdateCompanion<Pen> {
     }
     if (updatedAt.present) {
       map['updated_at'] = Variable<int>($PensTable.$converterupdatedAt.toSql(updatedAt.value));
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -6933,6 +14627,7 @@ class PensCompanion extends UpdateCompanion<Pen> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('label: $label, ')
@@ -6987,6 +14682,15 @@ class $PenOccupanciesTable extends PenOccupancies
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   ).withConverter<Instant>($PenOccupanciesTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _struckMeta = const VerificationMeta('struck');
   @override
   late final GeneratedColumn<bool> struck = GeneratedColumn<bool>(
@@ -7100,6 +14804,7 @@ class $PenOccupanciesTable extends PenOccupancies
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     pen,
@@ -7131,6 +14836,12 @@ class $PenOccupanciesTable extends PenOccupancies
       context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
     } else if (isInserting) {
       context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
     }
     if (data.containsKey('struck')) {
       context.handle(_struckMeta, struck.isAcceptableOrUnknown(data['struck']!, _struckMeta));
@@ -7176,6 +14887,10 @@ class $PenOccupanciesTable extends PenOccupancies
       ),
       updatedAt: $PenOccupanciesTable.$converterupdatedAt.fromSql(
         attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
       ),
       struck: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
@@ -7254,6 +14969,18 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
   final Instant createdAt;
   final Instant updatedAt;
 
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
   /// Under `STRICT` there is no `BOOLEAN`, hence the first CHECK above.
   ///
   /// The default is **not** a violation of 03 §2 point 5: that rule bans
@@ -7285,6 +15012,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
     required this.uid,
     required this.createdAt,
     required this.updatedAt,
+    this.unknownJson,
     required this.struck,
     this.struckAt,
     required this.pen,
@@ -7307,6 +15035,9 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
     }
     {
       map['updated_at'] = Variable<int>($PenOccupanciesTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
     }
     map['struck'] = Variable<bool>(struck);
     if (!nullToAbsent || struckAt != null) {
@@ -7346,6 +15077,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
       uid: Value(uid),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
       struck: Value(struck),
       struckAt: struckAt == null && nullToAbsent ? const Value.absent() : Value(struckAt),
       pen: Value(pen),
@@ -7369,6 +15101,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
       uid: serializer.fromJson<String>(json['uid']),
       createdAt: serializer.fromJson<Instant>(json['createdAt']),
       updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
       struck: serializer.fromJson<bool>(json['struck']),
       struckAt: serializer.fromJson<Instant?>(json['struckAt']),
       pen: serializer.fromJson<int>(json['pen']),
@@ -7390,6 +15123,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
       'uid': serializer.toJson<String>(uid),
       'createdAt': serializer.toJson<Instant>(createdAt),
       'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
       'struck': serializer.toJson<bool>(struck),
       'struckAt': serializer.toJson<Instant?>(struckAt),
       'pen': serializer.toJson<int>(pen),
@@ -7409,6 +15143,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
     String? uid,
     Instant? createdAt,
     Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
     bool? struck,
     Value<Instant?> struckAt = const Value.absent(),
     int? pen,
@@ -7425,6 +15160,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
     uid: uid ?? this.uid,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
     struck: struck ?? this.struck,
     struckAt: struckAt.present ? struckAt.value : this.struckAt,
     pen: pen ?? this.pen,
@@ -7443,6 +15179,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
       uid: data.uid.present ? data.uid.value : this.uid,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
       struck: data.struck.present ? data.struck.value : this.struck,
       struckAt: data.struckAt.present ? data.struckAt.value : this.struckAt,
       pen: data.pen.present ? data.pen.value : this.pen,
@@ -7466,6 +15203,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('pen: $pen, ')
@@ -7487,6 +15225,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
     uid,
     createdAt,
     updatedAt,
+    unknownJson,
     struck,
     struckAt,
     pen,
@@ -7507,6 +15246,7 @@ class PenOccupancy extends DataClass implements Insertable<PenOccupancy> {
           other.uid == this.uid &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
           other.struck == this.struck &&
           other.struckAt == this.struckAt &&
           other.pen == this.pen &&
@@ -7525,6 +15265,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
   final Value<String> uid;
   final Value<Instant> createdAt;
   final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
   final Value<bool> struck;
   final Value<Instant?> struckAt;
   final Value<int> pen;
@@ -7541,6 +15282,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
     this.uid = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     this.pen = const Value.absent(),
@@ -7558,6 +15300,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
     required String uid,
     required Instant createdAt,
     required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
     this.struck = const Value.absent(),
     this.struckAt = const Value.absent(),
     required int pen,
@@ -7581,6 +15324,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
     Expression<String>? uid,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
     Expression<bool>? struck,
     Expression<int>? struckAt,
     Expression<int>? pen,
@@ -7598,6 +15342,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
       if (uid != null) 'uid': uid,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
       if (struck != null) 'struck': struck,
       if (struckAt != null) 'struck_at': struckAt,
       if (pen != null) 'pen': pen,
@@ -7617,6 +15362,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
     Value<String>? uid,
     Value<Instant>? createdAt,
     Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
     Value<bool>? struck,
     Value<Instant?>? struckAt,
     Value<int>? pen,
@@ -7634,6 +15380,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
       struck: struck ?? this.struck,
       struckAt: struckAt ?? this.struckAt,
       pen: pen ?? this.pen,
@@ -7666,6 +15413,9 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
       map['updated_at'] = Variable<int>(
         $PenOccupanciesTable.$converterupdatedAt.toSql(updatedAt.value),
       );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
     }
     if (struck.present) {
       map['struck'] = Variable<bool>(struck.value);
@@ -7720,6 +15470,7 @@ class PenOccupanciesCompanion extends UpdateCompanion<PenOccupancy> {
           ..write('uid: $uid, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
           ..write('struck: $struck, ')
           ..write('struckAt: $struckAt, ')
           ..write('pen: $pen, ')
@@ -7947,6 +15698,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SeasonsTable seasons = $SeasonsTable(this);
   late final $EwesTable ewes = $EwesTable(this);
+  late final $VocabTermsTable vocabTerms = $VocabTermsTable(this);
   late final $LambingsTable lambings = $LambingsTable(this);
   late final $LambsTable lambs = $LambsTable(this);
   late final Trigger lambBirthDamIsImmutable = Trigger(
@@ -8036,11 +15788,111 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_eweobs_lambing',
     'CREATE INDEX idx_eweobs_lambing ON ewe_observations (lambing)',
   );
+  late final $CareEventsTable careEvents = $CareEventsTable(this);
+  late final $FosterEventsTable fosterEvents = $FosterEventsTable(this);
   late final $TreatmentsTable treatments = $TreatmentsTable(this);
+  late final $RemindersTable reminders = $RemindersTable(this);
+  late final $ReminderRulesTable reminderRules = $ReminderRulesTable(this);
+  late final $NotesTable notes = $NotesTable(this);
+  late final $MediaAssetsTable mediaAssets = $MediaAssetsTable(this);
+  late final $TerminologyOverridesTable terminologyOverrides = $TerminologyOverridesTable(this);
+  late final $AppSettingsTable appSettings = $AppSettingsTable(this);
+  late final $EntitlementsTable entitlements = $EntitlementsTable(this);
+  late final $EweSummariesTable eweSummaries = $EweSummariesTable(this);
+  late final Index idxCareLambingKind = Index(
+    'idx_care_lambing_kind',
+    'CREATE INDEX idx_care_lambing_kind ON care_events (lambing, kind)',
+  );
+  late final Index idxCareLambKind = Index(
+    'idx_care_lamb_kind',
+    'CREATE INDEX idx_care_lamb_kind ON care_events (lamb, kind)',
+  );
+  late final Index idxCareSeason = Index(
+    'idx_care_season',
+    'CREATE INDEX idx_care_season ON care_events (season)',
+  );
+  late final Index idxFosterLambTime = Index(
+    'idx_foster_lamb_time',
+    'CREATE INDEX idx_foster_lamb_time ON foster_events (lamb, effective_at)',
+  );
+  late final Index idxFosterRearingdam = Index(
+    'idx_foster_rearingdam',
+    'CREATE INDEX idx_foster_rearingdam ON foster_events (rearing_dam)',
+  );
+  late final Index idxFosterSeason = Index(
+    'idx_foster_season',
+    'CREATE INDEX idx_foster_season ON foster_events (season)',
+  );
+  late final Index idxFosterCorrects = Index(
+    'idx_foster_corrects',
+    'CREATE INDEX idx_foster_corrects ON foster_events (corrects)',
+  );
+  late final Index idxFosterMethod = Index(
+    'idx_foster_method',
+    'CREATE INDEX idx_foster_method ON foster_events (method)',
+  );
+  late final Index idxReminderDueOpen = Index(
+    'idx_reminder_due_open',
+    'CREATE INDEX idx_reminder_due_open ON reminders (due_at, completed_at)',
+  );
+  late final Index idxReminderSeason = Index(
+    'idx_reminder_season',
+    'CREATE INDEX idx_reminder_season ON reminders (season)',
+  );
+  late final Index idxReminderEwe = Index(
+    'idx_reminder_ewe',
+    'CREATE INDEX idx_reminder_ewe ON reminders (ewe)',
+  );
+  late final Index idxReminderLamb = Index(
+    'idx_reminder_lamb',
+    'CREATE INDEX idx_reminder_lamb ON reminders (lamb)',
+  );
+  late final Index idxReminderLambing = Index(
+    'idx_reminder_lambing',
+    'CREATE INDEX idx_reminder_lambing ON reminders (lambing)',
+  );
+  late final Index idxReminderTreatment = Index(
+    'idx_reminder_treatment',
+    'CREATE INDEX idx_reminder_treatment ON reminders (treatment)',
+  );
+  late final Index idxNoteEwe = Index('idx_note_ewe', 'CREATE INDEX idx_note_ewe ON notes (ewe)');
+  late final Index idxNoteLamb = Index(
+    'idx_note_lamb',
+    'CREATE INDEX idx_note_lamb ON notes (lamb)',
+  );
+  late final Index idxNoteLambing = Index(
+    'idx_note_lambing',
+    'CREATE INDEX idx_note_lambing ON notes (lambing)',
+  );
+  late final Index idxNoteSeason = Index(
+    'idx_note_season',
+    'CREATE INDEX idx_note_season ON notes (season)',
+  );
+  late final Index idxMediaEwe = Index(
+    'idx_media_ewe',
+    'CREATE INDEX idx_media_ewe ON media_assets (ewe)',
+  );
+  late final Index idxMediaLamb = Index(
+    'idx_media_lamb',
+    'CREATE INDEX idx_media_lamb ON media_assets (lamb)',
+  );
+  late final Index idxMediaLambing = Index(
+    'idx_media_lambing',
+    'CREATE INDEX idx_media_lambing ON media_assets (lambing)',
+  );
+  late final Index idxMediaNote = Index(
+    'idx_media_note',
+    'CREATE INDEX idx_media_note ON media_assets (note)',
+  );
+  late final Index idxVocabList = Index(
+    'idx_vocab_list',
+    'CREATE INDEX idx_vocab_list ON vocab_terms (list, sort_order)',
+  );
+  late final Index idxEwesummaryLastobs = Index(
+    'idx_ewesummary_lastobs',
+    'CREATE INDEX idx_ewesummary_lastobs ON ewe_summaries (last_observation_season)',
+  );
   late final $TreatmentWithdrawalsTable treatmentWithdrawals = $TreatmentWithdrawalsTable(this);
-  late final $PensTable pens = $PensTable(this);
-  late final $PenOccupanciesTable penOccupancies = $PenOccupanciesTable(this);
-  late final $PenOccupancyLambsTable penOccupancyLambs = $PenOccupancyLambsTable(this);
   late final Index idxTreatmentEweTime = Index(
     'idx_treatment_ewe_time',
     'CREATE INDEX idx_treatment_ewe_time ON treatments (ewe, administered_at)',
@@ -8061,6 +15913,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_withdrawal_clear',
     'CREATE INDEX idx_withdrawal_clear ON treatment_withdrawals (clear_date)',
   );
+  late final $PensTable pens = $PensTable(this);
+  late final $PenOccupanciesTable penOccupancies = $PenOccupanciesTable(this);
+  late final $PenOccupancyLambsTable penOccupancyLambs = $PenOccupancyLambsTable(this);
   late final Index idxPenoccPenTime = Index(
     'idx_penocc_pen_time',
     'CREATE INDEX idx_penocc_pen_time ON pen_occupancies (pen, entered_at)',
@@ -8088,6 +15943,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     seasons,
     ewes,
+    vocabTerms,
     lambings,
     lambs,
     lambBirthDamIsImmutable,
@@ -8114,16 +15970,50 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxEweobsSeasonKind,
     idxEweobsKind,
     idxEweobsLambing,
+    careEvents,
+    fosterEvents,
     treatments,
+    reminders,
+    reminderRules,
+    notes,
+    mediaAssets,
+    terminologyOverrides,
+    appSettings,
+    entitlements,
+    eweSummaries,
+    idxCareLambingKind,
+    idxCareLambKind,
+    idxCareSeason,
+    idxFosterLambTime,
+    idxFosterRearingdam,
+    idxFosterSeason,
+    idxFosterCorrects,
+    idxFosterMethod,
+    idxReminderDueOpen,
+    idxReminderSeason,
+    idxReminderEwe,
+    idxReminderLamb,
+    idxReminderLambing,
+    idxReminderTreatment,
+    idxNoteEwe,
+    idxNoteLamb,
+    idxNoteLambing,
+    idxNoteSeason,
+    idxMediaEwe,
+    idxMediaLamb,
+    idxMediaLambing,
+    idxMediaNote,
+    idxVocabList,
+    idxEwesummaryLastobs,
     treatmentWithdrawals,
-    pens,
-    penOccupancies,
-    penOccupancyLambs,
     idxTreatmentEweTime,
     idxTreatmentLambTime,
     idxTreatmentSeasonTime,
     idxTreatmentRoute,
     idxWithdrawalClear,
+    pens,
+    penOccupancies,
+    penOccupancyLambs,
     idxPenoccPenTime,
     idxPenoccEwe,
     idxPenoccSeason,
@@ -8174,11 +16064,99 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('care_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('care_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('care_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('foster_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('foster_events', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('treatments', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('treatments', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('reminders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('reminders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('reminders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('reminders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('treatments', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('reminders', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('notes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('notes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('notes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('notes', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('notes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('app_settings', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('app_settings', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('ewe_summaries', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('ewe_summaries', kind: UpdateKind.update)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName('treatments', limitUpdateKind: UpdateKind.delete),
@@ -8205,6 +16183,7 @@ typedef $$SeasonsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int year,
@@ -8222,6 +16201,7 @@ typedef $$SeasonsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> year,
@@ -8281,6 +16261,37 @@ final class $$SeasonsTableReferences extends BaseReferences<_$AppDatabase, $Seas
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$CareEventsTable, List<CareEvent>> _careEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.careEvents, aliasName: 'seasons__id__care_events__season');
+
+  $$CareEventsTableProcessedTableManager get careEventsRefs {
+    final manager = $$CareEventsTableTableManager(
+      $_db,
+      $_db.careEvents,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_careEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$FosterEventsTable, List<FosterEvent>> _fosterEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.fosterEvents,
+    aliasName: 'seasons__id__foster_events__season',
+  );
+
+  $$FosterEventsTableProcessedTableManager get fosterEventsRefs {
+    final manager = $$FosterEventsTableTableManager(
+      $_db,
+      $_db.fosterEvents,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_fosterEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'seasons__id__treatments__season');
@@ -8292,6 +16303,50 @@ final class $$SeasonsTableReferences extends BaseReferences<_$AppDatabase, $Seas
     ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$RemindersTable, List<Reminder>> _remindersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.reminders, aliasName: 'seasons__id__reminders__season');
+
+  $$RemindersTableProcessedTableManager get remindersRefs {
+    final manager = $$RemindersTableTableManager(
+      $_db,
+      $_db.reminders,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$NotesTable, List<Note>> _notesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.notes, aliasName: 'seasons__id__notes__season');
+
+  $$NotesTableProcessedTableManager get notesRefs {
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.season.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_notesRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$EweSummariesTable, List<EweSummary>> _eweSummariesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.eweSummaries,
+    aliasName: 'seasons__id__ewe_summaries__last_observation_season',
+  );
+
+  $$EweSummariesTableProcessedTableManager get eweSummariesRefs {
+    final manager = $$EweSummariesTableTableManager(
+      $_db,
+      $_db.eweSummaries,
+    ).filter((f) => f.lastObservationSeason.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_eweSummariesRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
@@ -8336,6 +16391,9 @@ class $$SeasonsTableFilterComposer extends Composer<_$AppDatabase, $SeasonsTable
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -8429,6 +16487,44 @@ class $$SeasonsTableFilterComposer extends Composer<_$AppDatabase, $SeasonsTable
     return f(composer);
   }
 
+  Expression<bool> careEventsRefs(Expression<bool> Function($$CareEventsTableFilterComposer f) f) {
+    final $$CareEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> fosterEventsRefs(
+    Expression<bool> Function($$FosterEventsTableFilterComposer f) f,
+  ) {
+    final $$FosterEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
     final $$TreatmentsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -8439,6 +16535,62 @@ class $$SeasonsTableFilterComposer extends Composer<_$AppDatabase, $SeasonsTable
           $$TreatmentsTableFilterComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> remindersRefs(Expression<bool> Function($$RemindersTableFilterComposer f) f) {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableFilterComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> notesRefs(Expression<bool> Function($$NotesTableFilterComposer f) f) {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> eweSummariesRefs(
+    Expression<bool> Function($$EweSummariesTableFilterComposer f) f,
+  ) {
+    final $$EweSummariesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eweSummaries,
+      getReferencedColumn: (t) => t.lastObservationSeason,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweSummariesTableFilterComposer(
+            $db: $db,
+            $table: $db.eweSummaries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -8487,6 +16639,9 @@ class $$SeasonsTableOrderingComposer extends Composer<_$AppDatabase, $SeasonsTab
 
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
@@ -8539,6 +16694,9 @@ class $$SeasonsTableAnnotationComposer extends Composer<_$AppDatabase, $SeasonsT
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -8630,6 +16788,46 @@ class $$SeasonsTableAnnotationComposer extends Composer<_$AppDatabase, $SeasonsT
     return f(composer);
   }
 
+  Expression<T> careEventsRefs<T extends Object>(
+    Expression<T> Function($$CareEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CareEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> fosterEventsRefs<T extends Object>(
+    Expression<T> Function($$FosterEventsTableAnnotationComposer a) f,
+  ) {
+    final $$FosterEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> treatmentsRefs<T extends Object>(
     Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
   ) {
@@ -8642,6 +16840,66 @@ class $$SeasonsTableAnnotationComposer extends Composer<_$AppDatabase, $SeasonsT
           $$TreatmentsTableAnnotationComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> remindersRefs<T extends Object>(
+    Expression<T> Function($$RemindersTableAnnotationComposer a) f,
+  ) {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> notesRefs<T extends Object>(
+    Expression<T> Function($$NotesTableAnnotationComposer a) f,
+  ) {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.season,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> eweSummariesRefs<T extends Object>(
+    Expression<T> Function($$EweSummariesTableAnnotationComposer a) f,
+  ) {
+    final $$EweSummariesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eweSummaries,
+      getReferencedColumn: (t) => t.lastObservationSeason,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweSummariesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eweSummaries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -8688,7 +16946,12 @@ class $$SeasonsTableTableManager
             bool lambingsRefs,
             bool eweSeasonsRefs,
             bool eweObservationsRefs,
+            bool careEventsRefs,
+            bool fosterEventsRefs,
             bool treatmentsRefs,
+            bool remindersRefs,
+            bool notesRefs,
+            bool eweSummariesRefs,
             bool penOccupanciesRefs,
           })
         > {
@@ -8707,6 +16970,7 @@ class $$SeasonsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> year = const Value.absent(),
@@ -8722,6 +16986,7 @@ class $$SeasonsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 year: year,
@@ -8739,6 +17004,7 @@ class $$SeasonsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int year,
@@ -8754,6 +17020,7 @@ class $$SeasonsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 year: year,
@@ -8772,7 +17039,12 @@ class $$SeasonsTableTableManager
                 lambingsRefs = false,
                 eweSeasonsRefs = false,
                 eweObservationsRefs = false,
+                careEventsRefs = false,
+                fosterEventsRefs = false,
                 treatmentsRefs = false,
+                remindersRefs = false,
+                notesRefs = false,
+                eweSummariesRefs = false,
                 penOccupanciesRefs = false,
               }) {
                 return PrefetchHooks(
@@ -8781,7 +17053,12 @@ class $$SeasonsTableTableManager
                     if (lambingsRefs) db.lambings,
                     if (eweSeasonsRefs) db.eweSeasons,
                     if (eweObservationsRefs) db.eweObservations,
+                    if (careEventsRefs) db.careEvents,
+                    if (fosterEventsRefs) db.fosterEvents,
                     if (treatmentsRefs) db.treatments,
+                    if (remindersRefs) db.reminders,
+                    if (notesRefs) db.notes,
+                    if (eweSummariesRefs) db.eweSummaries,
                     if (penOccupanciesRefs) db.penOccupancies,
                   ],
                   addJoins: null,
@@ -8817,6 +17094,26 @@ class $$SeasonsTableTableManager
                               referencedItems.where((e) => e.season == item.id),
                           typedResults: items,
                         ),
+                      if (careEventsRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, CareEvent>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._careEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).careEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
+                      if (fosterEventsRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, FosterEvent>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._fosterEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).fosterEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
                       if (treatmentsRefs)
                         await $_getPrefetchedData<Season, $SeasonsTable, Treatment>(
                           currentTable: table,
@@ -8825,6 +17122,36 @@ class $$SeasonsTableTableManager
                               $$SeasonsTableReferences(db, table, p0).treatmentsRefs,
                           referencedItemsForCurrentItem: (item, referencedItems) =>
                               referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
+                      if (remindersRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, Reminder>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).remindersRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
+                      if (notesRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, Note>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._notesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.season == item.id),
+                          typedResults: items,
+                        ),
+                      if (eweSummariesRefs)
+                        await $_getPrefetchedData<Season, $SeasonsTable, EweSummary>(
+                          currentTable: table,
+                          referencedTable: $$SeasonsTableReferences._eweSummariesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$SeasonsTableReferences(db, table, p0).eweSummariesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lastObservationSeason == item.id),
                           typedResults: items,
                         ),
                       if (penOccupanciesRefs)
@@ -8861,7 +17188,12 @@ typedef $$SeasonsTableProcessedTableManager =
         bool lambingsRefs,
         bool eweSeasonsRefs,
         bool eweObservationsRefs,
+        bool careEventsRefs,
+        bool fosterEventsRefs,
         bool treatmentsRefs,
+        bool remindersRefs,
+        bool notesRefs,
+        bool eweSummariesRefs,
         bool penOccupanciesRefs,
       })
     >;
@@ -8871,6 +17203,7 @@ typedef $$EwesTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required String tag,
@@ -8889,6 +17222,7 @@ typedef $$EwesTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<String> tag,
@@ -8963,6 +17297,23 @@ final class $$EwesTableReferences extends BaseReferences<_$AppDatabase, $EwesTab
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$FosterEventsTable, List<FosterEvent>> _fosterEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.fosterEvents,
+    aliasName: 'ewes__id__foster_events__rearing_dam',
+  );
+
+  $$FosterEventsTableProcessedTableManager get fosterEventsRefs {
+    final manager = $$FosterEventsTableTableManager(
+      $_db,
+      $_db.fosterEvents,
+    ).filter((f) => f.rearingDam.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_fosterEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'ewes__id__treatments__ewe');
@@ -8974,6 +17325,61 @@ final class $$EwesTableReferences extends BaseReferences<_$AppDatabase, $EwesTab
     ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$RemindersTable, List<Reminder>> _remindersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.reminders, aliasName: 'ewes__id__reminders__ewe');
+
+  $$RemindersTableProcessedTableManager get remindersRefs {
+    final manager = $$RemindersTableTableManager(
+      $_db,
+      $_db.reminders,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$NotesTable, List<Note>> _notesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.notes, aliasName: 'ewes__id__notes__ewe');
+
+  $$NotesTableProcessedTableManager get notesRefs {
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_notesRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'ewes__id__media_assets__ewe');
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$EweSummariesTable, List<EweSummary>> _eweSummariesRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.eweSummaries, aliasName: 'ewes__id__ewe_summaries__ewe');
+
+  $$EweSummariesTableProcessedTableManager get eweSummariesRefs {
+    final manager = $$EweSummariesTableTableManager(
+      $_db,
+      $_db.eweSummaries,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_eweSummariesRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
@@ -9016,6 +17422,9 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -9129,6 +17538,26 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
     return f(composer);
   }
 
+  Expression<bool> fosterEventsRefs(
+    Expression<bool> Function($$FosterEventsTableFilterComposer f) f,
+  ) {
+    final $$FosterEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.rearingDam,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
     final $$TreatmentsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -9139,6 +17568,82 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
           $$TreatmentsTableFilterComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> remindersRefs(Expression<bool> Function($$RemindersTableFilterComposer f) f) {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableFilterComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> notesRefs(Expression<bool> Function($$NotesTableFilterComposer f) f) {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> eweSummariesRefs(
+    Expression<bool> Function($$EweSummariesTableFilterComposer f) f,
+  ) {
+    final $$EweSummariesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eweSummaries,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweSummariesTableFilterComposer(
+            $db: $db,
+            $table: $db.eweSummaries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -9187,6 +17692,9 @@ class $$EwesTableOrderingComposer extends Composer<_$AppDatabase, $EwesTable> {
 
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
@@ -9240,6 +17748,9 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -9354,6 +17865,26 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
     return f(composer);
   }
 
+  Expression<T> fosterEventsRefs<T extends Object>(
+    Expression<T> Function($$FosterEventsTableAnnotationComposer a) f,
+  ) {
+    final $$FosterEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.rearingDam,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> treatmentsRefs<T extends Object>(
     Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
   ) {
@@ -9366,6 +17897,86 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
           $$TreatmentsTableAnnotationComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> remindersRefs<T extends Object>(
+    Expression<T> Function($$RemindersTableAnnotationComposer a) f,
+  ) {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> notesRefs<T extends Object>(
+    Expression<T> Function($$NotesTableAnnotationComposer a) f,
+  ) {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> eweSummariesRefs<T extends Object>(
+    Expression<T> Function($$EweSummariesTableAnnotationComposer a) f,
+  ) {
+    final $$EweSummariesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eweSummaries,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweSummariesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eweSummaries,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -9413,7 +18024,12 @@ class $$EwesTableTableManager
             bool eweSeasonsRefs,
             bool eweTouchesRefs,
             bool eweObservationsRefs,
+            bool fosterEventsRefs,
             bool treatmentsRefs,
+            bool remindersRefs,
+            bool notesRefs,
+            bool mediaAssetsRefs,
+            bool eweSummariesRefs,
             bool penOccupanciesRefs,
           })
         > {
@@ -9431,6 +18047,7 @@ class $$EwesTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<String> tag = const Value.absent(),
@@ -9447,6 +18064,7 @@ class $$EwesTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 tag: tag,
@@ -9465,6 +18083,7 @@ class $$EwesTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required String tag,
@@ -9481,6 +18100,7 @@ class $$EwesTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 tag: tag,
@@ -9501,7 +18121,12 @@ class $$EwesTableTableManager
                 eweSeasonsRefs = false,
                 eweTouchesRefs = false,
                 eweObservationsRefs = false,
+                fosterEventsRefs = false,
                 treatmentsRefs = false,
+                remindersRefs = false,
+                notesRefs = false,
+                mediaAssetsRefs = false,
+                eweSummariesRefs = false,
                 penOccupanciesRefs = false,
               }) {
                 return PrefetchHooks(
@@ -9511,7 +18136,12 @@ class $$EwesTableTableManager
                     if (eweSeasonsRefs) db.eweSeasons,
                     if (eweTouchesRefs) db.eweTouches,
                     if (eweObservationsRefs) db.eweObservations,
+                    if (fosterEventsRefs) db.fosterEvents,
                     if (treatmentsRefs) db.treatments,
+                    if (remindersRefs) db.reminders,
+                    if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
+                    if (eweSummariesRefs) db.eweSummaries,
                     if (penOccupanciesRefs) db.penOccupancies,
                   ],
                   addJoins: null,
@@ -9557,12 +18187,62 @@ class $$EwesTableTableManager
                               referencedItems.where((e) => e.ewe == item.id),
                           typedResults: items,
                         ),
+                      if (fosterEventsRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, FosterEvent>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._fosterEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).fosterEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.rearingDam == item.id),
+                          typedResults: items,
+                        ),
                       if (treatmentsRefs)
                         await $_getPrefetchedData<Ewe, $EwesTable, Treatment>(
                           currentTable: table,
                           referencedTable: $$EwesTableReferences._treatmentsRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$EwesTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (remindersRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, Reminder>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).remindersRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (notesRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, Note>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._notesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).mediaAssetsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (eweSummariesRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, EweSummary>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._eweSummariesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).eweSummariesRefs,
                           referencedItemsForCurrentItem: (item, referencedItems) =>
                               referencedItems.where((e) => e.ewe == item.id),
                           typedResults: items,
@@ -9602,8 +18282,637 @@ typedef $$EwesTableProcessedTableManager =
         bool eweSeasonsRefs,
         bool eweTouchesRefs,
         bool eweObservationsRefs,
+        bool fosterEventsRefs,
         bool treatmentsRefs,
+        bool remindersRefs,
+        bool notesRefs,
+        bool mediaAssetsRefs,
+        bool eweSummariesRefs,
         bool penOccupanciesRefs,
+      })
+    >;
+typedef $$VocabTermsTableCreateCompanionBuilder =
+    VocabTermsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      required String list,
+      required String key,
+      Value<String?> label,
+      required int sortOrder,
+      required String origin,
+      Value<Instant?> hiddenAt,
+    });
+typedef $$VocabTermsTableUpdateCompanionBuilder =
+    VocabTermsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<String> list,
+      Value<String> key,
+      Value<String?> label,
+      Value<int> sortOrder,
+      Value<String> origin,
+      Value<Instant?> hiddenAt,
+    });
+
+final class $$VocabTermsTableReferences
+    extends BaseReferences<_$AppDatabase, $VocabTermsTable, VocabTerm> {
+  $$VocabTermsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$LambingsTable, List<Lambing>> _lambingsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.lambings,
+        aliasName: 'vocab_terms__key__lambings__presentation',
+      );
+
+  $$LambingsTableProcessedTableManager get lambingsRefs {
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.presentation.key.sqlEquals($_itemColumn<String>('key')!));
+
+    final cache = $_typedResult.readTableOrNull(_lambingsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$LambsTable, List<Lamb>> _lambsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.lambs, aliasName: 'vocab_terms__key__lambs__death_cause');
+
+  $$LambsTableProcessedTableManager get lambsRefs {
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.deathCause.key.sqlEquals($_itemColumn<String>('key')!));
+
+    final cache = $_typedResult.readTableOrNull(_lambsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$EweObservationsTable, List<EweObservation>> _eweObservationsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.eweObservations,
+    aliasName: 'vocab_terms__key__ewe_observations__kind',
+  );
+
+  $$EweObservationsTableProcessedTableManager get eweObservationsRefs {
+    final manager = $$EweObservationsTableTableManager(
+      $_db,
+      $_db.eweObservations,
+    ).filter((f) => f.kind.key.sqlEquals($_itemColumn<String>('key')!));
+
+    final cache = $_typedResult.readTableOrNull(_eweObservationsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$FosterEventsTable, List<FosterEvent>> _fosterEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.fosterEvents,
+    aliasName: 'vocab_terms__key__foster_events__method',
+  );
+
+  $$FosterEventsTableProcessedTableManager get fosterEventsRefs {
+    final manager = $$FosterEventsTableTableManager(
+      $_db,
+      $_db.fosterEvents,
+    ).filter((f) => f.method.key.sqlEquals($_itemColumn<String>('key')!));
+
+    final cache = $_typedResult.readTableOrNull(_fosterEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.treatments,
+    aliasName: 'vocab_terms__key__treatments__route',
+  );
+
+  $$TreatmentsTableProcessedTableManager get treatmentsRefs {
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.route.key.sqlEquals($_itemColumn<String>('key')!));
+
+    final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$VocabTermsTableFilterComposer extends Composer<_$AppDatabase, $VocabTermsTable> {
+  $$VocabTermsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get list =>
+      $composableBuilder(column: $table.list, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get origin =>
+      $composableBuilder(column: $table.origin, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get hiddenAt => $composableBuilder(
+    column: $table.hiddenAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  Expression<bool> lambingsRefs(Expression<bool> Function($$LambingsTableFilterComposer f) f) {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.presentation,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> lambsRefs(Expression<bool> Function($$LambsTableFilterComposer f) f) {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.deathCause,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> eweObservationsRefs(
+    Expression<bool> Function($$EweObservationsTableFilterComposer f) f,
+  ) {
+    final $$EweObservationsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.eweObservations,
+      getReferencedColumn: (t) => t.kind,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweObservationsTableFilterComposer(
+            $db: $db,
+            $table: $db.eweObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> fosterEventsRefs(
+    Expression<bool> Function($$FosterEventsTableFilterComposer f) f,
+  ) {
+    final $$FosterEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.method,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.route,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$VocabTermsTableOrderingComposer extends Composer<_$AppDatabase, $VocabTermsTable> {
+  $$VocabTermsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get list =>
+      $composableBuilder(column: $table.list, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get origin =>
+      $composableBuilder(column: $table.origin, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get hiddenAt =>
+      $composableBuilder(column: $table.hiddenAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$VocabTermsTableAnnotationComposer extends Composer<_$AppDatabase, $VocabTermsTable> {
+  $$VocabTermsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<String> get list =>
+      $composableBuilder(column: $table.list, builder: (column) => column);
+
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get origin =>
+      $composableBuilder(column: $table.origin, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get hiddenAt =>
+      $composableBuilder(column: $table.hiddenAt, builder: (column) => column);
+
+  Expression<T> lambingsRefs<T extends Object>(
+    Expression<T> Function($$LambingsTableAnnotationComposer a) f,
+  ) {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.presentation,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> lambsRefs<T extends Object>(
+    Expression<T> Function($$LambsTableAnnotationComposer a) f,
+  ) {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.deathCause,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> eweObservationsRefs<T extends Object>(
+    Expression<T> Function($$EweObservationsTableAnnotationComposer a) f,
+  ) {
+    final $$EweObservationsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.eweObservations,
+      getReferencedColumn: (t) => t.kind,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EweObservationsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eweObservations,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> fosterEventsRefs<T extends Object>(
+    Expression<T> Function($$FosterEventsTableAnnotationComposer a) f,
+  ) {
+    final $$FosterEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.method,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> treatmentsRefs<T extends Object>(
+    Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
+  ) {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.key,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.route,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$VocabTermsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VocabTermsTable,
+          VocabTerm,
+          $$VocabTermsTableFilterComposer,
+          $$VocabTermsTableOrderingComposer,
+          $$VocabTermsTableAnnotationComposer,
+          $$VocabTermsTableCreateCompanionBuilder,
+          $$VocabTermsTableUpdateCompanionBuilder,
+          (VocabTerm, $$VocabTermsTableReferences),
+          VocabTerm,
+          PrefetchHooks Function({
+            bool lambingsRefs,
+            bool lambsRefs,
+            bool eweObservationsRefs,
+            bool fosterEventsRefs,
+            bool treatmentsRefs,
+          })
+        > {
+  $$VocabTermsTableTableManager(_$AppDatabase db, $VocabTermsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$VocabTermsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$VocabTermsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VocabTermsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<String> list = const Value.absent(),
+                Value<String> key = const Value.absent(),
+                Value<String?> label = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<Instant?> hiddenAt = const Value.absent(),
+              }) => VocabTermsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                list: list,
+                key: key,
+                label: label,
+                sortOrder: sortOrder,
+                origin: origin,
+                hiddenAt: hiddenAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                required String list,
+                required String key,
+                Value<String?> label = const Value.absent(),
+                required int sortOrder,
+                required String origin,
+                Value<Instant?> hiddenAt = const Value.absent(),
+              }) => VocabTermsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                list: list,
+                key: key,
+                label: label,
+                sortOrder: sortOrder,
+                origin: origin,
+                hiddenAt: hiddenAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$VocabTermsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                lambingsRefs = false,
+                lambsRefs = false,
+                eweObservationsRefs = false,
+                fosterEventsRefs = false,
+                treatmentsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (lambingsRefs) db.lambings,
+                    if (lambsRefs) db.lambs,
+                    if (eweObservationsRefs) db.eweObservations,
+                    if (fosterEventsRefs) db.fosterEvents,
+                    if (treatmentsRefs) db.treatments,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (lambingsRefs)
+                        await $_getPrefetchedData<VocabTerm, $VocabTermsTable, Lambing>(
+                          currentTable: table,
+                          referencedTable: $$VocabTermsTableReferences._lambingsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VocabTermsTableReferences(db, table, p0).lambingsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.presentation == item.key),
+                          typedResults: items,
+                        ),
+                      if (lambsRefs)
+                        await $_getPrefetchedData<VocabTerm, $VocabTermsTable, Lamb>(
+                          currentTable: table,
+                          referencedTable: $$VocabTermsTableReferences._lambsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VocabTermsTableReferences(db, table, p0).lambsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.deathCause == item.key),
+                          typedResults: items,
+                        ),
+                      if (eweObservationsRefs)
+                        await $_getPrefetchedData<VocabTerm, $VocabTermsTable, EweObservation>(
+                          currentTable: table,
+                          referencedTable: $$VocabTermsTableReferences._eweObservationsRefsTable(
+                            db,
+                          ),
+                          managerFromTypedResult: (p0) =>
+                              $$VocabTermsTableReferences(db, table, p0).eweObservationsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.kind == item.key),
+                          typedResults: items,
+                        ),
+                      if (fosterEventsRefs)
+                        await $_getPrefetchedData<VocabTerm, $VocabTermsTable, FosterEvent>(
+                          currentTable: table,
+                          referencedTable: $$VocabTermsTableReferences._fosterEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VocabTermsTableReferences(db, table, p0).fosterEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.method == item.key),
+                          typedResults: items,
+                        ),
+                      if (treatmentsRefs)
+                        await $_getPrefetchedData<VocabTerm, $VocabTermsTable, Treatment>(
+                          currentTable: table,
+                          referencedTable: $$VocabTermsTableReferences._treatmentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$VocabTermsTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.route == item.key),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$VocabTermsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VocabTermsTable,
+      VocabTerm,
+      $$VocabTermsTableFilterComposer,
+      $$VocabTermsTableOrderingComposer,
+      $$VocabTermsTableAnnotationComposer,
+      $$VocabTermsTableCreateCompanionBuilder,
+      $$VocabTermsTableUpdateCompanionBuilder,
+      (VocabTerm, $$VocabTermsTableReferences),
+      VocabTerm,
+      PrefetchHooks Function({
+        bool lambingsRefs,
+        bool lambsRefs,
+        bool eweObservationsRefs,
+        bool fosterEventsRefs,
+        bool treatmentsRefs,
       })
     >;
 typedef $$LambingsTableCreateCompanionBuilder =
@@ -9612,6 +18921,7 @@ typedef $$LambingsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int season,
@@ -9634,6 +18944,7 @@ typedef $$LambingsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> season,
@@ -9684,6 +18995,21 @@ final class $$LambingsTableReferences
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
 
+  static $VocabTermsTable _presentationTable(_$AppDatabase db) =>
+      db.vocabTerms.createAlias('lambings__presentation__vocab_terms__key');
+
+  $$VocabTermsTableProcessedTableManager? get presentation {
+    final $_column = $_itemColumn<String>('presentation');
+    if ($_column == null) return null;
+    final manager = $$VocabTermsTableTableManager(
+      $_db,
+      $_db.vocabTerms,
+    ).filter((f) => f.key.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_presentationTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
   static MultiTypedResultKey<$LambsTable, List<Lamb>> _lambsRefsTable(_$AppDatabase db) =>
       MultiTypedResultKey.fromTable(db.lambs, aliasName: 'lambings__id__lambs__lambing');
 
@@ -9713,6 +19039,65 @@ final class $$LambingsTableReferences
     final cache = $_typedResult.readTableOrNull(_eweObservationsRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$CareEventsTable, List<CareEvent>> _careEventsRefsTable(
+    _$AppDatabase db,
+  ) =>
+      MultiTypedResultKey.fromTable(db.careEvents, aliasName: 'lambings__id__care_events__lambing');
+
+  $$CareEventsTableProcessedTableManager get careEventsRefs {
+    final manager = $$CareEventsTableTableManager(
+      $_db,
+      $_db.careEvents,
+    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_careEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$RemindersTable, List<Reminder>> _remindersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.reminders, aliasName: 'lambings__id__reminders__lambing');
+
+  $$RemindersTableProcessedTableManager get remindersRefs {
+    final manager = $$RemindersTableTableManager(
+      $_db,
+      $_db.reminders,
+    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$NotesTable, List<Note>> _notesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.notes, aliasName: 'lambings__id__notes__lambing');
+
+  $$NotesTableProcessedTableManager get notesRefs {
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_notesRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.mediaAssets,
+    aliasName: 'lambings__id__media_assets__lambing',
+  );
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTable> {
@@ -9738,6 +19123,9 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -9781,9 +19169,6 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
 
   ColumnFilters<String> get assistedBy =>
       $composableBuilder(column: $table.assistedBy, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get presentation =>
-      $composableBuilder(column: $table.presentation, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get presentationNote => $composableBuilder(
     column: $table.presentationNote,
@@ -9829,6 +19214,24 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
     return composer;
   }
 
+  $$VocabTermsTableFilterComposer get presentation {
+    final $$VocabTermsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.presentation,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableFilterComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   Expression<bool> lambsRefs(Expression<bool> Function($$LambsTableFilterComposer f) f) {
     final $$LambsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -9866,6 +19269,80 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
     );
     return f(composer);
   }
+
+  Expression<bool> careEventsRefs(Expression<bool> Function($$CareEventsTableFilterComposer f) f) {
+    final $$CareEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> remindersRefs(Expression<bool> Function($$RemindersTableFilterComposer f) f) {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableFilterComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> notesRefs(Expression<bool> Function($$NotesTableFilterComposer f) f) {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$LambingsTableOrderingComposer extends Composer<_$AppDatabase, $LambingsTable> {
@@ -9887,6 +19364,9 @@ class $$LambingsTableOrderingComposer extends Composer<_$AppDatabase, $LambingsT
 
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
@@ -9921,9 +19401,6 @@ class $$LambingsTableOrderingComposer extends Composer<_$AppDatabase, $LambingsT
 
   ColumnOrderings<String> get assistedBy =>
       $composableBuilder(column: $table.assistedBy, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get presentation =>
-      $composableBuilder(column: $table.presentation, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get presentationNote => $composableBuilder(
     column: $table.presentationNote,
@@ -9968,6 +19445,24 @@ class $$LambingsTableOrderingComposer extends Composer<_$AppDatabase, $LambingsT
     );
     return composer;
   }
+
+  $$VocabTermsTableOrderingComposer get presentation {
+    final $$VocabTermsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.presentation,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableOrderingComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $LambingsTable> {
@@ -9988,6 +19483,9 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -10018,9 +19516,6 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
 
   GeneratedColumn<String> get assistedBy =>
       $composableBuilder(column: $table.assistedBy, builder: (column) => column);
-
-  GeneratedColumn<String> get presentation =>
-      $composableBuilder(column: $table.presentation, builder: (column) => column);
 
   GeneratedColumn<String> get presentationNote =>
       $composableBuilder(column: $table.presentationNote, builder: (column) => column);
@@ -10056,6 +19551,24 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
           $$EwesTableAnnotationComposer(
             $db: $db,
             $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$VocabTermsTableAnnotationComposer get presentation {
+    final $$VocabTermsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.presentation,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -10103,6 +19616,86 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
     );
     return f(composer);
   }
+
+  Expression<T> careEventsRefs<T extends Object>(
+    Expression<T> Function($$CareEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CareEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> remindersRefs<T extends Object>(
+    Expression<T> Function($$RemindersTableAnnotationComposer a) f,
+  ) {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> notesRefs<T extends Object>(
+    Expression<T> Function($$NotesTableAnnotationComposer a) f,
+  ) {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$LambingsTableTableManager
@@ -10118,7 +19711,17 @@ class $$LambingsTableTableManager
           $$LambingsTableUpdateCompanionBuilder,
           (Lambing, $$LambingsTableReferences),
           Lambing,
-          PrefetchHooks Function({bool season, bool ewe, bool lambsRefs, bool eweObservationsRefs})
+          PrefetchHooks Function({
+            bool season,
+            bool ewe,
+            bool presentation,
+            bool lambsRefs,
+            bool eweObservationsRefs,
+            bool careEventsRefs,
+            bool remindersRefs,
+            bool notesRefs,
+            bool mediaAssetsRefs,
+          })
         > {
   $$LambingsTableTableManager(_$AppDatabase db, $LambingsTable table)
     : super(
@@ -10135,6 +19738,7 @@ class $$LambingsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> season = const Value.absent(),
@@ -10155,6 +19759,7 @@ class $$LambingsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 season: season,
@@ -10177,6 +19782,7 @@ class $$LambingsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int season,
@@ -10197,6 +19803,7 @@ class $$LambingsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 season: season,
@@ -10216,12 +19823,26 @@ class $$LambingsTableTableManager
           withReferenceMapper: (p0) =>
               p0.map((e) => (e.readTable(table), $$LambingsTableReferences(db, table, e))).toList(),
           prefetchHooksCallback:
-              ({season = false, ewe = false, lambsRefs = false, eweObservationsRefs = false}) {
+              ({
+                season = false,
+                ewe = false,
+                presentation = false,
+                lambsRefs = false,
+                eweObservationsRefs = false,
+                careEventsRefs = false,
+                remindersRefs = false,
+                notesRefs = false,
+                mediaAssetsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (lambsRefs) db.lambs,
                     if (eweObservationsRefs) db.eweObservations,
+                    if (careEventsRefs) db.careEvents,
+                    if (remindersRefs) db.reminders,
+                    if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
                   ],
                   addJoins:
                       <
@@ -10259,6 +19880,20 @@ class $$LambingsTableTableManager
                                   )
                                   as T;
                         }
+                        if (presentation) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.presentation,
+                                    referencedTable: $$LambingsTableReferences._presentationTable(
+                                      db,
+                                    ),
+                                    referencedColumn: $$LambingsTableReferences
+                                        ._presentationTable(db)
+                                        .key,
+                                  )
+                                  as T;
+                        }
 
                         return state;
                       },
@@ -10284,6 +19919,46 @@ class $$LambingsTableTableManager
                               referencedItems.where((e) => e.lambing == item.id),
                           typedResults: items,
                         ),
+                      if (careEventsRefs)
+                        await $_getPrefetchedData<Lambing, $LambingsTable, CareEvent>(
+                          currentTable: table,
+                          referencedTable: $$LambingsTableReferences._careEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambingsTableReferences(db, table, p0).careEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lambing == item.id),
+                          typedResults: items,
+                        ),
+                      if (remindersRefs)
+                        await $_getPrefetchedData<Lambing, $LambingsTable, Reminder>(
+                          currentTable: table,
+                          referencedTable: $$LambingsTableReferences._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambingsTableReferences(db, table, p0).remindersRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lambing == item.id),
+                          typedResults: items,
+                        ),
+                      if (notesRefs)
+                        await $_getPrefetchedData<Lambing, $LambingsTable, Note>(
+                          currentTable: table,
+                          referencedTable: $$LambingsTableReferences._notesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambingsTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lambing == item.id),
+                          typedResults: items,
+                        ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Lambing, $LambingsTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$LambingsTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambingsTableReferences(db, table, p0).mediaAssetsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lambing == item.id),
+                          typedResults: items,
+                        ),
                     ];
                   },
                 );
@@ -10304,7 +19979,17 @@ typedef $$LambingsTableProcessedTableManager =
       $$LambingsTableUpdateCompanionBuilder,
       (Lambing, $$LambingsTableReferences),
       Lambing,
-      PrefetchHooks Function({bool season, bool ewe, bool lambsRefs, bool eweObservationsRefs})
+      PrefetchHooks Function({
+        bool season,
+        bool ewe,
+        bool presentation,
+        bool lambsRefs,
+        bool eweObservationsRefs,
+        bool careEventsRefs,
+        bool remindersRefs,
+        bool notesRefs,
+        bool mediaAssetsRefs,
+      })
     >;
 typedef $$LambsTableCreateCompanionBuilder =
     LambsCompanion Function({
@@ -10312,6 +19997,7 @@ typedef $$LambsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int lambing,
@@ -10334,6 +20020,7 @@ typedef $$LambsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> lambing,
@@ -10384,6 +20071,21 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
 
+  static $VocabTermsTable _deathCauseTable(_$AppDatabase db) =>
+      db.vocabTerms.createAlias('lambs__death_cause__vocab_terms__key');
+
+  $$VocabTermsTableProcessedTableManager? get deathCause {
+    final $_column = $_itemColumn<String>('death_cause');
+    if ($_column == null) return null;
+    final manager = $$VocabTermsTableTableManager(
+      $_db,
+      $_db.vocabTerms,
+    ).filter((f) => f.key.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_deathCauseTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
   static $EwesTable _becameEweTable(_$AppDatabase db) =>
       db.ewes.createAlias('lambs__became_ewe__ewes__id');
 
@@ -10399,6 +20101,34 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
 
+  static MultiTypedResultKey<$CareEventsTable, List<CareEvent>> _careEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.careEvents, aliasName: 'lambs__id__care_events__lamb');
+
+  $$CareEventsTableProcessedTableManager get careEventsRefs {
+    final manager = $$CareEventsTableTableManager(
+      $_db,
+      $_db.careEvents,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_careEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$FosterEventsTable, List<FosterEvent>> _fosterEventsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.fosterEvents, aliasName: 'lambs__id__foster_events__lamb');
+
+  $$FosterEventsTableProcessedTableManager get fosterEventsRefs {
+    final manager = $$FosterEventsTableTableManager(
+      $_db,
+      $_db.fosterEvents,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_fosterEventsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$TreatmentsTable, List<Treatment>> _treatmentsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(db.treatments, aliasName: 'lambs__id__treatments__lamb');
@@ -10410,6 +20140,47 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_treatmentsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$RemindersTable, List<Reminder>> _remindersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.reminders, aliasName: 'lambs__id__reminders__lamb');
+
+  $$RemindersTableProcessedTableManager get remindersRefs {
+    final manager = $$RemindersTableTableManager(
+      $_db,
+      $_db.reminders,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$NotesTable, List<Note>> _notesRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.notes, aliasName: 'lambs__id__notes__lamb');
+
+  $$NotesTableProcessedTableManager get notesRefs {
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_notesRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'lambs__id__media_assets__lamb');
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
@@ -10454,6 +20225,9 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
 
@@ -10481,9 +20255,6 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
     column: $table.deathDate,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
-
-  ColumnFilters<String> get deathCause =>
-      $composableBuilder(column: $table.deathCause, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get petLamb =>
       $composableBuilder(column: $table.petLamb, builder: (column) => ColumnFilters(column));
@@ -10530,6 +20301,24 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
     return composer;
   }
 
+  $$VocabTermsTableFilterComposer get deathCause {
+    final $$VocabTermsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deathCause,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableFilterComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$EwesTableFilterComposer get becameEwe {
     final $$EwesTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -10548,6 +20337,44 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
     return composer;
   }
 
+  Expression<bool> careEventsRefs(Expression<bool> Function($$CareEventsTableFilterComposer f) f) {
+    final $$CareEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> fosterEventsRefs(
+    Expression<bool> Function($$FosterEventsTableFilterComposer f) f,
+  ) {
+    final $$FosterEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> treatmentsRefs(Expression<bool> Function($$TreatmentsTableFilterComposer f) f) {
     final $$TreatmentsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -10558,6 +20385,62 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
           $$TreatmentsTableFilterComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> remindersRefs(Expression<bool> Function($$RemindersTableFilterComposer f) f) {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableFilterComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> notesRefs(Expression<bool> Function($$NotesTableFilterComposer f) f) {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -10607,6 +20490,9 @@ class $$LambsTableOrderingComposer extends Composer<_$AppDatabase, $LambsTable> 
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
 
@@ -10630,9 +20516,6 @@ class $$LambsTableOrderingComposer extends Composer<_$AppDatabase, $LambsTable> 
 
   ColumnOrderings<String> get deathDate =>
       $composableBuilder(column: $table.deathDate, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get deathCause =>
-      $composableBuilder(column: $table.deathCause, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<bool> get petLamb =>
       $composableBuilder(column: $table.petLamb, builder: (column) => ColumnOrderings(column));
@@ -10679,6 +20562,24 @@ class $$LambsTableOrderingComposer extends Composer<_$AppDatabase, $LambsTable> 
     return composer;
   }
 
+  $$VocabTermsTableOrderingComposer get deathCause {
+    final $$VocabTermsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deathCause,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableOrderingComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$EwesTableOrderingComposer get becameEwe {
     final $$EwesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -10717,6 +20618,9 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
 
@@ -10740,9 +20644,6 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
 
   GeneratedColumnWithTypeConverter<LocalDate?, String> get deathDate =>
       $composableBuilder(column: $table.deathDate, builder: (column) => column);
-
-  GeneratedColumn<String> get deathCause =>
-      $composableBuilder(column: $table.deathCause, builder: (column) => column);
 
   GeneratedColumn<bool> get petLamb =>
       $composableBuilder(column: $table.petLamb, builder: (column) => column);
@@ -10789,6 +20690,24 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
     return composer;
   }
 
+  $$VocabTermsTableAnnotationComposer get deathCause {
+    final $$VocabTermsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.deathCause,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
   $$EwesTableAnnotationComposer get becameEwe {
     final $$EwesTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -10807,6 +20726,46 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
     return composer;
   }
 
+  Expression<T> careEventsRefs<T extends Object>(
+    Expression<T> Function($$CareEventsTableAnnotationComposer a) f,
+  ) {
+    final $$CareEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.careEvents,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$CareEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.careEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> fosterEventsRefs<T extends Object>(
+    Expression<T> Function($$FosterEventsTableAnnotationComposer a) f,
+  ) {
+    final $$FosterEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> treatmentsRefs<T extends Object>(
     Expression<T> Function($$TreatmentsTableAnnotationComposer a) f,
   ) {
@@ -10819,6 +20778,66 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
           $$TreatmentsTableAnnotationComposer(
             $db: $db,
             $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> remindersRefs<T extends Object>(
+    Expression<T> Function($$RemindersTableAnnotationComposer a) f,
+  ) {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> notesRefs<T extends Object>(
+    Expression<T> Function($$NotesTableAnnotationComposer a) f,
+  ) {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -10864,8 +20883,14 @@ class $$LambsTableTableManager
           PrefetchHooks Function({
             bool lambing,
             bool birthDam,
+            bool deathCause,
             bool becameEwe,
+            bool careEventsRefs,
+            bool fosterEventsRefs,
             bool treatmentsRefs,
+            bool remindersRefs,
+            bool notesRefs,
+            bool mediaAssetsRefs,
             bool penOccupancyLambsRefs,
           })
         > {
@@ -10883,6 +20908,7 @@ class $$LambsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> lambing = const Value.absent(),
@@ -10903,6 +20929,7 @@ class $$LambsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 lambing: lambing,
@@ -10925,6 +20952,7 @@ class $$LambsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int lambing,
@@ -10945,6 +20973,7 @@ class $$LambsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 lambing: lambing,
@@ -10967,14 +20996,25 @@ class $$LambsTableTableManager
               ({
                 lambing = false,
                 birthDam = false,
+                deathCause = false,
                 becameEwe = false,
+                careEventsRefs = false,
+                fosterEventsRefs = false,
                 treatmentsRefs = false,
+                remindersRefs = false,
+                notesRefs = false,
+                mediaAssetsRefs = false,
                 penOccupancyLambsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
+                    if (careEventsRefs) db.careEvents,
+                    if (fosterEventsRefs) db.fosterEvents,
                     if (treatmentsRefs) db.treatments,
+                    if (remindersRefs) db.reminders,
+                    if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
                     if (penOccupancyLambsRefs) db.penOccupancyLambs,
                   ],
                   addJoins:
@@ -11013,6 +21053,18 @@ class $$LambsTableTableManager
                                   )
                                   as T;
                         }
+                        if (deathCause) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.deathCause,
+                                    referencedTable: $$LambsTableReferences._deathCauseTable(db),
+                                    referencedColumn: $$LambsTableReferences
+                                        ._deathCauseTable(db)
+                                        .key,
+                                  )
+                                  as T;
+                        }
                         if (becameEwe) {
                           state =
                               state.withJoin(
@@ -11028,12 +21080,62 @@ class $$LambsTableTableManager
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (careEventsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, CareEvent>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._careEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).careEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                      if (fosterEventsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, FosterEvent>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._fosterEventsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).fosterEventsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
                       if (treatmentsRefs)
                         await $_getPrefetchedData<Lamb, $LambsTable, Treatment>(
                           currentTable: table,
                           referencedTable: $$LambsTableReferences._treatmentsRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$LambsTableReferences(db, table, p0).treatmentsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                      if (remindersRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, Reminder>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).remindersRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                      if (notesRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, Note>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._notesRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).mediaAssetsRefs,
                           referencedItemsForCurrentItem: (item, referencedItems) =>
                               referencedItems.where((e) => e.lamb == item.id),
                           typedResults: items,
@@ -11071,8 +21173,14 @@ typedef $$LambsTableProcessedTableManager =
       PrefetchHooks Function({
         bool lambing,
         bool birthDam,
+        bool deathCause,
         bool becameEwe,
+        bool careEventsRefs,
+        bool fosterEventsRefs,
         bool treatmentsRefs,
+        bool remindersRefs,
+        bool notesRefs,
+        bool mediaAssetsRefs,
         bool penOccupancyLambsRefs,
       })
     >;
@@ -11082,6 +21190,7 @@ typedef $$EweSeasonsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int season,
@@ -11096,6 +21205,7 @@ typedef $$EweSeasonsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> season,
@@ -11163,6 +21273,9 @@ class $$EweSeasonsTableFilterComposer extends Composer<_$AppDatabase, $EweSeason
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -11238,6 +21351,9 @@ class $$EweSeasonsTableOrderingComposer extends Composer<_$AppDatabase, $EweSeas
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
 
@@ -11308,6 +21424,9 @@ class $$EweSeasonsTableAnnotationComposer extends Composer<_$AppDatabase, $EweSe
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -11391,6 +21510,7 @@ class $$EweSeasonsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> season = const Value.absent(),
@@ -11403,6 +21523,7 @@ class $$EweSeasonsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 season: season,
@@ -11417,6 +21538,7 @@ class $$EweSeasonsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int season,
@@ -11429,6 +21551,7 @@ class $$EweSeasonsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 season: season,
@@ -11720,6 +21843,7 @@ typedef $$EweObservationsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int ewe,
@@ -11738,6 +21862,7 @@ typedef $$EweObservationsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> ewe,
@@ -11799,6 +21924,21 @@ final class $$EweObservationsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
+
+  static $VocabTermsTable _kindTable(_$AppDatabase db) =>
+      db.vocabTerms.createAlias('ewe_observations__kind__vocab_terms__key');
+
+  $$VocabTermsTableProcessedTableManager get kind {
+    final $_column = $_itemColumn<String>('kind')!;
+
+    final manager = $$VocabTermsTableTableManager(
+      $_db,
+      $_db.vocabTerms,
+    ).filter((f) => f.key.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_kindTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
 }
 
 class $$EweObservationsTableFilterComposer extends Composer<_$AppDatabase, $EweObservationsTable> {
@@ -11825,6 +21965,9 @@ class $$EweObservationsTableFilterComposer extends Composer<_$AppDatabase, $EweO
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
 
@@ -11832,9 +21975,6 @@ class $$EweObservationsTableFilterComposer extends Composer<_$AppDatabase, $EweO
     column: $table.struckAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
-
-  ColumnFilters<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
 
   ColumnWithTypeConverterFilters<Instant, Instant, int> get occurredAt => $composableBuilder(
     column: $table.occurredAt,
@@ -11911,6 +22051,24 @@ class $$EweObservationsTableFilterComposer extends Composer<_$AppDatabase, $EweO
     );
     return composer;
   }
+
+  $$VocabTermsTableFilterComposer get kind {
+    final $$VocabTermsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.kind,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableFilterComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EweObservationsTableOrderingComposer
@@ -11934,14 +22092,14 @@ class $$EweObservationsTableOrderingComposer
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get struckAt =>
       $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<int> get occurredAt =>
       $composableBuilder(column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
@@ -12013,6 +22171,24 @@ class $$EweObservationsTableOrderingComposer
     );
     return composer;
   }
+
+  $$VocabTermsTableOrderingComposer get kind {
+    final $$VocabTermsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.kind,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableOrderingComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EweObservationsTableAnnotationComposer
@@ -12035,14 +22211,14 @@ class $$EweObservationsTableAnnotationComposer
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
       $composableBuilder(column: $table.struckAt, builder: (column) => column);
-
-  GeneratedColumn<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
 
   GeneratedColumnWithTypeConverter<Instant, int> get occurredAt =>
       $composableBuilder(column: $table.occurredAt, builder: (column) => column);
@@ -12112,6 +22288,24 @@ class $$EweObservationsTableAnnotationComposer
     );
     return composer;
   }
+
+  $$VocabTermsTableAnnotationComposer get kind {
+    final $$VocabTermsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.kind,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$EweObservationsTableTableManager
@@ -12127,7 +22321,7 @@ class $$EweObservationsTableTableManager
           $$EweObservationsTableUpdateCompanionBuilder,
           (EweObservation, $$EweObservationsTableReferences),
           EweObservation,
-          PrefetchHooks Function({bool ewe, bool season, bool lambing})
+          PrefetchHooks Function({bool ewe, bool season, bool lambing, bool kind})
         > {
   $$EweObservationsTableTableManager(_$AppDatabase db, $EweObservationsTable table)
     : super(
@@ -12146,6 +22340,7 @@ class $$EweObservationsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> ewe = const Value.absent(),
@@ -12162,6 +22357,7 @@ class $$EweObservationsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 ewe: ewe,
@@ -12180,6 +22376,7 @@ class $$EweObservationsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int ewe,
@@ -12196,6 +22393,7 @@ class $$EweObservationsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 ewe: ewe,
@@ -12211,7 +22409,7 @@ class $$EweObservationsTableTableManager
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), $$EweObservationsTableReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({ewe = false, season = false, lambing = false}) {
+          prefetchHooksCallback: ({ewe = false, season = false, lambing = false, kind = false}) {
             return PrefetchHooks(
               db: db,
               explicitlyWatchedTables: [],
@@ -12265,6 +22463,18 @@ class $$EweObservationsTableTableManager
                               )
                               as T;
                     }
+                    if (kind) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.kind,
+                                referencedTable: $$EweObservationsTableReferences._kindTable(db),
+                                referencedColumn: $$EweObservationsTableReferences
+                                    ._kindTable(db)
+                                    .key,
+                              )
+                              as T;
+                    }
 
                     return state;
                   },
@@ -12289,7 +22499,1402 @@ typedef $$EweObservationsTableProcessedTableManager =
       $$EweObservationsTableUpdateCompanionBuilder,
       (EweObservation, $$EweObservationsTableReferences),
       EweObservation,
-      PrefetchHooks Function({bool ewe, bool season, bool lambing})
+      PrefetchHooks Function({bool ewe, bool season, bool lambing, bool kind})
+    >;
+typedef $$CareEventsTableCreateCompanionBuilder =
+    CareEventsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      required int season,
+      Value<int?> lambing,
+      Value<int?> lamb,
+      required String kind,
+      required Instant occurredAt,
+      required Instant capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<int?> volumeMl,
+      Value<String?> method,
+      Value<String?> note,
+    });
+typedef $$CareEventsTableUpdateCompanionBuilder =
+    CareEventsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int> season,
+      Value<int?> lambing,
+      Value<int?> lamb,
+      Value<String> kind,
+      Value<Instant> occurredAt,
+      Value<Instant> capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<int?> volumeMl,
+      Value<String?> method,
+      Value<String?> note,
+    });
+
+final class $$CareEventsTableReferences
+    extends BaseReferences<_$AppDatabase, $CareEventsTable, CareEvent> {
+  $$CareEventsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('care_events__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager get season {
+    final $_column = $_itemColumn<int>('season')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambingsTable _lambingTable(_$AppDatabase db) =>
+      db.lambings.createAlias('care_events__lambing__lambings__id');
+
+  $$LambingsTableProcessedTableManager? get lambing {
+    final $_column = $_itemColumn<int>('lambing');
+    if ($_column == null) return null;
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('care_events__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$CareEventsTableFilterComposer extends Composer<_$AppDatabase, $CareEventsTable> {
+  $$CareEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get originalEffective =>
+      $composableBuilder(
+        column: $table.originalEffective,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get volumeMl =>
+      $composableBuilder(column: $table.volumeMl, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnFilters(column));
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableFilterComposer get lambing {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CareEventsTableOrderingComposer extends Composer<_$AppDatabase, $CareEventsTable> {
+  $$CareEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get occurredAt =>
+      $composableBuilder(column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get originalEffective => $composableBuilder(
+    column: $table.originalEffective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get volumeMl =>
+      $composableBuilder(column: $table.volumeMl, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableOrderingComposer get lambing {
+    final $$LambingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CareEventsTableAnnotationComposer extends Composer<_$AppDatabase, $CareEventsTable> {
+  $$CareEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get occurredAt =>
+      $composableBuilder(column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get originalEffective =>
+      $composableBuilder(column: $table.originalEffective, builder: (column) => column);
+
+  GeneratedColumn<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => column);
+
+  GeneratedColumn<int> get volumeMl =>
+      $composableBuilder(column: $table.volumeMl, builder: (column) => column);
+
+  GeneratedColumn<String> get method =>
+      $composableBuilder(column: $table.method, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableAnnotationComposer get lambing {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$CareEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $CareEventsTable,
+          CareEvent,
+          $$CareEventsTableFilterComposer,
+          $$CareEventsTableOrderingComposer,
+          $$CareEventsTableAnnotationComposer,
+          $$CareEventsTableCreateCompanionBuilder,
+          $$CareEventsTableUpdateCompanionBuilder,
+          (CareEvent, $$CareEventsTableReferences),
+          CareEvent,
+          PrefetchHooks Function({bool season, bool lambing, bool lamb})
+        > {
+  $$CareEventsTableTableManager(_$AppDatabase db, $CareEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$CareEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$CareEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CareEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int> season = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<Instant> occurredAt = const Value.absent(),
+                Value<Instant> capturedAt = const Value.absent(),
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<int?> volumeMl = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => CareEventsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                season: season,
+                lambing: lambing,
+                lamb: lamb,
+                kind: kind,
+                occurredAt: occurredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                volumeMl: volumeMl,
+                method: method,
+                note: note,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                required int season,
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                required String kind,
+                required Instant occurredAt,
+                required Instant capturedAt,
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<int?> volumeMl = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => CareEventsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                season: season,
+                lambing: lambing,
+                lamb: lamb,
+                kind: kind,
+                occurredAt: occurredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                volumeMl: volumeMl,
+                method: method,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$CareEventsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({season = false, lambing = false, lamb = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (season) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.season,
+                                referencedTable: $$CareEventsTableReferences._seasonTable(db),
+                                referencedColumn: $$CareEventsTableReferences._seasonTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lambing) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lambing,
+                                referencedTable: $$CareEventsTableReferences._lambingTable(db),
+                                referencedColumn: $$CareEventsTableReferences._lambingTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lamb) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lamb,
+                                referencedTable: $$CareEventsTableReferences._lambTable(db),
+                                referencedColumn: $$CareEventsTableReferences._lambTable(db).id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$CareEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $CareEventsTable,
+      CareEvent,
+      $$CareEventsTableFilterComposer,
+      $$CareEventsTableOrderingComposer,
+      $$CareEventsTableAnnotationComposer,
+      $$CareEventsTableCreateCompanionBuilder,
+      $$CareEventsTableUpdateCompanionBuilder,
+      (CareEvent, $$CareEventsTableReferences),
+      CareEvent,
+      PrefetchHooks Function({bool season, bool lambing, bool lamb})
+    >;
+typedef $$FosterEventsTableCreateCompanionBuilder =
+    FosterEventsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      required int lamb,
+      required int season,
+      Value<int?> rearingDam,
+      required String outcome,
+      Value<int?> corrects,
+      required Instant effectiveAt,
+      required Instant capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<String?> method,
+      Value<String?> note,
+    });
+typedef $$FosterEventsTableUpdateCompanionBuilder =
+    FosterEventsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int> lamb,
+      Value<int> season,
+      Value<int?> rearingDam,
+      Value<String> outcome,
+      Value<int?> corrects,
+      Value<Instant> effectiveAt,
+      Value<Instant> capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+      Value<String?> method,
+      Value<String?> note,
+    });
+
+final class $$FosterEventsTableReferences
+    extends BaseReferences<_$AppDatabase, $FosterEventsTable, FosterEvent> {
+  $$FosterEventsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('foster_events__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager get lamb {
+    final $_column = $_itemColumn<int>('lamb')!;
+
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('foster_events__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager get season {
+    final $_column = $_itemColumn<int>('season')!;
+
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $EwesTable _rearingDamTable(_$AppDatabase db) =>
+      db.ewes.createAlias('foster_events__rearing_dam__ewes__id');
+
+  $$EwesTableProcessedTableManager? get rearingDam {
+    final $_column = $_itemColumn<int>('rearing_dam');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_rearingDamTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $FosterEventsTable _correctsTable(_$AppDatabase db) =>
+      db.fosterEvents.createAlias('foster_events__corrects__foster_events__id');
+
+  $$FosterEventsTableProcessedTableManager? get corrects {
+    final $_column = $_itemColumn<int>('corrects');
+    if ($_column == null) return null;
+    final manager = $$FosterEventsTableTableManager(
+      $_db,
+      $_db.fosterEvents,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_correctsTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $VocabTermsTable _methodTable(_$AppDatabase db) =>
+      db.vocabTerms.createAlias('foster_events__method__vocab_terms__key');
+
+  $$VocabTermsTableProcessedTableManager? get method {
+    final $_column = $_itemColumn<String>('method');
+    if ($_column == null) return null;
+    final manager = $$VocabTermsTableTableManager(
+      $_db,
+      $_db.vocabTerms,
+    ).filter((f) => f.key.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_methodTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$FosterEventsTableFilterComposer extends Composer<_$AppDatabase, $FosterEventsTable> {
+  $$FosterEventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get effectiveAt => $composableBuilder(
+    column: $table.effectiveAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get originalEffective =>
+      $composableBuilder(
+        column: $table.originalEffective,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnFilters(column));
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableFilterComposer get rearingDam {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.rearingDam,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FosterEventsTableFilterComposer get corrects {
+    final $$FosterEventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.corrects,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableFilterComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$VocabTermsTableFilterComposer get method {
+    final $$VocabTermsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.method,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableFilterComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FosterEventsTableOrderingComposer extends Composer<_$AppDatabase, $FosterEventsTable> {
+  $$FosterEventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get effectiveAt =>
+      $composableBuilder(column: $table.effectiveAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get originalEffective => $composableBuilder(
+    column: $table.originalEffective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableOrderingComposer get rearingDam {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.rearingDam,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FosterEventsTableOrderingComposer get corrects {
+    final $$FosterEventsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.corrects,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableOrderingComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$VocabTermsTableOrderingComposer get method {
+    final $$VocabTermsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.method,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableOrderingComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FosterEventsTableAnnotationComposer extends Composer<_$AppDatabase, $FosterEventsTable> {
+  $$FosterEventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumn<String> get outcome =>
+      $composableBuilder(column: $table.outcome, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get effectiveAt =>
+      $composableBuilder(column: $table.effectiveAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get originalEffective =>
+      $composableBuilder(column: $table.originalEffective, builder: (column) => column);
+
+  GeneratedColumn<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableAnnotationComposer get rearingDam {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.rearingDam,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$FosterEventsTableAnnotationComposer get corrects {
+    final $$FosterEventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.corrects,
+      referencedTable: $db.fosterEvents,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$FosterEventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.fosterEvents,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$VocabTermsTableAnnotationComposer get method {
+    final $$VocabTermsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.method,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$FosterEventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FosterEventsTable,
+          FosterEvent,
+          $$FosterEventsTableFilterComposer,
+          $$FosterEventsTableOrderingComposer,
+          $$FosterEventsTableAnnotationComposer,
+          $$FosterEventsTableCreateCompanionBuilder,
+          $$FosterEventsTableUpdateCompanionBuilder,
+          (FosterEvent, $$FosterEventsTableReferences),
+          FosterEvent,
+          PrefetchHooks Function({
+            bool lamb,
+            bool season,
+            bool rearingDam,
+            bool corrects,
+            bool method,
+          })
+        > {
+  $$FosterEventsTableTableManager(_$AppDatabase db, $FosterEventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$FosterEventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$FosterEventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FosterEventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int> lamb = const Value.absent(),
+                Value<int> season = const Value.absent(),
+                Value<int?> rearingDam = const Value.absent(),
+                Value<String> outcome = const Value.absent(),
+                Value<int?> corrects = const Value.absent(),
+                Value<Instant> effectiveAt = const Value.absent(),
+                Value<Instant> capturedAt = const Value.absent(),
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => FosterEventsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                lamb: lamb,
+                season: season,
+                rearingDam: rearingDam,
+                outcome: outcome,
+                corrects: corrects,
+                effectiveAt: effectiveAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                method: method,
+                note: note,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                required int lamb,
+                required int season,
+                Value<int?> rearingDam = const Value.absent(),
+                required String outcome,
+                Value<int?> corrects = const Value.absent(),
+                required Instant effectiveAt,
+                required Instant capturedAt,
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+                Value<String?> method = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+              }) => FosterEventsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                lamb: lamb,
+                season: season,
+                rearingDam: rearingDam,
+                outcome: outcome,
+                corrects: corrects,
+                effectiveAt: effectiveAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+                method: method,
+                note: note,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$FosterEventsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({
+                lamb = false,
+                season = false,
+                rearingDam = false,
+                corrects = false,
+                method = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (lamb) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lamb,
+                                    referencedTable: $$FosterEventsTableReferences._lambTable(db),
+                                    referencedColumn: $$FosterEventsTableReferences
+                                        ._lambTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (season) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.season,
+                                    referencedTable: $$FosterEventsTableReferences._seasonTable(db),
+                                    referencedColumn: $$FosterEventsTableReferences
+                                        ._seasonTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (rearingDam) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.rearingDam,
+                                    referencedTable: $$FosterEventsTableReferences._rearingDamTable(
+                                      db,
+                                    ),
+                                    referencedColumn: $$FosterEventsTableReferences
+                                        ._rearingDamTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (corrects) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.corrects,
+                                    referencedTable: $$FosterEventsTableReferences._correctsTable(
+                                      db,
+                                    ),
+                                    referencedColumn: $$FosterEventsTableReferences
+                                        ._correctsTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (method) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.method,
+                                    referencedTable: $$FosterEventsTableReferences._methodTable(db),
+                                    referencedColumn: $$FosterEventsTableReferences
+                                        ._methodTable(db)
+                                        .key,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$FosterEventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FosterEventsTable,
+      FosterEvent,
+      $$FosterEventsTableFilterComposer,
+      $$FosterEventsTableOrderingComposer,
+      $$FosterEventsTableAnnotationComposer,
+      $$FosterEventsTableCreateCompanionBuilder,
+      $$FosterEventsTableUpdateCompanionBuilder,
+      (FosterEvent, $$FosterEventsTableReferences),
+      FosterEvent,
+      PrefetchHooks Function({bool lamb, bool season, bool rearingDam, bool corrects, bool method})
     >;
 typedef $$TreatmentsTableCreateCompanionBuilder =
     TreatmentsCompanion Function({
@@ -12297,6 +23902,7 @@ typedef $$TreatmentsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       required int season,
       Value<int?> ewe,
       Value<int?> lamb,
@@ -12317,6 +23923,7 @@ typedef $$TreatmentsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<int> season,
       Value<int?> ewe,
       Value<int?> lamb,
@@ -12380,6 +23987,38 @@ final class $$TreatmentsTableReferences
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
   }
 
+  static $VocabTermsTable _routeTable(_$AppDatabase db) =>
+      db.vocabTerms.createAlias('treatments__route__vocab_terms__key');
+
+  $$VocabTermsTableProcessedTableManager? get route {
+    final $_column = $_itemColumn<String>('route');
+    if ($_column == null) return null;
+    final manager = $$VocabTermsTableTableManager(
+      $_db,
+      $_db.vocabTerms,
+    ).filter((f) => f.key.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_routeTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$RemindersTable, List<Reminder>> _remindersRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.reminders,
+    aliasName: 'treatments__id__reminders__treatment',
+  );
+
+  $$RemindersTableProcessedTableManager get remindersRefs {
+    final manager = $$RemindersTableTableManager(
+      $_db,
+      $_db.reminders,
+    ).filter((f) => f.treatment.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$TreatmentWithdrawalsTable, List<TreatmentWithdrawal>>
   _treatmentWithdrawalsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.treatmentWithdrawals,
@@ -12421,14 +24060,14 @@ class $$TreatmentsTableFilterComposer extends Composer<_$AppDatabase, $Treatment
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get productName =>
       $composableBuilder(column: $table.productName, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get doseText =>
       $composableBuilder(column: $table.doseText, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get route =>
-      $composableBuilder(column: $table.route, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get batchNo =>
       $composableBuilder(column: $table.batchNo, builder: (column) => ColumnFilters(column));
@@ -12514,6 +24153,42 @@ class $$TreatmentsTableFilterComposer extends Composer<_$AppDatabase, $Treatment
     return composer;
   }
 
+  $$VocabTermsTableFilterComposer get route {
+    final $$VocabTermsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.route,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableFilterComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> remindersRefs(Expression<bool> Function($$RemindersTableFilterComposer f) f) {
+    final $$RemindersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.treatment,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableFilterComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> treatmentWithdrawalsRefs(
     Expression<bool> Function($$TreatmentWithdrawalsTableFilterComposer f) f,
   ) {
@@ -12555,14 +24230,14 @@ class $$TreatmentsTableOrderingComposer extends Composer<_$AppDatabase, $Treatme
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get productName =>
       $composableBuilder(column: $table.productName, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get doseText =>
       $composableBuilder(column: $table.doseText, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get route =>
-      $composableBuilder(column: $table.route, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get batchNo =>
       $composableBuilder(column: $table.batchNo, builder: (column) => ColumnOrderings(column));
@@ -12642,6 +24317,24 @@ class $$TreatmentsTableOrderingComposer extends Composer<_$AppDatabase, $Treatme
     );
     return composer;
   }
+
+  $$VocabTermsTableOrderingComposer get route {
+    final $$VocabTermsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.route,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableOrderingComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 }
 
 class $$TreatmentsTableAnnotationComposer extends Composer<_$AppDatabase, $TreatmentsTable> {
@@ -12663,14 +24356,14 @@ class $$TreatmentsTableAnnotationComposer extends Composer<_$AppDatabase, $Treat
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
 
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
   GeneratedColumn<String> get productName =>
       $composableBuilder(column: $table.productName, builder: (column) => column);
 
   GeneratedColumn<String> get doseText =>
       $composableBuilder(column: $table.doseText, builder: (column) => column);
-
-  GeneratedColumn<String> get route =>
-      $composableBuilder(column: $table.route, builder: (column) => column);
 
   GeneratedColumn<String> get batchNo =>
       $composableBuilder(column: $table.batchNo, builder: (column) => column);
@@ -12747,6 +24440,44 @@ class $$TreatmentsTableAnnotationComposer extends Composer<_$AppDatabase, $Treat
     return composer;
   }
 
+  $$VocabTermsTableAnnotationComposer get route {
+    final $$VocabTermsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.route,
+      referencedTable: $db.vocabTerms,
+      getReferencedColumn: (t) => t.key,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$VocabTermsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.vocabTerms,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> remindersRefs<T extends Object>(
+    Expression<T> Function($$RemindersTableAnnotationComposer a) f,
+  ) {
+    final $$RemindersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.reminders,
+      getReferencedColumn: (t) => t.treatment,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$RemindersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.reminders,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> treatmentWithdrawalsRefs<T extends Object>(
     Expression<T> Function($$TreatmentWithdrawalsTableAnnotationComposer a) f,
   ) {
@@ -12781,7 +24512,14 @@ class $$TreatmentsTableTableManager
           $$TreatmentsTableUpdateCompanionBuilder,
           (Treatment, $$TreatmentsTableReferences),
           Treatment,
-          PrefetchHooks Function({bool season, bool ewe, bool lamb, bool treatmentWithdrawalsRefs})
+          PrefetchHooks Function({
+            bool season,
+            bool ewe,
+            bool lamb,
+            bool route,
+            bool remindersRefs,
+            bool treatmentWithdrawalsRefs,
+          })
         > {
   $$TreatmentsTableTableManager(_$AppDatabase db, $TreatmentsTable table)
     : super(
@@ -12798,6 +24536,7 @@ class $$TreatmentsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<int> season = const Value.absent(),
                 Value<int?> ewe = const Value.absent(),
                 Value<int?> lamb = const Value.absent(),
@@ -12816,6 +24555,7 @@ class $$TreatmentsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 season: season,
                 ewe: ewe,
                 lamb: lamb,
@@ -12836,6 +24576,7 @@ class $$TreatmentsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 required int season,
                 Value<int?> ewe = const Value.absent(),
                 Value<int?> lamb = const Value.absent(),
@@ -12854,6 +24595,7 @@ class $$TreatmentsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 season: season,
                 ewe: ewe,
                 lamb: lamb,
@@ -12872,10 +24614,20 @@ class $$TreatmentsTableTableManager
               .map((e) => (e.readTable(table), $$TreatmentsTableReferences(db, table, e)))
               .toList(),
           prefetchHooksCallback:
-              ({season = false, ewe = false, lamb = false, treatmentWithdrawalsRefs = false}) {
+              ({
+                season = false,
+                ewe = false,
+                lamb = false,
+                route = false,
+                remindersRefs = false,
+                treatmentWithdrawalsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
-                  explicitlyWatchedTables: [if (treatmentWithdrawalsRefs) db.treatmentWithdrawals],
+                  explicitlyWatchedTables: [
+                    if (remindersRefs) db.reminders,
+                    if (treatmentWithdrawalsRefs) db.treatmentWithdrawals,
+                  ],
                   addJoins:
                       <
                         T extends TableManagerState<
@@ -12924,11 +24676,33 @@ class $$TreatmentsTableTableManager
                                   )
                                   as T;
                         }
+                        if (route) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.route,
+                                    referencedTable: $$TreatmentsTableReferences._routeTable(db),
+                                    referencedColumn: $$TreatmentsTableReferences
+                                        ._routeTable(db)
+                                        .key,
+                                  )
+                                  as T;
+                        }
 
                         return state;
                       },
                   getPrefetchedDataCallback: (items) async {
                     return [
+                      if (remindersRefs)
+                        await $_getPrefetchedData<Treatment, $TreatmentsTable, Reminder>(
+                          currentTable: table,
+                          referencedTable: $$TreatmentsTableReferences._remindersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$TreatmentsTableReferences(db, table, p0).remindersRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.treatment == item.id),
+                          typedResults: items,
+                        ),
                       if (treatmentWithdrawalsRefs)
                         await $_getPrefetchedData<Treatment, $TreatmentsTable, TreatmentWithdrawal>(
                           currentTable: table,
@@ -12960,7 +24734,3487 @@ typedef $$TreatmentsTableProcessedTableManager =
       $$TreatmentsTableUpdateCompanionBuilder,
       (Treatment, $$TreatmentsTableReferences),
       Treatment,
-      PrefetchHooks Function({bool season, bool ewe, bool lamb, bool treatmentWithdrawalsRefs})
+      PrefetchHooks Function({
+        bool season,
+        bool ewe,
+        bool lamb,
+        bool route,
+        bool remindersRefs,
+        bool treatmentWithdrawalsRefs,
+      })
+    >;
+typedef $$RemindersTableCreateCompanionBuilder =
+    RemindersCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int?> season,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> treatment,
+      required String kind,
+      required String title,
+      required Instant dueAt,
+      Value<Instant?> completedAt,
+      Value<bool> muted,
+    });
+typedef $$RemindersTableUpdateCompanionBuilder =
+    RemindersCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int?> season,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> treatment,
+      Value<String> kind,
+      Value<String> title,
+      Value<Instant> dueAt,
+      Value<Instant?> completedAt,
+      Value<bool> muted,
+    });
+
+final class $$RemindersTableReferences
+    extends BaseReferences<_$AppDatabase, $RemindersTable, Reminder> {
+  $$RemindersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('reminders__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager? get season {
+    final $_column = $_itemColumn<int>('season');
+    if ($_column == null) return null;
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $EwesTable _eweTable(_$AppDatabase db) => db.ewes.createAlias('reminders__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('reminders__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambingsTable _lambingTable(_$AppDatabase db) =>
+      db.lambings.createAlias('reminders__lambing__lambings__id');
+
+  $$LambingsTableProcessedTableManager? get lambing {
+    final $_column = $_itemColumn<int>('lambing');
+    if ($_column == null) return null;
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $TreatmentsTable _treatmentTable(_$AppDatabase db) =>
+      db.treatments.createAlias('reminders__treatment__treatments__id');
+
+  $$TreatmentsTableProcessedTableManager? get treatment {
+    final $_column = $_itemColumn<int>('treatment');
+    if ($_column == null) return null;
+    final manager = $$TreatmentsTableTableManager(
+      $_db,
+      $_db.treatments,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_treatmentTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$RemindersTableFilterComposer extends Composer<_$AppDatabase, $RemindersTable> {
+  $$RemindersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get dueAt => $composableBuilder(
+    column: $table.dueAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<bool> get muted =>
+      $composableBuilder(column: $table.muted, builder: (column) => ColumnFilters(column));
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableFilterComposer get lambing {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TreatmentsTableFilterComposer get treatment {
+    final $$TreatmentsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableFilterComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RemindersTableOrderingComposer extends Composer<_$AppDatabase, $RemindersTable> {
+  $$RemindersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get completedAt =>
+      $composableBuilder(column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get muted =>
+      $composableBuilder(column: $table.muted, builder: (column) => ColumnOrderings(column));
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableOrderingComposer get lambing {
+    final $$LambingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TreatmentsTableOrderingComposer get treatment {
+    final $$TreatmentsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableOrderingComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RemindersTableAnnotationComposer extends Composer<_$AppDatabase, $RemindersTable> {
+  $$RemindersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get dueAt =>
+      $composableBuilder(column: $table.dueAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get completedAt =>
+      $composableBuilder(column: $table.completedAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get muted =>
+      $composableBuilder(column: $table.muted, builder: (column) => column);
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableAnnotationComposer get lambing {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$TreatmentsTableAnnotationComposer get treatment {
+    final $$TreatmentsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.treatment,
+      referencedTable: $db.treatments,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$TreatmentsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.treatments,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$RemindersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $RemindersTable,
+          Reminder,
+          $$RemindersTableFilterComposer,
+          $$RemindersTableOrderingComposer,
+          $$RemindersTableAnnotationComposer,
+          $$RemindersTableCreateCompanionBuilder,
+          $$RemindersTableUpdateCompanionBuilder,
+          (Reminder, $$RemindersTableReferences),
+          Reminder,
+          PrefetchHooks Function({bool season, bool ewe, bool lamb, bool lambing, bool treatment})
+        > {
+  $$RemindersTableTableManager(_$AppDatabase db, $RemindersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$RemindersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$RemindersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RemindersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int?> season = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> treatment = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<Instant> dueAt = const Value.absent(),
+                Value<Instant?> completedAt = const Value.absent(),
+                Value<bool> muted = const Value.absent(),
+              }) => RemindersCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                season: season,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                treatment: treatment,
+                kind: kind,
+                title: title,
+                dueAt: dueAt,
+                completedAt: completedAt,
+                muted: muted,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int?> season = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> treatment = const Value.absent(),
+                required String kind,
+                required String title,
+                required Instant dueAt,
+                Value<Instant?> completedAt = const Value.absent(),
+                Value<bool> muted = const Value.absent(),
+              }) => RemindersCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                season: season,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                treatment: treatment,
+                kind: kind,
+                title: title,
+                dueAt: dueAt,
+                completedAt: completedAt,
+                muted: muted,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$RemindersTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback:
+              ({season = false, ewe = false, lamb = false, lambing = false, treatment = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (season) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.season,
+                                    referencedTable: $$RemindersTableReferences._seasonTable(db),
+                                    referencedColumn: $$RemindersTableReferences
+                                        ._seasonTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (ewe) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.ewe,
+                                    referencedTable: $$RemindersTableReferences._eweTable(db),
+                                    referencedColumn: $$RemindersTableReferences._eweTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (lamb) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lamb,
+                                    referencedTable: $$RemindersTableReferences._lambTable(db),
+                                    referencedColumn: $$RemindersTableReferences._lambTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (lambing) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lambing,
+                                    referencedTable: $$RemindersTableReferences._lambingTable(db),
+                                    referencedColumn: $$RemindersTableReferences
+                                        ._lambingTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+                        if (treatment) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.treatment,
+                                    referencedTable: $$RemindersTableReferences._treatmentTable(db),
+                                    referencedColumn: $$RemindersTableReferences
+                                        ._treatmentTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$RemindersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $RemindersTable,
+      Reminder,
+      $$RemindersTableFilterComposer,
+      $$RemindersTableOrderingComposer,
+      $$RemindersTableAnnotationComposer,
+      $$RemindersTableCreateCompanionBuilder,
+      $$RemindersTableUpdateCompanionBuilder,
+      (Reminder, $$RemindersTableReferences),
+      Reminder,
+      PrefetchHooks Function({bool season, bool ewe, bool lamb, bool lambing, bool treatment})
+    >;
+typedef $$ReminderRulesTableCreateCompanionBuilder =
+    ReminderRulesCompanion Function({
+      required String kind,
+      Value<bool> enabled,
+      required int offsetMinutes,
+      Value<int> rowid,
+    });
+typedef $$ReminderRulesTableUpdateCompanionBuilder =
+    ReminderRulesCompanion Function({
+      Value<String> kind,
+      Value<bool> enabled,
+      Value<int> offsetMinutes,
+      Value<int> rowid,
+    });
+
+class $$ReminderRulesTableFilterComposer extends Composer<_$AppDatabase, $ReminderRulesTable> {
+  $$ReminderRulesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get offsetMinutes =>
+      $composableBuilder(column: $table.offsetMinutes, builder: (column) => ColumnFilters(column));
+}
+
+class $$ReminderRulesTableOrderingComposer extends Composer<_$AppDatabase, $ReminderRulesTable> {
+  $$ReminderRulesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get offsetMinutes => $composableBuilder(
+    column: $table.offsetMinutes,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReminderRulesTableAnnotationComposer extends Composer<_$AppDatabase, $ReminderRulesTable> {
+  $$ReminderRulesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<bool> get enabled =>
+      $composableBuilder(column: $table.enabled, builder: (column) => column);
+
+  GeneratedColumn<int> get offsetMinutes =>
+      $composableBuilder(column: $table.offsetMinutes, builder: (column) => column);
+}
+
+class $$ReminderRulesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReminderRulesTable,
+          ReminderRule,
+          $$ReminderRulesTableFilterComposer,
+          $$ReminderRulesTableOrderingComposer,
+          $$ReminderRulesTableAnnotationComposer,
+          $$ReminderRulesTableCreateCompanionBuilder,
+          $$ReminderRulesTableUpdateCompanionBuilder,
+          (ReminderRule, BaseReferences<_$AppDatabase, $ReminderRulesTable, ReminderRule>),
+          ReminderRule,
+          PrefetchHooks Function()
+        > {
+  $$ReminderRulesTableTableManager(_$AppDatabase db, $ReminderRulesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$ReminderRulesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReminderRulesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReminderRulesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> kind = const Value.absent(),
+                Value<bool> enabled = const Value.absent(),
+                Value<int> offsetMinutes = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ReminderRulesCompanion(
+                kind: kind,
+                enabled: enabled,
+                offsetMinutes: offsetMinutes,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String kind,
+                Value<bool> enabled = const Value.absent(),
+                required int offsetMinutes,
+                Value<int> rowid = const Value.absent(),
+              }) => ReminderRulesCompanion.insert(
+                kind: kind,
+                enabled: enabled,
+                offsetMinutes: offsetMinutes,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) =>
+              p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReminderRulesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReminderRulesTable,
+      ReminderRule,
+      $$ReminderRulesTableFilterComposer,
+      $$ReminderRulesTableOrderingComposer,
+      $$ReminderRulesTableAnnotationComposer,
+      $$ReminderRulesTableCreateCompanionBuilder,
+      $$ReminderRulesTableUpdateCompanionBuilder,
+      (ReminderRule, BaseReferences<_$AppDatabase, $ReminderRulesTable, ReminderRule>),
+      ReminderRule,
+      PrefetchHooks Function()
+    >;
+typedef $$NotesTableCreateCompanionBuilder =
+    NotesCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> season,
+      required String body,
+      required Instant occurredAt,
+      required Instant capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+    });
+typedef $$NotesTableUpdateCompanionBuilder =
+    NotesCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<bool> struck,
+      Value<Instant?> struckAt,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> season,
+      Value<String> body,
+      Value<Instant> occurredAt,
+      Value<Instant> capturedAt,
+      Value<Instant?> originalEffective,
+      Value<String> timeSource,
+    });
+
+final class $$NotesTableReferences extends BaseReferences<_$AppDatabase, $NotesTable, Note> {
+  $$NotesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $EwesTable _eweTable(_$AppDatabase db) => db.ewes.createAlias('notes__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) => db.lambs.createAlias('notes__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambingsTable _lambingTable(_$AppDatabase db) =>
+      db.lambings.createAlias('notes__lambing__lambings__id');
+
+  $$LambingsTableProcessedTableManager? get lambing {
+    final $_column = $_itemColumn<int>('lambing');
+    if ($_column == null) return null;
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $SeasonsTable _seasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('notes__season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager? get season {
+    final $_column = $_itemColumn<int>('season');
+    if ($_column == null) return null;
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_seasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'notes__id__media_assets__note');
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.note.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+}
+
+class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get struckAt => $composableBuilder(
+    column: $table.struckAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get capturedAt => $composableBuilder(
+    column: $table.capturedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get originalEffective =>
+      $composableBuilder(
+        column: $table.originalEffective,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnFilters(column));
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableFilterComposer get lambing {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get season {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.note,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$NotesTableOrderingComposer extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get occurredAt =>
+      $composableBuilder(column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get originalEffective => $composableBuilder(
+    column: $table.originalEffective,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => ColumnOrderings(column));
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableOrderingComposer get lambing {
+    final $$LambingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableOrderingComposer get season {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$NotesTableAnnotationComposer extends Composer<_$AppDatabase, $NotesTable> {
+  $$NotesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<bool> get struck =>
+      $composableBuilder(column: $table.struck, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get struckAt =>
+      $composableBuilder(column: $table.struckAt, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get occurredAt =>
+      $composableBuilder(column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get capturedAt =>
+      $composableBuilder(column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get originalEffective =>
+      $composableBuilder(column: $table.originalEffective, builder: (column) => column);
+
+  GeneratedColumn<String> get timeSource =>
+      $composableBuilder(column: $table.timeSource, builder: (column) => column);
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableAnnotationComposer get lambing {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get season {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.season,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.note,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$NotesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotesTable,
+          Note,
+          $$NotesTableFilterComposer,
+          $$NotesTableOrderingComposer,
+          $$NotesTableAnnotationComposer,
+          $$NotesTableCreateCompanionBuilder,
+          $$NotesTableUpdateCompanionBuilder,
+          (Note, $$NotesTableReferences),
+          Note,
+          PrefetchHooks Function({
+            bool ewe,
+            bool lamb,
+            bool lambing,
+            bool season,
+            bool mediaAssetsRefs,
+          })
+        > {
+  $$NotesTableTableManager(_$AppDatabase db, $NotesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$NotesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$NotesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$NotesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> season = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<Instant> occurredAt = const Value.absent(),
+                Value<Instant> capturedAt = const Value.absent(),
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+              }) => NotesCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                season: season,
+                body: body,
+                occurredAt: occurredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                Value<bool> struck = const Value.absent(),
+                Value<Instant?> struckAt = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> season = const Value.absent(),
+                required String body,
+                required Instant occurredAt,
+                required Instant capturedAt,
+                Value<Instant?> originalEffective = const Value.absent(),
+                Value<String> timeSource = const Value.absent(),
+              }) => NotesCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                struck: struck,
+                struckAt: struckAt,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                season: season,
+                body: body,
+                occurredAt: occurredAt,
+                capturedAt: capturedAt,
+                originalEffective: originalEffective,
+                timeSource: timeSource,
+              ),
+          withReferenceMapper: (p0) =>
+              p0.map((e) => (e.readTable(table), $$NotesTableReferences(db, table, e))).toList(),
+          prefetchHooksCallback:
+              ({
+                ewe = false,
+                lamb = false,
+                lambing = false,
+                season = false,
+                mediaAssetsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (mediaAssetsRefs) db.mediaAssets],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (ewe) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.ewe,
+                                    referencedTable: $$NotesTableReferences._eweTable(db),
+                                    referencedColumn: $$NotesTableReferences._eweTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (lamb) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lamb,
+                                    referencedTable: $$NotesTableReferences._lambTable(db),
+                                    referencedColumn: $$NotesTableReferences._lambTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (lambing) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.lambing,
+                                    referencedTable: $$NotesTableReferences._lambingTable(db),
+                                    referencedColumn: $$NotesTableReferences._lambingTable(db).id,
+                                  )
+                                  as T;
+                        }
+                        if (season) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.season,
+                                    referencedTable: $$NotesTableReferences._seasonTable(db),
+                                    referencedColumn: $$NotesTableReferences._seasonTable(db).id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Note, $NotesTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$NotesTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$NotesTableReferences(db, table, p0).mediaAssetsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.note == item.id),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$NotesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotesTable,
+      Note,
+      $$NotesTableFilterComposer,
+      $$NotesTableOrderingComposer,
+      $$NotesTableAnnotationComposer,
+      $$NotesTableCreateCompanionBuilder,
+      $$NotesTableUpdateCompanionBuilder,
+      (Note, $$NotesTableReferences),
+      Note,
+      PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool season, bool mediaAssetsRefs})
+    >;
+typedef $$MediaAssetsTableCreateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      required String relativePath,
+      required String kind,
+      required int byteSize,
+      Value<int?> durationMs,
+      Value<String?> sha256,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> note,
+      Value<Instant?> missingSince,
+    });
+typedef $$MediaAssetsTableUpdateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<String> relativePath,
+      Value<String> kind,
+      Value<int> byteSize,
+      Value<int?> durationMs,
+      Value<String?> sha256,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> note,
+      Value<Instant?> missingSince,
+    });
+
+final class $$MediaAssetsTableReferences
+    extends BaseReferences<_$AppDatabase, $MediaAssetsTable, MediaAsset> {
+  $$MediaAssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $EwesTable _eweTable(_$AppDatabase db) =>
+      db.ewes.createAlias('media_assets__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('media_assets__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambingsTable _lambingTable(_$AppDatabase db) =>
+      db.lambings.createAlias('media_assets__lambing__lambings__id');
+
+  $$LambingsTableProcessedTableManager? get lambing {
+    final $_column = $_itemColumn<int>('lambing');
+    if ($_column == null) return null;
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $NotesTable _noteTable(_$AppDatabase db) =>
+      db.notes.createAlias('media_assets__note__notes__id');
+
+  $$NotesTableProcessedTableManager? get note {
+    final $_column = $_itemColumn<int>('note');
+    if ($_column == null) return null;
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_noteTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$MediaAssetsTableFilterComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get missingSince => $composableBuilder(
+    column: $table.missingSince,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableFilterComposer get lambing {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableFilterComposer get note {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableOrderingComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get missingSince =>
+      $composableBuilder(column: $table.missingSince, builder: (column) => ColumnOrderings(column));
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableOrderingComposer get lambing {
+    final $$LambingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableOrderingComposer get note {
+    final $$NotesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableOrderingComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableAnnotationComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => column);
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get missingSince =>
+      $composableBuilder(column: $table.missingSince, builder: (column) => column);
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableAnnotationComposer get lambing {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableAnnotationComposer get note {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MediaAssetsTable,
+          MediaAsset,
+          $$MediaAssetsTableFilterComposer,
+          $$MediaAssetsTableOrderingComposer,
+          $$MediaAssetsTableAnnotationComposer,
+          $$MediaAssetsTableCreateCompanionBuilder,
+          $$MediaAssetsTableUpdateCompanionBuilder,
+          (MediaAsset, $$MediaAssetsTableReferences),
+          MediaAsset,
+          PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
+        > {
+  $$MediaAssetsTableTableManager(_$AppDatabase db, $MediaAssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$MediaAssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$MediaAssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MediaAssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<String> relativePath = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int> byteSize = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> note = const Value.absent(),
+                Value<Instant?> missingSince = const Value.absent(),
+              }) => MediaAssetsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                relativePath: relativePath,
+                kind: kind,
+                byteSize: byteSize,
+                durationMs: durationMs,
+                sha256: sha256,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                note: note,
+                missingSince: missingSince,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                required String relativePath,
+                required String kind,
+                required int byteSize,
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> note = const Value.absent(),
+                Value<Instant?> missingSince = const Value.absent(),
+              }) => MediaAssetsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                relativePath: relativePath,
+                kind: kind,
+                byteSize: byteSize,
+                durationMs: durationMs,
+                sha256: sha256,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                note: note,
+                missingSince: missingSince,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$MediaAssetsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({ewe = false, lamb = false, lambing = false, note = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ewe) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ewe,
+                                referencedTable: $$MediaAssetsTableReferences._eweTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._eweTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lamb) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lamb,
+                                referencedTable: $$MediaAssetsTableReferences._lambTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._lambTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lambing) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lambing,
+                                referencedTable: $$MediaAssetsTableReferences._lambingTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._lambingTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (note) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.note,
+                                referencedTable: $$MediaAssetsTableReferences._noteTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._noteTable(db).id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MediaAssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MediaAssetsTable,
+      MediaAsset,
+      $$MediaAssetsTableFilterComposer,
+      $$MediaAssetsTableOrderingComposer,
+      $$MediaAssetsTableAnnotationComposer,
+      $$MediaAssetsTableCreateCompanionBuilder,
+      $$MediaAssetsTableUpdateCompanionBuilder,
+      (MediaAsset, $$MediaAssetsTableReferences),
+      MediaAsset,
+      PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
+    >;
+typedef $$TerminologyOverridesTableCreateCompanionBuilder =
+    TerminologyOverridesCompanion Function({
+      required String key,
+      required String singular,
+      required String plural,
+      Value<int> rowid,
+    });
+typedef $$TerminologyOverridesTableUpdateCompanionBuilder =
+    TerminologyOverridesCompanion Function({
+      Value<String> key,
+      Value<String> singular,
+      Value<String> plural,
+      Value<int> rowid,
+    });
+
+class $$TerminologyOverridesTableFilterComposer
+    extends Composer<_$AppDatabase, $TerminologyOverridesTable> {
+  $$TerminologyOverridesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get singular =>
+      $composableBuilder(column: $table.singular, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get plural =>
+      $composableBuilder(column: $table.plural, builder: (column) => ColumnFilters(column));
+}
+
+class $$TerminologyOverridesTableOrderingComposer
+    extends Composer<_$AppDatabase, $TerminologyOverridesTable> {
+  $$TerminologyOverridesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get singular =>
+      $composableBuilder(column: $table.singular, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get plural =>
+      $composableBuilder(column: $table.plural, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TerminologyOverridesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TerminologyOverridesTable> {
+  $$TerminologyOverridesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get singular =>
+      $composableBuilder(column: $table.singular, builder: (column) => column);
+
+  GeneratedColumn<String> get plural =>
+      $composableBuilder(column: $table.plural, builder: (column) => column);
+}
+
+class $$TerminologyOverridesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TerminologyOverridesTable,
+          TerminologyOverride,
+          $$TerminologyOverridesTableFilterComposer,
+          $$TerminologyOverridesTableOrderingComposer,
+          $$TerminologyOverridesTableAnnotationComposer,
+          $$TerminologyOverridesTableCreateCompanionBuilder,
+          $$TerminologyOverridesTableUpdateCompanionBuilder,
+          (
+            TerminologyOverride,
+            BaseReferences<_$AppDatabase, $TerminologyOverridesTable, TerminologyOverride>,
+          ),
+          TerminologyOverride,
+          PrefetchHooks Function()
+        > {
+  $$TerminologyOverridesTableTableManager(_$AppDatabase db, $TerminologyOverridesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TerminologyOverridesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TerminologyOverridesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TerminologyOverridesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> key = const Value.absent(),
+                Value<String> singular = const Value.absent(),
+                Value<String> plural = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TerminologyOverridesCompanion(
+                key: key,
+                singular: singular,
+                plural: plural,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String key,
+                required String singular,
+                required String plural,
+                Value<int> rowid = const Value.absent(),
+              }) => TerminologyOverridesCompanion.insert(
+                key: key,
+                singular: singular,
+                plural: plural,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) =>
+              p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$TerminologyOverridesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TerminologyOverridesTable,
+      TerminologyOverride,
+      $$TerminologyOverridesTableFilterComposer,
+      $$TerminologyOverridesTableOrderingComposer,
+      $$TerminologyOverridesTableAnnotationComposer,
+      $$TerminologyOverridesTableCreateCompanionBuilder,
+      $$TerminologyOverridesTableUpdateCompanionBuilder,
+      (
+        TerminologyOverride,
+        BaseReferences<_$AppDatabase, $TerminologyOverridesTable, TerminologyOverride>,
+      ),
+      TerminologyOverride,
+      PrefetchHooks Function()
+    >;
+typedef $$AppSettingsTableCreateCompanionBuilder =
+    AppSettingsCompanion Function({
+      Value<int> id,
+      Value<String> weightUnit,
+      Value<String> palette,
+      Value<bool> highContrast,
+      Value<bool> wakelockEnabled,
+      Value<bool> leftHanded,
+      Value<int?> currentSeason,
+      Value<String> percentageDefinition,
+      Value<int> turnOutThresholdHours,
+      Value<int> cycleDays,
+      Value<Instant?> lastReconcileScheduled,
+      Value<Instant?> lastExportedAt,
+      Value<Instant?> lastExportPromptedAt,
+      Value<int?> exportPromptDismissedForSeason,
+      Value<String?> unknownJson,
+    });
+typedef $$AppSettingsTableUpdateCompanionBuilder =
+    AppSettingsCompanion Function({
+      Value<int> id,
+      Value<String> weightUnit,
+      Value<String> palette,
+      Value<bool> highContrast,
+      Value<bool> wakelockEnabled,
+      Value<bool> leftHanded,
+      Value<int?> currentSeason,
+      Value<String> percentageDefinition,
+      Value<int> turnOutThresholdHours,
+      Value<int> cycleDays,
+      Value<Instant?> lastReconcileScheduled,
+      Value<Instant?> lastExportedAt,
+      Value<Instant?> lastExportPromptedAt,
+      Value<int?> exportPromptDismissedForSeason,
+      Value<String?> unknownJson,
+    });
+
+final class $$AppSettingsTableReferences
+    extends BaseReferences<_$AppDatabase, $AppSettingsTable, AppSetting> {
+  $$AppSettingsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $SeasonsTable _currentSeasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('app_settings__current_season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager? get currentSeason {
+    final $_column = $_itemColumn<int>('current_season');
+    if ($_column == null) return null;
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_currentSeasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $SeasonsTable _exportPromptDismissedForSeasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('app_settings__export_prompt_dismissed_for_season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager? get exportPromptDismissedForSeason {
+    final $_column = $_itemColumn<int>('export_prompt_dismissed_for_season');
+    if ($_column == null) return null;
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_exportPromptDismissedForSeasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$AppSettingsTableFilterComposer extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get weightUnit =>
+      $composableBuilder(column: $table.weightUnit, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get palette =>
+      $composableBuilder(column: $table.palette, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get highContrast =>
+      $composableBuilder(column: $table.highContrast, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get wakelockEnabled => $composableBuilder(
+    column: $table.wakelockEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get leftHanded =>
+      $composableBuilder(column: $table.leftHanded, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get percentageDefinition => $composableBuilder(
+    column: $table.percentageDefinition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get turnOutThresholdHours => $composableBuilder(
+    column: $table.turnOutThresholdHours,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get cycleDays =>
+      $composableBuilder(column: $table.cycleDays, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get lastReconcileScheduled =>
+      $composableBuilder(
+        column: $table.lastReconcileScheduled,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get lastExportedAt => $composableBuilder(
+    column: $table.lastExportedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get lastExportPromptedAt =>
+      $composableBuilder(
+        column: $table.lastExportPromptedAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  $$SeasonsTableFilterComposer get currentSeason {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.currentSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get exportPromptDismissedForSeason {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exportPromptDismissedForSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AppSettingsTableOrderingComposer extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get weightUnit =>
+      $composableBuilder(column: $table.weightUnit, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get palette =>
+      $composableBuilder(column: $table.palette, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get highContrast =>
+      $composableBuilder(column: $table.highContrast, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get wakelockEnabled => $composableBuilder(
+    column: $table.wakelockEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get leftHanded =>
+      $composableBuilder(column: $table.leftHanded, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get percentageDefinition => $composableBuilder(
+    column: $table.percentageDefinition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get turnOutThresholdHours => $composableBuilder(
+    column: $table.turnOutThresholdHours,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get cycleDays =>
+      $composableBuilder(column: $table.cycleDays, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lastReconcileScheduled => $composableBuilder(
+    column: $table.lastReconcileScheduled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastExportedAt => $composableBuilder(
+    column: $table.lastExportedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastExportPromptedAt => $composableBuilder(
+    column: $table.lastExportPromptedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  $$SeasonsTableOrderingComposer get currentSeason {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.currentSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableOrderingComposer get exportPromptDismissedForSeason {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exportPromptDismissedForSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AppSettingsTableAnnotationComposer extends Composer<_$AppDatabase, $AppSettingsTable> {
+  $$AppSettingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get weightUnit =>
+      $composableBuilder(column: $table.weightUnit, builder: (column) => column);
+
+  GeneratedColumn<String> get palette =>
+      $composableBuilder(column: $table.palette, builder: (column) => column);
+
+  GeneratedColumn<bool> get highContrast =>
+      $composableBuilder(column: $table.highContrast, builder: (column) => column);
+
+  GeneratedColumn<bool> get wakelockEnabled =>
+      $composableBuilder(column: $table.wakelockEnabled, builder: (column) => column);
+
+  GeneratedColumn<bool> get leftHanded =>
+      $composableBuilder(column: $table.leftHanded, builder: (column) => column);
+
+  GeneratedColumn<String> get percentageDefinition =>
+      $composableBuilder(column: $table.percentageDefinition, builder: (column) => column);
+
+  GeneratedColumn<int> get turnOutThresholdHours =>
+      $composableBuilder(column: $table.turnOutThresholdHours, builder: (column) => column);
+
+  GeneratedColumn<int> get cycleDays =>
+      $composableBuilder(column: $table.cycleDays, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get lastReconcileScheduled =>
+      $composableBuilder(column: $table.lastReconcileScheduled, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get lastExportedAt =>
+      $composableBuilder(column: $table.lastExportedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get lastExportPromptedAt =>
+      $composableBuilder(column: $table.lastExportPromptedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  $$SeasonsTableAnnotationComposer get currentSeason {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.currentSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get exportPromptDismissedForSeason {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exportPromptDismissedForSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$AppSettingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AppSettingsTable,
+          AppSetting,
+          $$AppSettingsTableFilterComposer,
+          $$AppSettingsTableOrderingComposer,
+          $$AppSettingsTableAnnotationComposer,
+          $$AppSettingsTableCreateCompanionBuilder,
+          $$AppSettingsTableUpdateCompanionBuilder,
+          (AppSetting, $$AppSettingsTableReferences),
+          AppSetting,
+          PrefetchHooks Function({bool currentSeason, bool exportPromptDismissedForSeason})
+        > {
+  $$AppSettingsTableTableManager(_$AppDatabase db, $AppSettingsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$AppSettingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$AppSettingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppSettingsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> weightUnit = const Value.absent(),
+                Value<String> palette = const Value.absent(),
+                Value<bool> highContrast = const Value.absent(),
+                Value<bool> wakelockEnabled = const Value.absent(),
+                Value<bool> leftHanded = const Value.absent(),
+                Value<int?> currentSeason = const Value.absent(),
+                Value<String> percentageDefinition = const Value.absent(),
+                Value<int> turnOutThresholdHours = const Value.absent(),
+                Value<int> cycleDays = const Value.absent(),
+                Value<Instant?> lastReconcileScheduled = const Value.absent(),
+                Value<Instant?> lastExportedAt = const Value.absent(),
+                Value<Instant?> lastExportPromptedAt = const Value.absent(),
+                Value<int?> exportPromptDismissedForSeason = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+              }) => AppSettingsCompanion(
+                id: id,
+                weightUnit: weightUnit,
+                palette: palette,
+                highContrast: highContrast,
+                wakelockEnabled: wakelockEnabled,
+                leftHanded: leftHanded,
+                currentSeason: currentSeason,
+                percentageDefinition: percentageDefinition,
+                turnOutThresholdHours: turnOutThresholdHours,
+                cycleDays: cycleDays,
+                lastReconcileScheduled: lastReconcileScheduled,
+                lastExportedAt: lastExportedAt,
+                lastExportPromptedAt: lastExportPromptedAt,
+                exportPromptDismissedForSeason: exportPromptDismissedForSeason,
+                unknownJson: unknownJson,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> weightUnit = const Value.absent(),
+                Value<String> palette = const Value.absent(),
+                Value<bool> highContrast = const Value.absent(),
+                Value<bool> wakelockEnabled = const Value.absent(),
+                Value<bool> leftHanded = const Value.absent(),
+                Value<int?> currentSeason = const Value.absent(),
+                Value<String> percentageDefinition = const Value.absent(),
+                Value<int> turnOutThresholdHours = const Value.absent(),
+                Value<int> cycleDays = const Value.absent(),
+                Value<Instant?> lastReconcileScheduled = const Value.absent(),
+                Value<Instant?> lastExportedAt = const Value.absent(),
+                Value<Instant?> lastExportPromptedAt = const Value.absent(),
+                Value<int?> exportPromptDismissedForSeason = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+              }) => AppSettingsCompanion.insert(
+                id: id,
+                weightUnit: weightUnit,
+                palette: palette,
+                highContrast: highContrast,
+                wakelockEnabled: wakelockEnabled,
+                leftHanded: leftHanded,
+                currentSeason: currentSeason,
+                percentageDefinition: percentageDefinition,
+                turnOutThresholdHours: turnOutThresholdHours,
+                cycleDays: cycleDays,
+                lastReconcileScheduled: lastReconcileScheduled,
+                lastExportedAt: lastExportedAt,
+                lastExportPromptedAt: lastExportPromptedAt,
+                exportPromptDismissedForSeason: exportPromptDismissedForSeason,
+                unknownJson: unknownJson,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$AppSettingsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({currentSeason = false, exportPromptDismissedForSeason = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (currentSeason) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.currentSeason,
+                                referencedTable: $$AppSettingsTableReferences._currentSeasonTable(
+                                  db,
+                                ),
+                                referencedColumn: $$AppSettingsTableReferences
+                                    ._currentSeasonTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (exportPromptDismissedForSeason) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.exportPromptDismissedForSeason,
+                                referencedTable: $$AppSettingsTableReferences
+                                    ._exportPromptDismissedForSeasonTable(db),
+                                referencedColumn: $$AppSettingsTableReferences
+                                    ._exportPromptDismissedForSeasonTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$AppSettingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AppSettingsTable,
+      AppSetting,
+      $$AppSettingsTableFilterComposer,
+      $$AppSettingsTableOrderingComposer,
+      $$AppSettingsTableAnnotationComposer,
+      $$AppSettingsTableCreateCompanionBuilder,
+      $$AppSettingsTableUpdateCompanionBuilder,
+      (AppSetting, $$AppSettingsTableReferences),
+      AppSetting,
+      PrefetchHooks Function({bool currentSeason, bool exportPromptDismissedForSeason})
+    >;
+typedef $$EntitlementsTableCreateCompanionBuilder =
+    EntitlementsCompanion Function({
+      Value<int> id,
+      Value<bool> unlocked,
+      Value<Instant?> unlockedAt,
+      Value<Instant?> purchaseInFlightAt,
+    });
+typedef $$EntitlementsTableUpdateCompanionBuilder =
+    EntitlementsCompanion Function({
+      Value<int> id,
+      Value<bool> unlocked,
+      Value<Instant?> unlockedAt,
+      Value<Instant?> purchaseInFlightAt,
+    });
+
+class $$EntitlementsTableFilterComposer extends Composer<_$AppDatabase, $EntitlementsTable> {
+  $$EntitlementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get unlocked =>
+      $composableBuilder(column: $table.unlocked, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get unlockedAt => $composableBuilder(
+    column: $table.unlockedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get purchaseInFlightAt =>
+      $composableBuilder(
+        column: $table.purchaseInFlightAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$EntitlementsTableOrderingComposer extends Composer<_$AppDatabase, $EntitlementsTable> {
+  $$EntitlementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get unlocked =>
+      $composableBuilder(column: $table.unlocked, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get unlockedAt =>
+      $composableBuilder(column: $table.unlockedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get purchaseInFlightAt => $composableBuilder(
+    column: $table.purchaseInFlightAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EntitlementsTableAnnotationComposer extends Composer<_$AppDatabase, $EntitlementsTable> {
+  $$EntitlementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get unlocked =>
+      $composableBuilder(column: $table.unlocked, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get unlockedAt =>
+      $composableBuilder(column: $table.unlockedAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get purchaseInFlightAt =>
+      $composableBuilder(column: $table.purchaseInFlightAt, builder: (column) => column);
+}
+
+class $$EntitlementsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EntitlementsTable,
+          Entitlement,
+          $$EntitlementsTableFilterComposer,
+          $$EntitlementsTableOrderingComposer,
+          $$EntitlementsTableAnnotationComposer,
+          $$EntitlementsTableCreateCompanionBuilder,
+          $$EntitlementsTableUpdateCompanionBuilder,
+          (Entitlement, BaseReferences<_$AppDatabase, $EntitlementsTable, Entitlement>),
+          Entitlement,
+          PrefetchHooks Function()
+        > {
+  $$EntitlementsTableTableManager(_$AppDatabase db, $EntitlementsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$EntitlementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$EntitlementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EntitlementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<bool> unlocked = const Value.absent(),
+                Value<Instant?> unlockedAt = const Value.absent(),
+                Value<Instant?> purchaseInFlightAt = const Value.absent(),
+              }) => EntitlementsCompanion(
+                id: id,
+                unlocked: unlocked,
+                unlockedAt: unlockedAt,
+                purchaseInFlightAt: purchaseInFlightAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<bool> unlocked = const Value.absent(),
+                Value<Instant?> unlockedAt = const Value.absent(),
+                Value<Instant?> purchaseInFlightAt = const Value.absent(),
+              }) => EntitlementsCompanion.insert(
+                id: id,
+                unlocked: unlocked,
+                unlockedAt: unlockedAt,
+                purchaseInFlightAt: purchaseInFlightAt,
+              ),
+          withReferenceMapper: (p0) =>
+              p0.map((e) => (e.readTable(table), BaseReferences(db, table, e))).toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EntitlementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EntitlementsTable,
+      Entitlement,
+      $$EntitlementsTableFilterComposer,
+      $$EntitlementsTableOrderingComposer,
+      $$EntitlementsTableAnnotationComposer,
+      $$EntitlementsTableCreateCompanionBuilder,
+      $$EntitlementsTableUpdateCompanionBuilder,
+      (Entitlement, BaseReferences<_$AppDatabase, $EntitlementsTable, Entitlement>),
+      Entitlement,
+      PrefetchHooks Function()
+    >;
+typedef $$EweSummariesTableCreateCompanionBuilder =
+    EweSummariesCompanion Function({
+      Value<int> ewe,
+      required int seasonsRecorded,
+      required int lambingsRecorded,
+      required int lambsBorn,
+      required int lambsBornAlive,
+      required int assistedLambings,
+      required int scoredLambings,
+      Value<int?> lastObservationSeason,
+      required Instant rebuiltAt,
+    });
+typedef $$EweSummariesTableUpdateCompanionBuilder =
+    EweSummariesCompanion Function({
+      Value<int> ewe,
+      Value<int> seasonsRecorded,
+      Value<int> lambingsRecorded,
+      Value<int> lambsBorn,
+      Value<int> lambsBornAlive,
+      Value<int> assistedLambings,
+      Value<int> scoredLambings,
+      Value<int?> lastObservationSeason,
+      Value<Instant> rebuiltAt,
+    });
+
+final class $$EweSummariesTableReferences
+    extends BaseReferences<_$AppDatabase, $EweSummariesTable, EweSummary> {
+  $$EweSummariesTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $EwesTable _eweTable(_$AppDatabase db) =>
+      db.ewes.createAlias('ewe_summaries__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager get ewe {
+    final $_column = $_itemColumn<int>('ewe')!;
+
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $SeasonsTable _lastObservationSeasonTable(_$AppDatabase db) =>
+      db.seasons.createAlias('ewe_summaries__last_observation_season__seasons__id');
+
+  $$SeasonsTableProcessedTableManager? get lastObservationSeason {
+    final $_column = $_itemColumn<int>('last_observation_season');
+    if ($_column == null) return null;
+    final manager = $$SeasonsTableTableManager(
+      $_db,
+      $_db.seasons,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lastObservationSeasonTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$EweSummariesTableFilterComposer extends Composer<_$AppDatabase, $EweSummariesTable> {
+  $$EweSummariesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get seasonsRecorded => $composableBuilder(
+    column: $table.seasonsRecorded,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lambingsRecorded => $composableBuilder(
+    column: $table.lambingsRecorded,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lambsBorn =>
+      $composableBuilder(column: $table.lambsBorn, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get lambsBornAlive =>
+      $composableBuilder(column: $table.lambsBornAlive, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get assistedLambings => $composableBuilder(
+    column: $table.assistedLambings,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get scoredLambings =>
+      $composableBuilder(column: $table.scoredLambings, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get rebuiltAt => $composableBuilder(
+    column: $table.rebuiltAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableFilterComposer get lastObservationSeason {
+    final $$SeasonsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lastObservationSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableFilterComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EweSummariesTableOrderingComposer extends Composer<_$AppDatabase, $EweSummariesTable> {
+  $$EweSummariesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get seasonsRecorded => $composableBuilder(
+    column: $table.seasonsRecorded,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lambingsRecorded => $composableBuilder(
+    column: $table.lambingsRecorded,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lambsBorn =>
+      $composableBuilder(column: $table.lambsBorn, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get lambsBornAlive => $composableBuilder(
+    column: $table.lambsBornAlive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get assistedLambings => $composableBuilder(
+    column: $table.assistedLambings,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get scoredLambings => $composableBuilder(
+    column: $table.scoredLambings,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get rebuiltAt =>
+      $composableBuilder(column: $table.rebuiltAt, builder: (column) => ColumnOrderings(column));
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableOrderingComposer get lastObservationSeason {
+    final $$SeasonsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lastObservationSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableOrderingComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EweSummariesTableAnnotationComposer extends Composer<_$AppDatabase, $EweSummariesTable> {
+  $$EweSummariesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get seasonsRecorded =>
+      $composableBuilder(column: $table.seasonsRecorded, builder: (column) => column);
+
+  GeneratedColumn<int> get lambingsRecorded =>
+      $composableBuilder(column: $table.lambingsRecorded, builder: (column) => column);
+
+  GeneratedColumn<int> get lambsBorn =>
+      $composableBuilder(column: $table.lambsBorn, builder: (column) => column);
+
+  GeneratedColumn<int> get lambsBornAlive =>
+      $composableBuilder(column: $table.lambsBornAlive, builder: (column) => column);
+
+  GeneratedColumn<int> get assistedLambings =>
+      $composableBuilder(column: $table.assistedLambings, builder: (column) => column);
+
+  GeneratedColumn<int> get scoredLambings =>
+      $composableBuilder(column: $table.scoredLambings, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get rebuiltAt =>
+      $composableBuilder(column: $table.rebuiltAt, builder: (column) => column);
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$SeasonsTableAnnotationComposer get lastObservationSeason {
+    final $$SeasonsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lastObservationSeason,
+      referencedTable: $db.seasons,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$SeasonsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.seasons,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EweSummariesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EweSummariesTable,
+          EweSummary,
+          $$EweSummariesTableFilterComposer,
+          $$EweSummariesTableOrderingComposer,
+          $$EweSummariesTableAnnotationComposer,
+          $$EweSummariesTableCreateCompanionBuilder,
+          $$EweSummariesTableUpdateCompanionBuilder,
+          (EweSummary, $$EweSummariesTableReferences),
+          EweSummary,
+          PrefetchHooks Function({bool ewe, bool lastObservationSeason})
+        > {
+  $$EweSummariesTableTableManager(_$AppDatabase db, $EweSummariesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$EweSummariesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$EweSummariesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EweSummariesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> ewe = const Value.absent(),
+                Value<int> seasonsRecorded = const Value.absent(),
+                Value<int> lambingsRecorded = const Value.absent(),
+                Value<int> lambsBorn = const Value.absent(),
+                Value<int> lambsBornAlive = const Value.absent(),
+                Value<int> assistedLambings = const Value.absent(),
+                Value<int> scoredLambings = const Value.absent(),
+                Value<int?> lastObservationSeason = const Value.absent(),
+                Value<Instant> rebuiltAt = const Value.absent(),
+              }) => EweSummariesCompanion(
+                ewe: ewe,
+                seasonsRecorded: seasonsRecorded,
+                lambingsRecorded: lambingsRecorded,
+                lambsBorn: lambsBorn,
+                lambsBornAlive: lambsBornAlive,
+                assistedLambings: assistedLambings,
+                scoredLambings: scoredLambings,
+                lastObservationSeason: lastObservationSeason,
+                rebuiltAt: rebuiltAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> ewe = const Value.absent(),
+                required int seasonsRecorded,
+                required int lambingsRecorded,
+                required int lambsBorn,
+                required int lambsBornAlive,
+                required int assistedLambings,
+                required int scoredLambings,
+                Value<int?> lastObservationSeason = const Value.absent(),
+                required Instant rebuiltAt,
+              }) => EweSummariesCompanion.insert(
+                ewe: ewe,
+                seasonsRecorded: seasonsRecorded,
+                lambingsRecorded: lambingsRecorded,
+                lambsBorn: lambsBorn,
+                lambsBornAlive: lambsBornAlive,
+                assistedLambings: assistedLambings,
+                scoredLambings: scoredLambings,
+                lastObservationSeason: lastObservationSeason,
+                rebuiltAt: rebuiltAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$EweSummariesTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({ewe = false, lastObservationSeason = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ewe) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ewe,
+                                referencedTable: $$EweSummariesTableReferences._eweTable(db),
+                                referencedColumn: $$EweSummariesTableReferences._eweTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lastObservationSeason) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lastObservationSeason,
+                                referencedTable: $$EweSummariesTableReferences
+                                    ._lastObservationSeasonTable(db),
+                                referencedColumn: $$EweSummariesTableReferences
+                                    ._lastObservationSeasonTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EweSummariesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EweSummariesTable,
+      EweSummary,
+      $$EweSummariesTableFilterComposer,
+      $$EweSummariesTableOrderingComposer,
+      $$EweSummariesTableAnnotationComposer,
+      $$EweSummariesTableCreateCompanionBuilder,
+      $$EweSummariesTableUpdateCompanionBuilder,
+      (EweSummary, $$EweSummariesTableReferences),
+      EweSummary,
+      PrefetchHooks Function({bool ewe, bool lastObservationSeason})
     >;
 typedef $$TreatmentWithdrawalsTableCreateCompanionBuilder =
     TreatmentWithdrawalsCompanion Function({
@@ -12968,6 +28222,7 @@ typedef $$TreatmentWithdrawalsTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       required int treatment,
       required String target,
       required String kind,
@@ -12980,6 +28235,7 @@ typedef $$TreatmentWithdrawalsTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<int> treatment,
       Value<String> target,
       Value<String> kind,
@@ -13031,6 +28287,9 @@ class $$TreatmentWithdrawalsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get target =>
       $composableBuilder(column: $table.target, builder: (column) => ColumnFilters(column));
@@ -13086,6 +28345,9 @@ class $$TreatmentWithdrawalsTableOrderingComposer
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get target =>
       $composableBuilder(column: $table.target, builder: (column) => ColumnOrderings(column));
 
@@ -13136,6 +28398,9 @@ class $$TreatmentWithdrawalsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<String> get target =>
       $composableBuilder(column: $table.target, builder: (column) => column);
@@ -13200,6 +28465,7 @@ class $$TreatmentWithdrawalsTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<int> treatment = const Value.absent(),
                 Value<String> target = const Value.absent(),
                 Value<String> kind = const Value.absent(),
@@ -13210,6 +28476,7 @@ class $$TreatmentWithdrawalsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 treatment: treatment,
                 target: target,
                 kind: kind,
@@ -13222,6 +28489,7 @@ class $$TreatmentWithdrawalsTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 required int treatment,
                 required String target,
                 required String kind,
@@ -13232,6 +28500,7 @@ class $$TreatmentWithdrawalsTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 treatment: treatment,
                 target: target,
                 kind: kind,
@@ -13306,6 +28575,7 @@ typedef $$PensTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required String label,
@@ -13318,6 +28588,7 @@ typedef $$PensTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<String> label,
@@ -13367,6 +28638,9 @@ class $$PensTableFilterComposer extends Composer<_$AppDatabase, $PensTable> {
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -13426,6 +28700,9 @@ class $$PensTableOrderingComposer extends Composer<_$AppDatabase, $PensTable> {
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
 
@@ -13460,6 +28737,9 @@ class $$PensTableAnnotationComposer extends Composer<_$AppDatabase, $PensTable> 
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -13526,6 +28806,7 @@ class $$PensTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<String> label = const Value.absent(),
@@ -13536,6 +28817,7 @@ class $$PensTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 label: label,
@@ -13548,6 +28830,7 @@ class $$PensTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required String label,
@@ -13558,6 +28841,7 @@ class $$PensTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 label: label,
@@ -13611,6 +28895,7 @@ typedef $$PenOccupanciesTableCreateCompanionBuilder =
       required String uid,
       required Instant createdAt,
       required Instant updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       required int pen,
@@ -13629,6 +28914,7 @@ typedef $$PenOccupanciesTableUpdateCompanionBuilder =
       Value<String> uid,
       Value<Instant> createdAt,
       Value<Instant> updatedAt,
+      Value<String?> unknownJson,
       Value<bool> struck,
       Value<Instant?> struckAt,
       Value<int> pen,
@@ -13731,6 +29017,9 @@ class $$PenOccupanciesTableFilterComposer extends Composer<_$AppDatabase, $PenOc
     column: $table.updatedAt,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnFilters(column));
@@ -13862,6 +29151,9 @@ class $$PenOccupanciesTableOrderingComposer extends Composer<_$AppDatabase, $Pen
   ColumnOrderings<int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => ColumnOrderings(column));
 
@@ -13962,6 +29254,9 @@ class $$PenOccupanciesTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
 
   GeneratedColumn<bool> get struck =>
       $composableBuilder(column: $table.struck, builder: (column) => column);
@@ -14094,6 +29389,7 @@ class $$PenOccupanciesTableTableManager
                 Value<String> uid = const Value.absent(),
                 Value<Instant> createdAt = const Value.absent(),
                 Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 Value<int> pen = const Value.absent(),
@@ -14110,6 +29406,7 @@ class $$PenOccupanciesTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 pen: pen,
@@ -14128,6 +29425,7 @@ class $$PenOccupanciesTableTableManager
                 required String uid,
                 required Instant createdAt,
                 required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
                 Value<bool> struck = const Value.absent(),
                 Value<Instant?> struckAt = const Value.absent(),
                 required int pen,
@@ -14144,6 +29442,7 @@ class $$PenOccupanciesTableTableManager
                 uid: uid,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
+                unknownJson: unknownJson,
                 struck: struck,
                 struckAt: struckAt,
                 pen: pen,
@@ -14562,6 +29861,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$SeasonsTableTableManager get seasons => $$SeasonsTableTableManager(_db, _db.seasons);
   $$EwesTableTableManager get ewes => $$EwesTableTableManager(_db, _db.ewes);
+  $$VocabTermsTableTableManager get vocabTerms =>
+      $$VocabTermsTableTableManager(_db, _db.vocabTerms);
   $$LambingsTableTableManager get lambings => $$LambingsTableTableManager(_db, _db.lambings);
   $$LambsTableTableManager get lambs => $$LambsTableTableManager(_db, _db.lambs);
   $$EweSeasonsTableTableManager get eweSeasons =>
@@ -14570,8 +29871,26 @@ class $AppDatabaseManager {
       $$EweTouchesTableTableManager(_db, _db.eweTouches);
   $$EweObservationsTableTableManager get eweObservations =>
       $$EweObservationsTableTableManager(_db, _db.eweObservations);
+  $$CareEventsTableTableManager get careEvents =>
+      $$CareEventsTableTableManager(_db, _db.careEvents);
+  $$FosterEventsTableTableManager get fosterEvents =>
+      $$FosterEventsTableTableManager(_db, _db.fosterEvents);
   $$TreatmentsTableTableManager get treatments =>
       $$TreatmentsTableTableManager(_db, _db.treatments);
+  $$RemindersTableTableManager get reminders => $$RemindersTableTableManager(_db, _db.reminders);
+  $$ReminderRulesTableTableManager get reminderRules =>
+      $$ReminderRulesTableTableManager(_db, _db.reminderRules);
+  $$NotesTableTableManager get notes => $$NotesTableTableManager(_db, _db.notes);
+  $$MediaAssetsTableTableManager get mediaAssets =>
+      $$MediaAssetsTableTableManager(_db, _db.mediaAssets);
+  $$TerminologyOverridesTableTableManager get terminologyOverrides =>
+      $$TerminologyOverridesTableTableManager(_db, _db.terminologyOverrides);
+  $$AppSettingsTableTableManager get appSettings =>
+      $$AppSettingsTableTableManager(_db, _db.appSettings);
+  $$EntitlementsTableTableManager get entitlements =>
+      $$EntitlementsTableTableManager(_db, _db.entitlements);
+  $$EweSummariesTableTableManager get eweSummaries =>
+      $$EweSummariesTableTableManager(_db, _db.eweSummaries);
   $$TreatmentWithdrawalsTableTableManager get treatmentWithdrawals =>
       $$TreatmentWithdrawalsTableTableManager(_db, _db.treatmentWithdrawals);
   $$PensTableTableManager get pens => $$PensTableTableManager(_db, _db.pens);

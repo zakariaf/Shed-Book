@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
+import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/common.dart';
 import 'package:shed_book/core/db/tables/flock.dart';
 import 'package:shed_book/core/db/tables/lambing.dart';
@@ -32,8 +33,7 @@ class Treatments extends Table with Identified {
   late final productName = text().withLength(min: 1, max: 120)();
   late final doseText = text().nullable()();
 
-  /// **Forward reference, deferred to N07-T06** (`VocabTerms`, `RESTRICT`).
-  late final route = text().nullable()();
+  late final route = text().nullable().references(VocabTerms, #key, onDelete: KeyAction.restrict)();
 
   late final batchNo = text().nullable()();
 
@@ -62,6 +62,7 @@ class Treatments extends Table with Identified {
     'CHECK (captured_at BETWEEN 946684800000 AND 4102444800000)',
     "CHECK (time_source IN ('auto','entered','edited'))",
     "CHECK ((time_source = 'edited') = (original_effective IS NOT NULL))",
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override
@@ -117,6 +118,7 @@ class TreatmentWithdrawals extends Table with Identified {
     "CHECK ((kind = 'days') = (clear_date IS NOT NULL))",
     'CHECK (days IS NULL OR days >= 0)',
     "CHECK (clear_date IS NULL OR clear_date GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')",
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override

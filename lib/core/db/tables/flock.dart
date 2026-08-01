@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/converters.dart';
 import 'package:shed_book/core/db/tables/common.dart';
+import 'package:shed_book/core/db/tables/ancillary.dart';
 import 'package:shed_book/core/db/tables/lambing.dart';
 import 'package:shed_book/core/db/tables/seasons.dart';
 
@@ -56,6 +57,7 @@ class Ewes extends Table with Identified, Struckable {
         " OR date_of_birth GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]')",
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override
@@ -98,6 +100,7 @@ class EweSeasons extends Table with Identified, Struckable {
     'CHECK (scanned_count IS NULL OR scanned_count BETWEEN 0 AND 6)',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override
@@ -141,10 +144,10 @@ class EweObservations extends Table with Identified, Struckable {
     onDelete: KeyAction.setNull,
   )();
 
-  /// **Forward reference, deferred to N07-T06.** A user-editable vocabulary is a
-  /// foreign key, never a `CHECK` (convention 6), and `VocabTerms` lands in T06:
-  /// `.references(VocabTerms, #key, onDelete: KeyAction.restrict)`.
-  late final kind = text()();
+  /// A user-editable vocabulary is a **foreign key, never a `CHECK`**
+  /// (convention 6). `RESTRICT`, because a term in use cannot be deleted — it is
+  /// hidden instead.
+  late final kind = text().references(VocabTerms, #key, onDelete: KeyAction.restrict)();
 
   // The §12.5 provenance quad (R37). An observation is as deferrable as a
   // lambing — "she prolapsed about midnight" is entered at 06:00 — so the quad
@@ -164,6 +167,7 @@ class EweObservations extends Table with Identified, Struckable {
     "CHECK ((time_source = 'edited') = (original_effective IS NOT NULL))",
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override

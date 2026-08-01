@@ -23,4 +23,16 @@ export 'package:shed_book/core/db/database.dart'
         PenOccupancy,
         Season,
         Treatment,
-        TreatmentWithdrawal;
+        TreatmentWithdrawal,
+        // N07-T06 — the ancillary cluster. EweSummary and EweTouch are cache
+        // rows; nothing outside lib/data/ has a reason to see one.
+        AppSetting,
+        CareEvent,
+        Entitlement,
+        FosterEvent,
+        MediaAsset,
+        Note,
+        Reminder,
+        ReminderRule,
+        TerminologyOverride,
+        VocabTerm;

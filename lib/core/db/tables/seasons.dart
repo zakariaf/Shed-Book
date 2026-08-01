@@ -49,6 +49,7 @@ class Seasons extends Table with Identified, Struckable {
     'CHECK (length(trim(label)) > 0)',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override

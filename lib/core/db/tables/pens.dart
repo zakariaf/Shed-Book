@@ -20,6 +20,7 @@ class Pens extends Table with Identified, Struckable {
     'CHECK (length(trim(label)) > 0)',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override
@@ -74,6 +75,7 @@ class PenOccupancies extends Table with Identified, Struckable {
     'CHECK ((exited_at IS NULL) = (exit_reason IS NULL))',
     'CHECK (struck IN (0,1))',
     'CHECK ((struck = 1) = (struck_at IS NOT NULL))',
+    'CHECK (unknown_json IS NULL OR json_valid(unknown_json))',
   ];
 
   @override

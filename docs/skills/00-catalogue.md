@@ -667,7 +667,7 @@ section."* The gotchas sections are the only part of this catalogue that should 
 
 | Content | Why not a skill |
 |---|---|
-| Running `dart format` and `dart run tool/check_policy.dart` after edits | *"Executes deterministically without Claude deciding"* (research 01). A rule that must fire on every edit must not depend on a model choosing to load a skill. The skills tell the agent what the gate proves; the hook makes it run. |
+| Running `dart format` and `dart tool/check_policy.dart` after edits | *"Executes deterministically without Claude deciding"* (research 01). A rule that must fire on every edit must not depend on a model choosing to load a skill. The skills tell the agent what the gate proves; the hook makes it run. |
 | Blocking a commit that edits `tool/policy_allowlist.txt` without a reason in the message | Mechanical, and exactly the kind of thing an agent rationalises past. |
 | Linting the skills themselves (`tool/lint_skills.py --strict`) | Infrastructure, not knowledge. `claude plugin validate` alone does not check name/directory match, charset, length limits or dangling references (research 03 §5.1). |
 

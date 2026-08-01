@@ -136,7 +136,7 @@ review conversation, not an edit.
 
 ## Done when
 
-- [ ] `dart run tool/check_policy.dart` prints `policy ok` and exits 0.
+- [ ] `dart tool/check_policy.dart` prints `policy ok` and exits 0.
 - [ ] Every new path is in `CONVENTIONS §1`'s tree, or a numbered ruling adding it exists.
 - [ ] No new file sits under `lib/src/`, `utils.dart`, `constants.dart`, a `models/` folder, or
       `shared/` · `common/` · `data/` inside `lib/features/`.

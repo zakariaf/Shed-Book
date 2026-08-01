@@ -284,7 +284,7 @@ disk as text; it pumps nothing.
 ```bash
 fvm flutter test test/design/first_frame_parity_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
-dart run tool/check_policy.dart          # launch.colour_parity now has something to read
+dart tool/check_policy.dart          # launch.colour_parity now has something to read
 make check
 make test
 ```

@@ -27,7 +27,7 @@ Three corollaries, and they are the whole reason the section exists:
 Run the same gates locally before you push:
 
 ```bash
-dart run tool/check_policy.dart     # < 1 s, no Flutter needed. "policy ok" or exit 1.
+dart tool/check_policy.dart     # < 1 s, no Flutter needed. "policy ok" or exit 1.
 make check                          # check_policy → dart format --output=none --set-exit-if-changed . → flutter analyze --fatal-infos --fatal-warnings
 make test                           # flutter test --exclude-tags golden --test-randomize-ordering-seed random --coverage
 ```
@@ -648,7 +648,7 @@ If the answer is yes, the change does not land on Quick Entry. It lands somewher
 
 - [ ] A PR template exists at `.github/pull_request_template.md`, it links to this file, and it carries the five §12 questions from §2.2–§2.6 **verbatim**.
 - [ ] Every rule id named in §1 exists as a row in `tool/check_policy.dart`, and each has been proven to fire once: plant a violation, confirm the failure, delete the file.
-- [ ] `dart run tool/check_policy.dart` exits 0 on a clean tree and prints `policy ok`.
+- [ ] `dart tool/check_policy.dart` exits 0 on a clean tree and prints `policy ok`.
 - [ ] `tool/policy_allowlist.txt`'s `[exempt]` section matches R56's count, each line has a reason in the commit message that added it, and **the 08-versus-10 disagreement over the fifth line (`notify.zoned_schedule`) is resolved in `CONVENTIONS.md` R56 itself** — not settled locally by whichever document was edited last (§1.1).
 - [ ] The three gaps §1 names are closed or recorded as open with an owner: a `time.ambient_clock` row for `clock.now(` (§1.3); the `stream.invalidate` exemption or narrowing that lets `ref.invalidate(minuteTickProvider)` compile (§1.5); and a `copy.tier3_claim` row for *"your data never leaves your phone"* (§1.10).
 - [ ] The two driver amendments 10 §10 requires are in `01-architecture.md` §3.2 — the `lib/l10n/*.arb` reader is shared, and `lib/l10n/app_localizations*.dart` is on the skip list — or the ARB rows in §1.13 are struck from §1 until they are.

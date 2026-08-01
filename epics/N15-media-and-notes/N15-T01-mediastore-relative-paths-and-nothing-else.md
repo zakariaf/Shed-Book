@@ -277,7 +277,7 @@ fvm flutter test test/support/harness_test.dart test/features/
 
 # 4. Watch the confinement rule fire, then un-plant it.
 printf "import 'package:path_provider/path_provider.dart';\n" > lib/features/quick_entry/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.path_provider] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.path_provider] …, exit=1
 rm lib/features/quick_entry/_plant.dart
 
 # 5. Nothing generated moved — this task adds no table, no column and no query.

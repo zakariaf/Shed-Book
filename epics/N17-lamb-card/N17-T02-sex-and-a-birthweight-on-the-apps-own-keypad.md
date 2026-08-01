@@ -250,7 +250,7 @@ fvm flutter test test/features/lamb_card_test.dart
 TZ=Pacific/Chatham fvm flutter test test/domain/units_test.dart
 grep -rn "TextField\|TextFormField\|keyboardType" lib/features/lambing/   # expect: nothing
 grep -rn "inKilograms\|inPounds" lib/features/                            # display only, no arithmetic
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

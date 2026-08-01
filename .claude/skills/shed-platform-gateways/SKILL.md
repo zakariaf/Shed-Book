@@ -187,7 +187,7 @@ with `rankTagMatches`, plus the voice note. 08 §10.3 states the bar for v2.
 ## Done when
 
 - [ ] Every plugin in `08 §1.2`'s map has exactly one import site (two for `path_provider`), and
-      `dart run tool/check_policy.dart` fails on a seeded violation of each row.
+      `dart tool/check_policy.dart` fails on a seeded violation of each row.
 - [ ] A hand-written fake exists in `test/support/` for all seven seams; none is mocked, no plugin
       type appears in a gateway signature, and `lib/features/reminders/notification_gateway.dart`
       does not exist (R48).

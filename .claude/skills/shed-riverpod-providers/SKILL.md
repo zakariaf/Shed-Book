@@ -204,7 +204,7 @@ anywhere (02 §4.5). Three consequences that are not stylistic:
 
 - [ ] `pubspec.yaml` has `flutter_riverpod: 2.6.1`, no caret; `pubspec.lock` committed.
 - [ ] `flutter analyze --fatal-infos` clean — this alone proves no Riverpod-3-only class or named parameter
-      survives. `dart run tool/check_policy.dart` passes (it carries the `rp3.*` rows from 02 §2.4).
+      survives. `dart tool/check_policy.dart` passes (it carries the `rp3.*` rows from 02 §2.4).
 - [ ] No `AsyncValue` accessor anywhere; every read site is an exhaustive `switch` with no `default:`.
 - [ ] `ref.mounted`, the type name `Ref`, `@riverpod` and `showSnackBar(` appear nowhere in `lib/`.
 - [ ] `lib/` has zero `overrideWith`/`overrideWithValue`, zero `ref.keepAlive()`, and exactly one

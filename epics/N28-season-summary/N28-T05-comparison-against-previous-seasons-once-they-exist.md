@@ -255,7 +255,7 @@ fvm flutter test test/data/season_repository_test.dart
 fvm flutter test test/features/season_summary_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
 grep -rn "combineLatest" lib/ || echo 'clean'
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make check
 make test
 ```

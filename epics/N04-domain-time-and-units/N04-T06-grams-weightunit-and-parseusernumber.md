@@ -256,7 +256,7 @@ fvm flutter test test/domain/units_test.dart
 fvm flutter test test/domain/units
 TZ=Pacific/Chatham fvm flutter test test/domain/units_test.dart test/domain/units
 dart analyze lib/domain/units
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

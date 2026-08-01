@@ -257,7 +257,7 @@ this path.
 fvm flutter test test/features/season_summary_test.dart
 fvm flutter test test/data/season_repository_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make gen
 git diff --exit-code -- lib/ drift_schemas/ test/drift/generated/
 make check

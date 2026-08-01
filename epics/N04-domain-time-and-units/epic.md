@@ -47,7 +47,7 @@ Run these on a tree that still has no `lib/data/`, no `lib/features/` and no dat
 fvm flutter test test/domain                                            # the whole domain tier, green
 TZ=Europe/London   fvm flutter test --tags uk-zone                      # DST-1 … DST-4, green
 TZ=Pacific/Chatham fvm flutter test test/domain --exclude-tags uk-zone  # the same tier, hostile zone, green
-dart run tool/check_policy.dart                                         # layer.domain + time.dart_clock enforced
+dart tool/check_policy.dart                                         # layer.domain + time.dart_clock enforced
 ```
 
 What you can demonstrate to somebody standing behind you:
@@ -116,7 +116,7 @@ git checkout -b epic/n04-domain-time-and-units
 
    | Job | What it runs on this branch | What it proves |
    |---|---|---|
-   | `gate` | toolchain pin agrees with `.fvmrc` (Flutter 3.44.8) · `flutter pub get` · `dart run tool/check_policy.dart` · `dart format --set-exit-if-changed` · `flutter analyze --fatal-infos --fatal-warnings` · no `NSAppTransportSecurity` | `layer.domain`: nothing under `lib/domain/` imports `package:flutter`, `package:drift`, `package:*riverpod`, `package:intl` or **`package:clock`**. `time.dart_clock`: `DateTime.now(` in exactly one non-generated file. `time.sql_now_*`: no SQL-side time token. `copy.banned_word`: no `draft`, `save()`, `sync`, `flags` or `Error`-as-a-failure-name in the diff |
+   | `gate` | toolchain pin agrees with `.fvmrc` (Flutter 3.44.8) · `flutter pub get` · `dart tool/check_policy.dart` · `dart format --set-exit-if-changed` · `flutter analyze --fatal-infos --fatal-warnings` · no `NSAppTransportSecurity` | `layer.domain`: nothing under `lib/domain/` imports `package:flutter`, `package:drift`, `package:*riverpod`, `package:intl` or **`package:clock`**. `time.dart_clock`: `DateTime.now(` in exactly one non-generated file. `time.sql_now_*`: no SQL-side time token. `copy.banned_word`: no `draft`, `save()`, `sync`, `flags` or `Error`-as-a-failure-name in the diff |
    | `test` | `libsqlite3-dev` on the runner · `flutter test --exclude-tags golden --test-randomize-ordering-seed random --coverage` · `TZ=Europe/London flutter test --tags uk-zone` (**unscoped** — no path) · `TZ=Pacific/Chatham flutter test test/domain --exclude-tags uk-zone` · coverage uploaded as an artefact, never gated | The arithmetic under the target zone, and the same arithmetic under a hostile UTC+12:45 zone with its own DST. Green in only one of the two means something is reading ambient local time that should not be (`12` §2.5) |
 
    `gh pr checks --watch`. Do not merge on a yellow.

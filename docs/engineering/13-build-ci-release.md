@@ -531,7 +531,7 @@ jobs:
       # Cheapest failure first. The gate is sub-second; analyze is tens of seconds.
       # Gates G2 (dependency allowlist) and G3 (import scan) both live here.
       - name: Policy gate (G2 + G3)
-        run: dart run tool/check_policy.dart
+        run: dart tool/check_policy.dart
 
       - name: Format
         run: dart format --output=none --set-exit-if-changed .

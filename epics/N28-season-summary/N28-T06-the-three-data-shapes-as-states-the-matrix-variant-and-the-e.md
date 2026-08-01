@@ -235,7 +235,7 @@ fvm flutter test test/design/tap_target_test.dart
 fvm flutter test test/design/contrast_test.dart --tags slow
 TZ=Europe/London fvm flutter test --tags uk-zone
 git diff --stat -- test/fixtures/
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 python3 tool/validate_epics.py
 make check
 make test

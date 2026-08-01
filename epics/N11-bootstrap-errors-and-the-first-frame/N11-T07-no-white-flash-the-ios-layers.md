@@ -237,7 +237,7 @@ T04 did not finish and this task is blocked on it.
 ```bash
 fvm flutter test test/design/first_frame_parity_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

@@ -222,7 +222,7 @@ No case is time-shaped.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -231,7 +231,7 @@ Then prove it on the real graph, which is the only run that proves the allowlist
 ```bash
 fvm flutter pub get                                  # the lockfile the gate will read
 git diff --exit-code -- pubspec.lock                 # 13 §1.2: a lockfile diff is a review stop
-dart run tool/check_policy.dart ; echo "exit=$?"     # policy ok, exit=0
+dart tool/check_policy.dart ; echo "exit=$?"     # policy ok, exit=0
 grep -c '^[a-z_]' tool/policy_allowlist.txt          # the line count you just justified
 make check
 ```

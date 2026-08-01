@@ -236,7 +236,7 @@ it; the export's own timestamp formatting is `09`'s and lands in N21.
 fvm flutter test test/policy/disclaimer_is_defined_once_test.dart
 fvm flutter test test/policy/content_policy_test.dart test/policy/gate_rules_test.dart
 fvm flutter test test/domain/policy/export_envelope_test.dart
-dart run tool/check_policy.dart                     # exits 0 on the clean tree
+dart tool/check_policy.dart                     # exits 0 on the clean tree
 # then, by hand, for each of the two new rows: plant an offender, watch it exit 1
 # naming the rule id, and delete the file before committing
 make check

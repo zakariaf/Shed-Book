@@ -1,0 +1,242 @@
+// tool/check_policy.dart
+//
+// The single source-and-dependency gate for Shed Book.
+//   dart tool/check_policy.dart
+//
+// NEVER `dart run`. Measured 2026-08-01 (N03-T01): the `run` subcommand does an
+// implicit `pub get` and executes the package's build hooks, so on a cold hook
+// cache with no network it fails at a pub.dev advisories fetch — which is
+// exactly "it can fail for reasons that are not violations". Without `run` it
+// exits 0 on the same tree, in ~2.5 s, of which the walk is milliseconds.
+// Exit codes: 0 clean · 1 violations · 2 the gate could not run (still a failure).
+//
+// Dependency-free by decision (00-tech-decisions #9, #10): every analyzer plugin
+// that could express these rules is discontinued, archived, or unresolvable
+// against drift_dev's analyzer ^13.0.0. Do not add a second scanning script;
+// the answer to a new rule is a new row in the tables below. The moment this
+// script needs `pub get` it can fail for reasons that are not violations.
+//
+// THE RULE TABLE IS NOT CLOSED. copy.vet_advice and copy.disclaimer_retyped
+// need ContentPolicy and Disclaimers and arrive with them (N06-T09). The
+// db.destructive_ddl family arrives with the migration harness (N08), and
+// layer.in_app_purchase / launch.store_call with monetization (N30). A row and
+// the case that proves it fires land in the same commit — always.
+//
+// NEVER edit this file, its rule table, its exit code, or
+// tool/policy_allowlist.txt to make a build pass. An [exempt] line deletes one
+// rule for one file, forever, and silently. If a gate is genuinely wrong, say
+// so and stop.
+
+import 'dart:io';
+
+/// Walked roots. `tool/` is deliberately absent: this file's own tables contain
+/// every banned literal, so scanning it would fail the build on itself.
+const List<String> _roots = <String>['lib', 'test'];
+
+/// The four allowlist sections. A header outside this set is a typo that would
+/// empty a whole section, so it is refused rather than accepted.
+const Set<String> _allowlistSections = <String>{
+  'dependencies',
+  'dev_dependencies',
+  'transitive',
+  'exempt',
+};
+
+/// (id, literal text, path prefix it applies under, why). An empty `under`
+/// means every scanned root — the driver never walks anything else.
+const List<(String, String, String, String)> _bannedText = <(String, String, String, String)>[];
+
+/// Same tuple, a pattern instead of a literal. `final`, not `const`: RegExp has
+/// no const constructor.
+final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, String, String)>[];
+
+/// Every rule id this script can emit, in declaration order. N03-T07's
+/// inventory assertion iterates this; a rule that is not here cannot be proved.
+Iterable<String> get policyRuleIds sync* {
+  for (final (String id, _, _, _) in _bannedText) {
+    yield id;
+  }
+  for (final (String id, _, _, _) in _bannedPattern) {
+    yield id;
+  }
+}
+
+/// 00-README §7.3: everything generated is named so you can see it, and the
+/// gate always skips it. Never hand-edit one; `make gen` is the only writer.
+///
+/// Three of the four shapes are not `*.g.dart`. `app_localizations*.dart` comes
+/// from gen-l10n and holds user-facing strings the vocabulary rules would fire
+/// on; `test/drift/generated/**` comes from `drift_dev schema steps` and holds
+/// generated SQL. All four are committed (00-README §7.1) and all four are
+/// walked by a driver that only checks two suffixes.
+bool _isGenerated(String path) =>
+    path.endsWith('.g.dart') ||
+    path.endsWith('.drift.dart') ||
+    path.contains('/app_localizations') ||
+    path.contains('test/drift/generated/');
+
+/// The file kinds the gate reads. N03-T06 widens this to `.arb`, because the
+/// vocabulary rules have to read `lib/l10n/app_en.arb` — one predicate, so that
+/// is a one-line change and not a rewrite of the walk.
+bool _isScannable(String path) => path.endsWith('.dart');
+
+/// Every file the gate will read under [root], as repository-relative paths,
+/// **sorted**.
+///
+/// `Directory.listSync(recursive: true)` returns filesystem order, which
+/// differs between macOS and the `ubuntu-latest` runner. Sorting here rather
+/// than only sorting the violations means the walk itself is reproducible, so a
+/// future short-circuit cannot make the first reported message machine-dependent.
+List<String> scannedFiles(String root) {
+  final List<String> out = <String>[];
+  for (final String name in _roots) {
+    final Directory dir = Directory(_join(root, name));
+    if (!dir.existsSync()) {
+      continue;
+    }
+    for (final FileSystemEntity entity in dir.listSync(recursive: true)) {
+      if (entity is! File) {
+        continue;
+      }
+      final String path = _relative(entity.path, root);
+      if (!_isScannable(path) || _isGenerated(path)) {
+        continue;
+      }
+      out.add(path);
+    }
+  }
+  return out..sort();
+}
+
+/// Pure. Walks [root], applies every rule, returns one message per violation.
+/// Never prints and never exits — `main()` owns the process.
+///
+/// Throws [PolicyConfigProblem] if the gate cannot read its own configuration.
+List<String> runPolicy({String root = '.'}) {
+  final Map<String, Set<String>> allow = readAllowlist(root);
+  final Set<String> exempt = allow['exempt'] ?? const <String>{};
+  final List<String> violations = <String>[];
+
+  for (final String path in scannedFiles(root)) {
+    final String source = File(_join(root, path)).readAsStringSync();
+
+    for (final (String id, String text, String under, String why) in _bannedText) {
+      if (!path.startsWith(under) || !source.contains(text)) {
+        continue;
+      }
+      if (exempt.contains('$path :: $id')) {
+        continue;
+      }
+      violations.add('[$id] $path contains "$text" — $why');
+    }
+
+    for (final (String id, RegExp pattern, String under, String why) in _bannedPattern) {
+      if (!path.startsWith(under) || !pattern.hasMatch(source)) {
+        continue;
+      }
+      if (exempt.contains('$path :: $id')) {
+        continue;
+      }
+      violations.add('[$id] $path matches ${pattern.pattern} — $why');
+    }
+  }
+
+  return violations..sort();
+}
+
+/// Parses `<root>/tool/policy_allowlist.txt`.
+///
+/// `[section]` headers, one entry per line, `#` starts a comment. Throws
+/// [PolicyConfigProblem] on a malformed line, naming the file and the 1-based
+/// line number; `main()` turns that into exit 2.
+///
+/// `[exempt]` keys are **normalised** to `'<path> :: <id>'`. The file is
+/// column-aligned for readability and the driver looks the key up unpadded, so
+/// storing the raw line makes every exemption ever written silently inert — the
+/// gate goes red on a file that carries a waiver, somebody deletes the rule, and
+/// nobody sees it happen.
+Map<String, Set<String>> readAllowlist(String root) {
+  const String name = 'tool/policy_allowlist.txt';
+  final File file = File(_join(root, name));
+  if (!file.existsSync()) {
+    throw const PolicyConfigProblem('$name is missing — the gate cannot run');
+  }
+  final Map<String, Set<String>> out = <String, Set<String>>{
+    for (final String section in _allowlistSections) section: <String>{},
+  };
+  String? section;
+  final List<String> lines = file.readAsLinesSync();
+  for (int i = 0; i < lines.length; i++) {
+    final String line = lines[i].split('#').first.trim();
+    final int number = i + 1;
+    if (line.isEmpty) {
+      continue;
+    }
+    if (line.startsWith('[') && line.endsWith(']')) {
+      section = line.substring(1, line.length - 1);
+      if (!_allowlistSections.contains(section)) {
+        throw PolicyConfigProblem(
+          '$name line $number: unknown section "$section". '
+          'The four are ${_allowlistSections.join(", ")}',
+        );
+      }
+      continue;
+    }
+    if (section == null) {
+      throw PolicyConfigProblem(
+        '$name line $number: "$line" is outside any section. '
+        'Every entry belongs under one of ${_allowlistSections.join(", ")}',
+      );
+    }
+    out[section]!.add(section == 'exempt' ? _exemptKey(name, number, line) : line);
+  }
+  return out;
+}
+
+String _exemptKey(String name, int number, String line) {
+  final List<String> halves = line.split('::');
+  if (halves.length != 2) {
+    throw PolicyConfigProblem(
+      '$name line $number: "$line" is not `<path> :: <rule id>`. '
+      'A waiver with no :: separator is refused, never ignored',
+    );
+  }
+  return '${halves.first.trim()} :: ${halves.last.trim()}';
+}
+
+/// The gate could not run. Deliberately not named `…Error`: `CLAUDE.md` bans
+/// `Error` as a failure-type name, and this is a configuration problem the gate
+/// reports, not a failure type the app models.
+final class PolicyConfigProblem implements Exception {
+  const PolicyConfigProblem(this.message);
+  final String message;
+
+  @override
+  String toString() => 'PolicyConfigProblem: $message';
+}
+
+String _join(String root, String path) => root == '.' ? path : '$root/$path';
+
+String _relative(String path, String root) {
+  final String normalised = path.replaceAll(r'\', '/');
+  final String prefix = root == '.' ? '' : '$root/';
+  return normalised.startsWith(prefix) ? normalised.substring(prefix.length) : normalised;
+}
+
+void main(List<String> args) {
+  final List<String> violations;
+  try {
+    violations = runPolicy();
+  } on PolicyConfigProblem catch (problem) {
+    stderr.writeln('POLICY  ${problem.message}');
+    exit(2);
+  }
+  if (violations.isEmpty) {
+    stdout.writeln('policy ok');
+    return;
+  }
+  for (final String line in violations) {
+    stderr.writeln('POLICY  $line');
+  }
+  exit(1);
+}

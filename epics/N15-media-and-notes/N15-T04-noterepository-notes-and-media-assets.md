@@ -289,11 +289,11 @@ fvm flutter test test/data/
 
 # 4. Watch the two rules that hold §12.4 fire, then revert.
 printf "import '../domain/validation/warning.dart';\n" >> lib/data/note_repository.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.data_no_validation] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.data_no_validation] …, exit=1
 git checkout -- lib/data/note_repository.dart
 
 printf "Future<void> saveNote() async {}\n" >> lib/data/note_repository.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [db.save_verb] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [db.save_verb] …, exit=1
 git checkout -- lib/data/note_repository.dart
 
 # 5. Nothing generated moved — no table, no column, no named query.

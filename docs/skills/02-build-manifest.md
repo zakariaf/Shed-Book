@@ -1098,7 +1098,7 @@ Under 200 lines. Everything here is needed in *every* session including one-line
 
 | Mechanism | What it does |
 |---|---|
-| `PostToolUse` | `dart format` and `dart run tool/check_policy.dart` after edits. A rule that must fire on every edit must not depend on a model loading a skill. |
+| `PostToolUse` | `dart format` and `dart tool/check_policy.dart` after edits. A rule that must fire on every edit must not depend on a model loading a skill. |
 | `PreToolUse` | **Blocks `flutter test --update-goldens` outright** (critique **R2**; `12 §11.4` already argues this about the `Makefile` target name). |
 | `PreToolUse` | Blocks an edit to `android/expected_permissions.txt` — named in `13 §2.3` as *"the single worst thing you can do to this project"*. |
 | `PreToolUse` | Blocks a commit that edits `tool/policy_allowlist.txt` without a reason in the message. |

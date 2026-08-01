@@ -259,7 +259,7 @@ because of the row this task lands.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -269,9 +269,9 @@ would kill them do not:
 ```bash
 mkdir -p lib/data
 printf "final t = DateTime.now();\nvoid saveEwe() {}\n" > lib/data/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # time.dart_clock + db.save_verb, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # time.dart_clock + db.save_verb, exit=1
 printf "final f = File('x').existsSync();\n"       > lib/data/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # policy ok, exit=0 — the sync trap
+dart tool/check_policy.dart ; echo "exit=$?"   # policy ok, exit=0 — the sync trap
 rm lib/data/_plant.dart
 make check
 make test

@@ -197,7 +197,7 @@ fvm flutter test test/domain/time/partial_date_test.dart
 fvm flutter test test/domain/time            # T01 + T02 + T03 together
 TZ=Pacific/Chatham fvm flutter test test/domain/time
 dart analyze lib/domain/time/partial_date.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

@@ -133,4 +133,4 @@ Keep this worked example in your head: treated **Tue 3 Mar 20:00**, 7 days → t
 - [ ] Every countdown / clear-date query filters `voided_at IS NULL`; no withdrawal row is ever recomputed.
 - [ ] `TZ=Europe/London flutter test test/domain` passes, including DST-4's `167` and DST-5.
 - [ ] `TZ=Pacific/Chatham flutter test test/domain --exclude-tags uk-zone` passes.
-- [ ] `flutter analyze` and `dart run tool/check_policy.dart` are clean.
+- [ ] `flutter analyze` and `dart tool/check_policy.dart` are clean.

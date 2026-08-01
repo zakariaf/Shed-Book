@@ -279,11 +279,11 @@ fvm flutter test test/support/harness_test.dart test/data/
 
 # 4. Watch both gate rows fire, then revert.
 printf "// keepExif: true\n" >> lib/data/media_store.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [media.keep_exif] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [media.keep_exif] …, exit=1
 git checkout -- lib/data/media_store.dart
 
 printf "import 'package:image_picker/image_picker.dart';\n" > lib/features/quick_entry/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.plugin_image_picker] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.plugin_image_picker] …, exit=1
 rm lib/features/quick_entry/_plant.dart
 
 # 5. Nothing generated moved.

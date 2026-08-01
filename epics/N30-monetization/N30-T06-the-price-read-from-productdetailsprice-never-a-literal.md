@@ -233,7 +233,7 @@ fvm flutter test test/policy/no_price_literal_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
 fvm flutter test test/features/free_tier_test.dart
 fvm flutter test test/features/overflow_matrix_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 grep -rnE '[€£$¥][0-9]' lib/ assets/                     # nothing
 grep -rnE '\b(EUR|GBP|USD)\s*[0-9]' lib/ assets/         # nothing
 grep -rn "NumberFormat" lib/                             # no currency formatter anywhere

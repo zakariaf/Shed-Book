@@ -213,7 +213,7 @@ identically in every zone. The zone-pinned tier belongs to N05-T02 and N05-T03.
 ```bash
 fvm flutter test test/policy/withdrawal_has_no_default_test.dart
 fvm flutter test test/policy
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 git diff --stat -- tool/policy_allowlist.txt
 make check
 make test

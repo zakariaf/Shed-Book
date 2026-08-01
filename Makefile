@@ -28,7 +28,14 @@ gen:                      ## codegen + migration artefacts. The ONLY way generat
 	$(DART) run build_runner build --delete-conflicting-outputs
 	$(DART) run drift_dev make-migrations
 
-check:                    ## cheapest failure first: <1s, then seconds, then tens of seconds
+# `$(DART) tool/check_policy.dart`, never `$(DART) run …`. Measured 2026-08-01:
+# the run subcommand does an implicit pub get and runs the package's build hooks,
+# so it needs a network on a cold cache — the one thing this dependency-free
+# script exists not to need. The comment lives here rather than inside the recipe
+# because every line of a recipe is a step, and test/policy/makefile_test.dart
+# reads them as one ordered list.
+check:                    ## cheapest failure first: ~2.5s, then seconds, then tens of seconds
+	$(DART) tool/check_policy.dart
 	$(MAKE) validate
 	$(DART) format --output=none --set-exit-if-changed .
 	$(FLUTTER) analyze --fatal-infos --fatal-warnings

@@ -329,7 +329,7 @@ fvm flutter test test/policy/quiet_window_never_solicits_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
 fvm flutter test test/features/overflow_matrix_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 grep -rn "showMaterialBanner(\|showSnackBar(\|Overlay.of(\|showDialog(" lib/features/ lib/core/ui/   # nothing
 grep -rn "isQuietHours" lib/ | grep -v "lib/domain/free_tier.dart"    # call sites only, no re-derivation
 grep -rnE "h >= 22|hour >= 22|< 6\b" lib/ | grep -v free_tier.dart    # nothing

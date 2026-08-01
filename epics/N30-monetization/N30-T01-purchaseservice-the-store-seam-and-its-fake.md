@@ -270,7 +270,7 @@ preferred.
 ```bash
 fvm flutter test test/data/purchase_service_test.dart
 fvm flutter test test/policy/gate_rules_test.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 grep -rn "package:in_app_purchase" lib/                  # exactly lib/data/purchase_service.dart
 grep -rnE "PurchaseDetails|ProductDetails|PurchaseStatus|PurchaseParam|InAppPurchase" lib/   # the same one file
 grep -rn "PurchaseService\|purchase_service" lib/main.dart lib/app.dart    # nothing

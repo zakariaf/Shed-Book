@@ -350,7 +350,7 @@ TZ=Europe/London fvm flutter test --tags uk-zone
 grep -rn "rearing_dam" lib/data/ lib/features/     # reads only — no assignment, no UPDATE
 grep -rn "combineLatest" lib/features/lambing/     # expect: nothing
 grep -rn "package:drift" lib/features/             # expect: nothing
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

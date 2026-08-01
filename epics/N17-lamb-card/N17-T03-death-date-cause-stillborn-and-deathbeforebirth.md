@@ -300,7 +300,7 @@ TZ=Europe/London fvm flutter test --tags uk-zone
 grep -rn "showDatePicker\|showTimePicker" lib/                 # expect: nothing
 grep -rn "dc_unknown" lib/ | grep -i "coalesce\|??"            # expect: nothing
 grep -rn "domain/validation" lib/data/                         # expect: nothing (R53)
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

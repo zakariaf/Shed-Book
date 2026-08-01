@@ -267,11 +267,11 @@ grep -c overrideWithValue test/support/harness.dart      # expect: 3
 
 # 4. Watch both gate rows fire, then revert.
 printf "// encoder: AudioEncoder.opus\n" >> lib/data/voice_recorder.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [media.opus] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [media.opus] …, exit=1
 git checkout -- lib/data/voice_recorder.dart
 
 printf "import 'package:record/record.dart';\n" > lib/features/quick_entry/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.plugin_record] …, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # POLICY [layer.plugin_record] …, exit=1
 rm lib/features/quick_entry/_plant.dart
 
 # 5. Nothing generated moved.

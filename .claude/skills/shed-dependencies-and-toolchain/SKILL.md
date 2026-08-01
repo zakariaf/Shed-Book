@@ -164,6 +164,6 @@ read `references/gate-failures.md`.**
 - [ ] Every new lockfile entry has an allowlist line in the correct section, transitive ones with the
       reason on the line.
 - [ ] `pubspec.lock` is committed and its diff has been read.
-- [ ] `make check` passes — `dart run tool/check_policy.dart`, `dart format --set-exit-if-changed`,
+- [ ] `make check` passes — `dart tool/check_policy.dart`, `dart format --set-exit-if-changed`,
       `flutter analyze --fatal-infos --fatal-warnings`.
 - [ ] No gate file, rule table, exit code or allowlist was edited to make any of the above pass.

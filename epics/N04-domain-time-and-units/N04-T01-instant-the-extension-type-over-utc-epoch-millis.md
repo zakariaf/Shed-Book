@@ -188,7 +188,7 @@ file, because they would make it pass or fail on the runner's `TZ`.
 ```bash
 fvm flutter test test/domain/time/instant_test.dart
 TZ=Pacific/Chatham fvm flutter test test/domain/time/instant_test.dart   # must be identically green
-dart run tool/check_policy.dart                                          # layer.domain over the new file
+dart tool/check_policy.dart                                          # layer.domain over the new file
 dart analyze lib/domain/time/instant.dart
 make check
 make test

@@ -1,0 +1,37 @@
+# tool/policy_allowlist.txt — the one allowlist for tool/check_policy.dart.
+#
+# Four sections, one entry per line, `#` starts a comment anywhere on a line.
+# A line outside a section, an unknown section header and an [exempt] line with
+# no `::` are all refused with their line number: exit 2, which is a failure and
+# never a warning.
+#
+# NEVER add a line here to silence a gate (CLAUDE.md). An [exempt] line deletes
+# one rule for one file, forever, and silently. If a gate is genuinely wrong,
+# say so and stop.
+
+[dependencies]
+# direct main — every line is read against 00-tech-decisions §5.1 before it is
+# added. Empty until N03-T04, which is the commit that turns G2 on; until then
+# the lockfile is not read at all.
+
+[dev_dependencies]
+# direct dev — never ships. build_runner legitimately drags shelf and
+# web_socket_channel into the graph, which is why this is its own section.
+# Empty until N03-T04.
+
+[transitive]
+# documented, with the reason on the line. Empty until N03-T04.
+
+[exempt]
+# Per-file rule waivers. Each line carries its reason in the commit that adds
+# it. Exactly four on day one (CONVENTIONS R56, §4.7); a fifth is a review
+# conversation, not a keystroke.
+#
+# All four name files that do not exist yet — app_clock.dart arrives at N04,
+# night_error_panel.dart at N11, primitives.dart and palettes.dart at N09. An
+# exemption for a missing file is inert, and there is deliberately no
+# stale-exemption check: one would fail this commit on itself.
+lib/core/time/app_clock.dart       :: time.dart_clock
+lib/core/ui/night_error_panel.dart :: token.raw_color
+lib/core/ui/primitives.dart        :: token.raw_color
+lib/core/ui/palettes.dart          :: token.primitives_import

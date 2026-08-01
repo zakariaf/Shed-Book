@@ -114,7 +114,7 @@ test('every rule id in the table is proved by a test in this file', () { … });
   in the commit message; do not silently pick one and leave the next reader to find the
   contradiction.
 - **The step order that ships:** checkout → `flutter-action` → toolchain pin assert → `flutter pub
-  get` → **`dart run tool/check_policy.dart`** → `dart format --output=none --set-exit-if-changed .`
+  get` → **`dart tool/check_policy.dart`** → `dart format --output=none --set-exit-if-changed .`
   → `flutter analyze --fatal-infos --fatal-warnings` → the `NSAppTransportSecurity` check. Sub-second
   before tens of seconds, exactly as `make check` orders it locally. Every other job in `ci.yml`
   `needs: gate`, so one toolchain assert covers the workflow.
@@ -162,7 +162,7 @@ test('every rule id in the table is proved by a test in this file', () { … });
 | the `dep.*` ids are yielded | the three ids `_checkLockfile` interpolates appear in `policyRuleIds` |
 | the layer ids are yielded | every value of `_directionRuleId` appears in `policyRuleIds`, and `layer.direction` / `layer.import` appear **nowhere** |
 | the deliberate absences | `copy.vet_advice` and `copy.disclaimer_retyped` are absent, and the comment naming N06-T09 is present in the source |
-| `'ci.yml runs the policy gate before format and analyze'` | Parse `.github/workflows/ci.yml`: the `gate` job contains the `dart run tool/check_policy.dart` step; its index is above `dart format` and `flutter analyze`; the job carries no `continue-on-error` |
+| `'ci.yml runs the policy gate before format and analyze'` | Parse `.github/workflows/ci.yml`: the `gate` job contains the `dart tool/check_policy.dart` step; its index is above `dart format` and `flutter analyze`; the job carries no `continue-on-error` |
 | `'every job in ci.yml needs gate'` | `13 §1.1`'s claim that one toolchain assert covers the workflow is only true while this holds |
 | `'make check runs the gate first'` | The `Makefile` target's first line is the script — reasserted here because this is the commit that claims the ordering property |
 

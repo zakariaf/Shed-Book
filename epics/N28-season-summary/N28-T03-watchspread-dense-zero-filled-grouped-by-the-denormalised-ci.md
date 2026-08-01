@@ -248,7 +248,7 @@ fvm flutter test test/data/season_repository_test.dart
 TZ=Europe/London fvm flutter test --tags uk-zone
 TZ=Pacific/Chatham fvm flutter test test/domain --exclude-tags uk-zone
 grep -rn "date(" lib/data/season_repository.dart || echo 'no SQL-side date function'
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make check
 make test
 ```

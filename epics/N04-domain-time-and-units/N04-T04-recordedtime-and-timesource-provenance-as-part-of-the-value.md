@@ -237,7 +237,7 @@ fvm flutter test test/domain/time/recorded_time_test.dart
 fvm flutter test test/domain/time
 TZ=Pacific/Chatham fvm flutter test test/domain/time
 dart analyze lib/domain/time/recorded_time.dart
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 make check
 make test
 ```

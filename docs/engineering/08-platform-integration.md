@@ -1090,7 +1090,7 @@ None of these is a rename. Nothing in `CONVENTIONS.md` §2 or §3 is re-spelled 
 
 **Gateways**
 - [ ] The six **platform** gateway classes this document owns exist under `lib/data/` with `CONVENTIONS.md` §2.12's exact names and file names, and no second spelling of any of them. There is no seventh *platform* seam: the only other class of this shape in the app is `PurchaseService` (`lib/data/purchase_service.dart`), which is the store seam, is owned by [`11-monetization-and-store.md`](11-monetization-and-store.md) §5, and is not documented here.
-- [ ] Every plugin in `_confinedPackages` has exactly one import site — two for `path_provider` — and `dart run tool/check_policy.dart` fails on a seeded violation of each of the nine rows. The `path_provider` row uses `CONVENTIONS.md` §4.7's existing id `layer.path_provider`; the other eight are `layer.plugin_<package>` with the pub package name spelled out.
+- [ ] Every plugin in `_confinedPackages` has exactly one import site — two for `path_provider` — and `dart tool/check_policy.dart` fails on a seeded violation of each of the nine rows. The `path_provider` row uses `CONVENTIONS.md` §4.7's existing id `layer.path_provider`; the other eight are `layer.plugin_<package>` with the pub package name spelled out.
 - [ ] `lib/features/reminders/notification_gateway.dart` does not exist (R48).
 - [ ] Hand-written fakes exist in `test/support/` for all six — seven counting `FakePurchaseService`, which [`12-testing.md`](12-testing.md) §4.2 owns; no gateway is mocked with `mocktail`.
 - [ ] `file_selector` is imported in exactly one file, `lib/features/settings/restore_flow.dart`, and `RestoreService` takes a `File`.

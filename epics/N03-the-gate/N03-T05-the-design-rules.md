@@ -255,7 +255,7 @@ which is N09's.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -266,7 +266,7 @@ the one P2 rules on:
 mkdir -p lib/features/lambing lib/core/ui
 printf "Widget b() => Dismissible(key: k, child: c);\n" > lib/features/lambing/_plant.dart
 printf "void f() { m.showSnackBar(s); }\n"              > lib/core/ui/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # gesture.dismissible + gesture.raw_snackbar, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # gesture.dismissible + gesture.raw_snackbar, exit=1
 rm lib/features/lambing/_plant.dart lib/core/ui/_plant.dart
 grep -c '::' tool/policy_allowlist.txt             # 4 — R56, unchanged by this commit
 make check

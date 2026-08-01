@@ -25,7 +25,7 @@ User instructions outrank this skill; your own convenience does not.
 
 ## 1. Reading the output
 
-`dart run tool/check_policy.dart` prints one line per violation, sorted, to stderr:
+`dart tool/check_policy.dart` prints one line per violation, sorted, to stderr:
 
 ```
 POLICY  [rule.id] path/to/file.dart contains "text" — why

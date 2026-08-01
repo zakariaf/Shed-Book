@@ -207,7 +207,7 @@ No case is time-shaped; the gate reads text and never reads a clock.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -217,7 +217,7 @@ Then watch the two halves of G3 fire against the real tree:
 mkdir -p lib/data lib/features/export
 printf "import 'package:http/http.dart';\n" > lib/data/_plant.dart
 printf "void f() { Image.network('x'); }\n"  > lib/features/export/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
 rm lib/data/_plant.dart lib/features/export/_plant.dart
 grep -c 'pubspec.lock' tool/check_policy.dart      # 1 — the lockfile reader, not a net rule
 make check

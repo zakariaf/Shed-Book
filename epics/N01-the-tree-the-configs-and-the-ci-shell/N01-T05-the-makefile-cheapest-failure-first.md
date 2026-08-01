@@ -11,13 +11,13 @@
 
 Eight targets — `gen`, `check`, `test`, `goldens`, `goldens-update`, `integration`,
 `validate`, `all` — ordered so the sub-second failure happens before the thirty-second one. `check`
-runs `dart run tool/check_policy.dart`, then `python3 tool/validate_skills.py`, then
+runs `dart tool/check_policy.dart`, then `python3 tool/validate_skills.py`, then
 `python3 tool/validate_epics.py`, then `dart format --set-exit-if-changed`, then
 `flutter analyze --fatal-infos --fatal-warnings`. `goldens` **verifies**; only `goldens-update`
 re-baselines, and never as a side effect.
 
 `CLAUDE.md` names five project commands — `make gen`, `make check`, `make test`,
-`dart run tool/check_policy.dart`, `python3 tool/validate_skills.py` — and until this task none of
+`dart tool/check_policy.dart`, `python3 tool/validate_skills.py` — and until this task none of
 them exists. The two Python validators are declared project commands that nothing runs, which is
 critique gap G4.
 

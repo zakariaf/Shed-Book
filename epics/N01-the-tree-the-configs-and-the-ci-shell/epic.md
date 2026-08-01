@@ -115,7 +115,7 @@ epic"*).
    | `gate` | `ubuntu-latest` | `.fvmrc` and the workflow's `FLUTTER_VERSION` agree, so a green CI is not building a toolchain nobody has locally (13 §1.1) · `flutter pub get` still resolves, which is decision #5's evidence · `dart format --output=none --set-exit-if-changed .` · `flutter analyze --fatal-infos --fatal-warnings` — this is N01-T02's strict block actually executing · `ios/Runner/Info.plist` carries no `NSAppTransportSecurity`, which is the half of G5 a text check can do |
    | `test` | `ubuntu-latest` **+ `libsqlite3-dev`** | the host has an sqlite3 for `flutter test` to run against — 12 §3.2 calls this *"the one line between a working and a red CI on day one"* · the whole suite under randomised ordering · `TZ=Europe/London --tags uk-zone`, **unscoped**, which is where N01-T04's canary runs · `TZ=Pacific/Chatham test/domain --exclude-tags uk-zone`, proving the suite is not accidentally London-only · coverage uploaded as an artefact and never gated (#119) |
 
-   `gate` runs `dart run tool/check_policy.dart` as its cheapest step — see the risk table below;
+   `gate` runs `dart tool/check_policy.dart` as its cheapest step — see the risk table below;
    that script arrives in N03 and this epic must decide, once, what the step does until then.
 
 5. **Answer the five §12 questions in the PR body.** After N01-T07 the template pre-fills them. For

@@ -252,7 +252,7 @@ arrive with `clearDateFor` in the next task, and the first one is the 167-hour r
 ```bash
 fvm flutter test test/policy/withdrawal_has_no_default_test.dart
 fvm flutter test test/domain/withdrawal/withdrawal_period_test.dart
-fvm dart run tool/check_policy.dart
+fvm dart tool/check_policy.dart
 make check
 make test
 ```

@@ -242,7 +242,7 @@ no `uk-zone` case.
 ## 8. Verification
 
 ```bash
-dart run tool/check_policy.dart
+dart tool/check_policy.dart
 fvm flutter test test/policy/gate_rules_test.dart
 ```
 
@@ -252,9 +252,9 @@ Then watch two of the ten fire against the real tree, which is what *"watched to
 mkdir -p lib/features/lambing lib/data
 printf "import '../flock/ewe_card_screen.dart';\n" > lib/features/lambing/_plant.dart
 printf "import 'package:shed_book/domain/validation/warning.dart';\n" > lib/data/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
+dart tool/check_policy.dart ; echo "exit=$?"   # two POLICY lines, exit=1
 rm lib/features/lambing/_plant.dart lib/data/_plant.dart
-dart run tool/check_policy.dart ; echo "exit=$?"   # policy ok, exit=0
+dart tool/check_policy.dart ; echo "exit=$?"   # policy ok, exit=0
 make check
 ```
 

@@ -242,7 +242,7 @@ This skill owns no component's states table, no position on the page, and no scr
 - [ ] **First frame.** Cold launch both platforms at 240fps; frame one is `--page`. No white, no logo, no fade.
 - [ ] **Measurement.** `dart test test/design/contrast_test.dart` passes — every text pair ≥ 4.5:1 and
       every rule and mark ≥ 3:1, in both themes. Rule 4 does not negotiate with taste.
-- [ ] `dart run tool/check_policy.dart` prints `policy ok`; no second script exists; `[exempt]` still has
+- [ ] `dart tool/check_policy.dart` prints `policy ok`; no second script exists; `[exempt]` still has
       four lines.
 - [ ] Nothing renders below 18px except a stamp that passes all three §3.4 conditions.
 - [ ] P7 (**both halves** — the typeface, and the `FontVariation` weight axis) and P10 are still

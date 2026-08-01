@@ -82,3 +82,34 @@ List<Warning> checkClearDate({
     ),
   ];
 }
+
+/// Everything questionable about one treatment, across all of its withdrawal
+/// rows. It cannot fix any of it.
+///
+/// **05 §7.5 guarantee 1 names this entry point and no document specifies its
+/// body**, so what it does is settled here and raised: a treatment carries 0..n
+/// withdrawal rows (05 §3.3, one per target), and the questionable thing about a
+/// treatment is that one of those rows' stored clear dates no longer matches its
+/// own inputs. So this is [checkClearDate] over the whole treatment, in row
+/// order, and it raises **no new [WarningCode]** — which is the evidence that it
+/// invents nothing. A treatment with a meat row and a milk row can produce two
+/// warnings, for the same reason it shows two countdowns.
+///
+/// It exists rather than leaving N20's controller to loop, because the loop is
+/// where a target gets skipped.
+///
+/// **Never call it for a soft-voided treatment**, for the reason on
+/// [checkClearDate]: the medicine book shows a voided treatment struck through,
+/// still carrying the figure it was recorded with, and a disagreement beside it
+/// is the app arguing with a record it already published.
+List<Warning> checkTreatment({
+  required Instant administeredAt,
+  required List<({int days, LocalDate storedClearDate})> withdrawals,
+}) => <Warning>[
+  for (final ({int days, LocalDate storedClearDate}) w in withdrawals)
+    ...checkClearDate(
+      administeredAt: administeredAt,
+      days: w.days,
+      storedClearDate: w.storedClearDate,
+    ),
+];

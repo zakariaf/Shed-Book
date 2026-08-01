@@ -17,7 +17,7 @@
 // script needs `pub get` it can fail for reasons that are not violations.
 //
 // THE RULE TABLE IS NOT CLOSED. copy.vet_advice and copy.disclaimer_retyped
-// need ContentPolicy and Disclaimers and arrive with them (N06-T09). The
+// LANDED WITH N06-T09, beside ContentPolicy and Disclaimers. The
 // db.destructive_ddl family arrives with the migration harness (N08), and
 // layer.in_app_purchase / launch.store_call with monetization (N30). A row and
 // the case that proves it fires land in the same commit — always.
@@ -33,7 +33,12 @@ const String _package = 'shed_book';
 
 /// Walked roots. `tool/` is deliberately absent: this file's own tables contain
 /// every banned literal, so scanning it would fail the build on itself.
-const List<String> _roots = <String>['lib', 'test'];
+/// `assets` joins `lib` and `test` at N06-T09, one task earlier than the note on
+/// [_tier3Claims] predicted. copy.vet_advice is specified to scan
+/// `assets/content/` and a rule whose scope the driver never opens is a rule
+/// that silently passes — so the widening lands with the rule rather than with
+/// the content (N06-T11).
+const List<String> _roots = <String>['lib', 'test', 'assets'];
 
 /// The four allowlist sections. A header outside this set is a typo that would
 /// empty a whole section, so it is refused rather than accepted.
@@ -366,6 +371,76 @@ const List<String> _dartSafeBannedWords = <String>[
   'synchronized',
   'offline-first',
   'flags',
+];
+
+/// The two **copy** rules — safety rules §12.2 and §12.3 — as their own family.
+///
+/// A third family beside [_bannedText] and [_bannedPattern], and not an overload
+/// of either, for two reasons the tuple cannot express:
+///
+///   * they run over **user-facing text in three shapes** — Dart string
+///     literals, ARB message values and authored prose under `assets/content/` —
+///     where the other two families run over Dart source only;
+///   * `copy.disclaimer_retyped` needs an [except] path, because the file that
+///     DEFINES the disclaimer must not be reported for containing it, and R56
+///     fixes `[exempt]` at four lines on day one — none of them this.
+///
+/// Encoding the exception in the rule rather than in the allowlist is the whole
+/// difference between "one file is the definition" and "one file was excused".
+///
+/// 12 §10 is explicit that §12.2 and §12.3 are **gate rows, not tests**. The
+/// patterns are `ContentPolicy`'s, kept in step by
+/// `test/policy/content_policy_test.dart`, which asserts the two lists agree —
+/// this file cannot import `lib/`, because the gate is dependency-free by
+/// decision and must run before `pub get`.
+/// [under] is a **list** of path prefixes, not one. Both rules apply to `lib/`
+/// and to `assets/` and to neither `test/` nor `tool/`, and splitting that into
+/// two rows would give one idea two ids — which R54 forbids and the inventory
+/// test catches.
+typedef CopyRule = (String id, RegExp pattern, List<String> under, String why, String? except);
+
+final List<CopyRule> _copyRules = <CopyRule>[
+  // §12.2 — never give veterinary advice. The line is WHO SUPPLIED THE NUMBER:
+  // the app may arithmetic-transform a number the user supplied and may never
+  // originate one that is a clinical decision.
+  //
+  // Ten alternatives in one RegExp, because the tuple carries one pattern and
+  // all ten share a scope and a reason. ContentPolicy holds them singly with a
+  // `why` each, and content_policy_test.dart asserts the two agree — this file
+  // cannot import lib/, because the gate is dependency-free by decision and must
+  // run before `pub get`.
+  (
+    'copy.vet_advice',
+    RegExp(
+      r'\byou should\b'
+      r'|\b(we|the app) recommends?\b'
+      r'|\brecommended (dose|dosage|amount|rate)\b'
+      r'|\b\d+\s?(ml|mg|cc|iu)\s?/\s?kg\b'
+      r'|\b(diagnos|prognos)'
+      r'|\b(indicates?|suggests?) (a |an )?(problem|deficiency|infection|disease)\b'
+      r'|\b(normal|healthy|abnormal|too (low|high|light|heavy))\b'
+      r'|\bcall (the |your )?vet\b'
+      r'|\b(default|typical|usual|standard) withdrawal\b'
+      r'|\b(compliance|regulatory|statutory|official) record\b',
+      caseSensitive: false,
+    ),
+    <String>['lib/', 'assets/'],
+    'veterinary advice or an originated clinical number — §12.2, 05 §7.3',
+    // The file that DECLARES the patterns necessarily contains them.
+    'lib/domain/policy/content_policy.dart',
+  ),
+  // §12.3 — never present the app as a compliance record. Two distinctive
+  // fragments of the export footer, so a paraphrase keeping either one is caught
+  // and an unrelated sentence is not. The rule is about RE-TYPING: the string
+  // exists once, is referenced everywhere, and ExportEnvelope has no parameter
+  // that could carry a different one.
+  (
+    'copy.disclaimer_retyped',
+    RegExp(r'statutory\s+medicine|holding\s+register', caseSensitive: false),
+    <String>['lib/', 'assets/'],
+    'the disclaimer is defined once and referenced — §12.3, 05 §7.4',
+    'lib/domain/policy/disclaimers.dart',
+  ),
 ];
 
 /// The phrasings that may never appear in shipped copy. Decision-record §3.1's
@@ -732,6 +807,9 @@ Iterable<String> get policyRuleIds sync* {
   for (final (String id, _, _, _) in _bannedPattern) {
     yield id;
   }
+  for (final (String id, _, _, _, _) in _copyRules) {
+    yield id;
+  }
   for (final String kind in _sectionFor.keys) {
     yield 'dep.${kind.replaceAll(' ', '_')}';
   }
@@ -749,6 +827,11 @@ Iterable<(String, String)> get policyRuleScopes sync* {
   }
   for (final (String id, _, String under, _) in _bannedPattern) {
     yield (id, under);
+  }
+  for (final (String id, _, List<String> under, _, _) in _copyRules) {
+    for (final String prefix in under) {
+      yield (id, prefix);
+    }
   }
 }
 
@@ -831,7 +914,15 @@ bool _isGenerated(String path) =>
 /// skips everything but Dart leaves the vocabulary rows with nothing to run
 /// against, because every user-facing string in this project is in
 /// `lib/l10n/app_en.arb`.
-bool _isScannable(String path) => path.endsWith('.dart') || path.endsWith('.arb');
+/// `.md` and `.json` join the list for `assets/content/`, whose authored prose
+/// is user-facing text and is therefore inside safety rule §12.2's scope. They
+/// are read as plain text: the copy rules below are the only ones that apply to
+/// them, because a layer rule over a Markdown file is meaningless.
+bool _isScannable(String path) =>
+    path.endsWith('.dart') ||
+    path.endsWith('.arb') ||
+    path.endsWith('.md') ||
+    path.endsWith('.json');
 
 /// Every file the gate will read under [root], as repository-relative paths,
 /// **sorted**.
@@ -873,8 +964,16 @@ List<String> runPolicy({String root = '.'}) {
   for (final String path in scannedFiles(root)) {
     final String source = File(_join(root, path)).readAsStringSync();
 
+    violations.addAll(_checkCopy(path, source, exempt));
+
     if (path.endsWith('.arb')) {
       violations.addAll(_checkArb(path, source, exempt));
+      continue;
+    }
+
+    // Nothing below this line applies to authored prose: a layer rule over a
+    // Markdown file is meaningless, and a token rule over one is noise.
+    if (!path.endsWith('.dart')) {
       continue;
     }
 
@@ -992,6 +1091,107 @@ Map<String, String> lockfileKinds(String root) {
 ///
 /// The **full** [kBannedWords] list runs here, `sync` included, because
 /// `existsSync` cannot appear in an ARB message.
+/// Every Dart string literal in [source], with **adjacent literals joined**.
+///
+/// The joining is the whole point and it is a measured gotcha, not a
+/// precaution: Dart wraps long text across adjacent literals, so
+/// `'Shed Book is a personal notebook. It is not a statutory '` `'medicine '`
+/// `'record…'` contains the phrase *"statutory medicine"* nowhere contiguously.
+/// A scan that matched literals one at a time would miss every re-typed
+/// disclaimer in the codebase, because that is exactly how one gets formatted.
+///
+/// Deliberately simple: it recognises `'…'` and `"…"` with backslash escapes,
+/// and treats a run of literals separated only by whitespace as one string. It
+/// does not parse Dart, and it does not need to — a false JOIN can only make the
+/// haystack longer, and the rules below are all positive matches.
+String _joinedStringLiterals(String source) {
+  final StringBuffer out = StringBuffer();
+  int i = 0;
+  bool previousWasLiteral = false;
+  while (i < source.length) {
+    final String c = source[i];
+    if (c != "'" && c != '"') {
+      // Only whitespace may separate two literals and still join them.
+      if (previousWasLiteral && c.trim().isNotEmpty) {
+        out.write('\n');
+        previousWasLiteral = false;
+      }
+      i++;
+      continue;
+    }
+    final String quote = c;
+    i++;
+    final StringBuffer literal = StringBuffer();
+    while (i < source.length && source[i] != quote) {
+      if (source[i] == r'\' && i + 1 < source.length) {
+        i += 2;
+        continue;
+      }
+      if (source[i] == '\n') {
+        break; // an unterminated literal: not one, so stop here
+      }
+      literal.write(source[i]);
+      i++;
+    }
+    i++;
+    out.write(literal);
+    previousWasLiteral = true;
+  }
+  return out.toString();
+}
+
+/// The copy rules, over **user-facing text only**.
+///
+/// The scope is 05 §7.3's, exactly: *"string literals in `lib/**.dart` and
+/// message values in `lib/l10n/*.arb`"*, plus authored prose under `assets/`,
+/// which is user-facing by construction.
+///
+/// **It is NOT the whole file, and that was measured rather than assumed.** The
+/// first version of this read whole source and immediately fired on seven
+/// existing files — *"over 100% is normal for this metric"*, Teagasc's
+/// *"diagnosis not reached"*, *"the NORMAL state"*, *"the normal repository
+/// path"*. Every one is ordinary English in a doc comment and none is copy a
+/// shepherd will ever see. That is precisely the standing false positive
+/// decision #52 describes: it gets an allowlist, then gets weakened, then gets
+/// deleted — while guarding a rule whose regression is the app giving
+/// veterinary advice.
+///
+/// The one file each rule must not fire on is named by the rule, not by
+/// `[exempt]`: R56 fixes the allowlist at four lines on day one and none of them
+/// is this, and encoding it in the rule is the difference between *"this file is
+/// the definition"* and *"this file was excused"*.
+List<String> _checkCopy(String path, String source, Set<String> exempt) {
+  final String haystack;
+  if (path.endsWith('.dart')) {
+    // Comment lines FIRST, then literals. A quoted phrase inside a doc comment
+    // is not a Dart string literal, and reading it as one fired on Teagasc's
+    // "diagnosis not reached" in losses.dart and on "38.5 °C — normal" in
+    // milli_celsius.dart — both of them prose explaining why a number is what it
+    // is, neither of them shipped copy.
+    haystack = _joinedStringLiterals(_withoutComments(source));
+  } else if (path.endsWith('.arb')) {
+    haystack = _arbMessages(source).map(((String, String) m) => m.$2).join('\n');
+  } else {
+    haystack = source; // authored prose is user-facing in its entirety
+  }
+
+  final List<String> violations = <String>[];
+  for (final (String id, RegExp pattern, List<String> under, String why, String? except)
+      in _copyRules) {
+    if (!under.any(path.startsWith) || path == except) {
+      continue;
+    }
+    if (!pattern.hasMatch(haystack)) {
+      continue;
+    }
+    if (exempt.contains('$path :: $id')) {
+      continue;
+    }
+    violations.add('[$id] $path matches ${pattern.pattern} — $why');
+  }
+  return violations;
+}
+
 List<String> _checkArb(String path, String source, Set<String> exempt) {
   final List<String> violations = <String>[];
   for (final (String key, String value) in _arbMessages(source)) {

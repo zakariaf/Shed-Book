@@ -395,6 +395,17 @@ final Map<String, Planted> firesOn = <String, Planted>{
     'lib/domain/validation/failures.dart',
     'class LambingError implements Exception {}',
   ),
+  // The two copy rules land with N06-T09. Both entries plant into a DART STRING
+  // LITERAL, because that is the scope 05 §7.3 fixes and the scope the driver
+  // reads: comments are stripped before literals are extracted.
+  'copy.vet_advice': _at(
+    'lib/features/lambing/entry.dart',
+    "const String hint = 'You should give 2 ml/kg of colostrum.';",
+  ),
+  'copy.disclaimer_retyped': _at(
+    'lib/features/export/pdf.dart',
+    "const String footer = 'It is not a statutory medicine record.';",
+  ),
   'copy.tier3_claim': _at(
     'lib/features/settings/about_screen.dart',
     "const s = 'your data never leaves "
@@ -1647,9 +1658,12 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       );
     });
 
-    test('the two copy.* CONTENT rules are deliberately absent until N06-T09', () {
-      expect(policyRuleIds, isNot(contains('copy.vet_advice')));
-      expect(policyRuleIds, isNot(contains('copy.disclaimer_retyped')));
+    test('the two copy.* CONTENT rules arrived with N06-T09', () {
+      // Inverted from "deliberately absent" in the commit that landed them, and
+      // kept rather than deleted: the pair is what stops either rule being
+      // removed in a tidy-up with a green suite.
+      expect(policyRuleIds, contains('copy.vet_advice'));
+      expect(policyRuleIds, contains('copy.disclaimer_retyped'));
     });
   });
 
@@ -1724,14 +1738,15 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       expect(policyRuleIds, isNot(contains('layer.direction')));
     });
 
-    test('the deliberate absences are still absent, and the source says why', () {
-      expect(policyRuleIds, isNot(contains('copy.vet_advice')));
-      expect(policyRuleIds, isNot(contains('copy.disclaimer_retyped')));
-      expect(
-        File('tool/check_policy.dart').readAsStringSync(),
-        contains('N06-T09'),
-        reason: 'the header comment must name where the two content rules arrive',
-      );
+    test('the remaining deliberate absences are still absent, and the source says why', () {
+      // copy.vet_advice and copy.disclaimer_retyped left this list at N06-T09.
+      // What is still absent is named by the header comment, with the task that
+      // brings each one.
+      expect(policyRuleIds, isNot(contains('db.destructive_ddl')));
+      expect(policyRuleIds, isNot(contains('layer.in_app_purchase')));
+      final String source = File('tool/check_policy.dart').readAsStringSync();
+      expect(source, contains('N08'), reason: 'db.destructive_ddl arrives with the harness');
+      expect(source, contains('N30'), reason: 'the monetization rules arrive with N30');
     });
   });
 
@@ -1832,5 +1847,120 @@ lib/core/ui/palettes.dart          :: token.primitives_import
         'layer.data_no_validation',
       ]),
     );
+  });
+
+  group('the two copy rules — N06-T09', () {
+    // The driver change is the risky half: two table rows alone are a rule that
+    // silently passes, because the walk never opened the places these are
+    // specified to scan. All three scopes are exercised.
+
+    test('copy.vet_advice fires on a planted dose in a Dart string literal', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/features/lambing/entry.dart': "const String hint = 'Recommended dose is 2 ml/kg.';",
+        }),
+        contains(startsWith('[copy.vet_advice] lib/features/lambing/entry.dart')),
+      );
+    });
+
+    test('copy.vet_advice fires on a planted dose in an ARB message value', () {
+      expect(
+        gateOn(<String, String>{
+          // The same shape the ARB-reader group's local helper builds, written
+          // out here because that helper is scoped to its own group.
+          'lib/l10n/app_en.arb':
+              '{\n'
+              '  "hint": "You should call the vet.",\n'
+              '  "@hint": { "description": "planted" }\n'
+              '}\n',
+        }),
+        contains(startsWith('[copy.vet_advice] lib/l10n/app_en.arb')),
+      );
+    });
+
+    test('copy.vet_advice fires on a planted dose in assets/content/', () {
+      // The scope that needed `assets` added to the walked roots and `.md` added
+      // to the scannable extensions. Without both, this rule reports nothing on
+      // the one directory whose entire contents are user-facing prose.
+      expect(
+        gateOn(<String, String>{
+          'assets/content/death_cause.md': 'A low birth weight indicates a deficiency.',
+        }),
+        contains(startsWith('[copy.vet_advice] assets/content/death_cause.md')),
+      );
+    });
+
+    test('copy.vet_advice does not fire on content_policy.dart itself', () {
+      // The file that DECLARES the patterns necessarily contains them. The
+      // exception is in the rule, not in [exempt] — R56 fixes the allowlist at
+      // four lines and none of them is this.
+      expect(
+        gateOn(<String, String>{
+          'lib/domain/policy/content_policy.dart': "final p = RegExp(r'\\byou should\\b');",
+        }).where((String v) => v.startsWith('[copy.vet_advice]')),
+        isEmpty,
+      );
+    });
+
+    test('copy.vet_advice does not fire on ordinary English in a doc comment', () {
+      // Measured, not assumed: whole-file scanning fired on seven existing files
+      // — "over 100% is normal for this metric", "diagnosis not reached", "the
+      // NORMAL state". A standing false positive gets an allowlist, then gets
+      // weakened, then gets deleted, while guarding the rule whose regression is
+      // the app giving veterinary advice.
+      expect(
+        gateOn(<String, String>{
+          'lib/domain/stats/notes.dart':
+              '/// Over 100% is normal for this metric, and a diagnosis is never ours.\n'
+              'const int x = 1;\n',
+        }).where((String v) => v.startsWith('[copy.vet_advice]')),
+        isEmpty,
+      );
+    });
+
+    test('copy.disclaimer_retyped fires when the footer is typed into a second file', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/features/export/pdf.dart':
+              "const String f = 'It is not a statutory medicine record.';",
+        }),
+        contains(startsWith('[copy.disclaimer_retyped] lib/features/export/pdf.dart')),
+      );
+    });
+
+    test('copy.disclaimer_retyped fires on a copy split across adjacent literals', () {
+      // The gotcha the joiner exists for. Dart wraps long text, so the phrase is
+      // never contiguous in the source — which is exactly how a re-typed
+      // disclaimer gets formatted.
+      expect(
+        gateOn(<String, String>{
+          'lib/features/export/pdf.dart':
+              "const String f = 'It is not a statutory '\n    'medicine record.';",
+        }),
+        contains(startsWith('[copy.disclaimer_retyped] lib/features/export/pdf.dart')),
+      );
+    });
+
+    test('copy.disclaimer_retyped does not fire on disclaimers.dart', () {
+      expect(
+        gateOn(<String, String>{
+          'lib/domain/policy/disclaimers.dart':
+              "const String f = 'It is not a statutory medicine record.';",
+        }).where((String v) => v.startsWith('[copy.disclaimer_retyped]')),
+        isEmpty,
+      );
+    });
+
+    test('the [exempt] allowlist still has exactly four lines', () {
+      // R56. Neither new rule bought itself an exemption: both name their one
+      // permitted file inside the rule.
+      final List<String> exempt = File('tool/policy_allowlist.txt')
+          .readAsLinesSync()
+          .map((String l) => l.split('#').first.trim())
+          .skipWhile((String l) => l != '[exempt]')
+          .where((String l) => l.contains('::'))
+          .toList();
+      expect(exempt, hasLength(4));
+    });
   });
 }

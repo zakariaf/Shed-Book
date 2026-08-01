@@ -159,9 +159,21 @@ void main() {
   test('no AnimalClass noun appears literally in any ARB message value', () {
     // 10 §8.5. "Turn out ewe {tag}?" is the failure mode that survives code
     // review; "Turn out {term} {tag}?" is the fix.
+    // ONE scoped exception, added by N06-T08 and defined by SHAPE rather than by
+    // an allowlist of offenders: `term<Class>Singular` / `term<Class>Plural`.
+    // Those fourteen messages ARE the default nouns — 10 §8.6 puts the labels in
+    // the ARB and 05 §8 has Terminology receive them through its constructor —
+    // so they are the source the placeholder is fed FROM, not a message that
+    // hard-codes one. Every other message is scanned exactly as before.
+    //
+    // The exception cannot quietly widen: terminology_survives_a_rename_test.dart
+    // asserts this key set is exactly the fourteen, in both directions, so a
+    // fifteenth `term*` message fails there.
+    final RegExp terminologyDefault = RegExp(r'^term[A-Z]\w*(Singular|Plural)$');
+
     final Map<String, dynamic> arb = readArb();
     for (final MapEntry<String, dynamic> entry in arb.entries) {
-      if (entry.key.startsWith('@')) {
+      if (entry.key.startsWith('@') || terminologyDefault.hasMatch(entry.key)) {
         continue;
       }
       final String value = entry.value.toString().toLowerCase();

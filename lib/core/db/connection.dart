@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shed_book/core/db/database.dart';
 import 'package:sqlite3/common.dart';
 
 /// The seven pragmas, in R13's order — the **union** of 03 §1.3's list and
@@ -83,3 +86,21 @@ QueryExecutor openConnection() => driftDatabase(
     setup: configureConnection,
   ),
 );
+
+/// The app's single entry point to the database.
+///
+/// Deferred from N07-T01 because it needs [AppDatabase], which N07-T02 creates.
+///
+/// **It refuses to run under `flutter_test`** (R12). A widget test that reached
+/// this would open the real on-device database in the application-support
+/// directory, and the failure — a test that passes locally and writes to a real
+/// file — is the kind nobody attributes to the right cause. The override to add
+/// is `databaseProvider`, pointed at `testDatabase()`.
+Future<AppDatabase> openAppDatabase() async {
+  assert(
+    !Platform.environment.containsKey('FLUTTER_TEST'),
+    'openAppDatabase() opens the real on-device database. Under flutter_test, '
+    'override databaseProvider with testDatabase() from test/support/harness.dart.',
+  );
+  return AppDatabase(openConnection());
+}

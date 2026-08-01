@@ -9,7 +9,9 @@ library;
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/connection.dart';
+import 'package:shed_book/core/db/database.dart';
 
 /// Runs [body] with the ambient clock pinned to [instant].
 ///
@@ -33,3 +35,19 @@ DatabaseConnection testConnection() => DatabaseConnection(
   NativeDatabase.memory(setup: configureConnection),
   closeStreamsSynchronously: true,
 );
+
+/// A fresh in-memory [AppDatabase], closed when the test ends.
+///
+/// **The one harness entry point**, grown rather than forked: N07-T01 landed
+/// [testConnection] because AppDatabase did not exist yet, and this wraps it.
+/// Two entry points is how two tests end up disagreeing about what "a fresh
+/// database" means.
+///
+/// `addTearDown(db.close)` is inside the helper rather than at each call site,
+/// because the call site that forgets it leaks a database into the next test and
+/// the failure lands somewhere else entirely.
+AppDatabase testDatabase({bool seedOnCreate = true}) {
+  final AppDatabase db = AppDatabase(testConnection(), seedOnCreate: seedOnCreate);
+  addTearDown(db.close);
+  return db;
+}

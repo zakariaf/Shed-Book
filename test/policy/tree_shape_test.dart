@@ -61,10 +61,8 @@ const Map<String, String> bannedTestDirectories = <String, String>{
   'test/integration':
       'integration_test/ at the top level — the directory name the SDK package requires',
   'test/ui': 'test/design/ for tokens and contrast, test/features/ for widgets',
-  'test/fakes':
-      'test/support/ — the seven hand-written fakes live beside harness.dart',
-  'test/golden':
-      'test/features/goldens/*.png, beside the widget tests that produce them',
+  'test/fakes': 'test/support/ — the seven hand-written fakes live beside harness.dart',
+  'test/golden': 'test/features/goldens/*.png, beside the widget tests that produce them',
 };
 
 /// `00-README §7.1`. Every one of these looks like build output and every one
@@ -144,9 +142,13 @@ void main() {
         unreproducible.add(path);
       }
     }
-    expect(unreproducible, isEmpty,
-        reason: 'these directories hold no file at all, so a clone will not '
-            'reproduce them');
+    expect(
+      unreproducible,
+      isEmpty,
+      reason:
+          'these directories hold no file at all, so a clone will not '
+          'reproduce them',
+    );
   });
 
   test('no path 00-README §7.1 requires committed is git-ignored', () {
@@ -155,31 +157,36 @@ void main() {
     // silently drops test/drift/generated; `*localizations*` drops the
     // committed gen-l10n output; a bare `*.json` drops drift_schemas AND
     // test/fixtures. Every one is invisible until somebody clones.
-    final List<String> ignored =
-        mustNeverBeIgnored.where(isGitIgnored).toList();
-    expect(ignored, isEmpty,
-        reason: 'these are required by 00-README §7.1 to be committed and a '
-            '.gitignore is dropping them');
+    final List<String> ignored = mustNeverBeIgnored.where(isGitIgnored).toList();
+    expect(
+      ignored,
+      isEmpty,
+      reason:
+          'these are required by 00-README §7.1 to be committed and a '
+          '.gitignore is dropping them',
+    );
   });
 
   test('.gitignore refuses the keystore, .fvm, build output, coverage and the '
       'symbols archive', () {
-    final List<String> notIgnored =
-        mustBeIgnored.where((String p) => !isGitIgnored(p)).toList();
-    expect(notIgnored, isEmpty,
-        reason: 'these must never be committable. Losing an obfuscation '
-            'symbols directory makes every stack trace in every diagnostics '
-            'log a user ever sends for that build permanently unreadable — it '
-            'is ignored AND kept off the laptop, and the ignore line exists so '
-            'nobody solves the second half by committing it');
+    final List<String> notIgnored = mustBeIgnored.where((String p) => !isGitIgnored(p)).toList();
+    expect(
+      notIgnored,
+      isEmpty,
+      reason:
+          'these must never be committable. Losing an obfuscation '
+          'symbols directory makes every stack trace in every diagnostics '
+          'log a user ever sends for that build permanently unreadable — it '
+          'is ignored AND kept off the laptop, and the ignore line exists so '
+          'nobody solves the second half by committing it',
+    );
   });
 
   test('the flutter create samples are gone', () {
     expect(File('test/widget_test.dart').existsSync(), isFalse);
 
     final File main = File('lib/main.dart');
-    expect(main.existsSync(), isTrue,
-        reason: 'flutter build apk --debug needs an entry point');
+    expect(main.existsSync(), isTrue, reason: 'flutter build apk --debug needs an entry point');
     final String source = main.readAsStringSync();
     for (final String sample in <String>[
       'MyApp',
@@ -188,8 +195,11 @@ void main() {
       'MainApp',
       'Hello World',
     ]) {
-      expect(source.contains(sample), isFalse,
-          reason: 'lib/main.dart still carries generated sample code: $sample');
+      expect(
+        source.contains(sample),
+        isFalse,
+        reason: 'lib/main.dart still carries generated sample code: $sample',
+      );
     }
   });
 }

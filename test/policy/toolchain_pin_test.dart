@@ -33,8 +33,7 @@ void main() {
     expect(fvmrc.existsSync(), isTrue, reason: 'Cannot open file .fvmrc');
 
     final Object? parsed = jsonDecode(fvmrc.readAsStringSync());
-    expect(parsed, isA<Map<String, dynamic>>(),
-        reason: '.fvmrc must be a JSON object');
+    expect(parsed, isA<Map<String, dynamic>>(), reason: '.fvmrc must be a JSON object');
 
     final Map<String, dynamic> json = parsed! as Map<String, dynamic>;
     expect(json['flutter'], pinnedFlutterVersion);
@@ -43,8 +42,11 @@ void main() {
   test('.fvmrc names no channel and no range', () {
     final String raw = fvmrc.readAsStringSync();
     for (final String spelling in floatingSpellings) {
-      expect(raw.contains(spelling), isFalse,
-          reason: '.fvmrc carries "$spelling", which lets the toolchain float');
+      expect(
+        raw.contains(spelling),
+        isFalse,
+        reason: '.fvmrc carries "$spelling", which lets the toolchain float',
+      );
     }
   });
 
@@ -52,8 +54,11 @@ void main() {
     // The workflow runs `grep -o '"flutter": *"[^"]*"' .fvmrc`. Recent FVM
     // releases write `flutterSdkVersion` instead, which that grep cannot read.
     final String raw = fvmrc.readAsStringSync();
-    expect(RegExp('"flutter": *"$pinnedFlutterVersion"').hasMatch(raw), isTrue,
-        reason: 'the CI assert in 13 §1.1 cannot read this .fvmrc');
+    expect(
+      RegExp('"flutter": *"$pinnedFlutterVersion"').hasMatch(raw),
+      isTrue,
+      reason: 'the CI assert in 13 §1.1 cannot read this .fvmrc',
+    );
   });
 
   test('pubspec.yaml declares the package name CONVENTIONS §1 fixes', () {

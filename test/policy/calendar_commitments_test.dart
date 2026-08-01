@@ -72,8 +72,7 @@ bool isRealOutcome(String cell) {
   if (trimmed.isEmpty) {
     return false;
   }
-  return !placeholderOutcomes
-      .any((String p) => p.toLowerCase() == trimmed.toLowerCase());
+  return !placeholderOutcomes.any((String p) => p.toLowerCase() == trimmed.toLowerCase());
 }
 
 class Commitment {
@@ -118,35 +117,34 @@ List<Commitment> parseLedger(String markdown) {
     if (!line.startsWith('| `')) {
       continue;
     }
-    final List<String> cells =
-        line.split('|').map((String c) => c.trim()).toList();
+    final List<String> cells = line.split('|').map((String c) => c.trim()).toList();
     // A leading and a trailing empty cell come from the outer pipes.
     if (cells.length < 9) {
       continue;
     }
-    rows.add(Commitment(
-      key: cells[1].replaceAll('`', '').trim(),
-      commitment: cells[2],
-      owner: cells[3],
-      due: cells[4],
-      recorded: cells[5],
-      outcome: cells[6],
-      consequence: cells[7],
-    ));
+    rows.add(
+      Commitment(
+        key: cells[1].replaceAll('`', '').trim(),
+        commitment: cells[2],
+        owner: cells[3],
+        due: cells[4],
+        recorded: cells[5],
+        outcome: cells[6],
+        consequence: cells[7],
+      ),
+    );
   }
   return rows;
 }
 
 void main() {
-  final List<Commitment> ledger =
-      parseLedger(File(_ledger).readAsStringSync());
+  final List<Commitment> ledger = parseLedger(File(_ledger).readAsStringSync());
 
   test('every commitment in docs/calendar.md has an owner, a date and an '
       'outcome', () {
     expect(ledger, isNotEmpty, reason: '$_ledger parsed to no rows');
 
-    final List<Commitment> incomplete =
-        ledger.where((Commitment c) => !c.isComplete).toList();
+    final List<Commitment> incomplete = ledger.where((Commitment c) => !c.isComplete).toList();
     if (incomplete.isEmpty) {
       return;
     }
@@ -158,16 +156,20 @@ void main() {
         .map((Commitment c) => '  ${c.key.padRight(width)} — ${c.missing}')
         .join('\n');
 
-    fail('${incomplete.length} of ${ledger.length} commitments are not '
-        'recorded:\n$named');
+    fail(
+      '${incomplete.length} of ${ledger.length} commitments are not '
+      'recorded:\n$named',
+    );
   });
 
-  test('the ledger carries exactly the seven commitments the critique names',
-      () {
-    expect(ledger.map((Commitment c) => c.key).toSet(),
-        commitmentKeys.toSet(),
-        reason: 'a row was added or dropped; a row is never deleted to make '
-            'the anchor pass');
+  test('the ledger carries exactly the seven commitments the critique names', () {
+    expect(
+      ledger.map((Commitment c) => c.key).toSet(),
+      commitmentKeys.toSet(),
+      reason:
+          'a row was added or dropped; a row is never deleted to make '
+          'the anchor pass',
+    );
   });
 
   test('a recorded date is an ISO civil date', () {
@@ -205,13 +207,11 @@ void main() {
   // N00-T07 — the field night and the twelve testers.
   // ───────────────────────────────────────────────────────────────────────
 
-  Commitment row(String key) =>
-      ledger.firstWhere((Commitment c) => c.key == key);
+  Commitment row(String key) => ledger.firstWhere((Commitment c) => c.key == key);
 
   test('the field night row and the twelve-tester row both carry a date', () {
     for (final String key in <String>['field_night', 'twelve_testers']) {
-      expect(row(key).isComplete, isTrue,
-          reason: '$key — ${row(key).missing}');
+      expect(row(key).isComplete, isTrue, reason: '$key — ${row(key).missing}');
     }
   });
 
@@ -219,12 +219,15 @@ void main() {
     // A night with no shed named has not been booked. Deliberately NOT a
     // check that the date is in the future: see 'the test reads no clock'.
     final String outcome = row('field_night').outcome;
-    expect(isRealOutcome(outcome), isTrue,
-        reason: 'field_night — ${row('field_night').missing}');
-    expect(outcome.length, greaterThan(20),
-        reason: 'the outcome must name the shed, the flock size and roughly '
-            'how many lambings are expected. A night with two lambings is a '
-            'visit, not an observation');
+    expect(isRealOutcome(outcome), isTrue, reason: 'field_night — ${row('field_night').missing}');
+    expect(
+      outcome.length,
+      greaterThan(20),
+      reason:
+          'the outcome must name the shed, the flock size and roughly '
+          'how many lambings are expected. A night with two lambings is a '
+          'visit, not an observation',
+    );
   });
 
   test('the twelve-tester row names at least one channel from spec §3', () {
@@ -232,13 +235,16 @@ void main() {
     // that would go red every time somebody drops out, in an epic that merged
     // months earlier, on a `main` everyone expects to be green.
     final String outcome = row('twelve_testers').outcome;
-    expect(isRealOutcome(outcome), isTrue,
-        reason: 'twelve_testers — ${row('twelve_testers').missing}');
     expect(
-      recruitmentChannels.any(
-          (String c) => outcome.toLowerCase().contains(c.toLowerCase())),
+      isRealOutcome(outcome),
       isTrue,
-      reason: 'the outcome names no channel from spec §3. It should also carry '
+      reason: 'twelve_testers — ${row('twelve_testers').missing}',
+    );
+    expect(
+      recruitmentChannels.any((String c) => outcome.toLowerCase().contains(c.toLowerCase())),
+      isTrue,
+      reason:
+          'the outcome names no channel from spec §3. It should also carry '
           'both numbers — said yes, and opted in — because they diverge and '
           'the second is the one N32-T03 needs',
     );
@@ -249,8 +255,11 @@ void main() {
   // ───────────────────────────────────────────────────────────────────────
 
   test('the ziplock row carries a date, a device and an outcome', () {
-    expect(row('ziplock_capacitance').isComplete, isTrue,
-        reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}');
+    expect(
+      row('ziplock_capacitance').isComplete,
+      isTrue,
+      reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}',
+    );
   });
 
   test('the ziplock outcome names a device and an OS version', () {
@@ -258,11 +267,18 @@ void main() {
     // are firmware, and the same handset behaves differently across a major
     // OS release.
     final String outcome = row('ziplock_capacitance').outcome;
-    expect(isRealOutcome(outcome), isTrue,
-        reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}');
-    expect(RegExp(r'\d+(\.\d+)?').hasMatch(outcome), isTrue,
-        reason: 'the outcome carries no version number, so it records a model '
-            'and not a device');
+    expect(
+      isRealOutcome(outcome),
+      isTrue,
+      reason: 'ziplock_capacitance — ${row('ziplock_capacitance').missing}',
+    );
+    expect(
+      RegExp(r'\d+(\.\d+)?').hasMatch(outcome),
+      isTrue,
+      reason:
+          'the outcome carries no version number, so it records a model '
+          'and not a device',
+    );
   });
 
   test('the ziplock row states its consequence', () {
@@ -271,8 +287,11 @@ void main() {
     // the result is known, so the result cannot be argued with afterwards.
     final String consequence = row('ziplock_capacitance').consequence;
     for (final String decision in <String>['#100', '#101', '#102']) {
-      expect(consequence, contains(decision),
-          reason: 'the consequence does not name decision $decision');
+      expect(
+        consequence,
+        contains(decision),
+        reason: 'the consequence does not name decision $decision',
+      );
     }
   });
 
@@ -297,11 +316,18 @@ void main() {
     // in each case: a personal Play account created after that date must run a
     // twelve-tester, fourteen-day closed test before production access.
     final String outcome = row('developer_accounts').outcome.toLowerCase();
-    expect(isRealOutcome(outcome), isTrue,
-        reason: 'developer_accounts — ${row('developer_accounts').missing}');
-    expect(outcome.contains('yes') || outcome.contains('no'), isTrue,
-        reason: 'the outcome does not answer the 13 November 2023 question '
-            'either way');
+    expect(
+      isRealOutcome(outcome),
+      isTrue,
+      reason: 'developer_accounts — ${row('developer_accounts').missing}',
+    );
+    expect(
+      outcome.contains('yes') || outcome.contains('no'),
+      isTrue,
+      reason:
+          'the outcome does not answer the 13 November 2023 question '
+          'either way',
+    );
   });
 
   test('the price row records where the store rate was read and when', () {
@@ -309,30 +335,40 @@ void main() {
     // Google's own 30 June 2026 post does not state a one-time-product rate,
     // and the quoted 20% + 5% figure is secondary reporting.
     final Commitment price = row('price_and_territories');
-    expect(isRealOutcome(price.outcome), isTrue,
-        reason: 'price_and_territories — ${price.missing}');
-    expect(price.outcome.toLowerCase(), contains('play console'),
-        reason: 'the outcome does not say the rate was read in Play Console');
-    expect(_isoDateAnywhere.hasMatch(price.outcome), isTrue,
-        reason: 'the outcome does not carry the date the rate was read');
+    expect(
+      isRealOutcome(price.outcome),
+      isTrue,
+      reason: 'price_and_territories — ${price.missing}',
+    );
+    expect(
+      price.outcome.toLowerCase(),
+      contains('play console'),
+      reason: 'the outcome does not say the rate was read in Play Console',
+    );
+    expect(
+      _isoDateAnywhere.hasMatch(price.outcome),
+      isTrue,
+      reason: 'the outcome does not carry the date the rate was read',
+    );
   });
 
   test('the test reads no clock', () {
     // A policy test on a policy test, and it earns its place: it is what stops
     // somebody adding a recency check in six months and making the suite fail
     // once a year, for an hour, in the ambiguous 01:00–01:59.
-    final String source =
-        File('test/policy/calendar_commitments_test.dart').readAsStringSync();
+    final String source = File('test/policy/calendar_commitments_test.dart').readAsStringSync();
     // Assembled from halves so the needles do not appear contiguously in this
     // file and make the scan find itself. A self-matching source scan is
     // permanently red for the one reason that is not a defect.
     for (final String forbidden in <String>[
-      'DateTime' '.now(',
-      'clock' '.now(',
-      'DateTime' '.timestamp(',
+      'DateTime'
+          '.now(',
+      'clock'
+          '.now(',
+      'DateTime'
+          '.timestamp(',
     ]) {
-      expect(source.contains(forbidden), isFalse,
-          reason: 'this test reads a clock: $forbidden');
+      expect(source.contains(forbidden), isFalse, reason: 'this test reads a clock: $forbidden');
     }
   });
 }

@@ -861,7 +861,7 @@ Each of these is a way the round trip breaks, and each has a home:
 2. **Canonical encoding of `tables`.** Object keys sorted ascending by code unit, no insignificant whitespace, at every level inside the `tables` value. The header is a fixed-order prefix and is outside both the canonical rule and the checksum (§5.2, §5.7).
 3. **Identity is `uid`; integer ids are never written.** FKs onto a row are `<parent>_uid` carrying the parent row's `uid` (#32); FKs onto `vocab_terms.key` carry the vocabulary key itself (§5.3).
 4. **No floating-point numbers anywhere.** Grams and milli-°C are integers, booleans are `0`/`1`. A `double` reintroduces the hardest canonicalisation problem in the format and the checksum starts flapping across platforms.
-5. **Instants round-trip exactly.** `Instant → ISO-8601 ms Z → Instant` is lossless; property-tested with `glados` (decision #118, pure value round-trips only).
+5. **Instants round-trip exactly.** `Instant → ISO-8601 ms Z → Instant` is lossless; covered by an explicit table of cases (decision #118 as amended 2026-08-01 — `glados` is struck from §5.2 because it does not resolve).
 6. **Civil dates pass through as strings** and are never re-parsed into a `DateTime` and back.
 7. **Every column is emitted, `null` included.** An omitted key on the way in and an explicit `null` on the way out is a real diff even though the importer treats them identically.
 8. **`unknown_json` is re-emitted at the row's top level**, merged into the row object *before* the keys are sorted, and the column itself is never emitted under its own name (§5.3) — otherwise the second export writes every preserved field twice and nests the container again.

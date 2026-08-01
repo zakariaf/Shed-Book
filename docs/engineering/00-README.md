@@ -124,7 +124,7 @@ Every version is from decision-record **§5**, verbatim, and from nowhere else �
 | Lints [#109] | `flutter_lints` + an explicit `analyzer: language: {strict-casts, strict-inference, strict-raw-types}` block | **6.0.0** |
 | Test doubles [#112] | `mocktail`, for interaction-ordering and non-invocation only; hand-written fakes for the six gateways | **1.0.5** |
 | Debug a11y [#100] | `accessibility_tools` — complements, never replaces, the 60×60 house assertion | **2.8.0** |
-| Property tests [#118] | `glados` — pure value round-trips only | **1.1.7** |
+| Property tests [#118] | a hand-rolled seeded generator — `glados` was struck on 2026-08-01, it does not resolve at any version | — |
 | Store screenshots | `golden_screenshot` — belongs in `tool/`, not `test/` | **11.0.1** |
 
 **`package:test` is never a direct dependency** [#4]: a Flutter app uses `flutter_test`, which does not depend on it, and declaring it caps `analyzer < 13.0.0` and breaks `drift_dev`.

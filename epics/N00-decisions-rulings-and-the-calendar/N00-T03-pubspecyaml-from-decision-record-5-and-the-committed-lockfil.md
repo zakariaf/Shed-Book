@@ -107,7 +107,14 @@ dev_dependencies:
   flutter_lints: 6.0.0
   mocktail: 1.0.5
   accessibility_tools: 2.8.0
-  glados: 1.1.7
+  # glados: 1.1.7   <- STRUCK 2026-08-01 when this task was executed. It does
+  #                     not resolve at ANY version: it depends on package:test,
+  #                     which caps analyzer <13.0.0 and pins a test_api other
+  #                     than flutter_test's exact 0.7.11. `glados: any` reports
+  #                     "glados is incompatible with drift_dev 2.34.5". This is
+  #                     decision #5 doing its job on its first run; 12 §10.6 had
+  #                     already ruled the outcome — the property layer is
+  #                     deleted, not the pin. §5.2's row is struck.
   golden_screenshot: 11.0.1
 
 flutter:

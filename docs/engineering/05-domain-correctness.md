@@ -960,7 +960,7 @@ test('UNITS: 0.1 kg canonical WOULD corrupt lb entries — this is why grams', (
 
 The third test looks odd and it stays. It is the executable form of the argument, and it is what fails when somebody "simplifies" the canonical unit in season three.
 
-Add the `glados` property test for the same round trips (decision #118 — property tests are for pure value round-trips only, and its shrinking earns its keep there). Do not extend it beyond value types.
+Add an explicit table of round-trip cases for the same values (decision #118, amended 2026-08-01 — `glados` does not resolve against `drift_dev` at any version and is struck from §5.2, so the pure-value layer is a written table rather than a generator). Do not extend it beyond value types.
 
 ### 5.4 Input
 

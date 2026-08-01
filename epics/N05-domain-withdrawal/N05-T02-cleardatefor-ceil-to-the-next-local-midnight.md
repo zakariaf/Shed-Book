@@ -166,10 +166,10 @@ working rather than look broken.
   silently corrected from their point of view. The *nonexistent* hour is the one that gets a warning,
   and it is `checkLocalWallTimeExists` at the entry edge (N04), not this function's business. Noise
   at 3am is a defect.
-- **Property tests are `glados`'s only sanctioned use, and it is not installed yet.** Decision #118
+- ****`glados` was struck from decision-record §5.2 on 2026-08-01** — it does not resolve against `drift_dev` 2.34.5 at any version, because it depends on `package:test`. Decision #118 is amended: the pure-value layer is an explicit table of cases in the same file. Do not add the package; the rule `12 §10.6` stated in advance has already been applied — the property layer was deleted, not the pin.** Decision #118
   scopes it to pure value round-trips; 12 §10.6 warns that it is the dev dependency closest to the
   `analyzer` constraint that governs the whole toolchain. Write the properties as a hand-rolled loop
-  over a day table first. If you want `glados`, run `flutter pub get` before you rely on it — and if
+  over a day table first. The day table is now the whole of it: `glados` was struck on 2026-08-01 and
   the resolution reddens, the property layer is deleted, not the pin.
 
 ### 5.4 The full test set

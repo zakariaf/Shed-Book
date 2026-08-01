@@ -161,7 +161,7 @@ a temperature carries no instant, so nothing about it can move when the clocks d
 | `'the conversion expressions are the printed ones'` | source read of `milli_celsius.dart`: `(f - 32) * 5 / 9 * 1000` and `value / 1000.0 * 9 / 5 + 32` appear literally, guarding against an algebraic "tidy-up" |
 | `'MilliCelsius exposes no judgement'` | source read: no `normal`, no `fever`, no `isHigh`, no `min`/`max` constant, no `throw` on a range. Safety rule 2 at the source-text level, before N06-T09's `ContentPolicy` scan exists to catch it |
 | `'MilliCelsius is const and erases to int'` | `const MilliCelsius(39000)` compiles; a documented note that it is indistinguishable at runtime from `Grams(39000)` |
-| **property** `'fromFahrenheit/inFahrenheit round-trips at 1 dp'` | `glados`, over `double` restricted to 95.0…115.0 — decision #118's scope. If `flutter pub get` reddens, delete the property layer, not the pin (`12` §10.6) |
+| **table** `'fromFahrenheit/inFahrenheit round-trips at 1 dp'` | an explicit table of cases across 95.0…115.0 °F — decision #118 as amended 2026-08-01. `pub get` did redden in N00-T03 and the property layer was deleted, not the pin (`12` §10.6); `glados` is struck from §5.2 |
 
 ## 6. Constraints that bind this task
 

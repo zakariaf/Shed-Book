@@ -119,7 +119,9 @@ accessibility_tools   # decision #100: it wraps the app tree, so lib/ imports it
 
 [dev_dependencies]    # direct dev — never shipped
 flutter_test          # the SDK test package. `test` is NEVER a direct dependency (#4).
-drift_dev · build_runner · flutter_lints · mocktail · glados · golden_screenshot
+drift_dev · build_runner · flutter_lints · mocktail · accessibility_tools · golden_screenshot
+
+> **`glados` was struck from decision-record §5.2 on 2026-08-01** — it does not resolve against `drift_dev` 2.34.5 at any version, because it depends on `package:test`. Decision #118 is amended: the pure-value layer is an explicit table of cases in the same file. Do not add the package; the rule `12 §10.6` stated in advance has already been applied — the property layer was deleted, not the pin. The allowlist has six dev rows, not seven, and `glados` is not one of them.
 
 [transitive]          # documented, with the reason on the line
 http                  # via timezone AND via package_info_plus. Two REGULAR edges. Unavoidable.

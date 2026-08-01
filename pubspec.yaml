@@ -1,19 +1,70 @@
 name: shed_book
-description: "A new Flutter project."
-publish_to: 'none'
-version: 0.1.0+1
+description: A lambing notebook for a phone. Offline only.
+publish_to: none
+version: 1.0.0+1
 
 environment:
   sdk: ^3.12.2
+  flutter: 3.44.8
 
+# Every version below comes from docs/research/00-tech-decisions.md §5 and from
+# nowhere else — not from `pub add`, not from a README, not from memory. Bare
+# versions rather than carets, because §2 A #1 says a bump re-runs the whole
+# resolution matrix and a caret admits a version §5 has not verified.
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  flutter_riverpod: 2.6.1          # EXACT. Not ^2.6.1. Decision #17
+  drift: 2.34.2
+  drift_flutter: 0.3.1
+  sqlite3: 3.5.0
+  path_provider: 2.1.6
+  uuid: 4.6.0
+  clock: 1.1.2
+  intl: any                        # flutter_localizations pins 0.20.2 exactly. Decision #108
+  flutter_local_notifications: 22.2.0
+  timezone: 0.11.1
+  wakelock_plus: 1.7.0
+  image_picker: 1.2.3
+  flutter_image_compress: 2.5.1
+  file_selector: 1.1.0
+  record: 7.1.1
+  pdf: 3.13.0
+  archive: 4.0.9
+  share_plus: 13.3.0
+  in_app_purchase: 3.3.0
+  device_info_plus: 13.2.0
+  logging: 1.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^6.0.0
+  drift_dev: 2.34.5
+  build_runner: ">=2.15.0 <2.15.2"
+  flutter_lints: 6.0.0
+  mocktail: 1.0.5
+  # accessibility_tools is a dev dependency that lib/ imports: it is a widget
+  # that wraps the app tree, so lib/app.dart imports it behind kDebugMode at
+  # N11. That trips depend_on_referenced_packages and reads as a mistake.
+  # Decision-record §5.2 says to note it explicitly and allowlist it; the
+  # allowlist row lands with tool/policy_allowlist.txt in N03-T04.
+  accessibility_tools: 2.8.0
+  golden_screenshot: 11.0.1        # belongs to tool/, not test/ (§5.2)
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/content/
+
+# There is no `fonts:` block yet. assets/fonts/ holds nothing until N09-T05
+# bundles AtkinsonHyperlegibleNext[wght].ttf and OFL.txt, and a `fonts:` family
+# block names a FILE, which flutter build fails on when it is missing. An
+# `assets:` directory entry only needs the directory to exist and hold something.
+#
+# There is no `generate: true` yet either. It makes gen-l10n run during a build,
+# and gen-l10n fails without l10n.yaml and lib/l10n/app_en.arb, which land
+# together in N01-T03. It is added there, in the commit that gives it something
+# to generate from.

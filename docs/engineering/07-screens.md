@@ -874,7 +874,7 @@ They map one-to-one onto the sealed type (decision #51): `WithdrawalDays.asEnter
 
 Two targets are supported (`meat`, `milk`) because one product routinely prints different figures; 0..n entries per treatment, unique on `(treatment, target)`. `0` days is a **real value**, not "missing" — and it is the value that proves the type works, because a zero-day withdrawal still produces a clear date of *tomorrow*: the period elapses at the moment of administration, which is almost never local midnight, so today is a partial day (doc 05 §3.5). The screen shows that date; it does not round it down to "clear now".
 
-Whether `milk` ships in the v1 **UI** is open (§7.1 #10, dairy flocks). It ships in the v1 **schema and sealed type** regardless, because that is free now and a migration later.
+`milk` ships in the v1 **schema and sealed type** — ruled 2026-08-01 (decision-record §7.0 row 10, `CONVENTIONS` R75), because that was free then and a migration afterwards. Whether it ever appears in the **UI** is a separate, product-shaped question and stays one; the v1 UI may never write a milk withdrawal, and the ruling does not add a Treatments field.
 
 ### 10.3 States
 
@@ -1130,7 +1130,7 @@ All three disclosures appear here, and this screen owns the app's most easily-br
 
 | # | Section | Contents |
 |---|---|---|
-| 1 | Units | kg / lb (`app_settings.weight_unit`). **°C / °F ships only if a temperature field ships** (§7.1 open question 11) — an unused setting is a 3am tax. The column `temperature_unit` exists in doc 03 with a default of `'c'`, so shipping the control later is a UI change, not a migration |
+| 1 | Units | kg / lb (`app_settings.weight_unit`), and that is the whole row. **There is no °C / °F control** — ruled 2026-08-01 (decision-record §7.0 row 11, `CONVENTIONS` R76): no v1 table stores a temperature, so `app_settings.temperature_unit` and `temperatureUnitProvider` do not exist either. An unused setting is a 3am tax. If a temperature column ever ships, the column and the control return together as an additive migration |
 | 2 | Terminology | the editable `TermLabel` overlay: ewe / gimmer / shearling / theave / hogget. Seeded here, in a `BuildContext`-bearing feature, never in `domain/` or `data/`. A locale change or app update never overwrites a user's term |
 | 3 | Reminders | intervals per type, and "Turn on lock-screen alerts" |
 | 4 | Season | start date, switch season, start a new season (calm-gated) |
@@ -1403,7 +1403,7 @@ Items 1–6, 8 and 13 were cross-document contradictions this review surfaced; *
 | 12 | Export banner quiet hours 06:00–22:00 (§16.2) | Narrows decision #72 using the owner's 22:00–06:00 precedent. **Needs owner confirmation** | owner |
 | 13 | `FreeTierPolicy` taking the current instant (§19.3) | **Settled — `CONVENTIONS.md` R69:** `FreeTierPolicy.decide({context, now, unlocked, ewesInCurrentSeason, seasonCount})` takes `now`, because the 22:00–06:00 quiet window needs it. Doc 11 adopts the type as printed in `CONVENTIONS.md` §2.10 | doc 11 |
 | 14 | Exact price (§7.1 #4) | €10–15 is a range. Nothing here depends on the number, because the copy reads `ProductDetails.price` (§3.2) | owner |
-| 15 | °C/°F setting (§14.3 §1) | Ships only if a temperature field ships — §7.1 open question 11. The column already exists | owner |
+| 15 | ~~°C/°F setting (§14.3 §1)~~ | **Closed 2026-08-01 — it does not ship.** No v1 table stores a temperature, and the column is dropped with the control (decision-record §7.0 row 11, `CONVENTIONS` R76) | ruled |
 | 16 | Does the free tier cap reminders? (§7.1 #17) | Open. Changes the reconcile budget, not screen 9 | owner |
 | 17 | Voice-note cap 60 s or 120 s (§7.1 #18) | Open. Changes only the recording control's copy | owner |
 | 18 | `milk` withdrawal target in the v1 **UI** (§7.1 #10) | Open. It is in the v1 schema and sealed type either way (§10.2) | owner |

@@ -1603,10 +1603,16 @@ Two layers (decision #118):
 
 ```dart
 // test/policy/backup_round_trips_test.dart — spec §7.9
-// Layer 1 — pure values, with glados's shrinking, which is the reason to keep it.
-Glados(any.recordedTime).test('a RecordedTime survives its JSON round trip', (t) {
-  expect(RecordedTime.fromJson(t.toJson()), t);
-});
+// Layer 1 — pure values, as an explicit table. `glados` was struck from
+// decision-record §5.2 on 2026-08-01: it does not resolve against drift_dev
+// 2.34.5 at ANY version, because it depends on package:test. The shrinking is
+// what it was bought for; a written table of the cases shrinking would have
+// found is one screen of code and cannot fail to install.
+for (final t in <RecordedTime>[...kRecordedTimeRoundTripCases]) {
+  test('a RecordedTime survives its JSON round trip: \$t', () {
+    expect(RecordedTime.fromJson(t.toJson()), t);
+  });
+}
 
 // Layer 2 — the whole flock, hand-rolled, seeded, deterministic.
 // The verbs are 09 §7.3's: writeBackup / restoreInto / tablesBytesOf / headerOf.
@@ -1654,7 +1660,7 @@ Print the seed on failure, and **do not extend the property layer** (decision #1
 
 **`export-carries-no-row-ids` is the same property from the other side, and it is its own file because it fails differently.** `test/policy/export_carries_no_row_ids_test.dart` walks every row object in one produced backup and asserts that no key is `id` and no key ends `_id`, against the `<parent>_uid` convention 09 §5.3 fixes. The round trip above catches an id leak only when the leak *also* breaks equality; a leaked id that happens to survive re-issue passes the round trip and fails this one. The five vocabulary FKs are the documented exception — `route`, `presentation`, `death_cause`, `kind`, `method` carry a `vocab_terms.key` rather than a uid — and the assertion allows them **by name**, never by pattern: a pattern-shaped exemption is one refactor away from exempting the thing it was written to catch.
 
-> **Before you add `glados`, run the resolution.** Decision #4 bans `test` as a direct dependency because it caps `analyzer <13.0.0` and breaks `drift_dev`. §5.2 of the decision record lists `glados: 1.1.7` as verified to resolve against this stack, so this is a re-check, not a re-litigation — but glados is the one dev dependency whose transitive graph touches the constraint that governs the whole toolchain, and it carries an unverified uploader and 2.5 years of staleness. If `flutter pub get` reddens, the property layer is deleted, not the pin.
+> **The resolution was run, and it reddened. `glados` is not a dependency of this project.** N00-T03 ran decision #5's `flutter pub get` — the first time anybody had — and `glados` was the one row of §5.2 that did not resolve. It depends on `package:test`, which is exactly what decision #4 bans as a direct dependency and for exactly the same reason: `test` caps `analyzer <13.0.0` and pins a `test_api` other than the `0.7.11` `flutter_test` pins exactly. `glados: any` reports *"glados is incompatible with drift_dev 2.34.5"*, so this is the package and not one version of it. **The rule this paragraph used to state has been applied: the property layer was deleted, not the pin.** §5.2's row is struck with the evidence and decision #118 is amended. Layer 2 — the hand-rolled, seeded `FlockGenerator` — was never a package and is unaffected; it is now the whole of the property tier.
 
 ### 10.7 Nothing monetization-related reaches a shed screen
 
@@ -1937,7 +1943,7 @@ Carried, not hidden.
 2. **Closed — `checkLambing`'s real name** (§10, §10.4). 05 §7.5 guarantee 1 now names the validation entry points (`check<Thing>` → `List<Warning>`, one per file), so `checkLambing(Lambing, List<Lamb>)` is 05's spelling and not this document's placeholder. Nothing in §10.4 changes.
 3. **The host sqlite3 floor on the actual runner image** (§3.2). 3.41.0 is the asserted floor; which build a given image ships has not been checked. Run `test/data/host_sqlite_version_test.dart` on the image before the first green CI.
 4. **The tolerant comparator's installation** (§8.3). `LocalFileComparator`'s basedir resolution and the interaction with `flutter_test_config.dart` must be confirmed by deliberately breaking a golden. Until that is done, a green golden run proves nothing.
-5. **`glados` resolution** (§10.6). Verified in the decision record's §5.2 table; re-run `flutter pub get` when it is added, because it is the dev dependency closest to the `analyzer` constraint that governs the toolchain.
+5. ~~**`glados` resolution** (§10.6).~~ **Closed 2026-08-01 — it does not resolve at any version and is struck from decision-record §5.2.** Nothing left to check; the property tier is the hand-rolled seeded generator alone.
 6. **Whether `SchemaVerifier` tolerates FTS5 shadow tables** ([`04-migrations-media-backup-restore.md`](04-migrations-media-backup-restore.md) §3.4). If it does not, the migration matrix is the test that tells you, in week one, with FTS5 in schema v1 and no real rows at risk. Do not paper over it by disabling the assertion.
 7. **`HapticFeedback.successNotification()`** (07 §22 item 7). If the member does not exist on Flutter 3.44.8, the commit-confirmation test asserts `heavyImpact()` instead. Owned by 06.
 8. **Every tap-count budget is a desk estimate** until the field night happens (decision-record §7.1 item 1). CI holds the three numbers; it cannot tell you they are the right three.
@@ -1987,7 +1993,7 @@ Fetched 2026-07-27 unless stated.
 **Packages (versions from decision-record §5 only)**
 - `clock` 1.1.2 — https://pub.dev/packages/clock
 - `mocktail` 1.0.5 — https://pub.dev/packages/mocktail
-- `glados` 1.1.7 — https://pub.dev/packages/glados
+- ~~`glados` 1.1.7~~ — struck 2026-08-01, does not resolve against `drift_dev` 2.34.5 at any version
 - `golden_toolkit` 0.15.0, **discontinued** — https://pub.dev/packages/golden_toolkit
 - `alchemist` 0.14.0 (rejected; `diffThreshold` in 0.14.0) — https://pub.dev/packages/alchemist · https://pub.dev/packages/alchemist/changelog
 - `golden_screenshot` 11.0.1 (belongs in `tool/`) — https://pub.dev/packages/golden_screenshot

@@ -22,7 +22,7 @@ malformed 15 in a spreadsheet paste, so the function refuses and the caller asks
 | `docs/engineering/05-domain-correctness.md` | §5.2 | `Grams` printed in full, the two exact conversion constants, and `round()` over `toInt()` |
 | `docs/engineering/05-domain-correctness.md` | §5.3, §5.4 | the three tests that *are* the specification, the keypad ruling, and `parseUserNumber`'s printed body |
 | `docs/engineering/CONVENTIONS.md` | §2.3, §6 R17, R68 | `Grams`, `WeightUnit`, `parseUserNumber` — names, files, member lists; `Pounds` and `Fahrenheit` banned |
-| `docs/research/00-tech-decisions.md` | §2.E #55, #56, #57, #118; §5.2 | canonical grams; the `normalize*` ban scope; keypad input; property tests scoped to value round-trips; `glados 1.1.7` |
+| `docs/research/00-tech-decisions.md` | §2.E #55, #56, #57, #118; §5.2 | canonical grams; the `normalize*` ban scope; keypad input; property tests scoped to value round-trips; `glados` struck from §5.2 on 2026-08-01 |
 | `docs/research/00-tech-decisions.md` | §7.0 ruling 3 | UK/Ireland first — `weight_unit` defaults to `'kg'`, `en_GB`, 24-hour |
 
 ## 3. Skills to load
@@ -191,7 +191,7 @@ double? parseUserNumber(String raw);
     *rejected* 0.1 kg design — `expect(corrupted, 132)` — and it exists so that "simplifying" the
     canonical unit in season three fails CI with the measurement that decided it. `05` §5.3 says
     outright: *"it stays."* Keep the `reason:` string that names decision #56.
-11. **`glados` is already a dev dependency (N00-T03, decision-record §5.2) — use it here and nowhere
+11. ****`glados` was struck from decision-record §5.2 on 2026-08-01** — it does not resolve against `drift_dev` 2.34.5 at any version, because it depends on `package:test`. Decision #118 is amended: the pure-value layer is an explicit table of cases in the same file. Do not add the package; the rule `12 §10.6` stated in advance has already been applied — the property layer was deleted, not the pin.** The original text of this item read *"`glados` is already a dev dependency — use it here and nowhere
     beyond value round-trips.** Decision #118 scopes property tests to *pure value round-trips only*.
     If `flutter pub get` reddens when you first import it, delete the property layer, not the pin
     (`12` §10.6): it is the dev dependency closest to the `analyzer <13` constraint that `drift_dev`
@@ -230,7 +230,7 @@ Zone-agnostic, no `@Tags`.
 | `'pounds and ounces decompose and recompose'` | for `g` across 500…12000: `Grams.fromPoundsOunces(g.wholePounds, g.remainderOunces).value` is within 1 g of `g.value` |
 | `'the plausible birthweight band is representable but not enforced here'` | `Grams(1000)` and `Grams(10000)` construct freely; source read of `grams.dart` finds no range check and no `throw` |
 | `'Grams is const and erases to int'` | `const Grams(4000)` compiles; a documented note that `Grams(0)` and `Instant(0)` are identical at runtime, so no code may discriminate them by type |
-| **property** `'fromPounds/inPounds round-trips at 1 dp for any plausible lamb'` | `glados`, over `double` restricted to 1.0…25.0 — decision #118's scope, and its shrinking is the reason to keep it |
+| **table** `'fromPounds/inPounds round-trips at 1 dp for any plausible lamb'` | an explicit table of cases across 1.0…25.0 kg, including both endpoints and the 0.05 kg neighbours of every 0.1 kg step — decision #118 as amended 2026-08-01. `glados` does not resolve and is struck from §5.2 |
 
 ## 6. Constraints that bind this task
 

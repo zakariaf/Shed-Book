@@ -661,13 +661,19 @@ failure first), then `make test`, then `make validate`.
 ## 6. The calendar-blocking items — start these today
 
 Four things on the critical path are not code, cannot be compressed by working harder, and are the
-only items in this backlog whose lead time is measured in weeks. They are written into
-`docs/calendar.md` — which does not exist until
-[N00-T06](N00-decisions-rulings-and-the-calendar/N00-T06-docscalendarmd-and-the-ledger-test-that-stays-red-until-it-i.md) creates it —
-as seven rows with an owner, a date and an outcome, and held by
-`test/policy/calendar_commitments_test.dart`, which **stays red until every row is filled**. That
-test is tagged `calendar` and excluded from the blocking set until N32 — deliberately, because a
-commitment nothing fails over is not a commitment. Read the ledger at the start of every epic.
+only items in this backlog whose lead time is measured in weeks.
+
+**[`docs/calendar.md`](../docs/calendar.md) is the ledger, and it is the list.** It exists as of
+[N00-T06](N00-decisions-rulings-and-the-calendar/N00-T06-docscalendarmd-and-the-ledger-test-that-stays-red-until-it-i.md):
+seven rows, each with a key, an owner, a due point, a recorded date, an outcome and — the column that
+makes it a commitment rather than a wish — what happens if it does not happen. It is held by
+`test/policy/calendar_commitments_test.dart`, which **stays red until every row is filled and names
+the incomplete rows by key**. That test is tagged `calendar` and excluded from the blocking set until
+N32 — deliberately, because a commitment nothing fails over is not a commitment.
+
+**Read the ledger, not the table below.** The table is here to explain *why* four of the seven are on
+the critical path; the ledger is where their state actually lives, and a row is never deleted to make
+the test pass. Read it at the start of every epic.
 
 | Item | Task | Why it is on the critical path |
 |---|---|---|

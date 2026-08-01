@@ -8,6 +8,26 @@ description: >-
 
 # Export, backup and restore
 
+## A struck row is exported and marked, never filtered out (`CONVENTIONS` R79)
+
+Indelible screen 11: *"every CSV carries a `struck` and a `struck_at` column and every struck row is
+included and marked, because an export that quietly drops the strikes would undo the one thing this
+app is for."* The printed footer already promises it —
+`STRUCK ENTRIES ARE INCLUDED AND MARKED STRUCK. NOTHING HAS BEEN REMOVED.`
+
+**Filtering struck rows out of an export query is a defect.** All three CSV shapes carry the pair.
+`treatments.csv` is the one to say out loud: `Treatments` has no `struck` column, so its two columns
+are **derived at write time** — `struck = (voided_at IS NOT NULL)`, `struck_at = voided_at` — and sit
+beside `is_voided` and `voided_at_utc`, which keep their names. A treatment is *voided* rather than
+struck because it may already have been printed into a medicine book handed to a vet (#69).
+
+**Restore round-trips the pair: a struck row restores struck.** The importer never clears a strike
+and never stamps one. Restore is the only recovery path there is, and one that silently un-struck
+every corrected record would hand the shepherd back a flock book full of entries they had already
+marked wrong, in the one moment they are least able to check.
+
+---
+
 Export is the only backup this app has (spec §7.9: *a safety feature, not a convenience*), so an
 export that is silently wrong is the worst bug in the product. Restore is the most destructive
 operation in the app and the only recovery path that exists.

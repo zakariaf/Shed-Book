@@ -196,6 +196,8 @@ shed_book/
 │   ├── support/                      # harness.dart + the seven hand-written fakes + seeds.dart
 │   │                                 # · reads.dart · flock_generator.dart
 │   │                                 # · tolerant_comparator.dart   (12 §5.3)
+│   │                                 # · decision_record.dart — §7's parser, shared by the
+│   │                                 #   dependency and schema ruling anchors (N00-T04)
 │   └── fixtures/                     # flock_400_3seasons.json · flock_15_at_cap.json
 └── integration_test/                 # four journeys, nightly, non-blocking  (R57)
 ```
@@ -1615,7 +1617,7 @@ The "no verbatim third-party copy" CI check scans **both** `assets/content/` and
 **Ruling.** `unitsProvider : Provider<WeightUnit>` (new enum
 `lib/domain/units/weight_unit.dart`, keys `kg`/`lb`, matching `app_settings.weight_unit`'s CHECK) and
 `terminologyProvider : Provider<Terminology>` (05's type). Both derive from `settingsProvider`.
-A `temperatureUnitProvider` ships only if a temperature column ships (open question 11).
+There is **no** `temperatureUnitProvider`. No temperature column ships — ruled 2026-08-01, R76.
 **Files:** 02 (§5.1).
 
 ### R69 — The free-tier types
@@ -1688,6 +1690,225 @@ seam, not a platform one: `08-platform-integration.md` documents six and does no
 
 ---
 
+### R75 — `WithdrawalTarget` keeps `milk` in the v1 schema
+
+Decision-record §7.1 question 10 asked whether the target market is ever a dairy flock. §2.7 and
+`03 §5.8` were written for two targets while the question was open, so the *name* was never in doubt —
+only whether the member survived to the freeze.
+
+**Ruling** (decision-record §7.0 row 10, 2026-08-01). `enum WithdrawalTarget { meat('meat'),
+milk('milk') }` keeps both members. `treatment_withdrawals.target` keeps
+`CHECK (target IN ('meat','milk'))` and the `{treatment, target}` unique key, so 0..n rows per
+treatment express a second target at no cost. **`WithdrawalMilkings` does not exist in v1** and
+nothing converts milkings to days. Ruling the schema does not add a screen: `09 §10` row 12 already
+had the four `milk_*` columns shipping in `treatments.csv` regardless, and the v1 UI may never write
+one — do not let the ruling grow a Treatments field.
+**Files:** none outstanding — §2.7 and §2.9 already spell both members.
+
+---
+
+### R76 — there is no `temperature_unit` column and no `temperatureUnitProvider`
+
+§3 made `temperatureUnitProvider` conditional on a temperature column shipping. It does not ship.
+
+**Ruling** (decision-record §7.0 row 11, 2026-08-01). **No v1 table stores a temperature.**
+`app_settings.temperature_unit`, its `CHECK (temperature_unit IN ('c','f'))`, the Settings °C/°F row
+and `temperatureUnitProvider` do not exist. `MilliCelsius` **still ships** and is not deleted —
+`05 §5.2`'s measured reason for it (0.1 °C silently rewrites 89 of 201 °F entries) is independent of
+whether a v1 column uses it. This was the only window in which dropping the column was free:
+migrations are forward-only and never destructive (#37), so before the first snapshot it can simply
+never exist, and after it, it ships forever unread.
+**Files:** `CONVENTIONS.md` §3 (the provider line), `03 §5.12` (`AppSettings` and its
+`customConstraints`), `05 §5.2`, `07-screens.md`'s Settings brief.
+
+---
+
+### R77 — `lambs.became_ewe` is in the v1 schema
+
+Decision-record §7.1 question 13 asked whether a lamb kept as a breeding ewe becomes a `Ewe` row.
+`03 §6` point 5 was written against the answer *no* and said so in as many words.
+
+**Ruling** (decision-record §7.0 row 13, 2026-08-01). **Yes.** `lambs.became_ewe` is
+`integer().nullable().references(Ewes, #id, onDelete: KeyAction.setNull)()`, hand-indexed as
+`idx_lamb_became_ewe` because SQLite creates no child-key index automatically (#31). `setNull` and
+not `cascade`: deleting the ewe row must not delete the lamb she was, because the lamb is a record of
+a birth that happened. The Dart spelling is `becameEwe`; the column is `became_ewe` per §4.6.
+
+The cross-table tag rule at `03 §6` point 5 is amended rather than deleted. Its old reason — *"v1 has
+no lamb→ewe promotion"* — is now false; the surviving reason is that promotion writes a `ewes` row
+through the same create-on-the-fly path every other ewe uses, so its tag meets the partial unique
+index on active ewes exactly like any other. **No cross-table trigger is added**, which is `03 §6`'s
+own standing instruction and is now permanent rather than provisional.
+**Files:** `03 §5.5` (the `Lambs` table and its index block), `03 §6` point 5, `07-screens.md`'s ewe
+card and lamb card briefs.
+
+---
+
+### R78 — the lambing-ease scale is 1..5, stated once
+
+Decision-record §7.1 question 15 offered the spec's five points against SRUC's six. R44 had already
+frozen the *type*; this ruling freezes the *bound*.
+
+**Ruling** (decision-record §7.0 row 15, 2026-08-01). **Five**, with point 5 documented as covering
+elective caesarean. `extension type const LambingEase(int code)` validates 1..5 (R44);
+`lambings.ease` keeps `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; the labels stay `vocab_terms`
+rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5`;
+`ShedChoiceRow`'s *ease 1–5 only* contract stands.
+
+`lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a
+migration somebody has to think about, and that friction is the feature. **A blank ease is not
+"unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the
+assisted rate and reports coverage; no ruling may make the column non-nullable or give it a default,
+which would convert a §12.4 violation into schema. `test/policy/schema_shaped_rulings_test.dart`
+asserts the bound is spelled `5` everywhere it appears, because five spellings of one number is how
+a scale widens by accident.
+**Files:** none outstanding — §2.9, `03 §5.4`, `05 §6.7` and `09 §3.1` already spell it 1..5.
+
+---
+
+### R79 — `struck` / `struck_at`: a second mixin, over the record-bearing tables only
+
+This is P1, the last of the schema-irreversible conflicts (`docs/skills/02-build-manifest.md` §4.5).
+`docs/design/indelible.md` Rule 1 — *"nothing is ever removed, only struck"* — is the design system
+of record and is therefore binding, not advisory, so the only question P1 ever left open was the
+**shape**, never the **whether**. `03` has no such columns today.
+
+The cheap answer was to put the pair on `mixin Identified` and give sixteen tables a strike in one
+edit. It is rejected: `TreatmentWithdrawals` and `VocabTerms` would acquire a verb no shepherd would
+recognise, and every read in the app would still have to answer for it.
+
+**Ruling** (2026-08-01).
+
+#### a · Which tables
+
+A **second mixin**, `mixin Struckable`, over the twelve tables where a strike is a thing a shepherd
+would say out loud. It is applied beside `Identified`, never instead of it.
+
+**Tables (12):**
+
+1. `Seasons`
+2. `Ewes`
+3. `EweSeasons`
+4. `Lambings`
+5. `Lambs`
+6. `FosterEvents`
+7. `CareEvents`
+8. `EweObservations`
+9. `Pens`
+10. `PenOccupancies`
+11. `Reminders`
+12. `Notes`
+
+Four of the sixteen `Identified` tables are deliberately **not** struckable, each for a stated
+reason, and each reason is that the act already has a home:
+
+| Table | Why not |
+|---|---|
+| `Treatments` | It already has `voided_at` (#69). See §e — a treatment is *voided*, not struck |
+| `TreatmentWithdrawals` | A child of `Treatments` with no independent existence. It is voided by voiding its treatment; a withdrawal that could be struck out from under a treatment that still stands is a §12.1 hole |
+| `VocabTerms` | A label the user edits. Editing wording is not striking a record, and `TerminologyOverrides` already carries the user's words |
+| `MediaAssets` | `04 §4.8` already owns removal: media moves to `.trash/<yyyy-MM-dd>/` and purges after 30 days. A second mechanism for one act is what §5 exists to prevent. The **record** the photo hangs off is what gets struck; the file follows the existing path |
+
+The seven tables that carry no `Identified` at all — `PenOccupancyLambs`, `ReminderRules`,
+`TerminologyOverrides`, `AppSettings`, `Entitlements`, `EweTouches`, `EweSummaries` — are unchanged.
+Five are settings, projections or link rows; none is a record of something that happened.
+
+#### b · The column shape
+
+```dart
+// lib/core/db/tables/common.dart — written in N07-T02, from this ruling
+mixin Struckable on Table {
+  late final struck   = boolean().withDefault(const Constant(false))();
+  late final struckAt = integer().map(const InstantConverter()).nullable()();
+}
+
+// and, on every table that carries it:
+//   CHECK (struck IN (0,1))
+//   CHECK ((struck = 1) = (struck_at IS NOT NULL))
+```
+
+Under `STRICT` there is no `BOOLEAN`, hence the first CHECK. The paired CHECK is the same idiom
+`treatment_withdrawals` already uses for `(kind = 'days') = (days IS NOT NULL)`. `struck_at` is UTC
+epoch millis behind `InstantConverter` and never drift's `dateTime()` (#29), because a strike
+happened at a **moment** — and specifically so that a strike recorded at 01:30 on the clocks-back
+night is unambiguous. Its round trip belongs in the `uk-zone` tier against **01:00–01:59**; write it
+there, so nobody later invents the case thinking a strike is a civil date.
+
+`withDefault(const Constant(false))` on `struck` is correct and is **not** a violation of `03 §2`
+point 5: that rule bans defaults on columns that could encode **veterinary advice** — `days`, `ease`,
+`status`. `struck` is `NOT NULL` and every existing row needs a value.
+
+#### c · Which side struck rows fall on
+
+**The default: struck rows are excluded from every count and included in every history and every
+export.** State it once, here, so N06 does not have to guess eight times.
+
+The dangerous readers are N06's eight statistics. A struck lambing must leave **both** the numerator
+and the denominator of lambing percentage, litter size and assisted rate — otherwise striking one
+mistyped record silently changes a number the shepherd will compare against last year, which is
+§12.4 wearing a different hat.
+
+The named exceptions, all of them in the *included* direction:
+
+| Reader | Struck rows |
+|---|---|
+| The ewe card's history, the season timeline, any per-animal list | **Included**, drawn with the 3 px madder strike |
+| `search_docs` / FTS5 note search | **Included.** The trigger set in `03 §9` is unchanged and a struck note stays findable; the *screen* decides how a struck hit renders. Making it unfindable would be Rule 1 violated at the storage layer |
+| Every CSV, the PDF and the JSON backup | **Included and marked** — see §d |
+| The Pen Board's open-occupancy projection, the "in the pens" list, the recents strip, `ewe_summaries` | **Excluded.** All four answer "what is true now", and a struck row is a record of something that was not |
+
+#### d · Export and restore
+
+Indelible screen 11 is unambiguous: *"every CSV carries a `struck` and a `struck_at` column and every
+struck row is included and marked, because an export that quietly drops the strikes would undo the
+one thing this app is for."* The printed footer already promises it —
+`STRUCK ENTRIES ARE INCLUDED AND MARKED STRUCK. NOTHING HAS BEEN REMOVED.`
+
+**A `WHERE struck = 0` in an export query is therefore a defect**, and a test asserts its absence.
+
+All three CSV shapes carry the pair. `treatments.csv` is the one that needs saying out loud: the
+`Treatments` table has no `struck` column, so its two export columns are **derived at write time** —
+`struck = (voided_at IS NOT NULL)` and `struck_at = voided_at` — and sit **beside** `is_voided` and
+`voided_at_utc`, which keep their names. One export contract, two storage words, and the derivation
+written down once so nobody re-derives it differently.
+
+Restore round-trips the pair: **a struck row restores struck**, or the one thing the app promises is
+untrue the moment somebody uses the only recovery path there is.
+
+#### e · The word
+
+`CONVENTIONS §5.2` fixes one word per concept, and this ruling deliberately keeps **two** — so the
+reason is written here rather than discovered later.
+
+**A treatment is *voided*; everything else is *struck*.** A strike is a private correction to the
+shepherd's own notebook. A void is a public one: a treatment may already have been printed into a
+medicine book and handed to a vet (#69), so the medicine record must show that the entry was
+withdrawn rather than simply carry a line through it. The two acts are not the same act, and
+collapsing them would lose the distinction the medicine book depends on.
+
+#### f · The active-tag index predicate
+
+The partial unique index on active tags is written in N07-T03 and its predicate is decided **here**,
+because a predicate that says nothing about `struck` means a shepherd who strikes a mistyped `412`
+cannot immediately re-enter `412`:
+
+```sql
+CREATE UNIQUE INDEX idx_ewe_tag_active
+  ON ewes (tag) WHERE tag IS NOT NULL AND status = 'active' AND struck = 0;
+```
+
+`ewes.status` stays a mutable column (R41), and culling still releases a tag in one `UPDATE`
+(`03 §6` point 4). Striking now releases it too, immediately, which is the whole point of striking a
+typo at 03:20.
+
+**Files:** `03 §2` (`mixin Struckable` beside `mixin Identified`), the twelve table definitions,
+`03 §6` (the index predicate), `03 §9` (FTS5 unchanged, stated), `04 §7` (restore round-trips the
+pair), `09 §3.1`–`§3.3` and `§7` (the CSV and backup shapes),
+`.claude/skills/shed-drift-schema/SKILL.md`, `.claude/skills/shed-export-and-restore/SKILL.md`,
+`docs/skills/02-build-manifest.md` §4.5.
+
+---
+
 ## §7 What this file deliberately does not settle
 
 Four things surfaced during this review that are **not** naming questions and must not be closed by a
@@ -1699,8 +1920,13 @@ naming authority. They are listed so nobody mistakes silence for agreement.
    ruling is that it must land before the first snapshot; whether all four tables get an *edit verb*
    in v1 is a screens decision, and 07's "no quad, no edit verb" rule already covers the interim.
 3. **The open questions carried by every document** — the field night, the ziplock-bag capacitance
-   test, the exact price, the temperature field, the voice-note cap, the milk withdrawal UI, lambing
-   ease 5 vs 6. None is a name; none is settled here.
+   test, the exact price. None is a name; none is settled here, and all three are bookings rather
+   than decisions (`docs/calendar.md`). Five items that were on this list are not any more, and none
+   of them was closed by this file acting as a naming authority — each was an owner ruling recorded
+   in decision-record §7.0 and then given a number here: the voice-note cap and in-app printing on
+   2026-08-01 before `pubspec.yaml` closed (§7.0 rows 16 and 18, no ruling number — neither is a
+   name), and the temperature field, the milk withdrawal target and lambing ease 5 vs 6 the same day,
+   before the schema freeze (**R75**, **R76**, **R78**).
 4. **Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8** (07 §22 item 7). That
    is an SDK fact, not a naming ruling. 06 owns it; if the member does not exist, the *name* in this
    file changes with it and every other ruling stands.

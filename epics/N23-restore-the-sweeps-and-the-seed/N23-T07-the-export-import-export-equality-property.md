@@ -18,10 +18,10 @@ on either side, and it will catch the next column somebody forgets to add to the
 | Document | Section | What it binds here |
 |---|---|---|
 | `docs/engineering/09-export-formats.md` | **§7.1** (the property, stated over `tables` and nothing else, and why the header is outside the claim) · **§7.2** (the **thirteen** things that must be true for it to hold — the checklist this test mechanises) · **§7.3** (the printed test, `restoreInto`, and *"run it over the two committed fixtures as well as the generator"*) · §5.7 (the checksum covers the `tables` bytes; the writer encodes once) · §5.3 (canonical key order) | what equality means, and over what |
-| `docs/engineering/12-testing.md` | **§10.6** (both layers: `glados` for pure values, a hand-rolled seeded generator for the flock; the header trap; *"one file, two owners, no second copy"*; the accessor functions are private to the file) · §11.5 (the fixtures) · §11.2 (`dart_test.yaml`, the tags, and why there is no preset) · §11.6 (flakiness discipline) | where the test lives, what it is tagged, how it is seeded |
+| `docs/engineering/12-testing.md` | **§10.6** (both layers: an explicit table for pure values — `glados` is struck, see below — and a hand-rolled seeded generator for the flock; the header trap; *"one file, two owners, no second copy"*; the accessor functions are private to the file) · §11.5 (the fixtures) · §11.2 (`dart_test.yaml`, the tags, and why there is no preset) · §11.6 (flakiness discipline) | where the test lives, what it is tagged, how it is seeded |
 | `docs/engineering/04-migrations-media-backup-restore.md` | §7.8 (the round-trip gate) · §6.3 (the field rules) · §6.9 (the anti-pattern table — *"round-trip test: ids differ, `uid`s match"*) · §6.7 (`importDefaults` completeness) | the same property from the format's side |
 | `docs/engineering/CONVENTIONS.md` | §2.13 (`ExportRepository`) · §2.14 (`ExportEnvelope`) · **R57** (the test tree) · **R65** (three things, three words: the envelope, `BackupHeader`, `ExportEnvelope`) · §4.1 (a policy test is named for the **property**, not the file) | **BINDING** on the file's name and on what it may call |
-| `docs/research/00-tech-decisions.md` | **§5 only** for versions · **#118** (`glados` 1.1.7 for pure value round-trips only; a hand-rolled seeded generator for the flock; *"do not extend it"*) · #4 (`test` is banned as a direct dependency, which is why the glados re-check matters) · #32 (`uid` is the identity) · #56 (integers only) · #88 (the entitlement) · #121 (randomised ordering) | the decisions this task applies |
+| `docs/research/00-tech-decisions.md` | **§5 only** for versions · **#118 as amended 2026-08-01** (an explicit table for pure value round-trips; a hand-rolled seeded generator for the flock; *"do not extend it"*) · #4 (`test` is banned as a direct dependency — which is the very edge that struck `glados` from §5.2) · #32 (`uid` is the identity) · #56 (integers only) · #88 (the entitlement) · #121 (randomised ordering) | the decisions this task applies |
 | `epics/00-PLAN-CRITIQUE.md` | §11.3's `N23-T10` row — `test/policy/backup_round_trips_test.dart` · `'export to import to export produces equal tables bytes, equal checksums, re-issued ids and preserved uids'` **`[audit]`** — *"12 §9 owns where it lives and spells it plural; 09 §7.3 owns what it asserts. One file, two owners, no second copy"* | the fuller assertion this task folds in |
 
 ## 3. Skills to load
@@ -87,9 +87,9 @@ the importer and it belongs in that task's file, not bolted on here. Say so in t
 
 | # | File | What changes in it, and why |
 |---|---|---|
-| 1 | `pubspec.yaml` | **Edit, only if `glados` is not already a dev dependency.** `glados: 1.1.7`, from decision-record §5.2 and nowhere else. **Run `flutter pub get` and read the resolution before you commit** — glados is the one dev dependency whose transitive graph touches the `analyzer` constraint that governs `drift_dev`. *"If `flutter pub get` reddens, the property layer is deleted, not the pin."* |
+| 1 | `pubspec.yaml` | **No edit. **`glados` was struck from decision-record §5.2 on 2026-08-01** — it does not resolve against `drift_dev` 2.34.5 at any version, because it depends on `package:test`. Decision #118 is amended: the pure-value layer is an explicit table of cases in the same file. Do not add the package; the rule `12 §10.6` stated in advance has already been applied — the property layer was deleted, not the pin.** This task's property tier is layer 2 only — the hand-rolled seeded `FlockGenerator`, which was never a package. |
 | 2 | `test/support/flock_generator.dart` | **Edit, if T04 left anything out.** The same generator the seed uses; ~80 lines; hand-rolled. It must produce every invariant in §5.4's list, because each one is a real importer bug when it is missing |
-| 3 | `test/policy/export_round_trip_test.dart` | **New (or moved).** Layer 1 (`glados` over pure values), layer 2 (200 seeded flocks), and the two committed fixtures. `tablesBytesOf`, `headerOf`, `idsOf` and `uidsOf` are **private top-level functions in this file**, never shared helpers — *"they read a format only this file reads, and putting them in `test/support/` would invite a second caller who does not know the header is outside the checksum"* |
+| 3 | `test/policy/export_round_trip_test.dart` | **New (or moved).** Layer 1 (an explicit table over pure values), layer 2 (200 seeded flocks), and the two committed fixtures. `tablesBytesOf`, `headerOf`, `idsOf` and `uidsOf` are **private top-level functions in this file**, never shared helpers — *"they read a format only this file reads, and putting them in `test/support/` would invite a second caller who does not know the header is outside the checksum"* |
 | 4 | `test/policy/export_carries_no_row_ids_test.dart` | **New.** The same property from the other side, and its own file *because it fails differently*: a leaked id that happens to survive re-issue passes the round trip and fails this one |
 | 5 | `docs/engineering/12-testing.md`, `docs/engineering/09-export-formats.md` | **Edit.** §10.6 and §7.3 point at the ruled path |
 
@@ -105,7 +105,7 @@ library;
 void main() {
   final env = ExportEnvelope.standard(now: appNow(), appVersion: '1.0.0');
 
-  // Layer 1 — pure values, with glados's shrinking, which is the reason to keep it.
+  // Layer 1 — pure values, as an explicit table. `glados` is struck from §5.2.
   Glados(any.recordedTime).test('a RecordedTime survives its JSON round trip', (t) {
     expect(RecordedTime.fromJson(t.toJson()), t);
   });
@@ -167,13 +167,14 @@ void main() {
   flapping across platforms — which reads as flakiness, and `12 §11.6` is zero-tolerance about that.
 - **Text is byte-verbatim.** No trimming, no case folding, no Unicode normalisation. The CSV formula
   guard is nowhere near this code path and must not be reached for.
-- **Do not extend the property layer** (#118). `glados` covers pure value round trips and nothing else;
+- **Do not extend the property layer** (#118). The explicit table covers pure value round trips and nothing else;
   the flock layer is a hand-rolled ~80-line generator. *"A seeded generator nobody understands in
   season three is worse than a fixture."*
-- **Run the glados resolution before you rely on it.** Decision #4 bans `test` as a direct dependency
-  because it caps `analyzer <13.0.0` and breaks `drift_dev`. §5.2 lists `glados: 1.1.7` as verified to
-  resolve against this stack — so this is a re-check, not a re-litigation. If `flutter pub get`
-  reddens, **the property layer is deleted, not the pin**, and layer 2 carries the whole task.
+- **The glados resolution was run in N00-T03 and it reddened.** Decision #4 bans `test` as a direct dependency
+  because it caps `analyzer <13.0.0` and breaks `drift_dev` — and that is exactly the edge `glados`
+  brings with it. §5.2's row was a table entry nobody had run; the first run reported *"glados is
+  incompatible with drift_dev 2.34.5"* for `glados: any`, so it is the package and not one version of
+  it. **The property layer was deleted, not the pin**, and layer 2 carries the whole task.
 - **The generator's invariants are the test's real content**, and every one is a real importer bug when
   it is absent: a lamb's birth dam exists and its rearing dam may differ (fostering); dead lambs have a
   death date at or after their lambing's `occurred_at`; at least one treatment carries
@@ -206,8 +207,8 @@ void main() {
 | `'export to import to export produces equal table bytes'` | `export_round_trip_test.dart` | **The anchor**, ×200 seeds. `tablesBytesOf` equality, with `reproduce with FlockGenerator(n)` in the reason |
 | `'the two checksums are equal'` | same | The checksum follows the `tables` bytes it covers |
 | `'integer ids are re-issued and every uid is preserved'` | same | `09 §7.2` items 3 and 12; the reason this file is in `test/policy/` and not `test/data/` |
-| `'a RecordedTime survives its JSON round trip'` · `glados` | same | Layer 1 (#118). Shrinking is the reason glados is here at all |
-| `'an Instant survives ISO-8601 milliseconds and a Z'` · `glados` | same | `09 §7.2` item 5 — lossless, exactly |
+| `'a RecordedTime survives its JSON round trip'` · explicit table | same | Layer 1 (#118 as amended). `glados` is struck from §5.2; the table carries the cases shrinking would have found |
+| `'an Instant survives ISO-8601 milliseconds and a Z'` · explicit table | same | `09 §7.2` item 5 — lossless, exactly |
 | `'flock_400_3seasons.json round-trips'` | same | `09 §7.3`'s closing instruction — over the committed fixture, not only the generator |
 | `'flock_15_at_cap.json round-trips'` | same | The at-cap fixture |
 | `'an empty flock round-trips'` | same | The degenerate case: every table an empty array, `counts` all zero, checksum still stable |
@@ -251,7 +252,7 @@ void main() {
 - [ ] both committed fixtures round-trip, as well as the 200 generated flocks
 - [ ] the four accessors are private to the file and appear nowhere under `test/support/`
 - [ ] `export_carries_no_row_ids_test.dart` exists and exempts the five vocabulary FKs **by name**
-- [ ] `glados: 1.1.7` came from decision-record §5.2, `flutter pub get` was run and its resolution read
+- [ ] no `glados` is added — it is struck from decision-record §5.2 and does not resolve at any version
 - [ ] the file is tagged `slow` (a 3× timeout), never `flaky` (excluded from CI)
 - [ ] the seed is printed in every failure reason
 

@@ -4,7 +4,7 @@ This document governs everything in `lib/domain/**` plus the one file in `lib/co
 
 > **Decisions applied:** #29 (instants `INTEGER`, civil dates `TEXT`), #30 (the cost of #29, stated), #31 (no `DEFAULT` on any column that could encode veterinary advice), #46 (one clock, `package:clock`), #47 (SQL-side time banned), #48 (timezone strategy: `package:timezone` confined to the notification seam), #49 (withdrawal clear date = ceil-to-next-local-midnight of administration + N × 24 h), #50 (`clear_date` is stored, exactly once), #51 (`sealed class WithdrawalPeriod`), #52 (two gates prove "never default a withdrawal"), #53 (`RecordedTime`), #54 (contradictions are `List<Warning>`), #55 (`normalize*` ban scope), #56 (canonical grams and milli-°C), #57 (numeric input), #58 (`StatResult`), #59 (statistic definitions), #60 (`customSelect` + `readsFrom:` for aggregates), #61 (terminology), #62 (`Disclaimers`), #69 (a treatment is soft-voided, never deleted), #108 (gen-l10n options: `use-named-parameters`, `nullable-getter: false`, never an all-numeric human-facing date), #113 (time in widget tests), #118 (property tests for pure value round-trips), #121 (the two-timezone CI run), plus the owner's rulings in decision-record §7.0: UK/Ireland first (`en_GB`, kg, °C, 24-hour, `dd/MM/yyyy`, week starts Monday), ambiguous DST hour **01:00–01:59**, AHDB lambing-percentage convention as the default, tags unique among **active** animals only.
 >
-> **Still open, and flagged as such wherever it bites:** open question 10 (is the target market ever a dairy flock — §3.2), 11 (where does temperature appear at all — §5.2), 12 (lamb-scale resolution and the plausibility band — §5.4), 15 (lambing ease: 5 points or SRUC's 6 — §6.7). Nothing in this document treats any of the four as settled.
+> **Three of the four questions this document used to carry were ruled on 2026-08-01** (decision-record §7.0 rows 10, 11 and 15), in N00-T04, five epics before the schema freeze: the dairy target **ships** in the schema (§3.2), **no v1 table stores a temperature** and `app_settings.temperature_unit` is dropped with it (§5.2), and **lambing ease stays 1..5** with point 5 covering elective caesarean (§6.7). `MilliCelsius` still ships regardless. One remains open and is flagged where it bites: **question 12**, lamb-scale resolution and the plausibility band (§5.4), which is product-shaped rather than schema-shaped — grams stay canonical either way, and only the *input step* is unsettled.
 
 [`CONVENTIONS.md`](CONVENTIONS.md) is the naming authority for the whole set and outranks this document on any name, path, type shape, signature or word; the `R<n>` citations below are its ruling numbers.
 
@@ -505,7 +505,7 @@ An `extension type` cannot give you a *private generative constructor*, which is
 
 - A label that states only milkings is recorded as `WithdrawalNotRecorded` for that target, with the number typed into the treatment **note** field verbatim.
 - The UI shows `WithdrawalUnknown` for it. It does not offer a conversion, a calculator, or a hint.
-- v2 adds a fourth sealed subtype `WithdrawalMilkings({required int count, required int intervalHours})` — the interval is **required and user-supplied**, for the same reason `days` is. Adding it is a compile-error-guided change at every `switch`, which is the whole point of `sealed`. Whether it ships at all is decision-record §7.1 open question 10 (*is the target market ever a dairy flock?*), which is **still open**; `WithdrawalTarget.milk` ships in the v1 schema regardless, because retrofitting it is a migration and shipping it now is free.
+- v2 adds a fourth sealed subtype `WithdrawalMilkings({required int count, required int intervalHours})` — the interval is **required and user-supplied**, for the same reason `days` is. Adding it is a compile-error-guided change at every `switch`, which is the whole point of `sealed`. Whether that fourth subtype ever ships is a v2 question and stays one. What was decision-record §7.1 question 10 (*is the target market ever a dairy flock?*) was **ruled on 2026-08-01** (§7.0 row 10): `WithdrawalTarget.milk` ships in the v1 schema, because retrofitting it is a migration and shipping it now is free. `WithdrawalMilkings` does **not** exist in v1 and nothing converts milkings to days.
 
 The primary-source basis for "the interval must be supplied, not assumed" is EMA/CVMP/SWP/735418/2012 §4.1.2: the milk period *"is initially calculated in milkings and rounded up to the first higher full number of milkings […] because a different milking frequency can be used in practice, the final unit of the milk withdrawal period should be real time."*
 
@@ -924,7 +924,7 @@ Use `round()`, never `toInt()` (truncates toward zero — systematically light) 
 
 **Never build an extension type for a display unit.** `Pounds` and `Fahrenheit` would erase to the same runtime type as `Grams` and `MilliCelsius`, giving false confidence in any `is`/`switch`/serialisation path and inviting somebody to store one. Pounds and Fahrenheit exist only as `double` returns from a getter, consumed immediately by a formatter.
 
-**Where does temperature appear at all?** Open question 11 in decision-record §7.1 is *unresolved*: §7.10 has a °C/°F setting but §10's data model has no temperature field. `MilliCelsius` ships either way and costs nothing; **do not add a temperature column until that question is answered**, because an unused setting is a 3am tax and an unused column is a migration you did not need.
+**Where does temperature appear at all? Nowhere.** Decision-record §7.0 row 11, ruled 2026-08-01: no v1 table stores a temperature, and `app_settings.temperature_unit` is dropped with it along with the Settings °C/°F row and `temperatureUnitProvider`. `MilliCelsius` **still ships and is not deleted** — the measured reason it exists is independent of whether a v1 column uses it. **Do not add a temperature column**, because an unused setting is a 3am tax and an unused column is a migration you did not need.
 
 ### 5.3 The tests that are the specification
 
@@ -960,7 +960,7 @@ test('UNITS: 0.1 kg canonical WOULD corrupt lb entries — this is why grams', (
 
 The third test looks odd and it stays. It is the executable form of the argument, and it is what fails when somebody "simplifies" the canonical unit in season three.
 
-Add the `glados` property test for the same round trips (decision #118 — property tests are for pure value round-trips only, and its shrinking earns its keep there). Do not extend it beyond value types.
+Add an explicit table of round-trip cases for the same values (decision #118, amended 2026-08-01 — `glados` does not resolve against `drift_dev` at any version and is struck from §5.2, so the pure-value layer is a written table rather than a generator). Do not extend it beyond value types.
 
 ### 5.4 Input
 
@@ -1245,7 +1245,7 @@ Numerator = lambings with ease ≥ 2 (1 = no assistance). Sheep Genetics is expl
 | Partial coverage | Caveat: *"1 of 3 lambings has no ease score and is excluded from both sides."* |
 | Scale divergence | SRUC and Sheep Genetics record ease **per lamb**; the spec puts it on the `Lambing`. For a notebook that is right — per-lamb ease is pedigree recording and spec §13 excludes EBVs. Label the CSV column `lambing_ease_1_5` and make the definition string say *"per lambing"* so a future consumer is not misled. |
 
-The 1–5 scale itself is spec §7.2 and stays at five (open question 15 recommends documenting that 5 covers elective caesarean). The shipped descriptions must be **paraphrased at the same semantic granularity**, not copied — decision-record §4 flags verbatim adoption of SRUC TN747 as a licensing and "written from scratch" problem, and the PDF's text could not be verified.
+The 1–5 scale itself is spec §7.2 and **stays at five — ruled 2026-08-01, decision-record §7.0 row 15, with point 5 documented as covering elective caesarean.** `lambings.ease` is deliberately not a vocabulary foreign key, so widening the scale would be a migration somebody has to think about, and that friction is the feature. A blank ease is not "unassisted": it means not scored, and it is excluded from both sides of the assisted rate below. The shipped descriptions must be **paraphrased at the same semantic granularity**, not copied — decision-record §4 flags verbatim adoption of SRUC TN747 as a licensing and "written from scratch" problem, and the PDF's text could not be verified.
 
 ### 6.8 Losses by cause and by age
 
@@ -1819,7 +1819,7 @@ Tick every line before you call this area finished.
 - [ ] Weight entry uses the in-app keypad; `parseUserNumber` rejects ambiguity.
 - [ ] The plausibility band is one named constant — `kPlausibleBirthWeight` at `Grams(1000)`–`Grams(10000)` — warns only outside it, and is marked provisional against open question 12.
 - [ ] `weight_unit` defaults to `kg` and `temperature_unit` to `c`; no human-facing date is all-numeric.
-- [ ] No temperature column exists until open question 11 is answered.
+- [x] No temperature column exists, and none will — ruled 2026-08-01 (§7.0 row 11). `app_settings.temperature_unit` is dropped with it. `MilliCelsius` still ships.
 
 **Statistics**
 - [ ] Every statistic is a pure top-level function returning `StatResult`; none returns a bare `double`.

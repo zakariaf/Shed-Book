@@ -9,6 +9,48 @@ description: >-
 
 # Storing a fact in Shed Book
 
+## The strike is part of the schema (`CONVENTIONS` R79)
+
+Indelible Rule 1 — *nothing is ever removed, only struck* — is held in the tables, not in the UI.
+A **second** mixin sits beside `Identified`:
+
+```dart
+mixin Struckable on Table {
+  late final struck   = boolean().withDefault(const Constant(false))();
+  late final struckAt = integer().map(const InstantConverter()).nullable()();
+}
+// on every table that carries it:
+//   CHECK (struck IN (0,1))
+//   CHECK ((struck = 1) = (struck_at IS NOT NULL))
+```
+
+**Twelve tables carry it:** `Seasons` · `Ewes` · `EweSeasons` · `Lambings` · `Lambs` ·
+`FosterEvents` · `CareEvents` · `EweObservations` · `Pens` · `PenOccupancies` · `Reminders` ·
+`Notes`.
+
+**Four `Identified` tables deliberately do not**, because the act already has a home: `Treatments`
+has `voided_at` (#69 — a treatment is *voided*, not struck, because it may already have been printed
+into a medicine book handed to a vet); `TreatmentWithdrawals` is voided by voiding its treatment;
+`VocabTerms` labels are *edited*; `MediaAssets` removal is `04 §4.8`'s `.trash/` path.
+
+**The default every query follows: struck rows are excluded from every count and included in every
+history and every export.** A struck lambing must leave **both** the numerator and the denominator of
+every statistic — striking one mistyped record must not change a number the shepherd compares
+against last year. The Pen Board's open-occupancy projection, the "in the pens" list, the recents
+strip and `ewe_summaries` exclude; FTS5 note search **includes**, its triggers are unchanged, and the
+screen decides how a struck hit renders.
+
+`struck_at` is an `Instant` — UTC epoch millis behind `InstantConverter`, never drift's
+`dateTime()` — so a strike recorded at 01:30 on the clocks-back night is unambiguous. Its round trip
+belongs in the `uk-zone` tier against 01:00–01:59.
+
+The active-tag partial unique index carries `AND struck = 0` (R79 §f), so striking a mistyped `412`
+releases the tag immediately.
+
+**A table without the provenance quad has no edit verb**, and that is unchanged by any of this.
+
+---
+
 `docs/engineering/03-data-model-and-schema.md` is the catalogue — every table, index and CHECK with
 its reasoning; read the section you are touching. This skill carries the rules that apply to *every*
 edit and the traps that fail at runtime rather than at codegen. Schema files live in `lib/core/db/`:

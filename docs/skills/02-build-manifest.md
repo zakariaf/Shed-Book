@@ -232,8 +232,14 @@ Skills encode the **corrected** rule and name the artefact as wrong.
 
 ### 4.5 The remaining blocking conflicts, and who resolves them
 
-P1 (`struck` / `struck_at` on every table) is **schema-irreversible and must land before the schema
-freeze** — it gates `shed-drift-schema` and `shed-export-and-restore`. P3 (navigation model), P7
+**P1 is ruled.** `struck` / `struck_at` landed on 2026-08-01 as `CONVENTIONS` **R79**, in N00-T05,
+seven epics before the schema freeze: a second mixin, `Struckable`, over **twelve** record-bearing
+tables rather than the pair on `mixin Identified` and sixteen. Four `Identified` tables are named as
+deliberately not struckable with a reason each — `Treatments` (it has `voided_at`, #69),
+`TreatmentWithdrawals`, `VocabTerms` and `MediaAssets`. The default for every reader is stated once:
+**struck rows are excluded from every count and included in every history and every export.** Both
+skills it gated — `shed-drift-schema` and `shed-export-and-restore` — carry the ruled rule in their
+bodies. It is recorded here in the same shape §4.1 and §4.2 use for P2 and P8. P3 (navigation model), P7
 (typeface and the `FontVariation` weight axis), P9 (tap separation, 16pt vs 8–12px — an executable
 gate asserts one of them), P10 (four haptics vs five) and P14 (`#0B0D0E` vs `#0A0A0B`) are recorded in
 the owning skill's body as **open, with the conflict named and both sides cited** — never silently
@@ -437,8 +443,11 @@ numbers and never re-types a spelling. The hand-written `from<N>To<N+1>` step �
 unit vs derived), and the four things irreversible after the first snapshot. **Load when deciding how
 to store a value that has no precedent in the schema.**
 
-**Blocked on P1.** `struck` / `struck_at` on every table is schema-irreversible. This skill is not
-authored until P1 is ruled.
+**P1 is ruled and this skill carries it.** `CONVENTIONS` **R79**, 2026-08-01: a second mixin,
+`Struckable`, over **twelve** record-bearing tables — not the pair on `mixin Identified` and sixteen.
+Four `Identified` tables are named as deliberately not struckable with a reason each. The skill's
+body states the mixin, the twelve tables, the four exclusions, the paired CHECKs, the count-versus-
+history default and the `AND struck = 0` in the active-tag index predicate.
 
 ---
 

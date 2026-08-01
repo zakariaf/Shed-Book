@@ -46,6 +46,9 @@ const List<String> placeholderOutcomes = <String>[
 
 final RegExp _isoDate = RegExp(r'^\d{4}-\d{2}-\d{2}$');
 
+/// The same shape, unanchored — a date quoted inside an outcome sentence.
+final RegExp _isoDateAnywhere = RegExp(r'\d{4}-\d{2}-\d{2}');
+
 /// Spec §3's channels. The audience is smallholders and small commercial
 /// flocks, 20–400 ewes, lambing indoors or in a field within walking distance,
 /// one or two people doing all the work, often alongside a day job.
@@ -271,6 +274,47 @@ void main() {
       expect(consequence, contains(decision),
           reason: 'the consequence does not name decision $decision');
     }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // N00-T09 — the store accounts, SBP, price and territories.
+  // ───────────────────────────────────────────────────────────────────────
+
+  test('the developer-account, SBP, price and territories rows each carry a '
+      'date and an outcome', () {
+    for (final String key in <String>[
+      'developer_accounts',
+      'apple_sbp_enrolment',
+      'price_and_territories',
+      'store_identifiers',
+    ]) {
+      expect(row(key).isComplete, isTrue, reason: '$key — ${row(key).missing}');
+    }
+  });
+
+  test('the developer-account row answers the 13 November 2023 question', () {
+    // Explicitly yes or no, because the schedule downstream of it is different
+    // in each case: a personal Play account created after that date must run a
+    // twelve-tester, fourteen-day closed test before production access.
+    final String outcome = row('developer_accounts').outcome.toLowerCase();
+    expect(isRealOutcome(outcome), isTrue,
+        reason: 'developer_accounts — ${row('developer_accounts').missing}');
+    expect(outcome.contains('yes') || outcome.contains('no'), isTrue,
+        reason: 'the outcome does not answer the 13 November 2023 question '
+            'either way');
+  });
+
+  test('the price row records where the store rate was read and when', () {
+    // A rate from a secondary source is what 11 §10 warns against by name:
+    // Google's own 30 June 2026 post does not state a one-time-product rate,
+    // and the quoted 20% + 5% figure is secondary reporting.
+    final Commitment price = row('price_and_territories');
+    expect(isRealOutcome(price.outcome), isTrue,
+        reason: 'price_and_territories — ${price.missing}');
+    expect(price.outcome.toLowerCase(), contains('play console'),
+        reason: 'the outcome does not say the rate was read in Play Console');
+    expect(_isoDateAnywhere.hasMatch(price.outcome), isTrue,
+        reason: 'the outcome does not carry the date the rate was read');
   });
 
   test('the test reads no clock', () {

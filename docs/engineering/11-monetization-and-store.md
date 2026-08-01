@@ -1128,7 +1128,7 @@ them being read.
 
 ## 10. Pricing, territories and fees
 
-**This section is bounded by §7.1 open question 4, which is still open.** Do not treat any number here
+**This section is bounded by §7.1 open question 4, which is still open — and it is now a *booking*, not a decision.** It is ledger row `price_and_territories` in [`docs/calendar.md`](../calendar.md), which carries the €10–15 band, the SBP arithmetic, the 30 June 2026 fee restructure and the instruction that the one-time-product rate is **read inside Play Console and recorded with the date it was read**, because Google's own post does not state one and the quoted 20% + 5% is secondary reporting. The answer lands in that row and this section follows it. Do not treat any number here
 as settled.
 
 - **The range is €10–15.** €11.99 or €12.99 are the shapes under discussion. The exact figure and the territory list are the owner's.

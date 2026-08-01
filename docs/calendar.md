@@ -28,7 +28,7 @@ by a parser, exactly as a CSV carries an ISO-8601 column beside its human one.
 | `developer_accounts` | Both store accounts exist; the post-13-Nov-2023 personal-account question answered | | before N32 | | | No app record, no closed track, no TestFlight |
 | `apple_sbp_enrolment` | Apple Small Business Program enrolment submitted | | before the first sale | | | 30% instead of 15% on everything sold in the gap, for nothing |
 | `price_and_territories` | The exact price and the territory list, read in Play Console | | before the first submission | | | A price set from a secondary source, wrong for three years |
-| `store_identifiers` | Application id / bundle id and the unlock product id, created on both stores | | before N32 | | The application id and bundle id half is **done**: `com.shedbook.shedbook`, fixed in N00-T01 and recorded in `RELEASES.md`'s header and decision #129. The unlock product `shed_book_unlock` has **not** been created on either store — that half is N00-T09's | Two stores keyed on a string nobody wrote down |
+| `store_identifiers` | Application id / bundle id and the unlock product id, created on both stores | | before N32 | | The application id and bundle id half is **done**: `com.shedbook.shedbook`, fixed in N00-T01 and recorded in `RELEASES.md`'s header and decision #129. The unlock product id is fixed as **`shed_book_unlock`** — one id, identical on both stores — but has **not been created** on either: a non-consumable in App Store Connect and a one-time (managed) product in Play Console. That half is N00-T09's and needs the accounts first | Two stores keyed on a string nobody wrote down |
 
 ## How the columns are read
 
@@ -123,6 +123,64 @@ your own foreground activity needs a media session or an accessibility service; 
 by App Store Guideline 2.5.9. Either route is a new permission or a new entitlement — and a new
 permission is a change to the set **G0 records at N02**. If this fails, N02's answer changes shape
 too.
+
+## The four store rows — the numbers that decide them
+
+N00-T09's. Nothing here is code, and every one has a lead time measured in days.
+
+**`developer_accounts`.** Apple Developer Program is **$99 a year**; Google Play is a **$25 one-off**.
+Both run identity verification before anything can be published, and an organisation account on
+either needs a D-U-N-S number, which is itself a wait.
+
+The outcome cell must answer one question **in writing, yes or no**: *is the Google Play account a
+personal account created after 13 November 2023?* If yes, that account must run a closed test with at
+least **twelve opted-in testers for fourteen continuous days** before it can apply for production
+access — so N32-T03 is on the critical path and `twelve_testers` is a schedule item rather than a
+research one. Organisation accounts and older personal accounts are exempt entirely. It is the
+difference between a fourteen-day clock and no clock at all.
+
+Two more things belong in that cell if they are not done, because they are what people discover in
+the week they wanted to ship: **banking and tax details** on both stores, each with its own approval
+wait, are required before a paid product can go live; and a **hosted privacy-policy URL**, mandatory
+on both stores, *"the one piece of internet infrastructure this project cannot avoid"* — it has **no
+owner anywhere in this backlog**. It is needed before the listing at N32-T02, not before the account,
+so note it here rather than doing it here — but note it, because nobody else will.
+
+**`apple_sbp_enrolment`.** The Small Business Program is 15% instead of 30% for developers under $1M
+USD in annual proceeds, and new developers qualify. **It takes effect fifteen days after the end of
+the fiscal month of approval** — so it is a deadline, not a task, and the row carries **both** the
+submission date and the effective date rather than computing one from the other; that arithmetic is
+Apple's, on Apple's calendar. At €12 gross it is roughly €10.20 net instead of €8.40. Enrolling after
+the first sale means paying 30% on everything sold in the gap, for nothing.
+
+**`price_and_territories`.** Spec §14 fixes the range at **€10–15** — *"one-time unlock. No
+subscription, ever"* — and `11 §10` names €11.99 and €12.99 as the shapes under discussion. Price in
+EUR for IE and UK-adjacent markets, per the UK/Ireland-first ruling, and let both stores convert the
+rest.
+
+**Google restructured its fees on 30 June 2026** and this is where the row earns its keep: the fee
+splits into a service fee and a billing fee, the billing fee is 5% in the US, UK and EEA when you use
+Play's billing, and the widely-quoted **20% service + 5% billing** figure for a one-time product
+comes from **secondary reporting only** — Google's own post does not state a one-time-product rate.
+The outcome cell must record **the rate as read inside Play Console, and the date it was read**. A
+number copied from a blog is how a price gets set 5% wrong for three years.
+
+One pricing consequence that is not a technical one: **the entitlement is never revoked, so a refund
+is not a code path.** Re-locking a shepherd on night nine because a refund propagated is
+unacceptable against €12 of revenue. That belongs in the reasoning behind the price, not discovered
+at N30.
+
+**The price is never a literal in the app.** `CONVENTIONS §5.4`: the app renders
+`ProductDetails.price` from the store, always. `copy.currency_literal` is a `check_policy` row
+scanning `lib/` and `assets/` for a currency symbol followed by a digit. `docs/` is out of its scope,
+which is exactly why the price may be written in this ledger and nowhere else.
+
+**What N00-T09 does not do.** It does not create the Play app record or the store listing — that is
+N32-T02, and the listing needs G0's answer about `ACCESS_NETWORK_STATE`, which does not exist until
+N02. It creates the **accounts** and the **product**. It also does not pull `ios/*.storekit` forward:
+the local StoreKit configuration loop works fully offline with no Apple account and is *"the only
+purchase test that can be run before the developer account question is answered"*, but it lands at
+N30 with `PurchaseService`.
 
 ## What this file does not do
 

@@ -7,11 +7,12 @@
 // --exclude-tags uk-zone, and these cases are correctly red in a hostile zone.
 // The relational, zone-agnostic half is test/domain/withdrawal/clear_date_test.dart.
 //
-// DST-5 lands here in two halves, because the function it names spans two tasks.
-// 05 §2.9 writes it through computeWithdrawalStatus, which is N05-T03's; the
-// arithmetic underneath it is clearDateFor, which is this task's. This file
-// holds the clearDateFor form now. N05-T03 adds the computeWithdrawalStatus
-// assertion BESIDE it rather than replacing it — two callers, one number.
+// DST-5 landed here in two halves, because the function it names spans two
+// tasks. 05 §2.9 writes it through computeWithdrawalStatus (N05-T03); the
+// arithmetic underneath it is clearDateFor (N05-T02). BOTH forms are present and
+// both are assertions on the same number — two callers, one answer. A rewrite
+// that fixes one caller and not the other is what the pair catches, so do not
+// collapse them.
 //
 // FILE-NAME DISAGREEMENT, recorded rather than resolved silently, and the same
 // one ambiguous_hour_test.dart records: 00-PLAN-CRITIQUE.md's [audit] row rules
@@ -27,6 +28,8 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/wall_time.dart';
 import 'package:shed_book/domain/withdrawal/clear_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
 
 void main() {
   setUpAll(() {
@@ -88,6 +91,25 @@ void main() {
     expect(r.elapsesAt.local.hour, 21, reason: 'not 20:00 — the clocks moved inside the window');
     expect(r.elapsesAt.local, DateTime(2026, 4, 2, 21));
     expect(r.date, LocalDate(2026, 4, 3));
+  });
+
+  test('DST-5: the clear date is computed in absolute time', () {
+    // 05 §2.9 writes DST-5 through computeWithdrawalStatus rather than through
+    // clearDateFor, because the status arm is what a screen actually calls — so
+    // the zone regression is pinned at that level too. This sits BESIDE the
+    // clearDateFor case above rather than replacing it: two callers, one number,
+    // and a rewrite that fixes one without the other is exactly what a pair of
+    // assertions catches.
+    final ClearsOn status =
+        computeWithdrawalStatus(
+              administeredAt: Instant.fromDateTime(DateTime(2026, 3, 26, 20)),
+              period: WithdrawalDays.asEnteredByUser(days: 7, target: WithdrawalTarget.meat),
+            )
+            as ClearsOn;
+
+    expect(status.elapsesAt.local, DateTime(2026, 4, 2, 21));
+    expect(status.date, LocalDate(2026, 4, 3));
+    expect(status.target, WithdrawalTarget.meat);
   });
 
   test('a period administered at local midnight across the spring-forward '

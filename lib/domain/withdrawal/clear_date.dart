@@ -1,5 +1,7 @@
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
 
 /// The ONE function that computes a clear date. Called exactly once per
 /// withdrawal row, at write time (decision #50).
@@ -67,3 +69,56 @@ import 'package:shed_book/domain/time/local_date.dart';
 
   return (date: date, elapsesAt: elapsesAt);
 }
+
+/// The three-arm switch a screen actually calls, joining the sealed input to the
+/// sealed output.
+///
+/// **The absent row is the fact.** `WithdrawalNotRecorded` — which the repository
+/// produces when `treatment_withdrawals` holds no row for that target — maps to
+/// [WithdrawalUnknown] and to nothing else. There is no fourth possibility and
+/// no fallback, because every plausible fallback is a lie: *clear today* says
+/// the animal is clear when nobody knows, and *no withdrawal* says the label
+/// stated none when nobody looked.
+///
+/// **Three arms, no `default:` and no `_` wildcard — here and at every future
+/// call site.** A wildcard silently swallows the fourth arm if `WithdrawalMilkings`
+/// is ever proposed in v2, which destroys the one property `sealed` was chosen
+/// for: adding a subtype must be a compile-error-guided change everywhere.
+///
+/// **It takes no `now`, and must not learn to.** It answers *what did the label
+/// say and when does it elapse*, not *is she clear today*. The second question
+/// is asked at the read edge, in SQL — `w.kind = 'days' AND w.clear_date >=
+/// :today` (07 §10.1) — with `today` supplied by `appNow()` at that edge. A `now`
+/// here would make the status time-varying and every cached value wrong at
+/// midnight.
+///
+/// **It reads no database and must never be handed a row.** `lib/domain/` may
+/// not import `package:drift` or `lib/data/` (05 §1.2 D2). The repository maps
+/// rows to a [WithdrawalPeriod] and passes plain values in; a treatment with a
+/// meat row and a milk row produces **two** statuses, which is why one treatment
+/// shows two countdowns.
+///
+/// **Do not call this on a voided treatment.** Decision #69: undo of a treatment
+/// sets `treatments.voided_at` and the row stays, because it may already have
+/// been printed into a medicine book handed to a vet. Every *"is she clear?"*
+/// query filters `voided_at IS NULL` upstream; the withdrawal row, its inputs and
+/// its stored `clear_date` are never deleted, blanked or recalculated. The
+/// exclusion is N20-T05's work — the reason is here, because this is the
+/// function somebody will be tempted to call on a voided row instead.
+WithdrawalStatus computeWithdrawalStatus({
+  required Instant administeredAt,
+  required WithdrawalPeriod period,
+}) => switch (period) {
+  WithdrawalNotRecorded() => const WithdrawalUnknown(),
+  WithdrawalNotApplicable() => const NoWithdrawal(),
+  // `days: 0` lands HERE, not on NoWithdrawal. "The label says zero" and "the
+  // label says none applies" are different facts, and the zero-day case carries
+  // tomorrow's date because the period elapses at the moment of administration.
+  WithdrawalDays(:final int days, :final WithdrawalTarget target) => () {
+    final ({LocalDate date, Instant elapsesAt}) r = clearDateFor(
+      administeredAt: administeredAt,
+      days: days,
+    );
+    return ClearsOn(r.date, r.elapsesAt, target);
+  }(),
+};

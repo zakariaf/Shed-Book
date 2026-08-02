@@ -25,17 +25,14 @@
 //     FakeWakelockController                                      N29
 //     FakePurchaseService (the store seam, R74)                   N30
 //
-//   the pumpable-variant map (12 §6.2) — a Map<String, Widget Function()> over
-//     RouteNames. N13 creates it with ONE entry (quick_entry) and every screen
-//     epic adds one row. Four files iterate it, and none of them exist yet:
-//     the 252-cell overflow matrix, semantics_gate_test, the geometric half of
-//     tap_target_test, and the pixel-sampling group in contrast_test (N33).
-//
+
 //   restoreFixture / flock_400_3seasons.json (12 §5.2, critique defect S3) —
 //     fixtures go through RestoreService, which is N23, and tool/seed.dart
 //     writes them through the restore path in the same epic. Until then every
-//     test seeds with the targeted helpers in seeds.dart. The switch is one
-//     task, N23-T06, and it is the task that proves the fixture is loadable.
+//     test seeds with the targeted helpers in seeds.dart. The switch is
+//     N23-T05, "the two committed fixtures and the matrix switch". (N13-T07's
+//     own text says N23-T06; that is `restoreInto` and `freshSupportDir`, which
+//     is a different task. Corrected here.)
 //
 //   the four fixture id constants (12 §5.3) — they index into the fixture and
 //     are meaningless without it: N23.
@@ -59,7 +56,9 @@ import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/routing/routes.dart';
 
 /// Runs [body] with the ambient clock pinned to [instant].
 ///
@@ -90,6 +89,50 @@ import 'package:shed_book/l10n/app_localizations.dart';
 /// `package:clock`'s ambient clock, so `tester.pump(const Duration(hours: 25))`
 /// really moves `appNow()`. `package:fake_async` is not a declared dependency.
 T atFixed<T>(DateTime instant, T Function() body) => withClock(Clock.fixed(instant), body);
+
+/// Every screen the overflow matrix, the semantics gate, the geometric half of
+/// the tap-target gate and the contrast sampler pump (`12 §6.2`).
+///
+/// **THE TABLE LIVES HERE BECAUSE FOUR FILES ITERATE IT.** A table copied four
+/// times is four tables that stop agreeing the first time a screen is added.
+///
+/// **One entry today, and the membership is DERIVED rather than asserted.**
+/// N13-T07 lands `quick_entry` because that is the only screen that exists; each
+/// screen epic adds its own row in the commit that adds the screen:
+///
+///   flock · ewe_card                                      N26, N27
+///   lambing_entry                                         N16
+///   lamb_card                                             N17
+///   foster                                                N18
+///   pen_board                                             N19
+///   treatments                                            N20
+///   reminders                                             N24
+///   season_summary                                        N28
+///   export                                                N21
+///   settings                                              N29
+///   note_search                                           N25
+///
+/// At fourteen the matrix is 252 cells (`12 §6.1`) and `12 §6.2`'s
+/// `expect(kPumpableVariants.length, 14)` becomes true — **in N33-T01, not
+/// here.** Writing that assertion today would be asserting a future.
+///
+/// The builders take no arguments and seed nothing: a cell pumps the screen and
+/// looks for overflow, and the data it needs comes from `seeds.dart` until
+/// **N23-T05** switches the matrix to the committed fixtures.
+const Map<String, Widget Function()> kPumpableVariants = <String, Widget Function()>{
+  RouteNames.quickEntry: _quickEntry,
+};
+
+Widget _quickEntry() => const QuickEntryScreen();
+
+/// The text scales every variant is pumped at. 1.0, the Android 14+ default
+/// ceiling most users reach, and the 200% the platform allows.
+const List<double> kTextScales = <double>[1.0, 1.3, 2.0];
+
+/// Bold Text off and on. It is a separate axis from scale because
+/// flutter#139712 makes w800/w900 render LIGHTER when it is on — the one
+/// combination a scale-only matrix would never reach.
+const List<bool> kBoldStates = <bool>[false, true];
 
 /// The devices we promise to work on. **Smallest first — most bugs live there.**
 final class Device {

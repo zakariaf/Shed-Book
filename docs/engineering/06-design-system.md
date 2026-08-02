@@ -595,12 +595,17 @@ final _bannedPattern = <(String, RegExp, String, String)>[
       'drag-only control; use the keypad or a Wrap of 60 pt choices — §7'),
   ('gesture.horizontal_swipe', RegExp(r'\bPageView\b|\bTabBarView\b'), 'lib/',
       'horizontal swipe; vertical scrolling is the only tracked gesture — §7'),
-  // Every receipt goes through confirmSaved in lib/core/ui/feedback.dart —
-  // the one file permitted to call showSnackBar( (R30) and the only place that
-  // may set dismissDirection / persist correctly. A balanced-paren regex over
-  // a multi-line SnackBar(...) is not writable; forbidding the call site is.
-  ('gesture.raw_snackbar', RegExp(r'showSnackBar\('), 'lib/features/',
-      'call confirmSaved — a bare SnackBar is swipe-dismissible — §10.3'),
+  // AMENDED 2026-08-02 (N14-T04), ruling P2. This row was scoped lib/features/
+  // and called feedback.dart "the one file permitted" to make the call. There is
+  // no transient confirmation anywhere now, including in that file: the row is
+  // scoped `lib/`, it has NO allowlist entry, and it never may — a rule with an
+  // escape hatch is a rule that will be escaped at 23:00 on a Tuesday.
+  //
+  // §10.3's own printed confirmSaved body made the call, and its stated fallback
+  // was a floating overlay. P2 forbids both; a floating overlay is a toast with
+  // a different class name. The receipt is the committed row.
+  ('gesture.raw_snackbar', RegExp(r'showSnackBar\('), 'lib/',
+      'the receipt is the committed row — P2, indelible §9'),
 
   // -- semantics (details in 10-accessibility-and-i18n.md) ------------------
   ('a11y.announce', RegExp(r'SemanticsService\.announce'), 'lib/',

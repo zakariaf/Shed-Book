@@ -623,9 +623,13 @@ void _writePathTests() {
     ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
 
     expect('ref.listen'.allMatches(source).length, 1, reason: '02 §7: one place feedback happens');
-    expect(source, contains('case WriteCommitted()'));
-    expect(source, contains('case WriteFailed()'));
-    expect(source, contains('case WriteRefused()'));
+    // Matched on the CASE KEYWORD rather than the empty-parens form: N14-T04
+    // gave each arm a destructuring pattern, so `case WriteCommitted()` is no
+    // longer the literal in the file. What the case guards is that all three
+    // arms exist and none of them is a default.
+    expect(source, contains('case WriteCommitted('));
+    expect(source, contains('case WriteFailed('));
+    expect(source, contains('case WriteRefused('));
     expect(source, isNot(contains('default:')));
   });
 

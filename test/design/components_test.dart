@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_pen_tile.dart';
 import 'package:shed_book/core/ui/components/shed_photo.dart';
 import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
@@ -2104,5 +2105,135 @@ void main() {
 
     expect(find.textContaining('no longer on this phone'), findsOneWidget);
     expect(find.byType(Image), findsNothing, reason: 'there is nothing to show');
+  });
+
+  testWidgets('every ShedPenTile status carries a word and a mark as well as a colour', (
+    WidgetTester tester,
+  ) async {
+    // A PROPERTY, ITERATED OVER THE ENUM RATHER THAN WRITTEN FIVE TIMES. Five
+    // copies is five places for the sixth status to be forgotten, and the
+    // failure mode of forgetting is a tile that renders as a coloured rectangle
+    // — which is exactly what `10 §5.2` forbids and exactly what a reviewer's
+    // eye passes over.
+    // `_pumpComponent`, NOT the harness. This file pumps components against the
+    // theme and nothing else — no database, no providers — which is what makes
+    // it a DESIGN test rather than a feature test, and the reason its header
+    // says so.
+    for (final ShedPenTileStatus status in ShedPenTileStatus.values) {
+      final ({String word, String? mark}) expected = switch (status) {
+        // `settling`'s WORD IS ITS HOURS. There is no separate label, because
+        // "settling" is not news — every penned ewe is settling — and a word
+        // that says nothing crowds out the number that does.
+        ShedPenTileStatus.settling => (word: '4h', mark: null),
+        ShedPenTileStatus.ready => (word: 'READY', mark: 'pen_tile.dagger'),
+        ShedPenTileStatus.attention => (word: 'CLEAR 14 JUL', mark: 'pen_tile.badge'),
+        ShedPenTileStatus.loss => (word: 'DEAD', mark: null),
+        ShedPenTileStatus.empty => (word: '— empty —', mark: null),
+      };
+
+      await _pumpComponent(
+        tester,
+        ShedPenTile(
+          status: status,
+          lambCount: 2,
+          onTap: () {},
+          labels: (
+            penLabel: '3',
+            tag: '412',
+            hours: status == ShedPenTileStatus.empty ? null : '4h',
+            statusWord: status == ShedPenTileStatus.settling ? null : expected.word,
+            semanticLabel: 'Pen 3',
+          ),
+        ),
+      );
+
+      // 1 — A WORD. Not a colour, not a shape: something a screen reader can say
+      // and a shepherd can repeat down the phone.
+      expect(
+        find.textContaining(expected.word),
+        findsWidgets,
+        reason: '${status.name} must say something',
+      );
+
+      // 2 — A SHAPE CHANNEL, on every status without exception. The rule under
+      // the row is single, doubled, dashed or dotted, and none of those needs an
+      // ink to be told from the others.
+      expect(
+        find.byKey(const Key('pen_tile.rule')),
+        findsOneWidget,
+        reason: '${status.name} must carry a rule',
+      );
+
+      // 3 — AND THE STATUSES THAT HAVE A MARK CARRY IT.
+      if (expected.mark case final String markKey) {
+        expect(find.byKey(Key(markKey)), findsOneWidget, reason: status.name);
+      }
+
+      // 4 — `loss` HAS NO COLOUR CHANNEL AT ALL, EVER. A colour-coded death
+      // reads wrong at 4am through a wet freezer bag, and this is the one
+      // status where reinforcement would be worse than nothing.
+      if (status == ShedPenTileStatus.loss) {
+        expect(find.byKey(const Key('pen_tile.badge')), findsNothing);
+        expect(find.byKey(const Key('pen_tile.dagger')), findsNothing);
+      }
+    }
+  });
+
+  testWidgets('a pen tile draws lambs as strokes and clears two tap-primaries square', (
+    WidgetTester tester,
+  ) async {
+    // TALLY STROKES, NEVER A DIGIT (`indelible.md §8` screen 7). Four lambs is
+    // four marks a shepherd counts at a glance from a metre away; `4` is a glyph
+    // they have to read.
+    //
+    // AND THE SIZE IS MEASURED, not read back from the constant that was passed
+    // in. A tile is aimed at from a metre away with a gloved thumb, which is a
+    // different act from hitting a key on a pad held at arm's length.
+    await _pumpComponent(
+      tester,
+      ShedPenTile(
+        status: ShedPenTileStatus.settling,
+        lambCount: 4,
+        onTap: () {},
+        labels: (penLabel: '3', tag: '412', hours: '4h', statusWord: null, semanticLabel: 'Pen 3'),
+      ),
+    );
+
+    expect(find.byKey(const Key('pen_tile.tally')), findsOneWidget);
+    expect(find.text('4'), findsNothing, reason: 'strokes, not a digit');
+
+    final Size size = tester.getSize(find.byType(ShedPenTile));
+    expect(size.width, greaterThanOrEqualTo(144.0));
+    expect(size.height, greaterThanOrEqualTo(144.0));
+  });
+
+  testWidgets('an empty pen tile is still a target', (WidgetTester tester) async {
+    // AN EMPTY PEN IS A STATUS, NOT AN ABSENCE — it is the pen the shepherd is
+    // about to use, and a dead tile under a cold thumb is indistinguishable from
+    // a missed tap.
+    int taps = 0;
+
+    await _pumpComponent(
+      tester,
+      ShedPenTile(
+        status: ShedPenTileStatus.empty,
+        lambCount: 0,
+        onTap: () => taps++,
+        labels: (
+          penLabel: '3',
+          tag: null,
+          hours: null,
+          statusWord: '— empty —',
+          semanticLabel: 'Pen 3, empty',
+        ),
+      ),
+    );
+
+    final SemanticsData sd = tester.getSemantics(find.byType(ShedPenTile)).getSemanticsData();
+    expect(sd.flagsCollection.isEnabled, Tristate.isTrue);
+    expect(sd.hasAction(SemanticsAction.tap), isTrue);
+
+    await tester.tap(find.byType(ShedPenTile));
+    expect(taps, 1);
   });
 }

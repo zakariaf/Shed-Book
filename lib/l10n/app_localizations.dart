@@ -1191,6 +1191,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That {animal} is already on this {dam}.'**
   String warningFosterToSelf({required String animal, required String dam});
+
+  /// The elapsed-hours readout on a pen tile. Truncated, never rounded: a ewe penned 59 minutes ago has been in there for 0h, and the readout is only worth having if it is not flattering. Tabular figures, so twelve tiles line up.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String penTileHours({required int hours});
+
+  /// The ready status word. It means settled for at least the SHEPHERD'S OWN threshold - never a recommendation to turn out, which would be advice (12.2). The dagger in the margin and the doubled rule carry the same fact without colour.
+  ///
+  /// In en, this message translates to:
+  /// **'READY'**
+  String get penTileReady;
+
+  /// The attention status. It prints the withdrawal's CLEAR DATE, which is the fact the shepherd needs - never 'do not turn out', which would be an instruction. Attention outranks ready because turning out a ewe still under withdrawal is the mistake this app exists to prevent.
+  ///
+  /// In en, this message translates to:
+  /// **'CLEAR {date}'**
+  String penTileAttention({required String date});
+
+  /// The loss status word, printed in full ink in the lamb column. It carries NO COLOUR CHANNEL AT ALL, ever: a colour-coded death reads wrong at 4am through a wet freezer bag, and 10 5.2 has no status palette to use anyway.
+  ///
+  /// In en, this message translates to:
+  /// **'DEAD'**
+  String get penTileLoss;
+
+  /// An empty pen. It is a STATUS, not an absence - the pen with nothing in it is the pen the shepherd is about to use, so it is drawn rather than omitted. The dotted rule where the value would be is the second channel.
+  ///
+  /// In en, this message translates to:
+  /// **'— empty —'**
+  String get penTileEmpty;
+
+  /// One tile as one utterance. The label is the number chalked on the hurdle; the state is the same words the eye gets, so a support call about 'pen 3' is about the same thing for both users.
+  ///
+  /// In en, this message translates to:
+  /// **'Pen {label}, {state}'**
+  String penTileSemantics({required String label, required String state});
+
+  /// The add-pen target. ONE TAP, no wizard and no naming step: the shepherd is standing in front of a pen at 03:20 and asking what to call it is asking for a decision they do not have. The number is chosen for them and renaming happens in daylight.
+  ///
+  /// In en, this message translates to:
+  /// **'+ PEN'**
+  String get penBoardAddPen;
+
+  /// The add-pen target for a screen reader. A bare plus is unreadable aloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a pen'**
+  String get penBoardAddPenSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

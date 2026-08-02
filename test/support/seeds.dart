@@ -40,6 +40,14 @@ import 'package:shed_book/domain/time/local_date.dart';
 /// first act, not the installer's. Lambings and treatments both have a non-null
 /// season foreign key, so the helpers below need one to exist; this creates it
 /// on demand rather than making every caller pass an id it does not care about.
+/// The current season, created on first call and **made current**.
+///
+/// **PUBLIC FROM N19-T01.** It was private, and four test files had each
+/// hand-rolled their own `_seedSeason` — four copies of one fact, which is four
+/// places for it to drift. The pen tests needed it because a pen has no season
+/// of its own and nothing else in their setup creates one.
+Future<SeasonId> seedSeason(AppDatabase db) => _season(db);
+
 Future<SeasonId> _season(AppDatabase db) async {
   final List<Season> existing = await db.select(db.seasons).get();
   if (existing.isNotEmpty) {
@@ -59,6 +67,17 @@ Future<SeasonId> _season(AppDatabase db) async {
           updatedAt: now,
         ),
       );
+
+  // AND IT IS MADE CURRENT, which it was not until N19-T01. A seeded season that
+  // `app_settings.current_season` does not point at is a season NO REPOSITORY
+  // CAN FIND — every write verb reads the current season from settings, so the
+  // seed was producing a database the app cannot write to. Found by
+  // `PenRepository.enterPen`, which was the first verb to be tested against a
+  // database seeded only through this path.
+  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+    AppSettingsCompanion(currentSeason: Value<int?>(id)),
+  );
+
   return SeasonId(id);
 }
 

@@ -652,4 +652,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String warningFosterToSelf({required String animal, required String dam}) {
     return 'That $animal is already on this $dam.';
   }
+
+  @override
+  String penTileHours({required int hours}) {
+    return '${hours}h';
+  }
+
+  @override
+  String get penTileReady => 'READY';
+
+  @override
+  String penTileAttention({required String date}) {
+    return 'CLEAR $date';
+  }
+
+  @override
+  String get penTileLoss => 'DEAD';
+
+  @override
+  String get penTileEmpty => '— empty —';
+
+  @override
+  String penTileSemantics({required String label, required String state}) {
+    return 'Pen $label, $state';
+  }
+
+  @override
+  String get penBoardAddPen => '+ PEN';
+
+  @override
+  String get penBoardAddPenSemantics => 'Add a pen';
+
+  @override
+  String get penBoardTitle => 'PENS';
 }

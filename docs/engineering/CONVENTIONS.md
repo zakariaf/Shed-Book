@@ -695,6 +695,9 @@ spellings only. Production has zero overrides.
 |---|---|---|---|
 | `tagIndexProvider` | `StreamProvider<List<TagIndexEntry>>` | `lib/data/providers.dart` | keepAlive — active animals only (R26) |
 | `vocabProvider` | `StreamProvider<List<VocabEntry>>` | `lib/data/providers.dart` | keepAlive — forty rows, four screens; **not** the drift row class (R81) |
+| `penRepositoryProvider` | `Provider<PenRepository>` | `lib/data/providers.dart` | N19-T01's writes and the board's one statement |
+| `settleThresholdHoursProvider` | `Provider<int>` | `lib/data/providers.dart` | the USER's number (`03 §5.13`) — a display threshold, in no export, nothing derived from it |
+| `fosterRepositoryProvider` | `Provider<FosterRepository>` | `lib/data/providers.dart` | N18-T01's append-only foster verbs |
 | `quickEntryDeckProvider` | `StreamProvider<QuickEntryDeck>` | ~~`lib/features/quick_entry/quick_entry_controller.dart`~~ `lib/data/providers.dart` (**R83**) | keepAlive — **one** statement, two buckets; the strips read it with `.select` (R28) |
 | `penBoardProvider` | `StreamProvider<List<PenTile>>` | `lib/features/pens/pen_board_controller.dart` | keepAlive |
 | `flockListProvider` | `StreamProvider<List<FlockRow>>` | `lib/features/flock/flock_controller.dart` | keepAlive |

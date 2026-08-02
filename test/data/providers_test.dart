@@ -191,6 +191,9 @@ void main() {
       // Foster screen needs the same deck and one feature may not import another.
       'quickEntryDeckProvider',
       'fosterRepositoryProvider',
+      // N19-T02
+      'penRepositoryProvider',
+      'settleThresholdHoursProvider',
     });
   });
 

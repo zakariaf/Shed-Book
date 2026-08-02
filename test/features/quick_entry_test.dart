@@ -6,9 +6,10 @@
 // the implementation 03 §9.1 rules out.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
@@ -21,6 +22,7 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/feedback.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
 
@@ -612,6 +614,115 @@ void _writePathTests() {
       reason: 'EntryContext.liveEntry makes a refusal unreachable here',
     );
     await tester.closeApp();
+  });
+
+  testWidgets('the undo window is stated in seconds and does not survive a restart', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, IN TWO HALVES.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quick_entry.lambing')));
+    await tester.pumpAndSettle();
+
+    // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
+    // a changed constant changes the copy or this fails.
+    expect(find.byKey(const Key('quick_entry.strike')), findsOneWidget);
+    expect(find.textContaining('${kStrikeWindow.inSeconds}'), findsOneWidget);
+
+    // The window is tied to the widget, not to a timer that outlives the screen.
+    await tester.pump(kStrikeWindow + const Duration(seconds: 1));
+    expect(
+      find.byKey(const Key('quick_entry.strike')),
+      findsNothing,
+      reason: 'the window closes and the affordance goes with it',
+    );
+
+    await tester.closeApp();
+
+    // HALF 2 — IT DOES NOT SURVIVE A RESTART. Same database, fresh tree: the row
+    // is still there and the affordance is not. 01 §4.5 and 07 §15.4 — there is
+    // no state restoration, no undo affordance is ever rebuilt from storage, and
+    // no copy anywhere may say "you can undo this later".
+    expect(await countLambings(db), 1);
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('quick_entry.strike')), findsNothing);
+    expect(await countLambings(db), 1, reason: 'the row survives; the affordance does not');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('striking leaves the row in place', (WidgetTester tester) async {
+    // A STRIKE IS NOT A DELETE. The row keeps its position and its legibility,
+    // permanently — Indelible Rule 1.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quick_entry.lambing')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quick_entry.strike')));
+    await tester.pumpAndSettle();
+
+    expect(await countLambings(db), 1);
+    final Lambing row = (await db.select(db.lambings).get()).single;
+    expect(row.struck, isTrue);
+    expect(row.struckAt, isNotNull);
+
+    await tester.closeApp();
+  });
+
+  test('the strike window is a constant, and the copy reads it', () {
+    final String arb = File('lib/l10n/app_en.arb').readAsStringSync();
+    expect(arb, contains(r'{seconds}s to strike'));
+    expect(arb, isNot(contains('20s to strike')));
+
+    final String screen = File(
+      'lib/features/quick_entry/quick_entry_screen.dart',
+    ).readAsStringSync();
+    expect(screen, contains('kStrikeWindow.inSeconds'));
+  });
+
+  test('no copy anywhere promises a later undo', () {
+    // MESSAGE VALUES ONLY, never the descriptions — the thirtieth
+    // prohibition-versus-claim self-match: quickEntryStrikeWindow's own
+    // description explains why no copy may promise a later undo, and to do that
+    // it says the phrase.
+    final Map<String, dynamic> arb =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync()) as Map<String, dynamic>;
+
+    for (final MapEntry<String, dynamic> e in arb.entries) {
+      if (e.key.startsWith('@') || e.value is! String) {
+        continue;
+      }
+      final String value = (e.value as String).toLowerCase();
+      for (final String phrase in <String>['undo this later', 'you can undo', 'undo it later']) {
+        expect(value, isNot(contains(phrase)), reason: '${e.key}: $phrase');
+      }
+    }
   });
 
   test('the screen listens once and its switch has no default arm', () {

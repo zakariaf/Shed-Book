@@ -18,6 +18,7 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/motion.dart';
 import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 
 /// How long the strike affordance stays in the margin.
@@ -56,6 +57,7 @@ final class SaveReceipt {
     required this.tag,
     required this.summary,
     required this.at,
+    this.expiresAt,
     this.undo,
     this.undoLabel = 'UNDO',
   });
@@ -64,8 +66,28 @@ final class SaveReceipt {
   final String tag;
   final String summary;
   final String at;
+
+  /// When the strike affordance stops being offered — `now + kStrikeWindow`,
+  /// stamped by the publisher.
+  ///
+  /// **THE WINDOW IS A FACT ABOUT THE RECEIPT, NOT ABOUT A WIDGET'S LIFETIME,
+  /// AND THAT IS A CORRECTION.** Holding it as widget state meant the affordance
+  /// re-armed whenever its `State` was recreated — MEASURED: the timer fired,
+  /// the word disappeared, and a rebuild brought it straight back, so a window
+  /// "stated in seconds" silently lasted as long as the shepherd kept the screen
+  /// open. An absolute deadline recomputes to the same answer however many times
+  /// the widget is rebuilt.
+  ///
+  /// `07 §15.2` still holds: no timer outlives the screen. The widget's timer
+  /// only schedules a rebuild; it does not decide anything.
+  final Instant? expiresAt;
+
   final VoidCallback? undo;
   final String undoLabel;
+
+  /// Whether the strike word is still offered at [now].
+  bool isOpenAt(Instant now) =>
+      undo != null && expiresAt != null && now.epochMillis < expiresAt!.epochMillis;
 
   /// **The live-region label must differ every time or it does not
   /// re-announce.** A live region only speaks when its label CHANGES, so two

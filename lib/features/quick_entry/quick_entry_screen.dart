@@ -40,6 +40,8 @@
 // column: it OVERLAYS the bottom band the way indelible §8 draws it, and a sheet
 // that pushed the band would move the slab, which is the one target the shepherd
 // aims at without looking.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
@@ -53,6 +55,7 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
@@ -85,7 +88,19 @@ class QuickEntryScreen extends StatelessWidget {
   const QuickEntryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) => const _QuickEntryPage();
+  Widget build(BuildContext context) => ShedReceiptScope(
+    // INSTALLED HERE, ABOVE the page, and the reason is mechanical: `ref.listen`
+    // is registered in _QuickEntryPage.build, so its BuildContext is that
+    // widget's — which is ABOVE anything _QuickEntryPage returns. A scope
+    // installed inside the page is a scope the publisher cannot see, and
+    // confirmSaved would silently publish to nothing.
+    notifier: _receipts,
+    child: const _QuickEntryPage(),
+  );
+
+  /// One notifier for the screen. A receipt is a fact about the last committed
+  /// row rather than about a widget's lifecycle, so it outlives a rebuild.
+  static final ValueNotifier<SaveReceipt?> _receipts = ValueNotifier<SaveReceipt?>(null);
 }
 
 /// The page proper.
@@ -97,12 +112,6 @@ class QuickEntryScreen extends StatelessWidget {
 /// nothing, because this widget's children are the same fixed boxes.
 class _QuickEntryPage extends ConsumerWidget {
   const _QuickEntryPage();
-
-  /// One notifier for the page. It is a top-level `final` rather than state,
-  /// because this widget is `const` and the receipt outlives a rebuild — and
-  /// because a receipt is a fact about the last committed row, not about this
-  /// widget's lifecycle.
-  static final ValueNotifier<SaveReceipt?> _receipts = ValueNotifier<SaveReceipt?>(null);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -119,19 +128,32 @@ class _QuickEntryPage extends ConsumerWidget {
     ) {
       if (next case WriteDone(:final WriteOutcome outcome)) {
         switch (outcome) {
-          case WriteCommitted(:final List<Warning> warnings):
+          case WriteCommitted(:final List<Warning> warnings, :final int? insertedId):
             // The confirmation IS the committed row, in ink, one line above the
             // one being written. Three channels: the haptic, the receipt
             // published to the scope, and the row itself — which the drift
             // stream has already re-emitted and is the only one of the three
             // still true five seconds later.
+            // `undoLabel` IS SET EXPLICITLY rather than letting the 'UNDO'
+            // default through. 07 §15.3 reserves "Undo" for where the record
+            // DISAPPEARS, and after P1 it never does — the row stays in
+            // position, legible, permanently marked. The word is STRIKE.
+            final int? id = insertedId;
             confirmSaved(
               context,
               SaveReceipt(
                 term: l10n.quickEntryLambing,
                 tag: '',
-                summary: l10n.quickEntryLambing,
+                summary: l10n.quickEntryStrikeWindow(seconds: kStrikeWindow.inSeconds),
                 at: formatShedTime(appNow(), 'en_GB'),
+                expiresAt: appNow().plus(kStrikeWindow),
+                undoLabel: l10n.quickEntryStrike,
+                undo: id == null
+                    ? null
+                    : () => ref
+                          .read(quickEntryWriteControllerProvider.notifier)
+                          .strike(LambingId(id))
+                          .ignore(),
               ),
               warnings,
             );
@@ -152,160 +174,270 @@ class _QuickEntryPage extends ConsumerWidget {
       }
     });
 
-    return ShedReceiptScope(
-      notifier: _receipts,
-      child: Scaffold(
-        backgroundColor: t.surfaceBase,
-        body: Stack(
-          children: <Widget>[
-            // THE SPINE IS THE BOTTOM LAYER, painted behind everything. A spine
-            // assembled per row is a spine with seams, and the seams show under a
-            // head torch at the moment the shepherd is scrolling.
-            const QuickEntrySpine(left: _Grid.marginWidth),
+    return Scaffold(
+      backgroundColor: t.surfaceBase,
+      body: Stack(
+        children: <Widget>[
+          // THE SPINE IS THE BOTTOM LAYER, painted behind everything. A spine
+          // assembled per row is a spine with seams, and the seams show under a
+          // head torch at the moment the shepherd is scrolling.
+          const QuickEntrySpine(left: _Grid.marginWidth),
 
-            Column(
-              children: <Widget>[
-                QuickEntryPageHeader(
-                  // The night and page are the record column's, and the column is
-                  // T06's. Until then the header renders its own shape at its own
-                  // height, which is what the anchor pins.
-                  text: l10n.quickEntryPageHeader(night: '', page: 1),
-                  height: _Grid.headerHeight,
-                ),
+          Column(
+            children: <Widget>[
+              QuickEntryPageHeader(
+                // The night and page are the record column's, and the column is
+                // T06's. Until then the header renders its own shape at its own
+                // height, which is what the anchor pins.
+                text: l10n.quickEntryPageHeader(night: '', page: 1),
+                height: _Grid.headerHeight,
+              ),
 
-                // The record column takes the remainder, and the remainder is what
-                // gives. That is the design's own answer rather than an invention:
-                // 06 §8.2 says of the keypad growing that "the match list above it
-                // gives up rows". Same trade, one level up — the chrome the thumb
-                // aims at is fixed, the reading surface flexes.
-                //
-                // Its rows share edges — 64 pt, no gaps — because a ruled page has
-                // no gutters.
-                Expanded(
-                  child: ClipRect(
-                    child: SingleChildScrollView(
-                      key: const Key('quick_entry.record_column'),
-                      child: Column(
-                        children: <Widget>[
-                          for (int i = 0; i < 12; i++)
-                            const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
-                        ],
-                      ),
+              // The record column takes the remainder, and the remainder is what
+              // gives. That is the design's own answer rather than an invention:
+              // 06 §8.2 says of the keypad growing that "the match list above it
+              // gives up rows". Same trade, one level up — the chrome the thumb
+              // aims at is fixed, the reading surface flexes.
+              //
+              // Its rows share edges — 64 pt, no gaps — because a ruled page has
+              // no gutters.
+              Expanded(
+                child: ClipRect(
+                  child: SingleChildScrollView(
+                    key: const Key('quick_entry.record_column'),
+                    child: Column(
+                      children: <Widget>[
+                        for (int i = 0; i < 12; i++)
+                          const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
+                      ],
                     ),
                   ),
                 ),
+              ),
 
-                // The deck's two strips. T06 fills them; the sizes are final now,
-                // which is what makes frame 1 and frame 2 identical.
-                const InPensStrip(height: _Grid.stripHeight),
-                const RecentsStrip(height: _Grid.stripHeight),
+              // The deck's two strips. T06 fills them; the sizes are final now,
+              // which is what makes frame 1 and frame 2 identical.
+              const InPensStrip(height: _Grid.stripHeight),
+              const RecentsStrip(height: _Grid.stripHeight),
 
-                // THE LIVE ROW IS A FIXED LAYER, NOT A SCROLLING CHILD, and this
-                // task owns that correction. indelible.html:1138 puts it inside the
-                // scrolling stream, so the open row scrolls away — the audit
-                // block's Indelible artefact defect 1. The corrected rule is that
-                // it is welded above the bottom band, and the reason is the
-                // mechanism §8 describes: "you can see it, in ink, one line above."
-                // A row you have to scroll to find is not a receipt.
-                SizedBox(
-                  key: const Key('quick_entry.live_row'),
-                  height: _Grid.liveRowHeight,
-                  child: Row(
-                    children: <Widget>[
-                      QuickEntryMarginCell(
-                        time: '',
-                        stampAuto: l10n.quickEntryStampAuto,
-                        width: _Grid.marginWidth,
-                        height: _Grid.rowHeight,
-                      ),
-                      const Expanded(child: SizedBox.expand()),
-                    ],
-                  ),
-                ),
+              QuickEntryBottomBand(
+                indexLabel: l10n.quickEntryIndex,
+                slabLabel: l10n.quickEntrySlabTagFirst,
+                onIndex: () {},
+                onSlab: () {},
+                bandHeight: _Grid.bandHeight,
+                indexWidth: _Grid.indexWidth,
+                indexHeight: _Grid.indexHeight,
+                slabWidth: _Grid.slabWidth,
+                slabHeight: _Grid.slabHeight,
+              ),
+            ],
+          ),
 
-                QuickEntryBottomBand(
-                  indexLabel: l10n.quickEntryIndex,
-                  slabLabel: l10n.quickEntrySlabTagFirst,
-                  onIndex: () {},
-                  onSlab: () {},
-                  bandHeight: _Grid.bandHeight,
-                  indexWidth: _Grid.indexWidth,
-                  indexHeight: _Grid.indexHeight,
-                  slabWidth: _Grid.slabWidth,
-                  slabHeight: _Grid.slabHeight,
-                ),
-              ],
-            ),
-
-            // THE ENTRY SHEET, OPEN ON FRAME 1. See the ruling in this file's
-            // header. It overlays the band rather than pushing it, because a sheet
-            // that moved the slab would move the one target the shepherd aims at
-            // without looking.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: ColoredBox(
-                color: t.surfaceRaised,
-                child: Column(
-                  key: const Key('quick_entry.entry_sheet'),
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
-                    // the keypad is fully usable before the database has opened,
-                    // because it watches nothing and needs nothing.
-                    ShedKeypad(
-                      onDigit: (String _) {},
-                      onBackspace: () {},
-                      thirdKey: ShedKeypadThirdKey.newTag,
-                      onThirdKey: () {},
-                      padLabel: l10n.keypadTagEntry,
-                      backspaceLabel: l10n.keypadBackspace,
-                      backspaceHint: l10n.hintDeleteLastDigit,
-                      thirdKeyLabel: l10n.keypadNewTag,
+          // THE ENTRY SHEET, OPEN ON FRAME 1. See the ruling in this file's
+          // header. It overlays the band rather than pushing it, because a sheet
+          // that moved the slab would move the one target the shepherd aims at
+          // without looking.
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: ColoredBox(
+              color: t.surfaceRaised,
+              child: Column(
+                key: const Key('quick_entry.entry_sheet'),
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  // THE LIVE ROW LIVES AT THE TOP OF THE SHEET, AND THAT IS A CORRECTION
+                  // MEASURED AT N14-T05. As a sibling of the bottom band it was
+                  // COVERED by the sheet — the hit test landed on the sheet's own
+                  // background, which means the shepherd could neither see the
+                  // receipt nor press the strike word. indelible §8's whole claim
+                  // is "you can see it, in ink, one line above the one being
+                  // written", and a row under an opaque sheet is not one line
+                  // above anything.
+                  //
+                  // It is still a FIXED LAYER, NOT A SCROLLING CHILD, and this
+                  // task owns that correction. indelible.html:1138 puts it inside the
+                  // scrolling stream, so the open row scrolls away — the audit
+                  // block's Indelible artefact defect 1. The corrected rule is that
+                  // it is welded above the bottom band, and the reason is the
+                  // mechanism §8 describes: "you can see it, in ink, one line above."
+                  // A row you have to scroll to find is not a receipt.
+                  SizedBox(
+                    key: const Key('quick_entry.live_row'),
+                    height: _Grid.liveRowHeight,
+                    child: Row(
+                      children: <Widget>[
+                        QuickEntryMarginCell(
+                          time: '',
+                          stampAuto: l10n.quickEntryStampAuto,
+                          width: _Grid.marginWidth,
+                          height: _Grid.rowHeight,
+                        ),
+                        // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY. It reads
+                        // the scope rather than watching a provider, because a
+                        // feedback function has a BuildContext and no WidgetRef.
+                        Expanded(
+                          child: ValueListenableBuilder<SaveReceipt?>(
+                            valueListenable: ShedReceiptScope.of(context),
+                            builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
+                                receipt == null
+                                ? const SizedBox.expand()
+                                : _StrikeAffordance(receipt: receipt),
+                          ),
+                        ),
+                      ],
                     ),
-                    // THE LAMBING EVENT BUTTON, in the confirm slot the shell
-                    // reserved. It is the product's central write: the tap commits
-                    // the row BEFORE any screen is pushed, which is why the label
-                    // names the event rather than an intention.
-                    //
-                    // N16 pushes LambingEntryScreen from the outcome's id. There
-                    // is no route helper for a screen that does not exist yet.
-                    SizedBox(
-                      key: const Key('quick_entry.confirm'),
-                      height: t.tapHero,
-                      width: double.infinity,
-                      child: ShedTapTarget(
-                        key: const Key('quick_entry.lambing'),
-                        semanticLabel: l10n.quickEntryLambing,
-                        minSize: t.tapHero,
-                        onTap: () {
-                          final EweId? selected = ref.read(quickEntryControllerProvider).selected;
-                          if (selected == null) {
-                            return;
-                          }
-                          ref
-                              .read(quickEntryWriteControllerProvider.notifier)
-                              .beginLambing(selected)
-                              .ignore();
-                        },
-                        child: ExcludeSemantics(
-                          child: Center(
-                            child: Text(
-                              l10n.quickEntryLambing,
-                              style: Theme.of(context).textTheme.labelLarge,
-                            ),
+                  ),
+                  // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
+                  // the keypad is fully usable before the database has opened,
+                  // because it watches nothing and needs nothing.
+                  ShedKeypad(
+                    onDigit: (String _) {},
+                    onBackspace: () {},
+                    thirdKey: ShedKeypadThirdKey.newTag,
+                    onThirdKey: () {},
+                    padLabel: l10n.keypadTagEntry,
+                    backspaceLabel: l10n.keypadBackspace,
+                    backspaceHint: l10n.hintDeleteLastDigit,
+                    thirdKeyLabel: l10n.keypadNewTag,
+                  ),
+                  // THE LAMBING EVENT BUTTON, in the confirm slot the shell
+                  // reserved. It is the product's central write: the tap commits
+                  // the row BEFORE any screen is pushed, which is why the label
+                  // names the event rather than an intention.
+                  //
+                  // N16 pushes LambingEntryScreen from the outcome's id. There
+                  // is no route helper for a screen that does not exist yet.
+                  SizedBox(
+                    key: const Key('quick_entry.confirm'),
+                    height: t.tapHero,
+                    width: double.infinity,
+                    child: ShedTapTarget(
+                      key: const Key('quick_entry.lambing'),
+                      semanticLabel: l10n.quickEntryLambing,
+                      minSize: t.tapHero,
+                      onTap: () {
+                        final EweId? selected = ref.read(quickEntryControllerProvider).selected;
+                        if (selected == null) {
+                          return;
+                        }
+                        ref
+                            .read(quickEntryWriteControllerProvider.notifier)
+                            .beginLambing(selected)
+                            .ignore();
+                      },
+                      child: ExcludeSemantics(
+                        child: Center(
+                          child: Text(
+                            l10n.quickEntryLambing,
+                            style: Theme.of(context).textTheme.labelLarge,
                           ),
                         ),
                       ),
                     ),
-                    SizedBox(height: MediaQuery.paddingOf(context).bottom),
-                  ],
-                ),
+                  ),
+                  SizedBox(height: MediaQuery.paddingOf(context).bottom),
+                ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The strike word, in the just-committed row's margin, for [kStrikeWindow].
+///
+/// **The window is not a Timer that outlives the screen** (`07 §15.2`). It is
+/// tied to this widget and cancelled on dispose, and it is NEVER reconstructed
+/// after a restart: `01 §4.5` and `07 §15.4` — there is no state restoration, no
+/// undo affordance is ever rebuilt from storage, and no copy anywhere may say
+/// "you can undo this later."
+class _StrikeAffordance extends StatefulWidget {
+  const _StrikeAffordance({required this.receipt});
+
+  final SaveReceipt receipt;
+
+  @override
+  State<_StrikeAffordance> createState() => _StrikeAffordanceState();
+}
+
+class _StrikeAffordanceState extends State<_StrikeAffordance> {
+  Timer? _window;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  @override
+  void didUpdateWidget(_StrikeAffordance old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.receipt, widget.receipt)) {
+      _schedule();
+    }
+  }
+
+  /// Schedules ONE rebuild at the deadline. **It decides nothing** — the
+  /// receipt's `expiresAt` decides, so a `State` recreated after the deadline
+  /// recomputes *closed* rather than re-opening the window.
+  ///
+  /// MEASURED: holding the window as widget state meant the affordance re-armed
+  /// whenever its State was recreated. The timer fired, the word disappeared,
+  /// and a rebuild brought it straight back — so a window "stated in seconds"
+  /// silently lasted as long as the shepherd kept the screen open.
+  void _schedule() {
+    _window?.cancel();
+    final Instant? expires = widget.receipt.expiresAt;
+    if (expires == null) {
+      return;
+    }
+    final int ms = expires.epochMillis - appNow().epochMillis;
+    if (ms <= 0) {
+      return;
+    }
+    _window = Timer(Duration(milliseconds: ms), () {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _window?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final SaveReceipt r = widget.receipt;
+    return Semantics(
+      liveRegion: true,
+      // THE LABEL DIFFERS EVERY SAVE or the live region does not re-announce —
+      // it speaks only when its label CHANGES, so two identical saves in a row
+      // would announce once and the second lamb would get silence.
+      label: r.liveLabel,
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(r.summary, style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
+          ),
+          if (r.isOpenAt(appNow()))
+            ShedTapTarget(
+              key: const Key('quick_entry.strike'),
+              semanticLabel: r.undoLabel,
+              minSize: context.tokens.tapMin,
+              onTap: r.undo!,
+              child: ExcludeSemantics(
+                child: Text(r.undoLabel, style: Theme.of(context).textTheme.labelMedium),
+              ),
+            ),
+        ],
       ),
     );
   }

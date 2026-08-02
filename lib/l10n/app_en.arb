@@ -267,5 +267,26 @@
   "@matchCountClosest": {
     "description": "The second live region. It carries the CLOSEST match as well as the count, because counting alone re-announces nothing when three matches become a different three matches — and the shepherd is listening for whether the animal in front of them is on the list.",
     "placeholders": { "count": { "type": "int" }, "tag": { "type": "String" } }
+  },
+  "quickEntryTitle": "Tonight",
+  "@quickEntryTitle": {
+    "description": "The screen's headingLevel: 1 title. Quick Entry has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any."
+  },
+  "quickEntryPageHeader": "Night of {night} · page {page}",
+  "@quickEntryPageHeader": {
+    "description": "indelible.md §7.16 page header. {night} arrives PRE-FORMATTED as `d MMM y` from formatShedDate (10 §8.4 rule 4) — never format a date inside a message, and never render an all-numeric date (R60, decision #108). The widget applies toUpperCase(); do not store shouty caps here, because the caps are a typographic decision owned by the design system and Flutter has no text-transform.",
+    "placeholders": { "night": { "type": "String" }, "page": { "type": "int" } }
+  },
+  "quickEntryStampAuto": "AUTO",
+  "@quickEntryStampAuto": {
+    "description": "indelible.md §3.4's stamp: at most 12 characters, all-caps, and NEVER the sole carrier of its meaning — it sits beside a time that is obviously the current time. Safety rule §12.5: auto-captured time is labelled as such. The moment this stamp is the only thing distinguishing an auto time from an edited one, the sub-18px exemption is void."
+  },
+  "quickEntryIndex": "INDEX",
+  "@quickEntryIndex": {
+    "description": "The bottom-left navigation anchor, 96x64. It is the ONLY navigation affordance in the app — P3's affordance half went to indelible.md, so there is no back chevron anywhere (decision record §7.0a). Capitals because it is the control voice."
+  },
+  "quickEntrySlabTagFirst": "Tag first",
+  "@quickEntrySlabTagFirst": {
+    "description": "The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1)."
   }
 }

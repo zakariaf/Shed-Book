@@ -6,6 +6,8 @@
 // the implementation 03 §9.1 rules out.
 library;
 
+import 'dart:io';
+
 import 'package:drift/drift.dart' hide isNull;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,7 +15,9 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
+import 'package:flutter/material.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
 import '../support/seeds.dart';
@@ -185,6 +189,8 @@ void main() {
     expect(container.read(quickEntryControllerProvider).selected, isNull);
   });
 
+  _shellTests();
+
   test('an empty query matches nothing', () async {
     // rankTagMatches returns const [] for an empty query — the deck shows the
     // recents strip, not the whole flock, and a 400-row list under a thumb at
@@ -200,5 +206,129 @@ void main() {
 
     expect(container.read(quickEntryControllerProvider).query, isEmpty);
     expect(container.read(quickEntryControllerProvider).matches, isEmpty);
+  });
+}
+
+/// The named boxes the shell reserves. A failure names WHICH box moved, which is
+/// the whole reason they are enumerated rather than compared as a tree.
+const List<String> _shellBoxes = <String>[
+  'quick_entry.page_header',
+  'quick_entry.spine',
+  'quick_entry.margin_cell',
+  'quick_entry.penned_strip',
+  'quick_entry.recents_strip',
+  'quick_entry.keypad',
+  'quick_entry.confirm',
+  'quick_entry.bottom_band',
+  'quick_entry.slab',
+];
+
+void _shellTests() {
+  for (final Device device in Device.all) {
+    for (final double scale in <double>[1.0, 1.3]) {
+      testWidgets('frame 1 with no data occupies the same boxes as frame 2 with data — '
+          '${device.name} at $scale', (WidgetTester tester) async {
+        // THE ANCHOR. Rect equality on NAMED boxes, and EXACT rather than
+        // approximate: the claim is that nothing moves under a thumb, and a 3 pt
+        // shift is enough to mis-target a 64 pt key. The thumb is already
+        // committed by the time the data arrives.
+        //
+        // Run at all three devices, because a box that is stable at 390 x 844
+        // and shifts at 375 x 667 is the bug this exists for.
+        final AppDatabase db = testDatabase();
+
+        await tester.pumpApp(const QuickEntryScreen(), db: db, device: device, textScale: scale);
+        final Map<String, Rect> frameOne = <String, Rect>{
+          for (final String id in _shellBoxes) id: tester.getRect(find.byKey(Key(id))),
+        };
+
+        final PenId pen = await seedPen(db, label: 'A');
+        for (int i = 0; i < 6; i++) {
+          final EweId e = await seedEwe(db, tag: '40$i');
+          await seedTouch(db, e);
+          if (i == 0) {
+            await seedPenOccupancy(db, pen, e);
+          }
+        }
+        await tester.pumpAndSettle();
+
+        for (final String id in _shellBoxes) {
+          expect(
+            tester.getRect(find.byKey(Key(id))),
+            frameOne[id],
+            reason: '$id moved between frame 1 and frame 2 — ${device.name} at $scale',
+          );
+        }
+      });
+    }
+  }
+
+  test('the shell watches nothing, which is why its boxes cannot move', () {
+    // THE STRUCTURAL GUARANTEE, AND A DRILL IS WHY IT IS HERE. Planting a
+    // data-dependent height on a strip did NOT redden the rect anchor — because
+    // the anchor compares frame 1 to frame 2 on the SAME device, and a height
+    // that varies with anything other than the deck is invisible to it.
+    //
+    // What actually makes the boxes immovable is that this screen has no channel
+    // to move them through: a StatelessWidget that watches nothing cannot be
+    // rebuilt by a keystroke or by an emission (02 §10.1). That is source text,
+    // and it is the assertion the anchor cannot make for itself.
+    final String source = File(
+      'lib/features/quick_entry/quick_entry_screen.dart',
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+    expect(source, contains('class QuickEntryScreen extends StatelessWidget'));
+    expect(source, isNot(contains('ConsumerWidget')));
+    expect(source, isNot(contains('ref.watch')));
+    expect(source, isNot(contains('ConsumerStatefulWidget')));
+  });
+
+  testWidgets('the live row does not scroll away', (WidgetTester tester) async {
+    // THIS TASK OWNS THE CORRECTION. indelible.html:1138 puts the live row inside
+    // the scrolling stream, so the open row scrolls away — the audit block's
+    // Indelible artefact defect 1. The corrected rule is that it is a FIXED layer
+    // welded above the bottom band, and the reason is the mechanism §8 describes:
+    // "you can see it, in ink, one line above." A row you have to scroll to find
+    // is not a receipt.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+
+    final Rect before = tester.getRect(find.byKey(const Key('quick_entry.live_row')));
+
+    await tester.drag(find.byKey(const Key('quick_entry.record_column')), const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    expect(tester.getRect(find.byKey(const Key('quick_entry.live_row'))), before);
+  });
+
+  testWidgets('the spine is continuous and does not mirror', (WidgetTester tester) async {
+    // indelible.md §4.3: it does not break for headers, sheets, sections or the
+    // live row, and left-handed mode moves the SLAB, not the spine.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+
+    final Rect spine = tester.getRect(find.byKey(const Key('quick_entry.spine')));
+    final Rect header = tester.getRect(find.byKey(const Key('quick_entry.page_header')));
+    final Rect band = tester.getRect(find.byKey(const Key('quick_entry.bottom_band')));
+
+    expect(spine.top, lessThanOrEqualTo(header.top));
+    expect(spine.bottom, greaterThanOrEqualTo(band.bottom));
+    expect(spine.width, greaterThan(0));
+  });
+
+  testWidgets('frame 1 is interactive — the keypad works before the database opens', (
+    WidgetTester tester,
+  ) async {
+    // Decision #21's whole promise, and the reason the sheet is OPEN on frame 1
+    // rather than waiting for a tap. The keypad watches nothing and needs
+    // nothing, so it is usable on the first painted frame.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+
+    expect(find.byKey(const Key('quick_entry.entry_sheet')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('quick_entry.keypad.digit_4')));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 }

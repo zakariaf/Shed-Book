@@ -463,6 +463,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count, plural, =0{No matches} =1{1 match, closest {tag}} other{{count} matches, closest {tag}}}'**
   String matchCountClosest({required int count, required String tag});
+
+  /// The screen's headingLevel: 1 title. Quick Entry has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonight'**
+  String get quickEntryTitle;
+
+  /// indelible.md §7.16 page header. {night} arrives PRE-FORMATTED as `d MMM y` from formatShedDate (10 §8.4 rule 4) — never format a date inside a message, and never render an all-numeric date (R60, decision #108). The widget applies toUpperCase(); do not store shouty caps here, because the caps are a typographic decision owned by the design system and Flutter has no text-transform.
+  ///
+  /// In en, this message translates to:
+  /// **'Night of {night} · page {page}'**
+  String quickEntryPageHeader({required String night, required int page});
+
+  /// indelible.md §3.4's stamp: at most 12 characters, all-caps, and NEVER the sole carrier of its meaning — it sits beside a time that is obviously the current time. Safety rule §12.5: auto-captured time is labelled as such. The moment this stamp is the only thing distinguishing an auto time from an edited one, the sub-18px exemption is void.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTO'**
+  String get quickEntryStampAuto;
+
+  /// The bottom-left navigation anchor, 96x64. It is the ONLY navigation affordance in the app — P3's affordance half went to indelible.md, so there is no back chevron anywhere (decision record §7.0a). Capitals because it is the control voice.
+  ///
+  /// In en, this message translates to:
+  /// **'INDEX'**
+  String get quickEntryIndex;
+
+  /// The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'Tag first'**
+  String get quickEntrySlabTagFirst;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

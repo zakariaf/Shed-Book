@@ -17,6 +17,7 @@ import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 import 'package:shed_book/routing/routes.dart';
 
@@ -165,7 +166,10 @@ class _ShedBookAppState extends ConsumerState<ShedBookApp> with WidgetsBindingOb
       // so a US device resolves to `en` and only a GB device reaches `en_GB`.
       supportedLocales: const <Locale>[Locale('en'), Locale('en', 'GB'), Locale('en', 'IE')],
 
-      home: const Scaffold(body: SizedBox.expand()),
+      // N13-T05: the placeholder N11 landed is replaced by the real root
+      // route. Quick Entry is `home:` — route 0, isFirst — and is never
+      // pushed, which is why routes.dart has a pop helper and no push one.
+      home: const QuickEntryScreen(),
     );
 
     // Debug only (#100). See [debugShowAccessibilityTools] for why this reads a

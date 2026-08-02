@@ -215,4 +215,21 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String get quickEntryTitle => 'Tonight';
+
+  @override
+  String quickEntryPageHeader({required String night, required int page}) {
+    return 'Night of $night · page $page';
+  }
+
+  @override
+  String get quickEntryStampAuto => 'AUTO';
+
+  @override
+  String get quickEntryIndex => 'INDEX';
+
+  @override
+  String get quickEntrySlabTagFirst => 'Tag first';
 }

@@ -1,0 +1,55 @@
+// lib/features/quick_entry/widgets/quick_entry_page_header.dart
+//
+// indelible.md §7.16's sticky header, naming what the page is filtered to.
+// NEVER collapses, never parallaxes, never changes height — it is one of the
+// boxes the shell's anchor test pins, and a header that grows on scroll moves
+// every box below it.
+//
+// NOT A STAMP, SO THE SUB-18px EXEMPTION DOES NOT COVER IT. indelible §3.4
+// permits sub-18px type only for stamps, and only when three conditions hold:
+// at most 12 characters, all-caps at 0.14em, and never the sole carrier of
+// meaning. This line reads "NIGHT OF 27 JUL 2026 · PAGE 3" — far longer than
+// twelve characters, and it is the one line naming which night you are on. That
+// is the audit block's Indelible defect 2. It renders at a role, never at 16.
+import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/tokens.dart';
+
+class QuickEntryPageHeader extends StatelessWidget {
+  const QuickEntryPageHeader({required this.text, required this.height, super.key});
+
+  /// Already formatted and already localised. `d MMM y`, never all-numeric
+  /// (R60, decision #108) — the formatting authority is
+  /// `lib/core/ui/formatters.dart` and the pre-formatted string is passed into
+  /// the ARB message, so there is one formatting authority rather than two.
+  final String text;
+
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    return SizedBox(
+      key: const Key('quick_entry.page_header'),
+      height: height,
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+          child: Semantics(
+            headingLevel: 1,
+            child: Text(
+              // toUpperCase BELONGS HERE, NOT IN THE ARB. The caps are a
+              // typographic decision owned by the design system and Flutter has
+              // no text-transform; storing "NIGHT OF …" in the copy catalogue
+              // loses that the first time somebody edits the string.
+              text.toUpperCase(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

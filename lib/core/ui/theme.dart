@@ -136,10 +136,19 @@ ThemeData buildShedTheme(ShedPalette p) {
 /// jittering as `412` and `108` take different widths — a failure that is silent
 /// and only visible in motion.
 ///
-/// **This is structure, not face.** T05 lands `fontFamily`, the variable weight
-/// axis and the P7 ruling on top of it. There is deliberately no `fontFamily`
-/// here: naming a family before its asset is committed renders every glyph in
-/// the platform fallback and hides exactly the problem T05 exists to solve.
+/// **P7 IS CLOSED (2026-08-02) AND ONE FAMILY SHIPS.** indelible.md §3.2 asked
+/// for two bundled faces because its Rule 2 was *serif = record, sans = control*
+/// — but decision #98, which outranks it, bundles Atkinson Hyperlegible Next,
+/// which is a SANS. A second face for controls would have been sans against
+/// sans: the letterform distinction collapses either way, and the ~700 kB buys
+/// nothing it was chosen for.
+///
+/// **THE WEIGHT LADDER BELOW IS THE TWO-VOICE MECHANISM NOW.** `body*` is the
+/// record voice at `w500`; `label*` is the control voice at `w600`/`w700`.
+/// indelible.md §3.1 carries the other half — capitals for control, sentence
+/// case for record — which a `TextTheme` cannot assert, so it is a review
+/// question. `test/design/typography_test.dart` holds the weight half over every
+/// palette.
 TextTheme buildShedTextTheme(ShedTokens t) {
   const List<FontFeature> tabular = <FontFeature>[FontFeature.tabularFigures()];
 

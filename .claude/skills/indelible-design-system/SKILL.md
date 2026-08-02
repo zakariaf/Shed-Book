@@ -1,7 +1,7 @@
 ---
 name: indelible-design-system
 description: >-
-  The front door to Indelible — the four rules, serif means it happened and sans means it is
+  The front door to Indelible — the four rules, sentence case means it happened and capitals mean it is
   pressed. Use before any pixel, colour, hex, contrast ratio, token, font, size, weight, spacing,
   gesture, motion or haptic is chosen, and when fixing a contrast failure. Do NOT use for the gate
   that asserts a value (shed-testing) or the data on a screen (shed-screens-and-routing).
@@ -91,26 +91,31 @@ runtime, a network path in an app that ships without `INTERNET`. The fallback st
 failure mode, not part of the design. The test for a replacement face is the **1/7 and 6/8 test**: read
 at 32px, 30% brightness, through a sandwich bag.
 
-> **P7's first half is OPEN — the typeface itself. Do not resolve it here, and do not ship a
-> `pubspec.yaml` `fonts:` block until it is ruled.** Indelible §3.2 needs **two** related-but-distinct
-> families, because Rule 2 (serif = record, sans = control) *is* the design and collapses without
-> them. The engineering set bundles **one**: decision **#98** names Atkinson Hyperlegible Next,
-> `CONVENTIONS §1` (BINDING on paths) puts `assets/fonts/AtkinsonHyperlegibleNext[wght].ttf + OFL.txt`
-> in the tree, `06 §5.2` declares the family `AtkinsonNext`, `09 §4.2` embeds that same file in every
-> PDF, and `12 §8.3` loads it in `test/flutter_test_config.dart`. Both sides are cited; neither is a
-> name this skill may change. Closing it needs an owner ruling plus the checks already written down —
-> `REFERENCES §22` **C1** (Atkinson's real file size, `wght` range and figure features; it was never
-> downloaded) and **B8** (whether `pdf` accepts a variable font at all). Until then: **carry the
-> conflict into the PR**, and note that "two faces" moves four artefacts together — the `assets/fonts/`
-> tree line, the `fonts:` block, the embedded PDF TTF and the golden font loader — plus roughly 700 kB
-> against `13 §6`'s under-5 MB asset budget.
+> **P7's first half is CLOSED — 2026-08-02. ONE FAMILY SHIPS: `AtkinsonNext`.** Indelible §3.2 asked
+> for two related-but-distinct families because Rule 2 was *serif = record, sans = control*. Decision
+> **#98**, which outranks indelible.md, bundles Atkinson Hyperlegible Next — **a sans** — so a second
+> face for controls would have been *sans against sans*: the letterform-shape distinction collapses
+> either way and the ~700 kB buys nothing it was chosen for. Making the record face a serif instead
+> means dropping Atkinson from the record role, which contradicts #98.
+>
+> **The two voices survive on CASE AND WEIGHT** (indelible §3.1, amended in the same change): capitals
+> and `w600`/`w700` are control, sentence case and `w500` is record. Case is also a shape, is also
+> torch-proof, also does not scroll, and is also size-independent — the four properties Rule 2's claim
+> rested on. And indelible's own acceptance test for a record face, *the 1/7 and 6/8 pairs at 32 px at
+> 30% brightness through a sandwich bag*, is the design brief the Braille Institute drew Atkinson to:
+> it passes that test better than the face indelible named.
+>
+> `test/design/typography_test.dart` pins the family count at one and asserts the weight ladder. Do
+> not add a second family without re-opening this in the decision record; `06 §5.2` states the bar,
+> and it is now "beat case-and-weight on the two-voice test", not "differ from Atkinson".
 
-The scale is twelve tokens, split by voice — which is how Rule 2 becomes checkable (§3.4):
+The scale is twelve tokens, split by voice — which is how Rule 2 becomes checkable (§3.4). *("Face"
+below means VOICE: one family ships, and the voices are case and weight — P7, closed 2026-08-02.)*
 
-- **Record face, all tabular:** `--t-figure` 56 (season figures) · `--t-tag-xl` 44 (pen number, live-row
+- **Record voice, all tabular:** `--t-figure` 56 (season figures) · `--t-tag-xl` 44 (pen number, live-row
   tag) · `--t-tag` 32 (tag in a row, keypad digit, ease digit, hours) · `--t-record` 20, tracking
   0.006em — **the record body** · `--t-record-sm` 18 — **record floor** · `--t-margin` 18 (margin times).
-- **Control face:** `--t-slab` 26 caps/0.06em (`+ LAMB`) · `--t-ctl-lg` 22 (primary word buttons) ·
+- **Control voice:** `--t-slab` 26 caps/0.06em (`+ LAMB`) · `--t-ctl-lg` 22 (primary word buttons) ·
   `--t-ctl` 20 (button labels, index words) · `--t-ctl-sm` 19 — **control floor** · `--t-head`
   **18** caps/0.10em (page header — corrected below) · `--t-stamp` 14 caps/0.14em, **exempt stamps only**.
 
@@ -128,16 +133,15 @@ collapses `bodySmall`/`labelSmall` into the 18 floor, so the exempt stamp is the
 **Weights (§3.3): 390 / 420 / 520 / 600** — one step lighter than a light-mode equivalent, because light
 type on a dark ground bleeds outward and gains apparent weight.
 
-> **P7's second half is OPEN too. Do not pick it, and do not silently round 390 to 400.** Flutter's
-> `FontWeight` is w100–w900 in hundreds, so 390 and 420 cannot be expressed as a `FontWeight` at all —
-> they need `FontVariation('wght', 390)` on a live variable axis, and `06 §5.2` records the bundled
-> axis requirement as **500–700**, which excludes both. Closing it takes three things, none a desk
-> decision: read the real `wght` range off whichever files the typeface ruling above lands on
-> (`fc-query`, `ttx -l`) into `docs/perf/measurements.md`; decide how Bold Text is honoured, since `Text.build`
-> merges `FontWeight.bold` into `fontWeight` and **does not touch `fontVariations`**, so a
-> variation-set weight ignores the user's accessibility setting; and an owner ruling. Until then, state
-> the conflict in the PR rather than ship a number. `FontWeight.w800`/`w900` are banned outright
-> (`type.weight_cap`) — they render *lighter* under Bold Text, flutter#139712.
+> **P7's second half is CLOSED — N09-T05, and the axis was never the obstacle.** MEASURED: the bundled
+> `wght` axis runs **200–800**, so indelible §3.3's 390 / 420 / 520 / 600 are all reachable and
+> `06 §5.2`'s recorded "500–700" was simply wrong (`docs/perf/measurements.md`). What rules the
+> fractional weights out is the MECHANISM they would need: `Text.build` merges `FontWeight.bold` for
+> the Bold Text accessibility setting and **does not touch `fontVariations`**, so a weight set through
+> `FontVariation('wght', 390)` silently ignores that setting — invisible on a developer's device, and
+> landing on exactly the users who turned it on. **`fontWeight`, never `FontVariation`**, and the
+> ladder is the shipped one: `w500` record, `w600`/`w700` control. `FontWeight.w800`/`w900` stay banned
+> outright (`type.weight_cap`) — they render *lighter* under Bold Text, flutter#139712.
 
 **Nothing is italic, anywhere, ever** — italic serifs smear under halation and the thin joins vanish at
 30% brightness. No small-caps; stamps are true all-caps with positive tracking. Emphasis is a face swap,
@@ -245,6 +249,6 @@ This skill owns no component's states table, no position on the page, and no scr
 - [ ] `dart tool/check_policy.dart` prints `policy ok`; no second script exists; `[exempt]` still has
       four lines.
 - [ ] Nothing renders below 18px except a stamp that passes all three §3.4 conditions.
-- [ ] P7 (**both halves** — the typeface, and the `FontVariation` weight axis) and P10 are still
+- [ ] P7 is CLOSED (both halves: one family, and `fontWeight` never `FontVariation`) and P10 is still
       stated as open, or a numbered owner ruling closed them in the same commit. No `fonts:` block,
       `assets/fonts/` path or golden font loader was changed on this skill's authority.

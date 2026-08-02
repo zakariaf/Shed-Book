@@ -29,7 +29,7 @@ When two people on this team disagree about a design decision, these settle it, 
 If a proposal makes information disappear from the page, it is wrong. Undo is a strike. Mute is a strike. Un-ticking a checkbox is a strike over the tick, not the absence of a tick. Correcting a time prints both times. Fostering a lamb prints the old rearing dam struck and the new one beside it. If you cannot see what was there before, this is not Indelible.
 
 **Rule 2 — The record is set in the book face; the controls are set in the machine face.**
-Serif means *it happened*. Sans means *it is a thing you can press*. There is exactly one documented exception (the keypad digits, §3.5). Any new component must declare which voice it is in before it gets a size. If a component wants to be both, it is two components.
+Sentence case means *it happened*. Capitals mean *it is a thing you can press*. *(Amended 2026-08-02, P7: this read "Serif means… Sans means…"; see §3.1 for why the axis moved and what it cost.)* There is exactly one documented exception (the keypad digits, §3.5). Any new component must declare which voice it is in before it gets a size. If a component wants to be both, it is two components.
 
 **Rule 3 — Meaning is carried by form first, hue never alone.**
 A strike is a line through a row. Over-threshold is a dagger, a word, and a doubled rule. Dead is the word `DEAD`. Colour is permitted to *reinforce* — it may never be the only channel. There is one hue in this app and it is allowed three jobs. If a proposal needs a fourth colour, the answer is a word.
@@ -215,23 +215,47 @@ Note the row for *dead*. It would be trivially easy to make a dead lamb red. It 
 
 ### 3.1 Two voices, strictly separated
 
-The system is built on a stated, visible, learnable distinction: **serif = record, sans = control.** This is not a stylistic preference — it is the fastest possible disambiguation at 3am, faster than colour (which the red torch destroys), faster than position (which scrolls), faster than size. Even at a glance in the dark, from the shape of the letterforms alone, you can tell history from target.
+> **AMENDED 2026-08-02, CLOSING P7. The two voices stand; the axis that carries them changed from
+> ~~serif-versus-sans~~ to CASE AND WEIGHT, and one family ships.** The reasoning is below, after the
+> rule, because the rule is what a reader needs first.
+
+The system is built on a stated, visible, learnable distinction: **caps and heavy = control, sentence
+case and light = record.** This is not a stylistic preference — it is the fastest available
+disambiguation at 3am, faster than colour (which the red torch destroys) and faster than position
+(which scrolls). Even at a glance in the dark, from the shape of the words alone, you can tell history
+from target.
 
 The app says so about itself, in Settings, in one printed line:
 
-> THE RECORD IS SET IN THE BOOK FACE. THE BUTTONS ARE SET IN THE MACHINE FACE.
-> IF IT IS SERIF, IT HAPPENED. IF IT IS SANS, IT IS A THING YOU CAN PRESS.
+> THE RECORD IS SET IN SENTENCE CASE. THE BUTTONS ARE SET IN CAPITALS.
+> IF IT READS LIKE A SENTENCE, IT HAPPENED. IF IT SHOUTS, IT IS A THING YOU CAN PRESS.
+
+**Why the axis moved, and what it cost.** Rule 2 was written as *serif = record, sans = control* and
+required two bundled families. Decision **#98** — which outranks this document — bundles **Atkinson
+Hyperlegible Next**, a *sans*. Adding Source Sans 3 beside it for controls would have bought two
+families and ~700 kB and produced **sans against sans**: Rule 2's letterform-shape distinction
+collapses either way, so the two-family payload buys nothing it was chosen for. Making the record face
+a serif instead means dropping Atkinson from the record role, which contradicts #98.
+
+The compensation is real rather than nominal. §3.2's own acceptance test for a record face is *the 1/7
+and 6/8 test, read at 32px, at 30% screen brightness, through a sandwich bag* — and separating those
+glyph pairs for low-vision readers is the entire design brief Atkinson Hyperlegible Next was drawn to,
+by the Braille Institute. **It passes this document's own test better than the face this document
+named.** What is genuinely lost is disambiguation from letterform shape alone; what replaces it is
+case, which is also a shape, is also torch-proof, also does not scroll, and is also size-independent —
+the four properties the original claim rested on. Weight rides alongside it: the shipped type scale
+sets records at `w500` and controls at `w600`/`w700`.
 
 ### 3.2 The stacks
 
 Both faces are **bundled**, not requested from the system. The product spec's §11 already budgets for this ("payload dominated by fonts"), and the whole design fails if the two voices collapse into one on a device without the right fonts installed.
 
-```
---face-record:  "Source Serif 4", "Source Serif Pro", Charter, "Bitstream Charter",
-                ui-serif, "New York", "Noto Serif", Georgia, serif;
+> **AMENDED 2026-08-02 (P7).** ~~Two families, four instances, whole payload under 700 kB.~~ **One
+> family ships**, and the two paragraphs below are kept for the acceptance test they state, not for
+> the faces they name.
 
---face-control: "Source Sans 3", "Source Sans Pro", ui-sans-serif, "SF Pro Text",
-                Roboto, "Segoe UI", system-ui, sans-serif;
+```
+--face-all:  "AtkinsonNext";   /* Atkinson Hyperlegible Next, OFL 1.1, ~114 KB variable */
 ```
 
 **Record face: Source Serif 4** (OFL 1.1, variable). Chosen for sturdy vertical stress, a large x-height, low stroke contrast — which survives halation — and, critically, true **tabular lining figures**. Its `1` has a full foot serif and a strong flag; its `7` has a flat top and no descending curve; its `6` and `8` have distinctly different upper bowls. That is the acceptance test for any future replacement face: **the 1/7 and 6/8 test, read at 32px, at 30% screen brightness, through a sandwich bag.** If a face fails that, it does not go in the record, however handsome it is.
@@ -282,7 +306,7 @@ Body text minimum is **20px** for the record and **19px** for controls — both 
 2. **Every figure in a control is tabular too.** The keypad digits, the ease digits, the stepper value. A digit must never change width or shape between the button you press and the row it prints into.
 3. **Oldstyle / proportional figures are used nowhere.** There is no place in this app where a number is decorative.
 4. **Tags right-align in a fixed three-character column.** This is what makes the flock page scannable: `12`, `77` and `91` sit under the units column of `412`, `128` and `305`, so the eye runs straight down the numerals with no zig-zag. Right-alignment of the tag column is not a preference, it is the reason the left column works.
-5. **The one exception to Rule 2 (§1.2): the keypad digits are set in the record face, not the control face.** They are the only sans-shaped thing that would become serif-shaped the instant you press it, and the shepherd is matching a digit on a key against a digit already printed in the recents list and in the row above. Same shape, same width, no translation step. This exception is documented in Settings alongside the two-voices line, because an unexplained exception is a bug.
+5. **The one exception to Rule 2 (§1.2): the keypad digits are set in the RECORD voice — sentence-case weight, not control weight.** *(Amended 2026-08-02, P7: this read "in the record face, not the control face" when two families were planned. One family ships; the exception survives on the weight axis, and it survives for exactly the reason it was written.)* They are the only sans-shaped thing that would become serif-shaped the instant you press it, and the shepherd is matching a digit on a key against a digit already printed in the recents list and in the row above. Same shape, same width, no translation step. This exception is documented in Settings alongside the two-voices line, because an unexplained exception is a bug.
 
 ### 3.6 At 200% text scale
 
@@ -1173,7 +1197,7 @@ Anything shipped under Indelible must pass all of these, and each is checkable i
 3. **The 64 test.** Every target ≥ 64 × 64. No exceptions, not even the margin dagger.
 4. **The monochrome test.** Screenshot every screen, desaturate it fully, and read it. Nothing has become ambiguous — over-threshold, struck, dead, queried and selected all still read.
 5. **The 1/7 test.** Every tag on the flock and pen pages, at 32px, at 30% brightness, through a sandwich bag. If `412` could be `417`, the face is wrong.
-6. **The two-voice test.** Point at any element and say "record" or "control" without hesitating. If you hesitate, its face is wrong.
+6. **The two-voice test.** Point at any element and say "record" or "control" without hesitating. If you hesitate, its **case and weight** are wrong. *(Amended 2026-08-02, P7 — the test is unchanged; the axis it reads is case-and-weight rather than serif-and-sans. `test/design/typography_test.dart` holds the weight half mechanically; the case half is a review question, because a `TextTheme` cannot know whether a label was written in capitals.)*
 7. **The Save test.** Search for the string `Save`. Zero hits in the UI.
 8. **The placeholder test.** No input in the app renders placeholder text inside the field. Zero hits on `placeholder=`.
 9. **The first-frame test.** Cold launch on both platforms, recorded at 240fps. Frame one is `--page`. No white, no logo, no fade.

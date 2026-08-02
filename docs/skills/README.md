@@ -254,6 +254,9 @@ a cloud session.
   every skill is under half of it.
 - **P1 is unruled** — `struck` / `struck_at` on every table is schema-irreversible. `shed-drift-schema`,
   `shed-export-and-restore` and `indelible-marks-and-strikes` all carry it as blocking.
-- **P3, P7, P9, P10 and P14 are carried as open**, each named in exactly one owning skill with both
+- **P3, P9 and P10 are carried as open**, each named in exactly one owning skill with both
+  sides cited. **P7 closed 2026-08-02** (one family; the two voices are case and weight) and **P14
+  closed at N11-T04** (base surface `#0A0A0B`). Both rulings live in the owning skill and in the
+  document they amend, not here. The sentence below is the shape all of them follow:
   sides cited and neither picked. That is correct, not a defect.
 - **`.claude/settings.json` does not exist yet**, so none of manifest §6.2's six hooks is wired.

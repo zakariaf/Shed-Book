@@ -395,5 +395,36 @@
         "type": "String"
       }
     }
+  },
+  "photoMissingOnThisPhone": "Photo taken {date} {time} — file no longer on this phone",
+  "@photoMissingOnThisPhone": {
+    "description": "04 §5.2. The media_assets row SURVIVES when its file does not; deleting the row would make the app lie by omission (spec §12.4) — the shepherd remembers taking the photo. {date} and {time} arrive PRE-FORMATTED from formatShedDate and formatShedTime; never format a date inside a message (10 §8.4 rule 4).",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "photoShowInFullColour": "Show in full colour",
+  "@photoShowInFullColour": {
+    "description": "06 §4.7. PERMANENT, not conditional. A shepherd looking at a photo of a prolapse needs the colour information, and a tinted view of tissue is useless. It is also what keeps the app on the right side of §12.2: it shows what was photographed and never interprets it."
+  },
+  "photoSemanticLabel": "Photo taken {date} {time}, {provenance}",
+  "@photoSemanticLabel": {
+    "description": "The cell's semantic label. It carries the PROVENANCE as well as the time, because a screen-reader user has no margin stamp to read — the label is the only place §12.5's claim reaches them.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      },
+      "provenance": {
+        "type": "String"
+      }
+    }
   }
 }

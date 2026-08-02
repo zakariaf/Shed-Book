@@ -295,10 +295,20 @@ class _QuickEntryPage extends ConsumerWidget {
                   // the keypad is fully usable before the database has opened,
                   // because it watches nothing and needs nothing.
                   ShedKeypad(
-                    onDigit: (String _) {},
-                    onBackspace: () {},
+                    // WIRED HERE, and it was a stub until N14-T06 found it. The
+                    // budget test is what noticed: with a no-op onDigit the query
+                    // never fills, so the confirm bar renders nothing and tap 4
+                    // lands on empty space. A screen test that only asserted
+                    // "the keypad is present" would never have caught it.
+                    onDigit: (String d) =>
+                        ref.read(quickEntryControllerProvider.notifier).appendDigit(d),
+                    onBackspace: () => ref.read(quickEntryControllerProvider.notifier).backspace(),
                     thirdKey: ShedKeypadThirdKey.newTag,
-                    onThirdKey: () {},
+                    // The third key clears the selection and starts a fresh tag:
+                    // "new tag" at 03:20 means the animal in front of you is not
+                    // the one on screen.
+                    onThirdKey: () =>
+                        ref.read(quickEntryControllerProvider.notifier).clearSelection(),
                     padLabel: l10n.keypadTagEntry,
                     backspaceLabel: l10n.keypadBackspace,
                     backspaceHint: l10n.hintDeleteLastDigit,

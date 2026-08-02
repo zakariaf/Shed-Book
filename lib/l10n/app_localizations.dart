@@ -1029,6 +1029,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TREATMENT'**
   String get lambCardHistoryTreatment;
+
+  /// The sex group's label on the Lamb Card. Three targets, not two: not-recorded is reached by clearing, and recorded-as-unknown is its own answer.
+  ///
+  /// In en, this message translates to:
+  /// **'SEX'**
+  String get lambCardSexLabel;
+
+  /// Sex.unknown, and the words are chosen to be UNMISTAKABLE for not-recorded (R45). The shepherd LOOKED and could not say - which is a fact worth keeping, and merging it with an empty field would have the app answer a question they deliberately left open. Never 'Unknown' alone, which reads like a missing value.
+  ///
+  /// In en, this message translates to:
+  /// **'COULD NOT TELL'**
+  String get lambCardSexUnknown;
+
+  /// The weight cell's label, above the line. One word, the trade's own.
+  ///
+  /// In en, this message translates to:
+  /// **'BIRTHWEIGHT'**
+  String get lambCardWeightLabel;
+
+  /// The weight cell before anything is typed. Never a zero and never a placeholder figure: 05 7.3 - the app may transform a number the shepherd supplied, never originate one.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambCardWeightUnset;
+
+  /// The kg suffix beside the weight keypad. The unit comes from unitsProvider (R68), never from the locale: a UK smallholder may genuinely want lb, and a wrong inference silently mislabels every weight ever recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get lambCardWeightUnitKg;
+
+  /// The lb suffix. Entry is in whole pounds and the decimal key adds a fraction of one; the decomposition into ounces happens at display, where poundsOunces rounds once and carries at sixteen.
+  ///
+  /// In en, this message translates to:
+  /// **'lb'**
+  String get lambCardWeightUnitLb;
+
+  /// The implausible-birthweight observation. It says WHAT WE OBSERVED and never what to do - a warning that instructs is advice (12.2) and a warning that changes a value is a correction (12.4). It NEVER blocks the write: a blocked write produces a lost record, which is worse than a queried one. Never 'too heavy', never 'please check', never a suggested figure. It also carries NO ANIMAL NOUN: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft of this message for saying 'for a lamb'. There is no placeholder to use here either, because the string is a Warning.message from lib/domain/, which cannot reach terminologyProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'That is outside the usual birthweight range.'**
+  String get warningImplausibleBirthWeight;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

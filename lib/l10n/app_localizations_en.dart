@@ -563,4 +563,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lambCardHistoryTreatment => 'TREATMENT';
+
+  @override
+  String get lambCardSexLabel => 'SEX';
+
+  @override
+  String get lambCardSexUnknown => 'COULD NOT TELL';
+
+  @override
+  String get lambCardWeightLabel => 'BIRTHWEIGHT';
+
+  @override
+  String get lambCardWeightUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambCardWeightUnitKg => 'kg';
+
+  @override
+  String get lambCardWeightUnitLb => 'lb';
+
+  @override
+  String get warningImplausibleBirthWeight => 'That is outside the usual birthweight range.';
 }

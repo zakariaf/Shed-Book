@@ -12,6 +12,12 @@
 // `LambCardData` is declared in `lib/data/` and assembled there.
 library;
 
+import 'dart:async';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_sex_row.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_weight_cell.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/formatters.dart';
@@ -81,18 +87,19 @@ class LambCardScreen extends ConsumerWidget {
   }
 }
 
-class _Card extends StatelessWidget {
+class _Card extends ConsumerWidget {
   const _Card({required this.data, required this.units});
 
   final LambCardData data;
   final WeightUnit units;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ShedTokens t = context.tokens;
     final TextTheme text = Theme.of(context).textTheme;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final String locale = Localizations.localeOf(context).toLanguageTag();
+    final LambingWriteController write = ref.read(lambingWriteControllerProvider.notifier);
 
     return SingleChildScrollView(
       child: Column(
@@ -128,6 +135,56 @@ class _Card extends StatelessWidget {
           ),
           _Row(id: 'lamb_card.rearing_dam', label: _rearingLine(l10n)),
           SizedBox(height: t.gapMin),
+          // SEX AND BIRTHWEIGHT (T02). Both skippable, both committing on their
+          // own tap, neither ever defaulted.
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+            child: Text(l10n.lambCardSexLabel, style: text.labelMedium),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: LambSexRow(
+              key: const Key('lamb_card.sex'),
+              sex: data.sex,
+              words: (
+                female: l10n.termEweLambSingular.toUpperCase(),
+                male: l10n.termRamLambSingular.toUpperCase(),
+                // NOT the plain animal noun here, unlike the lamb sub-row: on a
+                // card that also offers *nothing recorded*, "LAMB" beside "EWE
+                // LAMB" and "RAM LAMB" reads as a fourth animal rather than as a
+                // third answer. The words say what the shepherd did.
+                unknown: l10n.lambCardSexUnknown,
+              ),
+              onSelected: (Sex? s) => write.setLambSex(data.lambId, s),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+            child: Text(l10n.lambCardWeightLabel, style: text.labelMedium),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: ShedTapTarget(
+              key: const Key('lamb_card.weight'),
+              semanticLabel: l10n.lambCardWeightLabel,
+              minSize: t.tapIndelible,
+              onTap: () => _openWeightSheet(context, write, l10n),
+              child: ExcludeSemantics(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    data.birthWeight == null
+                        ? l10n.lambCardWeightUnset
+                        : formatShedWeight(data.birthWeight!, units, locale),
+                    style: data.birthWeight == null
+                        ? text.bodySmall?.copyWith(color: t.textSecondary)
+                        : text.bodyMedium,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: t.gapMin),
           // THE HISTORY. Never empty — the `born` arm always yields one row —
           // so the "nothing else" line is about everything AFTER the birth.
           for (final LambHistoryRow row in data.history)
@@ -150,6 +207,40 @@ class _Card extends StatelessWidget {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  /// The keypad sheet. The conversion to grams happens inside it, at the widget
+  /// boundary, because `WeightUnit` is a display choice (R68) and the column is
+  /// canonical grams (#42).
+  void _openWeightSheet(BuildContext context, LambingWriteController write, AppLocalizations l10n) {
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.lambCardWeightLabel,
+        fillsViewport: true,
+        child: LambWeightSheet(
+          units: units,
+          labels: (
+            heading: l10n.lambCardWeightLabel,
+            unitSuffix: switch (units) {
+              WeightUnit.kg => l10n.lambCardWeightUnitKg,
+              WeightUnit.lb => l10n.lambCardWeightUnitLb,
+            },
+            confirmLabel: l10n.colostrumRecord,
+            confirmSemanticLabel: l10n.lambCardWeightLabel,
+            padLabel: l10n.lambCardWeightLabel,
+            backspaceLabel: l10n.keypadBackspace,
+            backspaceHint: l10n.hintDeleteLastDigit,
+          ),
+          onRecord: (Grams g) {
+            write.setBirthWeight(data.lambId, g);
+            Navigator.of(context).pop();
+          },
+        ),
       ),
     );
   }

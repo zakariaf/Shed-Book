@@ -241,6 +241,49 @@ final class LambingRepository {
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
+  /// **`null` IS *NOT RECORDED*; `Sex.unknown` IS *THE SHEPHERD LOOKED AND
+  /// COULD NOT TELL*.** R45: two different facts, and neither is the other's
+  /// default. The parameter is nullable so the second is expressible and the
+  /// first is reachable — a non-nullable signature would make un-recording a sex
+  /// impossible, which is the app refusing to accept a correction.
+  Future<WriteOutcome> setLambSex(LambId lamb, Sex? sex) => _setOneLambColumn(
+    lamb,
+    (Instant now) => LambsCompanion(sex: Value<String?>(sex?.key), updatedAt: Value<Instant>(now)),
+  );
+
+  /// The birthweight, in **canonical grams** (#42).
+  ///
+  /// `WeightUnit` is a DISPLAY choice from `unitsProvider` (R68) and conversion
+  /// happens at the widget boundary; this column never learns which unit was
+  /// typed. A shepherd who switches to lb must see the same lambs at the same
+  /// weights, and storing the typed unit is how that stops being true.
+  ///
+  /// **NOT VALIDATED HERE.** `05 §6`'s implausible-birthweight band is a
+  /// `Warning`, never a block — a blocked write produces a lost record, which is
+  /// worse than a queried one.
+  Future<WriteOutcome> setBirthWeight(LambId lamb, Grams? weight) => _setOneLambColumn(
+    lamb,
+    (Instant now) =>
+        LambsCompanion(birthWeightG: Value<int?>(weight?.value), updatedAt: Value<Instant>(now)),
+  );
+
+  /// The lamb-row twin of `_setOneColumn`, and it exists for the same reason: a
+  /// wide write is how a second edit clobbers the first.
+  Future<WriteOutcome> _setOneLambColumn(
+    LambId lamb,
+    LambsCompanion Function(Instant now) build,
+  ) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+      final int rows = await (_db.update(
+        _db.lambs,
+      )..where(($LambsTable t) => t.id.equals(lamb.value))).write(build(now));
+      return WriteCommitted(insertedId: rows > 0 ? lamb.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// The Lamb Card, from one statement.
   ///
   /// **`readsFrom:` IS EXPLICIT AND IT IS LOAD-BEARING.** A `customSelect`

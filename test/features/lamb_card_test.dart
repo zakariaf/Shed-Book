@@ -6,11 +6,13 @@ library;
 
 import 'dart:io';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
@@ -123,6 +125,123 @@ void main() {
       expect(source, isNot(contains('Rx.combine')));
       expect(source, isNot(contains('customSelect')));
     }
+  });
+  // ---------------------------------------------------------------------------
+  // T02 — sex and a birthweight on the app's own keypad
+  // ---------------------------------------------------------------------------
+
+  for (final ({WeightUnit unit, List<String> digits, String back}) c
+      in <({WeightUnit unit, List<String> digits, String back})>[
+        (unit: WeightUnit.kg, digits: <String>['4', '.', '1'], back: '4.1 kg'),
+        (unit: WeightUnit.lb, digits: <String>['9', '.', '0'], back: '9 lb 0 oz'),
+      ]) {
+    testWidgets('a weight typed in ${c.unit.name} comes back as the digits that went in', (
+      WidgetTester tester,
+    ) async {
+      // THE WIDGET HALF OF T02'S ANCHOR, and the task's own sharpening: exercise
+      // the FULL entry path, not just the conversion. Type the digits, read the
+      // committed `birth_weight_g`, and assert what the cell renders afterwards
+      // is what was typed — in both units, because a round trip that only holds
+      // in kg is a round trip that mislabels every lb user's flock.
+      //
+      // The lb case is the one that caught the "3 lb 16 oz" defect: 9 lb stores
+      // as 4082 g, and the old decomposition printed 8 lb 16 oz.
+      final AppDatabase db = testDatabase();
+      await _seedSeason(db);
+      final EweId ewe = await seedEwe(db, tag: '412');
+      final LambingId lambing = await seedLambing(db, ewe);
+      final LambId lamb = await seedLamb(db, lambing, ewe);
+
+      await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+        AppSettingsCompanion(weightUnit: Value<String>(c.unit.key)),
+      );
+
+      await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+      await tester.pumpAndSettle();
+
+      final Finder cell = find.byKey(const Key('lamb_card.weight'));
+      await tester.ensureVisible(cell);
+      await tester.pumpAndSettle();
+      await tester.tap(cell);
+      await tester.pumpAndSettle();
+
+      for (final String d in c.digits) {
+        final Finder key = find.byKey(
+          Key(d == '.' ? 'quick_entry.keypad.decimal' : 'quick_entry.keypad.digit_$d'),
+        );
+        await tester.ensureVisible(key);
+        await tester.pumpAndSettle();
+        await tester.tap(key);
+        await tester.pump();
+      }
+
+      final Finder confirm = find.byKey(const Key('lamb_card.weight.confirm'));
+      await tester.ensureVisible(confirm);
+      await tester.pumpAndSettle();
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+
+      // CANONICAL GRAMS IN THE COLUMN — never the typed unit (#42, R68).
+      final Lamb row = await (db.select(
+        db.lambs,
+      )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+      expect(row.birthWeightG, isNotNull);
+
+      // AND THE DIGITS THAT COME BACK ARE THE ONES THAT WENT IN.
+      expect(find.text(c.back), findsOneWidget, reason: '${c.unit.name} round trip');
+
+      await tester.closeApp();
+    });
+  }
+
+  testWidgets('a lamb sex offers three answers and clearing is the fourth', (
+    WidgetTester tester,
+  ) async {
+    // R45 ON SCREEN, AND THE FOURTH STATE IS REACHED BY TAPPING THE SELECTED
+    // ONE. `null` is *not recorded*; `Sex.unknown` is *the shepherd looked and
+    // could not tell*. Two different facts, neither the other's default — and
+    // without the clear there is no way back after a mis-tap, which would leave
+    // the app holding an answer the shepherd disowned.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    Future<void> tapSex(String key) async {
+      final Finder f = find.byKey(Key('lamb_card.sex.$key'));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    Future<String?> storedSex() async {
+      final Lamb row = await (db.select(
+        db.lambs,
+      )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+      return row.sex;
+    }
+
+    expect(await storedSex(), isNull, reason: 'a lamb starts not recorded');
+
+    await tapSex('f');
+    expect(await storedSex(), 'f');
+
+    await tapSex('unknown');
+    expect(await storedSex(), 'unknown', reason: 'looked and could not tell — a real answer');
+
+    await tapSex('unknown');
+    expect(
+      await storedSex(),
+      isNull,
+      reason: 'tapping the selected one clears it, back to nothing said',
+    );
+
+    await tester.closeApp();
   });
 }
 

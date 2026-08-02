@@ -18,6 +18,7 @@ import 'package:shed_book/domain/lambing_ease.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/validation/lambing_checks.dart';
 import 'package:shed_book/domain/validation/warning.dart';
@@ -80,6 +81,16 @@ final class LambingWriteController extends WriteController {
   /// Strikes rather than deletes — see `LambingRepository.removeCare`.
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
+
+  /// **NO NEW WRITE CONTROLLER.** `CONVENTIONS §3.4` has no
+  /// `lambCardWriteControllerProvider`, and adding one would give the Lamb Card
+  /// a second place for a write to live — the two screens write to the same
+  /// aggregate through the same guard.
+  Future<void> setLambSex(LambId lamb, Sex? sex) =>
+      guard(() => ref.read(lambingRepositoryProvider).setLambSex(lamb, sex));
+
+  Future<void> setBirthWeight(LambId lamb, Grams? weight) =>
+      guard(() => ref.read(lambingRepositoryProvider).setBirthWeight(lamb, weight));
 
   Future<void> setAssistedBy(LambingId lambing, String? value) =>
       guard(() => ref.read(lambingRepositoryProvider).setAssistedBy(lambing, value));

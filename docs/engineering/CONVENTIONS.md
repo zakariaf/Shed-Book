@@ -665,6 +665,7 @@ spellings only. Production has zero overrides.
 | `flockRepositoryProvider` | `FutureProvider<FlockRepository>` | keepAlive | |
 | `lambingRepositoryProvider` | `FutureProvider<LambingRepository>` | keepAlive | takes `NotificationScheduler` + `MediaStore` |
 | `fosterRepositoryProvider` | `FutureProvider<FosterRepository>` | keepAlive | |
+| `treatmentRepositoryProvider` | `Provider<TreatmentRepository>` | `lib/data/providers.dart` | N20-T01 — safety rule §12.1's child table lives behind it |
 | `penRepositoryProvider` | `FutureProvider<PenRepository>` | keepAlive | |
 | `treatmentRepositoryProvider` | `FutureProvider<TreatmentRepository>` | keepAlive | |
 | `reminderRepositoryProvider` | `FutureProvider<ReminderRepository>` | keepAlive | |

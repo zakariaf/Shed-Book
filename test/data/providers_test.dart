@@ -194,6 +194,8 @@ void main() {
       // N19-T02
       'penRepositoryProvider',
       'settleThresholdHoursProvider',
+      // N20-T01 — §12.1 lives behind it
+      'treatmentRepositoryProvider',
     });
   });
 

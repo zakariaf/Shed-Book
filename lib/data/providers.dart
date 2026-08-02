@@ -23,6 +23,7 @@
 //   fosterRepositoryProvider    N18-T02  Provider<FosterRepository>
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
 //   settleThresholdHoursProvider N19-T02 Provider<int>
+//   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
@@ -53,6 +54,7 @@ import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
@@ -137,6 +139,11 @@ final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRe
 
 /// N18-T01's repository. It takes the database positionally and no clock, ever
 /// (R19).
+/// N20-T01's repository. Safety rule §12.1 lives behind it.
+final Provider<TreatmentRepository> treatmentRepositoryProvider = Provider<TreatmentRepository>(
+  (ref) => TreatmentRepository(ref.watch(databaseProvider).requireValue),
+);
+
 /// N19-T01's repository. The board's writes and its one statement.
 final Provider<PenRepository> penRepositoryProvider = Provider<PenRepository>(
   (ref) => PenRepository(ref.watch(databaseProvider).requireValue),

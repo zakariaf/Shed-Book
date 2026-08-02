@@ -685,4 +685,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get penBoardTitle => 'PENS';
+
+  @override
+  String withdrawalLabel({required String target}) {
+    return 'WITHDRAWAL — $target';
+  }
+
+  @override
+  String get withdrawalTargetMeat => 'MEAT';
+
+  @override
+  String get withdrawalTargetMilk => 'MILK';
+
+  @override
+  String get withdrawalEnterDays => 'DAYS OFF THE BOTTLE';
+
+  @override
+  String get withdrawalNotApplicable => 'NONE APPLIES';
+
+  @override
+  String get withdrawalNotRecorded => 'NOT RECORDED';
+
+  @override
+  String get withdrawalUnit => 'days';
 }

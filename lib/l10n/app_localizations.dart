@@ -1245,6 +1245,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'PENS'**
   String get penBoardTitle;
+
+  /// The withdrawal control's label. The target is meat or milk and they are asked separately, because one entered period implies nothing about the other. Never 'withholding', never 'WHP', never 'the days' - CONVENTIONS 5 fixes the word.
+  ///
+  /// In en, this message translates to:
+  /// **'WITHDRAWAL — {target}'**
+  String withdrawalLabel({required String target});
+
+  /// WithdrawalTarget.meat. The stored key is 'meat'.
+  ///
+  /// In en, this message translates to:
+  /// **'MEAT'**
+  String get withdrawalTargetMeat;
+
+  /// WithdrawalTarget.milk. The stored key is 'milk'. R75 keeps it in the v1 schema even though few flocks milk.
+  ///
+  /// In en, this message translates to:
+  /// **'MILK'**
+  String get withdrawalTargetMilk;
+
+  /// The days choice. The label names WHERE THE NUMBER COMES FROM - the bottle in the shepherd's hand - because 12.1 is that the app never originates one. There is no placeholder inside the field and no prefill: in the dark a grey figure is indistinguishable from an entered one, and a prefilled 28 is a clinical decision the app made.
+  ///
+  /// In en, this message translates to:
+  /// **'DAYS OFF THE BOTTLE'**
+  String get withdrawalEnterDays;
+
+  /// WithdrawalNotApplicable - the label says no withdrawal applies. It is a RECORDED FACT, something the shepherd read, and NOT the same as nobody writing a number down.
+  ///
+  /// In en, this message translates to:
+  /// **'NONE APPLIES'**
+  String get withdrawalNotApplicable;
+
+  /// WithdrawalNotRecorded. Absence IS the state and it stores no row at all. It is NOT pre-selected: a control that pre-selects this is as wrong as one that prefills 28, because it makes a decision the shepherd did not make.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get withdrawalNotRecorded;
+
+  /// The unit beside the days keypad. Days, always - 05 4.4 fixes the unit even for milk, where a different milking frequency could be argued, because one unit is one thing to get wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'days'**
+  String get withdrawalUnit;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

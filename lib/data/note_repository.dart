@@ -139,6 +139,25 @@ final class NoteRepository {
     );
   });
 
+  /// Marks an asset whose bytes have gone missing.
+  ///
+  /// A plain drift `update()`, **not a `.drift` named query**, so nothing
+  /// regenerates: a named query for a one-column update is a codegen step every
+  /// contributor has to run to read a diff.
+  ///
+  /// `missing_since` rather than deleting the row: the row is the shepherd's
+  /// record that a photo existed, and Indelible Rule 1 does not stop applying
+  /// because the bytes did. A media asset the app quietly forgot is a photo the
+  /// shepherd remembers taking and cannot find.
+  Future<WriteOutcome> markMediaMissing(String relativePath) => _write(() async {
+    final Instant now = appNow();
+    return (_db.update(
+      _db.mediaAssets,
+    )..where(($MediaAssetsTable t) => t.relativePath.equals(relativePath))).write(
+      MediaAssetsCompanion(missingSince: Value<Instant?>(now), updatedAt: Value<Instant>(now)),
+    );
+  });
+
   /// One transaction, one `shedFailureFrom`.
   ///
   /// A CHECK violation arrives as `SQLITE_CONSTRAINT` and correctly falls

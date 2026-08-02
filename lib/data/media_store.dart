@@ -106,15 +106,24 @@ final class MediaStore {
     await target.parent.create(recursive: true);
 
     final File part = File('${target.path}.part');
-    final RandomAccessFile handle = await part.open(mode: FileMode.write);
     try {
-      await handle.writeFrom(bytes);
-      await handle.flush();
-    } finally {
-      await handle.close();
+      final RandomAccessFile handle = await part.open(mode: FileMode.write);
+      try {
+        await handle.writeFrom(bytes);
+        await handle.flush();
+      } finally {
+        await handle.close();
+      }
+      return await part.rename(target.path);
+    } on Object {
+      // BEST-EFFORT CLEANUP, AND IT NEVER THROWS A SECOND EXCEPTION. A .part
+      // file left behind after a full disk is a file that occupies the space
+      // the shepherd is trying to free, and it is invisible to them. Swallowing
+      // the delete's own failure is deliberate: the caller needs the ORIGINAL
+      // error, and a cleanup that masked it would report the wrong problem.
+      _deleteQuietly(part);
+      rethrow;
     }
-
-    return part.rename(target.path);
   }
 
   /// The second hop: downscale, re-encode, strip EXIF, land the bytes.
@@ -164,20 +173,47 @@ final class MediaStore {
         ? (kPhotoLongestEdgePx * sourceHeight / sourceWidth).round()
         : kPhotoLongestEdgePx;
 
-    final List<int>? bytes = await compressor(
-      source: sourcePath,
-      target: '${target.path}.part',
-      minWidth: minWidth,
-      minHeight: minHeight,
-      quality: kPhotoJpegQuality,
-      // THE DEFAULT, WRITTEN ANYWAY so the intent is visible. EXIF carries GPS,
-      // and a photo of a lambing is a photo of where the shepherd lives.
-      keepExif: false,
-    );
+    // THE COMPRESSOR WRITES THE .part ITSELF, so its failure has to be cleaned
+    // up HERE — writeAtomically's own cleanup covers only the bytes IT wrote,
+    // and by the time this method calls it the compressor has already been and
+    // gone. Found by making the cleanup test non-vacuous: with a compressor that
+    // threw before creating anything, the case passed against a MediaStore with
+    // no cleanup on this path at all.
+    final List<int>? bytes;
+    try {
+      bytes = await compressor(
+        source: sourcePath,
+        target: '${target.path}.part',
+        minWidth: minWidth,
+        minHeight: minHeight,
+        quality: kPhotoJpegQuality,
+        // THE DEFAULT, WRITTEN ANYWAY so the intent is visible. EXIF carries
+        // GPS, and a photo of a lambing is a photo of where the shepherd lives.
+        keepExif: false,
+      );
+    } on Object {
+      _deleteQuietly(File('${target.path}.part'));
+      rethrow;
+    }
 
     if (bytes == null) {
+      _deleteQuietly(File('${target.path}.part'));
       throw const FileSystemException('the photo could not be re-encoded');
     }
     return writeAtomically(relativePath, bytes);
+  }
+}
+
+/// Best-effort, and **it never throws a second exception**. A `.part` left
+/// behind after a full disk occupies the space the shepherd is trying to free
+/// and is invisible to them — but the caller needs the ORIGINAL error, and a
+/// cleanup that masked it would report the wrong problem.
+void _deleteQuietly(File f) {
+  try {
+    if (f.existsSync()) {
+      f.deleteSync();
+    }
+  } on Object {
+    // Nothing to do and nothing to say.
   }
 }

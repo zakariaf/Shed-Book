@@ -12,6 +12,10 @@ import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
 import 'package:shed_book/domain/penning.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/features/pens/pen_board_controller.dart';
 import 'package:shed_book/domain/ids.dart';
 
 import '../support/harness.dart';
@@ -208,5 +212,139 @@ void main() {
     expect(board, hasLength(1));
     expect(board.single.label, '1');
     expect(board.single.occupancy, isNull, reason: 'created empty, ready to use');
+  });
+
+  test('hours are truncated, never rounded, and never negative', () async {
+    // A EWE PENNED 59 MINUTES AGO HAS BEEN IN THERE FOR 0 h, NOT 1 h. Rounding
+    // up would let a tile say `1h` about a ewe the shepherd watched go in a
+    // minute ago, and the readout is only worth having if it is not flattering.
+    //
+    // NO `Clock.fixed` ANYWHERE HERE. It freezes `now()`, so every elapsed
+    // readout stays at its initial value forever and the case passes while
+    // measuring nothing (decision #113; 12 §2.2 and 07 §9.2 say it too, because
+    // it has bitten three times). Elapsed time is tested by OFFSETTING THE SEED.
+    final Instant now = appNow();
+
+    PenTile tileEnteredAgo(Duration ago) => PenTile(
+      penId: const PenId(1),
+      penLabel: '1',
+      thresholdHours: 24,
+      tag: '412',
+      enteredAt: Instant(now.epochMillis - ago.inMilliseconds),
+    );
+
+    LocalDate today() => LocalDate.of(now);
+
+    expect(
+      tileEnteredAgo(
+        const Duration(minutes: 59),
+      ).forTick(now, thresholdHours: 24, today: today()).hours,
+      0,
+      reason: 'fifty-nine minutes is not an hour',
+    );
+    expect(
+      tileEnteredAgo(
+        const Duration(hours: 23, minutes: 59),
+      ).forTick(now, thresholdHours: 24, today: today()).hours,
+      23,
+    );
+    expect(
+      tileEnteredAgo(
+        const Duration(hours: 24),
+      ).forTick(now, thresholdHours: 24, today: today()).hours,
+      24,
+    );
+
+    // A FUTURE ENTRY TIME CLAMPS TO 0 RATHER THAN GOING NEGATIVE. It can happen:
+    // a corrected penning time (T06) is the shepherd's own, and `-3h` on a tile
+    // is a number nobody can act on.
+    final PenTile future = PenTile(
+      penId: const PenId(1),
+      penLabel: '1',
+      thresholdHours: 24,
+      tag: '412',
+      enteredAt: Instant(now.epochMillis + const Duration(hours: 3).inMilliseconds),
+    );
+    expect(future.forTick(now, thresholdHours: 24, today: today()).hours, 0);
+  });
+
+  test('the status priority is loss, then attention, then ready, then settling', () async {
+    // THE ORDER IS NOT ARBITRARY AND EACH ARM IS ASSERTED AGAINST THE ONE IT
+    // OUTRANKS — a switch that got the order wrong would still pass a set of
+    // cases that each tested one status in isolation.
+    final Instant now = appNow();
+    final LocalDate today = LocalDate.of(now);
+    final Instant longAgo = Instant(now.epochMillis - const Duration(hours: 48).inMilliseconds);
+
+    PenTile tile({bool hasLoss = false, LocalDate? clearDate, Instant? enteredAt}) => PenTile(
+      penId: const PenId(1),
+      penLabel: '1',
+      thresholdHours: 24,
+      tag: '412',
+      enteredAt: enteredAt ?? longAgo,
+      hasLoss: hasLoss,
+      clearDate: clearDate,
+    );
+
+    PenTileStatus statusOf(PenTile t) => t.forTick(now, thresholdHours: 24, today: today).status;
+
+    // EMPTY IS A STATUS, NOT AN ABSENCE.
+    expect(
+      statusOf(PenTile(penId: const PenId(1), penLabel: '1', thresholdHours: 24)),
+      PenTileStatus.empty,
+    );
+
+    // LOSS OUTRANKS EVERYTHING, including a tile that is otherwise ready.
+    expect(statusOf(tile(hasLoss: true)), PenTileStatus.loss);
+    expect(
+      statusOf(tile(hasLoss: true, clearDate: today)),
+      PenTileStatus.loss,
+      reason: 'a dead lamb outranks a withdrawal',
+    );
+
+    // ATTENTION OUTRANKS READY, and that is the one that matters: turning out a
+    // ewe whose milk is still under withdrawal is the mistake this app exists to
+    // prevent, and `ready` would invite it.
+    expect(
+      statusOf(tile(clearDate: today)),
+      PenTileStatus.attention,
+      reason: '48 h settled, but the withdrawal has not cleared',
+    );
+
+    // READY once the threshold is met and nothing outranks it.
+    expect(statusOf(tile()), PenTileStatus.ready);
+
+    // SETTLING below the threshold.
+    expect(
+      statusOf(tile(enteredAt: Instant(now.epochMillis - const Duration(hours: 2).inMilliseconds))),
+      PenTileStatus.settling,
+    );
+
+    // AND A CLEARED WITHDRAWAL IS NOT ATTENTION. A clear date in the past is a
+    // withdrawal that is over, which is the commonest state of all.
+    expect(
+      statusOf(tile(clearDate: today.plusDays(-1))),
+      PenTileStatus.ready,
+      reason: 'cleared yesterday, so there is nothing to attend to',
+    );
+  });
+
+  test('the threshold is the user\'s own number, and the default is not baked in', () async {
+    // 03 §5.13 CALLS IT A DISPLAY THRESHOLD THE USER SETS. A tile that resolved
+    // `ready` against a constant would be the app deciding when a ewe has
+    // settled — a judgement that varies by flock and by weather.
+    final Instant now = appNow();
+    final LocalDate today = LocalDate.of(now);
+    final PenTile tile = PenTile(
+      penId: const PenId(1),
+      penLabel: '1',
+      thresholdHours: 18,
+      tag: '412',
+      enteredAt: Instant(now.epochMillis - const Duration(hours: 20).inMilliseconds),
+    );
+
+    // 20 h is READY against the user's 18 and SETTLING against the shipped 24.
+    expect(tile.forTick(now, thresholdHours: 18, today: today).status, PenTileStatus.ready);
+    expect(tile.forTick(now, thresholdHours: 24, today: today).status, PenTileStatus.settling);
   });
 }

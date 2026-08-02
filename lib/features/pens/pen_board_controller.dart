@@ -75,9 +75,47 @@ final class PenTile {
 
   /// The two derived facts, for the instant the ticker just yielded.
   ///
-  /// **NOTHING STORES ITS RESULT.** T04 writes the body; the signature is here
-  /// because the type is.
-  PenTile forTick(Instant now, {required int thresholdHours, required LocalDate today}) => this;
+  /// **NOTHING STORES ITS RESULT.** Both depend on `now`, so a value in the
+  /// database would be wrong within the hour — and worse, wrong in a way nobody
+  /// would notice, because it would look like a number.
+  ///
+  /// THE ORDER OF THE ARMS IS THE PRIORITY ORDER, and it is not arbitrary:
+  ///
+  ///   `empty`     — nothing is in the pen. It is a status, not an absence.
+  ///   `loss`      — a dead lamb outranks everything. `10 §3.5` sorts these
+  ///                 above settling rows and gives them NO colour channel at
+  ///                 all: a colour-coded death reads wrong at 4am through a wet
+  ///                 freezer bag.
+  ///   `attention` — an open withdrawal. It outranks `ready` because turning out
+  ///                 a ewe whose milk is still under withdrawal is the mistake
+  ///                 this app exists to prevent, and `ready` would invite it.
+  ///   `ready`     — settled for at least the shepherd's own threshold.
+  ///   `settling`  — everything else.
+  PenTile forTick(Instant now, {required int thresholdHours, required LocalDate today}) {
+    if (enteredAt == null) {
+      return copyWith(hours: 0, status: PenTileStatus.empty);
+    }
+
+    // TRUNCATED, NEVER ROUNDED. A ewe penned 59 minutes ago has been in there
+    // for 0 h, not 1 h — rounding up would let a tile say `1h` about a ewe the
+    // shepherd watched go in a minute ago, and the whole readout is only worth
+    // having if it is not flattering.
+    final int elapsed = (now.epochMillis - enteredAt!.epochMillis) ~/ Duration.millisecondsPerHour;
+    final int hours = elapsed < 0 ? 0 : elapsed;
+
+    final PenTileStatus status;
+    if (hasLoss) {
+      status = PenTileStatus.loss;
+    } else if (clearDate != null && clearDate!.compareTo(today) >= 0) {
+      status = PenTileStatus.attention;
+    } else if (hours >= thresholdHours) {
+      status = PenTileStatus.ready;
+    } else {
+      status = PenTileStatus.settling;
+    }
+
+    return copyWith(hours: hours, status: status);
+  }
 
   /// Hand-written, because `freezed` is banned (decision #16 — drift is the one
   /// generator). Only [forTick] uses it, and only for these two fields.

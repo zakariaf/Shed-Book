@@ -14,11 +14,12 @@
 //   flockRepositoryProvider     N13-T02  Provider<FlockRepository>
 //   tagIndexProvider            N13-T02  StreamProvider<List<TagIndexEntry>>  keepAlive
 //   lambingRepositoryProvider   N14-T02  Provider<LambingRepository>
+//   mediaStoreProvider          N15-T01  Provider<MediaStore>                 keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   noteRepositoryProvider · mediaStoreProvider ·
-//     cameraServiceProvider · voiceRecorderProvider                  N15
+//   noteRepositoryProvider · cameraServiceProvider ·
+//     voiceRecorderProvider                                          N15
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
@@ -41,6 +42,7 @@ import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/lambing_repository.dart';
+import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/tag_match.dart';
@@ -96,6 +98,12 @@ final Provider<FreeTierPolicy> freeTierPolicyProvider = Provider<FreeTierPolicy>
 final Provider<SettingsRepository> settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(databaseProvider).requireValue),
 );
+
+/// **A plain `Provider`, not a `FutureProvider`, even though `root()` is
+/// async.** The gateway itself is cheap to construct and resolves its directory
+/// per call; making the PROVIDER async would put an `AsyncValue` in front of
+/// every caller for a value that is never awaited at construction.
+final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());
 
 final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRepository>(
   (ref) => LambingRepository(db: ref.watch(databaseProvider).requireValue),

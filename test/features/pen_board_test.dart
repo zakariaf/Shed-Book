@@ -347,4 +347,108 @@ void main() {
     expect(tile.forTick(now, thresholdHours: 18, today: today).status, PenTileStatus.ready);
     expect(tile.forTick(now, thresholdHours: 24, today: today).status, PenTileStatus.settling);
   });
+
+  test('a move keeps both rows and dates the new one by the move', () async {
+    // THE TEMPTING IMPLEMENTATION CARRIES THE ORIGINAL ENTRY TIME ACROSS so the
+    // hours keep counting — and it makes `entered_at` a LIE ABOUT THE ROW IT
+    // SITS ON: it would say the ewe entered pen 2 at 21:00 when she entered at
+    // 04:12. §12.5 exists to keep exactly that column honest.
+    //
+    // Both rows stay forever, so the total time penned is recoverable from the
+    // pair. If the field night wants cumulative hours on the board, that is a
+    // PRESENTATION change over two rows, never a rewritten `entered_at`.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository repo = PenRepository(db);
+
+    final PenId penA = await seedPen(db, label: '1');
+    final PenId penB = await seedPen(db, label: '2');
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await repo.enterPen(penA, ewe: ewe, lambs: <LambId>[lamb]);
+    final PenOccupancy first = (await repo.openOccupancyFor(penA))!;
+
+    // Backdate the original so a carried-across time would be visible.
+    await (db.update(
+      db.penOccupancies,
+    )..where(($PenOccupanciesTable t) => t.id.equals(first.id))).write(
+      PenOccupanciesCompanion(
+        enteredAt: Value<Instant>(
+          Instant(appNow().epochMillis - const Duration(hours: 9).inMilliseconds),
+        ),
+      ),
+    );
+    final PenOccupancy backdated = await (db.select(
+      db.penOccupancies,
+    )..where(($PenOccupanciesTable t) => t.id.equals(first.id))).getSingle();
+
+    expect(await repo.movePen(PenOccupancyId(first.id), to: penB), isA<WriteCommitted>());
+
+    final List<PenOccupancy> rows = await db.select(db.penOccupancies).get();
+    expect(rows, hasLength(2), reason: 'both rows stay forever');
+
+    final PenOccupancy closed = rows.firstWhere((PenOccupancy r) => r.id == first.id);
+    expect(closed.exitedAt, isNotNull);
+    expect(closed.exitReason, 'moved', reason: 'a move is not a turn-out and counts differently');
+    expect(closed.enteredAt, backdated.enteredAt, reason: 'the old row keeps its own truth');
+
+    final PenOccupancy opened = rows.firstWhere((PenOccupancy r) => r.id != first.id);
+    expect(opened.pen, penB.value);
+    expect(opened.ewe, ewe.value);
+    expect(
+      opened.enteredAt.epochMillis,
+      greaterThan(backdated.enteredAt.epochMillis),
+      reason: 'dated by the MOVE, never by the original entry',
+    );
+
+    // THE LAMBS COME WITH HER. A move that left them behind would be a move the
+    // shepherd did not make.
+    final List<PenOccupancyLamb> moved = await (db.select(
+      db.penOccupancyLambs,
+    )..where(($PenOccupancyLambsTable t) => t.occupancy.equals(opened.id))).get();
+    expect(moved.map((PenOccupancyLamb l) => l.lamb), <int>[lamb.value]);
+
+    // AND THE PARTIAL INDEX IS SATISFIED THROUGHOUT: one open row per pen.
+    expect(await repo.openOccupancyFor(penA), isNull);
+    expect(await repo.openOccupancyFor(penB), isNotNull);
+  });
+
+  test('a corrected entry time keeps the first value and marks the row edited', () async {
+    // THE SAME SHAPE AS `correctOccurredAt`, and for the same reasons.
+    // `captured_at` never moves — it is how entry lag stays measurable at all —
+    // and `original_effective` keeps the FIRST value, so an unbounded chain of
+    // corrections still says what we first thought.
+    //
+    // `edited` is what the TILE marks (10 §3.5): a penning time the shepherd
+    // corrected is a fact about the record, and §12.5 says it travels with it.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository repo = PenRepository(db);
+
+    final PenId pen = await seedPen(db, label: '1');
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await repo.enterPen(pen, ewe: ewe);
+
+    final PenOccupancy before = (await repo.openOccupancyFor(pen))!;
+    final Instant originally = before.enteredAt;
+
+    for (final int hoursBack in <int>[3, 5, 7]) {
+      await repo.correctEnteredAt(
+        PenOccupancyId(before.id),
+        Instant(appNow().epochMillis - Duration(hours: hoursBack).inMilliseconds),
+      );
+    }
+
+    final PenOccupancy after = (await repo.openOccupancyFor(pen))!;
+    expect(after.timeSource, 'edited');
+    expect(after.originalEffective, originally, reason: 'the FIRST value, not the second edit');
+    expect(after.capturedAt, before.capturedAt, reason: 'entry lag stays measurable');
+    expect(
+      after.enteredAt.epochMillis,
+      lessThan(originally.epochMillis),
+      reason: 'and the effective time did move',
+    );
+  });
 }

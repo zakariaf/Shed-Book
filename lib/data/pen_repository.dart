@@ -21,6 +21,7 @@ import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/penning.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/data/recorded_time_columns.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
 
 final class PenRepository {
@@ -208,6 +209,118 @@ final class PenRepository {
             ),
         ],
       );
+
+  /// Moves what is in [from] into [to], in **one transaction**.
+  ///
+  /// **THE NEW `entered_at` IS THE MOVE INSTANT, NEVER THE ORIGINAL.** The
+  /// tempting implementation carries the original time across so the hours keep
+  /// counting — and that makes `entered_at` a lie about the row it sits on: it
+  /// would say the ewe entered pen 2 at 21:00 when she entered at 04:12, and
+  /// §12.5 exists to keep exactly that column honest.
+  ///
+  /// **BOTH ROWS STAY FOREVER**, so the total time penned is recoverable from
+  /// the pair. If the field night says the board should show cumulative hours,
+  /// that is a PRESENTATION change over two rows and never a rewritten
+  /// `entered_at`.
+  Future<WriteOutcome> movePen(PenOccupancyId occupancy, {required PenId to}) async {
+    final Instant now = appNow(); // ONE instant per mutation
+    final RecordedTime time = RecordedTime.capture(now);
+
+    try {
+      final int id = await _db.transaction(() async {
+        final PenOccupancy from = await (_db.select(
+          _db.penOccupancies,
+        )..where(($PenOccupanciesTable t) => t.id.equals(occupancy.value))).getSingle();
+
+        final List<PenOccupancyLamb> lambs = await (_db.select(
+          _db.penOccupancyLambs,
+        )..where(($PenOccupancyLambsTable t) => t.occupancy.equals(occupancy.value))).get();
+
+        // CLOSED FIRST, so the partial unique index sees one open row at a time
+        // even mid-transaction — and `moved` is the reason, which is a different
+        // fact from a turn-out and counts differently.
+        await (_db.update(
+          _db.penOccupancies,
+        )..where(($PenOccupanciesTable t) => t.id.equals(occupancy.value))).write(
+          PenOccupanciesCompanion(
+            exitedAt: Value<Instant?>(now),
+            exitReason: Value<String?>(PenExitReason.moved.key),
+            updatedAt: Value<Instant>(now),
+          ),
+        );
+
+        final int opened = await _db
+            .into(_db.penOccupancies)
+            .insert(
+              PenOccupanciesCompanion.insert(
+                uid: newUid(),
+                createdAt: now,
+                updatedAt: now,
+                pen: to.value,
+                season: from.season,
+                ewe: Value<int?>(from.ewe),
+                enteredAt: time.effective,
+                capturedAt: time.capturedAt,
+                timeSource: Value<String>(time.source.key),
+              ),
+            );
+
+        // THE LAMBS COME WITH HER. A move that left them behind would be a move
+        // the shepherd did not make.
+        for (final PenOccupancyLamb l in lambs) {
+          await _db
+              .into(_db.penOccupancyLambs)
+              .insert(PenOccupancyLambsCompanion.insert(occupancy: opened, lamb: l.lamb));
+        }
+
+        return opened;
+      });
+      return WriteCommitted(insertedId: id);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  /// Corrects when the occupancy started.
+  ///
+  /// The same shape as `correctOccurredAt`: `captured_at` never moves,
+  /// `original_effective` keeps the FIRST value, and the source becomes
+  /// `edited` — which is what the tile marks (`10 §3.5`).
+  Future<WriteOutcome> correctEnteredAt(PenOccupancyId occupancy, Instant when) async {
+    final Instant now = appNow();
+
+    try {
+      await _db.transaction(() async {
+        final PenOccupancy row = await (_db.select(
+          _db.penOccupancies,
+        )..where(($PenOccupanciesTable t) => t.id.equals(occupancy.value))).getSingle();
+
+        final RecordedTime corrected = recordedTimeFromColumns(
+          effective: row.enteredAt,
+          capturedAt: row.capturedAt,
+          originalEffective: row.originalEffective,
+          sourceKey: row.timeSource,
+        ).editedTo(when);
+
+        await (_db.update(
+          _db.penOccupancies,
+        )..where(($PenOccupanciesTable t) => t.id.equals(occupancy.value))).write(
+          PenOccupanciesCompanion(
+            enteredAt: Value<Instant>(corrected.effective),
+            originalEffective: Value<Instant?>(corrected.originalEffective),
+            timeSource: Value<String>(corrected.source.key),
+            // `capturedAt` IS ABSENT, NOT NULL. Absent leaves the column alone;
+            // NULL would trip the CHECK, and the column is how entry lag stays
+            // measurable at all.
+            updatedAt: Value<Instant>(now),
+          ),
+        );
+      });
+      return WriteCommitted(insertedId: occupancy.value);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
 
   /// The open occupancy for a pen, or `null`.
   ///

@@ -529,6 +529,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tag {tag}'**
   String quickEntryRecentRowLabel({required String tag});
+
+  /// The event button that begins a lambing. It is the product's central write: the tap commits the row BEFORE any screen is pushed, so the label names the event rather than an intention — never 'New lambing', never 'Record lambing'.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambing'**
+  String get quickEntryLambing;
+
+  /// The confirm key when the typed tag matches no active animal. Labelled with the OUTCOME, never a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to remember what they were confirming.
+  ///
+  /// In en, this message translates to:
+  /// **'Create {tag}'**
+  String quickEntryConfirmCreate({required String tag});
+
+  /// The confirm key when the typed tag matches an existing active animal. The counterpart to quickEntryConfirmCreate — the two words are the whole difference between finding an animal and making one.
+  ///
+  /// In en, this message translates to:
+  /// **'Use {tag}'**
+  String quickEntryConfirmUse({required String tag});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

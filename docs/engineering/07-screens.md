@@ -456,6 +456,35 @@ One disclosure, and it is the one that is easiest to drop:
 
 There is no draft state and no Save button (decision #11). The sequence is:
 
+> **AMENDED 2026-08-02 (N14-T03). The snippet below is SUPERSEDED for the Quick Entry tap, on two
+> counts, and it is kept because the reasoning in its comments is still correct.**
+>
+> **1. It calls the verb OUTSIDE any guard.** `beginLambing` returns an id and throws;
+> `WriteController.guard()` takes a `Future<WriteOutcome> Function()`. The two do not compose, and a
+> bare `try`/`catch` deletes the double-tap defence on the product's central write — the anchor
+> *'a double tap on the lambing verb creates exactly one lambing'* is unpassable against this shape,
+> and drilling it confirms that. The adaptation is to wrap inside the guard and return the id as an
+> outcome, which is not an invention: R33 says a bare `int` appears *"as `WriteCommitted.insertedId`,
+> which the single reading call site wraps"*, and this is that call site.
+>
+> ```dart
+> Future<void> beginLambing(EweId ewe) => guard(() async {
+>   final repo = ref.read(lambingRepositoryProvider);
+>   final LambingId id = await repo.beginLambing(ewe);
+>   return WriteCommitted(insertedId: id.value);
+> });
+> ```
+>
+> **2. `lambingWriteControllerProvider` is the wrong controller for this tap, and using it does not
+> build.** It lives in `lib/features/lambing/`, so Quick Entry importing it is a `layer.sibling`
+> violation (rule 6) — the gate fails, and it should. The Quick Entry tap belongs to
+> `quickEntryWriteControllerProvider`, which reaches the repository through `lib/data/`. The
+> controller this snippet names is N16's, for writes made *from* Lambing Entry.
+>
+> **3. The `catch` arm is also superseded, by P2.** `showFailure` is correct; *"persistent SnackBar"*
+> is not — `showSnackBar(` is banned everywhere. The confirmation is the committed row, in ink.
+> Failure copy is N14-T04's.
+
 ```dart
 Future<void> onLambingTapped(BuildContext context, WidgetRef ref, EweId ewe) async {
   final controller = ref.read(lambingWriteControllerProvider.notifier);

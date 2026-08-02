@@ -41,8 +41,15 @@
 // that pushed the band would move the slab, which is the one target the shepherd
 // aims at without looking.
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
+import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
 import 'package:shed_book/features/quick_entry/widgets/in_pens_strip.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
@@ -72,9 +79,52 @@ class QuickEntryScreen extends StatelessWidget {
   const QuickEntryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => const _QuickEntryPage();
+}
+
+/// The page proper.
+///
+/// **A ConsumerWidget, and [QuickEntryScreen] deliberately is not.** The shell's
+/// immovable-boxes property rests on the screen watching nothing (`02 §10.1`),
+/// and that assertion is source text over `QuickEntryScreen`. The write path
+/// needs one `ref.listen`, so it lives one widget down — where a rebuild moves
+/// nothing, because this widget's children are the same fixed boxes.
+class _QuickEntryPage extends ConsumerWidget {
+  const _QuickEntryPage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // THE ONE LISTEN, AND THE ONLY PLACE FEEDBACK HAPPENS (02 §7). The switch is
+    // EXHAUSTIVE with no `default:` — WriteOutcome is sealed with three
+    // variants, and the day a fourth appears this must fail to compile rather
+    // than swallow it.
+    ref.listen<WriteState>(quickEntryWriteControllerProvider, (
+      WriteState? previous,
+      WriteState next,
+    ) {
+      if (next case WriteDone(:final WriteOutcome outcome)) {
+        switch (outcome) {
+          case WriteCommitted():
+            // T04 builds the receipt. The confirmation IS the committed row, in
+            // ink, one line above the one being written — there is no SnackBar
+            // (P2), anywhere, ever.
+            break;
+          case WriteFailed():
+            // T04. A failure is never silence: the record did not land and the
+            // app must say so.
+            break;
+          case WriteRefused():
+            // UNREACHABLE ON THIS SCREEN, and the arm exists to prove it stays
+            // that way. createEwe passes EntryContext.liveEntry, and
+            // FreeTierPolicy.decide cannot reach a BlockedByCap on that arm
+            // (decision #91).
+            break;
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
@@ -186,10 +236,40 @@ class QuickEntryScreen extends StatelessWidget {
                     backspaceHint: l10n.hintDeleteLastDigit,
                     thirdKeyLabel: l10n.keypadNewTag,
                   ),
+                  // THE LAMBING EVENT BUTTON, in the confirm slot the shell
+                  // reserved. It is the product's central write: the tap commits
+                  // the row BEFORE any screen is pushed, which is why the label
+                  // names the event rather than an intention.
+                  //
+                  // N16 pushes LambingEntryScreen from the outcome's id. There
+                  // is no route helper for a screen that does not exist yet.
                   SizedBox(
                     key: const Key('quick_entry.confirm'),
                     height: t.tapHero,
                     width: double.infinity,
+                    child: ShedTapTarget(
+                      key: const Key('quick_entry.lambing'),
+                      semanticLabel: l10n.quickEntryLambing,
+                      minSize: t.tapHero,
+                      onTap: () {
+                        final EweId? selected = ref.read(quickEntryControllerProvider).selected;
+                        if (selected == null) {
+                          return;
+                        }
+                        ref
+                            .read(quickEntryWriteControllerProvider.notifier)
+                            .beginLambing(selected)
+                            .ignore();
+                      },
+                      child: ExcludeSemantics(
+                        child: Center(
+                          child: Text(
+                            l10n.quickEntryLambing,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(height: MediaQuery.paddingOf(context).bottom),
                 ],

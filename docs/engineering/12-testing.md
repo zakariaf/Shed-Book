@@ -1315,7 +1315,10 @@ void main() {
     await tester.countedTap(find.byKey(const Key('quick_entry.keypad.digit_2')), c);
     await tester.countedTap(find.byKey(const Key('quick_entry.confirm')), c);
     await tester.countedTap(find.byKey(const Key('quick_entry.event.lambing')), c);
-    await tester.countedTap(find.byKey(const Key('lambing_entry.birth_type.twin')), c);
+    // AMENDED 2026-08-02 (N16-T02a), ruling P8: the sixth tap is the first
+    // tally stroke, not a birth-type button. The budget is unchanged at six.
+    await tester.countedTap(find.byKey(const Key('lambing_entry.tally.stroke')), c);
+    expect(await countLambs(db), 1);
 
     expect(c.taps, lessThanOrEqualTo(6));
     expect(c.textEntries, 0);

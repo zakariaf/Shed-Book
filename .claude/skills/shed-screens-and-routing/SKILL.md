@@ -26,7 +26,8 @@ how it is reached, and what a verb can take back.** `docs/engineering/07-screens
    the derivation, the stamp and the one surviving use of `ShedChoiceRow` belong to
    `indelible-marks-and-strikes` and `indelible-controls`. The consequence **this** skill owns: the
    sixth tap of the 6-tap lambing journey is **the first tally stroke**, so `07 §5.4`'s keyed finder
-   `lambing_entry.birth_type.twin` is superseded — target the tally-stroke control instead.
+   ~~`lambing_entry.birth_type.twin`~~ is superseded — target `lambing_entry.tally.stroke` instead
+   (P8 ruled 2026-08-02, decision-record §7.0b).
 
 ## 1. Not this skill
 

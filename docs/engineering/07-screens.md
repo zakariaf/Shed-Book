@@ -416,7 +416,9 @@ The `412 →` window lasts from frame 1 until the tag index resolves. **The dura
 | Pen the ewe | ewe + 1 + 1 (pen) | |
 | Add a note | ewe + 1 | |
 
-**The 6-tap budget:** `4` (digits + confirm) `+ 1` (Lambing) `+ 1` (birth type) = a committed, valid lambing record. Asserted in `test/features/tap_budget_test.dart` with keyed finders (`quick_entry.keypad.digit_4`, `quick_entry.confirm`, `quick_entry.event.lambing`, `lambing_entry.birth_type.twin`).
+**The 6-tap budget:** `4` (digits + confirm) `+ 1` (Lambing) `+ 1` (~~birth type~~ **the first tally stroke**) = a committed, valid lambing record. Asserted in `test/features/tap_budget_test.dart` with keyed finders (`quick_entry.keypad.digit_4`, `quick_entry.confirm`, `quick_entry.event.lambing`, `lambing_entry.tally.stroke`).
+
+> **AMENDED 2026-08-02 (N16-T02a), ruling P8.** The budget stays at **6** and the fifteen-second promise is unchanged; only the sixth tap's composition changes. Birth type is DERIVED from the strokes and labelled `(COUNTED)` — see decision-record §7.0b for why that is a safety rule rather than a simplification: a declared type and a counted one can disagree, and every way of resolving that disagreement is worse than not having it.
 
 ### 5.5 Commit, confirmation and double taps
 

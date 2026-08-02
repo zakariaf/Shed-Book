@@ -821,7 +821,7 @@ Five documented exceptions, because two documents already agree on them and rena
 ```
 quick_entry.keypad.digit_4
 quick_entry.confirm
-lambing_entry.birth_type.twin
+lambing_entry.tally.stroke        # amended 2026-08-02 (P8) — see R80a
 pen_board.turn_out.3
 treatment.withdrawal.enter_days
 ```
@@ -1540,8 +1540,14 @@ the decision record's 216 is superseded with the reason stated.
 01 writes `Key('birthType.twin')`; 02, 05 and 07 write `pen_board.turn_out.3`, `treatment.save`,
 `quick_entry.keypad.digit_4`.
 
-**Ruling.** `<screen>.<element>[.<qualifier>]`, every segment `lower_snake`. `birthType.twin` becomes
-`lambing_entry.birth_type.twin`.
+**Ruling.** `<screen>.<element>[.<qualifier>]`, every segment `lower_snake`. `birthType.twin` was the
+defect the format exists to prevent.
+
+> **AMENDED 2026-08-02 (N16-T02a), ruling P8.** The worked example was
+> ~~`lambing_entry.birth_type.twin`~~ and is now **`lambing_entry.tally.stroke`**. The FORMAT is
+> unchanged and the original defect is still the reason for it; what changed is that the control the
+> old example named does not exist. A naming authority that publishes a key for a control the product
+> does not have is worse than a missing example, because a fixer applies it mechanically.
 **Files:** 01 (§4.5 test snippet).
 
 ### R60 — No human-facing date is all-numeric
@@ -1974,3 +1980,16 @@ is the rule working, and it is why the fix here is narrow rather than a blanket 
 `lib/domain/` and `lib/data/` are unchanged and must stay that way: a domain function that reads a
 localised string has taken a rendering decision, and `ShedFailure.userMessage` and `Disclaimers.*` are
 the two documented places where copy lives outside the ARB precisely so those layers never reach it.
+
+### R80a — no widget key contains `birth_type`
+
+**Ruled 2026-08-02 (N16-T02a), applying P8** (decision-record §7.0b). Birth type is derived from the
+tally strokes and labelled `(COUNTED)`; there is no control that declares one on the five-tap path.
+
+The rule is held by a **tree-walking canary** in `test/features/lambing_entry_test.dart` rather than by
+review: it asserts over every `ValueKey` in the pumped tree, because a `birth_type` key anywhere is the
+chooser coming back somewhere nobody is looking.
+
+`lambings.declared_birth_type` keeps its column and its writer — the deferred CHANGE TYPE path — and
+NULL still means *not declared* (R6), never `single`. See R59 for the key format itself; this ruling
+changed its worked example, not its shape.

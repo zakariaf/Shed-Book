@@ -892,7 +892,9 @@ testWidgets('the lambing row exists before any Done tap', (tester) async {
   ));
   addTearDown(db.close);
   // … pump the screen with databaseProvider overridden …
-  await tester.tap(find.byKey(const Key('lambing_entry.birth_type.twin')));
+  // AMENDED 2026-08-02 (N16-T02a), ruling P8: the sixth tap is the first tally
+  // stroke. Birth type is derived and labelled (COUNTED) — §7.0b.
+  await tester.tap(find.byKey(const Key('lambing_entry.tally.stroke')));
   await tester.pump();
 
   final rows = await db.select(db.lambings).get();      // no Done, no Save, no pop

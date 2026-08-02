@@ -524,6 +524,46 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 13 | Does a lamb kept as a breeding ewe become a `Ewe` row? — **ruled 2026-08-01** | **Yes.** `lambs.became_ewe`, nullable, in the v1 schema. | A nullable FK to `ewes(id)` with `onDelete: KeyAction.setNull`, plus a hand-written `@TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})` — SQLite creates no child-key index automatically (#31). It re-opens the cross-table tag rule at `03 §6`, whose sentence *"a lamb tagged 412 and an active ewe tagged 412 can coexist… v1 has no lamb→ewe promotion"* is only true while the answer is no: `03 §6` is amended in the same commit and **no cross-table trigger is added to paper over it**, by that section's own instruction. The partial unique index on active tags is unchanged — promotion writes a `ewes` row that takes its own tag through the same create-on-the-fly path every other ewe does. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
 
+### 7.0b P8 — the birth-type chooser. RULED 2026-08-02 (N16-T02a).
+
+**The question.** `07 §6.4` gives Lambing Entry a birth-type chooser — *"Declare birth type — 1 tap,
+five big buttons"* — and makes it the sixth tap of the product's headline budget. `12 §10.1`'s
+published test spends that tap on `Key('lambing_entry.birth_type.twin')`, and `CONVENTIONS §4.5` uses
+the same key as its worked example of the key format. Does the chooser ship?
+
+**The ruling: no. Birth type is DERIVED from the tally strokes and labelled `(COUNTED)`.**
+
+**Why, and it is a safety rule rather than a simplification.** Spec §12.4 forbids silently correcting a
+user's entry. A declared birth type and a counted one can disagree — *"twin"* declared, three strokes
+recorded — and every resolution of that disagreement is bad: correcting the declaration is §12.4 in the
+plainest possible form; correcting the tally deletes an animal; showing a warning asks a shepherd at
+03:20 to adjudicate between two numbers the app collected. **Deriving the type removes the
+disagreement rather than handling it**, which is what makes §12.4 structural here instead of
+procedural — the mechanism hierarchy's *unrepresentable* rather than its *documented*.
+
+The sixth tap survives, and so does the fifteen-second promise: it is now the first tally stroke, on
+`lambing_entry.tally.stroke`. `07 §1.3`'s budget stays at **6** — only its composition changes.
+
+**What this binds.**
+
+- `lambings.declared_birth_type` **keeps its column and its writer.** The deferred CHANGE TYPE path
+  still sets it, and NULL still means *not declared* (R6) — never `single`. What no longer exists is a
+  control that declares one on the five-tap path.
+- `countedBirthType(int)` (`lib/domain/birth_type.dart`, N16-T02) is the derivation, and it returns
+  **null at zero and at five or more**: zero is NOT RECORDED, and a counted five is not `quintPlus`,
+  which means *"more than four, count not declared"*.
+- **No key anywhere in the tree may contain `birth_type`.** Held by a tree-walking canary in
+  `test/features/lambing_entry_test.dart`, not by review.
+- `06 §12`'s `ShedChoiceRow` is **ease 1–5 only**. N10-T06 shipped it that way with a doc comment
+  naming P8; the document catches up here.
+
+**What is struck.** `07 §6.4`'s chooser and its tap, `07 §6.3`'s *"the five buttons are unselected"*
+row, `12 §10.1`'s sixth tap, and `CONVENTIONS §4.5`'s worked example — **a naming authority that
+publishes a key for a control the product does not have is worse than a missing example**, because a
+fixer applies it mechanically.
+
+---
+
 ### 7.0a P3 — the navigation model. RULED 2026-08-02 (N13-T01).
 
 **The conflict.** `02 §8.1`–§8.3 and §9.1 specify `Navigator` 1.0, a stack at most three pushes deep,

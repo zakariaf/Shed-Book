@@ -182,7 +182,8 @@ asserting anything.
   `WriteController.guard()` makes the second fire a no-op.
 - **There is no birth-type chooser** (owner ruling P8): birth type is derived from tally strokes and
   labelled as derived, so the sixth tap in the budget is a stroke. 12 §10.1's
-  `lambing_entry.birth_type.twin` key predates the ruling; no test may select a birth type.
+  ~~`lambing_entry.birth_type.twin`~~ predates the ruling; no test may select a birth type. The sixth
+  tap is `lambing_entry.tally.stroke` (P8 ruled 2026-08-02, decision-record §7.0b).
 - **There is no SnackBar** (owner ruling P2). The confirmation is the committed row on the page, so
   assert the row; `showSnackBar(` is banned everywhere, `feedback.dart` included. Undo is a time-boxed
   strike affordance in the row's own margin — assert the window **in seconds**, never as a widget's

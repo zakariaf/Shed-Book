@@ -58,6 +58,8 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
@@ -139,6 +141,7 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.lambingEntry: (seed: _seedHardLambing, build: _lambingEntry),
   RouteNames.lambCard: (seed: _seedHardLamb, build: _lambCard),
   RouteNames.foster: (seed: _seedHardFoster, build: _foster),
+  RouteNames.penBoard: (seed: _seedHardPenBoard, build: _penBoard),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -290,6 +293,45 @@ Future<Map<String, int>> _seedHardFoster(AppDatabase db) async {
 }
 
 Widget _foster(Map<String, int> ids) => FosterScreen(lambId: LambId(ids['lamb']!));
+
+/// **THE HARD BOARD.** Twelve pens, because twelve is the width the grid has to
+/// reflow at — and they are not all the same: one is empty, one holds an orphan
+/// litter, one has a five-digit tag, and the rest hold ewes at different entry
+/// times so the hours readouts differ.
+///
+/// A board of three identical tiles passes eighteen cells and proves nothing
+/// about the wrap, which is the only thing on this screen that can overflow.
+Future<Map<String, int>> _seedHardPenBoard(AppDatabase db) async {
+  await seedSeason(db);
+  final PenRepository repo = PenRepository(db);
+
+  for (int i = 0; i < 12; i++) {
+    await repo.addPen();
+  }
+  final List<Pen> pens = await db.select(db.pens).get();
+
+  for (int i = 0; i < 10; i++) {
+    final EweId ewe = await seedEwe(db, tag: i == 0 ? '40001' : '${400 + i}');
+    await repo.enterPen(PenId(pens[i].id), ewe: ewe);
+  }
+
+  // AN ORPHAN LITTER in the eleventh — lambs with no ewe, which is a different
+  // tile from the empty twelfth.
+  final EweId dam = await seedEwe(db, tag: '900');
+  final LambingId lambing = await seedLambing(db, dam);
+  await repo.enterPen(
+    PenId(pens[10].id),
+    lambs: <LambId>[
+      await seedLamb(db, lambing, dam),
+      await seedLamb(db, lambing, dam),
+      await seedLamb(db, lambing, dam),
+    ],
+  );
+
+  return <String, int>{};
+}
+
+Widget _penBoard(Map<String, int> _) => const PenBoardScreen();
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

@@ -682,4 +682,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get penBoardAddPenSemantics => 'Add a pen';
+
+  @override
+  String get penBoardTitle => 'PENS';
 }

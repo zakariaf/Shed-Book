@@ -1005,5 +1005,9 @@
   "penBoardAddPenSemantics": "Add a pen",
   "@penBoardAddPenSemantics": {
     "description": "The add-pen target for a screen reader. A bare plus is unreadable aloud."
+  },
+  "penBoardTitle": "PENS",
+  "@penBoardTitle": {
+    "description": "The pen board grid container label. One word: the shepherd got here from a named destination and the tiles carry the meaning."
   }
 }

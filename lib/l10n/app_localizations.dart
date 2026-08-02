@@ -1239,6 +1239,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a pen'**
   String get penBoardAddPenSemantics;
+
+  /// The pen board grid container label. One word: the shepherd got here from a named destination and the tiles carry the meaning.
+  ///
+  /// In en, this message translates to:
+  /// **'PENS'**
+  String get penBoardTitle;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

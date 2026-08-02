@@ -4,6 +4,10 @@
 // file is where "the same" stops being a claim.
 library;
 
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:shed_book/core/ui/components/shed_pen_tile.dart';
+import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:shed_book/core/db/database.dart';
@@ -450,5 +454,76 @@ void main() {
       lessThan(originally.epochMillis),
       reason: 'and the effective time did move',
     );
+  });
+
+  // ---------------------------------------------------------------------------
+  // T07 — the board, its grid semantics and the zero-pen state
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a flock with no pens renders one add target and no grid', (
+    WidgetTester tester,
+  ) async {
+    // THREE THINGS THE NAME CLAIMS, AND ALL THREE ARE ASSERTED. An empty grid is
+    // a screen that looks broken; a wizard is a decision at 03:20 nobody wants.
+    // What a flock with no pens gets is ONE target.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    await tester.pumpApp(const PenBoardScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pen_board.add_pen')), findsOneWidget);
+    expect(find.byKey(const Key('pen_board.grid')), findsNothing, reason: 'no empty grid');
+    expect(find.byType(ShedPenTile), findsNothing);
+
+    // AND ITS SIZE IS MEASURED, not read back from the constant passed in.
+    final Size size = tester.getSize(find.byKey(const Key('pen_board.add_pen')));
+    expect(size.width, greaterThanOrEqualTo(72.0));
+    expect(size.height, greaterThanOrEqualTo(72.0));
+
+    // ONE TAP AND A PEN EXISTS. No confirmation, no wizard step, no name.
+    await tester.tap(find.byKey(const Key('pen_board.add_pen')));
+    await tester.pumpAndSettle();
+
+    expect(await db.select(db.pens).get(), hasLength(1));
+    expect(find.byType(ShedPenTile), findsOneWidget, reason: 'and the board follows');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the grid is one container and the tiles are its children', (
+    WidgetTester tester,
+  ) async {
+    // WITHOUT THE CONTAINER a screen reader reads twelve tiles as twelve
+    // unrelated buttons, which is the difference between "pens: pen 3, 4h" and
+    // twelve announcements with no relationship between them.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository repo = PenRepository(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await repo.addPen();
+    await repo.addPen();
+    final List<Pen> pens = await db.select(db.pens).get();
+    await repo.enterPen(PenId(pens.first.id), ewe: ewe);
+
+    final SemanticsHandle handle = tester.ensureSemantics();
+    await tester.pumpApp(const PenBoardScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('pen_board.grid')), findsOneWidget);
+    expect(find.byType(ShedPenTile), findsNWidgets(2));
+
+    // ONE UTTERANCE PER TILE, carrying the same words the eye gets — so a
+    // support call about "pen 1" is about the same thing for both users.
+    final SemanticsNode occupied = tester.getSemantics(find.byKey(const Key('pen_board.tile.1')));
+    expect(occupied.label, contains('1'));
+    expect(occupied.label, contains('412'));
+
+    final SemanticsNode empty = tester.getSemantics(find.byKey(const Key('pen_board.tile.2')));
+    expect(empty.label, contains('empty'), reason: 'an empty pen says so');
+
+    handle.dispose();
+    await tester.closeApp();
   });
 }

@@ -943,5 +943,17 @@
         "type": "String"
       }
     }
+  },
+  "warningFosterToSelf": "That {animal} is already on this {dam}.",
+  "@warningFosterToSelf": {
+    "description": "The fosterToSelf observation. It says WHAT WE OBSERVED and never what to do, and it NEVER blocks: fostering a lamb onto the ewe she is already on is a thing a shepherd does at 03:20 by mistake, and refusing it would lose the record of an action they took. The comparison is against the CURRENT REARING DAM, never the birth dam - after a foster to B, fostering the lamb back to her birth dam is not a self-foster at all. BOTH nouns are placeholders: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft for spelling 'ewe'.",
+    "placeholders": {
+      "animal": {
+        "type": "String"
+      },
+      "dam": {
+        "type": "String"
+      }
+    }
   }
 }

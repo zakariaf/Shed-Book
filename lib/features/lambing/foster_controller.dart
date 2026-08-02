@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
 
 /// What the shepherd has typed so far.
@@ -35,3 +36,17 @@ final class FosterController extends AutoDisposeFamilyNotifier<FosterState, Lamb
 final AutoDisposeNotifierProviderFamily<FosterController, FosterState, LambId>
 fosterControllerProvider = NotifierProvider.autoDispose
     .family<FosterController, FosterState, LambId>(FosterController.new);
+
+/// The lamb's current rearing dam, watched.
+///
+/// **A SINGLE-ROW LOOKUP beside the deck** (`07 §1.2`). The screen needs it for
+/// exactly one thing: `fosterToSelf` compares the TARGET against the CURRENT
+/// rearing dam, never against the birth dam — and on an un-fostered lamb those
+/// two are the same ewe by arm 1 of `lamb_rearing`, which is the common case at
+/// 3am and the reason the comparison has to be written the right way round.
+final AutoDisposeStreamProviderFamily<EweId?, LambId> lambRearingDamProvider = StreamProvider
+    .autoDispose
+    .family<EweId?, LambId>((ref, LambId lamb) async* {
+      await ref.watch(databaseProvider.future);
+      yield* ref.watch(fosterRepositoryProvider).watchRearingDam(lamb);
+    });

@@ -18,7 +18,10 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/foster_outcome.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/lambing/foster_controller.dart';
 import 'package:shed_book/features/lambing/foster_write_controller.dart';
 import 'package:shed_book/features/lambing/widgets/foster_no_ewe_targets.dart';
@@ -55,6 +58,13 @@ class FosterScreen extends ConsumerWidget {
         (AsyncValue<QuickEntryDeck> d) => d.value?.penned ?? const <DeckEntry>[],
       ),
     );
+
+    // THE CURRENT REARING DAM — one row, and the only fact this screen needs
+    // beyond the deck. `fosterToSelf` compares the TARGET against THIS, never
+    // against the birth dam: after a foster to B, fostering the lamb back to her
+    // birth dam is not a self-foster, and a `birthDam == target` implementation
+    // would warn about it wrongly.
+    final EweId? rearingDam = ref.watch(lambRearingDamProvider(lambId)).value;
 
     // MATCHED ON A PREFIX OF THE DIGITS, in Dart, over rows already in hand.
     // A second statement per keystroke would be a second dependency list and
@@ -111,7 +121,11 @@ class FosterScreen extends ConsumerWidget {
                             semanticLabel: l10n.fosterOnto(tag: e.tag),
                             minSize: t.tapPrimary,
                             // ONE TAP, AND IT IS THE WRITE. No confirm.
-                            onTap: () => write().recordFoster(lambId, ToEwe(e.eweId)),
+                            onTap: () => write().recordFoster(
+                              lambId,
+                              ToEwe(e.eweId),
+                              currentRearingDam: rearingDam,
+                            ),
                             child: ExcludeSemantics(
                               child: Align(
                                 alignment: Alignment.centerLeft,
@@ -125,8 +139,16 @@ class FosterScreen extends ConsumerWidget {
                         ),
                     SizedBox(height: t.gapMin),
                     FosterNoEweTargets(
-                      onToBottle: () => write().recordFoster(lambId, const ToBottle()),
-                      onRemoved: () => write().recordFoster(lambId, const RemovedUnknown()),
+                      onToBottle: () => write().recordFoster(
+                        lambId,
+                        const ToBottle(),
+                        currentRearingDam: rearingDam,
+                      ),
+                      onRemoved: () => write().recordFoster(
+                        lambId,
+                        const RemovedUnknown(),
+                        currentRearingDam: rearingDam,
+                      ),
                       bottleLabel: l10n.fosterToBottle,
                       removedLabel: l10n.fosterRemovedUnknown(
                         animal: l10n.termEweSingular.toUpperCase(),
@@ -136,6 +158,23 @@ class FosterScreen extends ConsumerWidget {
                 ),
               ),
             ),
+            // THE WARNING, UNDER THE LIST AND ABOVE THE PAD. It renders from
+            // the last write's outcome, which is where the validator put it —
+            // and it appears AFTER the row was committed, never instead of it.
+            if (ref.watch(fosterWriteControllerProvider) case WriteDone(
+              outcome: WriteCommitted(:final List<Warning> warnings),
+            ) when warnings.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.all(t.gapMin),
+                child: Text(
+                  l10n.warningFosterToSelf(
+                    animal: l10n.termLambSingular,
+                    dam: l10n.termEweSingular,
+                  ),
+                  key: const Key('foster.warning.to_self'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.statusAttention),
+                ),
+              ),
             // THE PAD AT THE BOTTOM, where the thumb is. Decision #57: it is the
             // only numeric route in the app.
             ShedKeypad(

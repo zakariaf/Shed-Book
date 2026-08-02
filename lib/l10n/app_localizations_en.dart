@@ -647,4 +647,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String fosterBirthDamNote({required String tag}) {
     return 'BIRTH DAM $tag · UNCHANGED';
   }
+
+  @override
+  String warningFosterToSelf({required String animal, required String dam}) {
+    return 'That $animal is already on this $dam.';
+  }
 }

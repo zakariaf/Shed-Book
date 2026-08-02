@@ -90,6 +90,29 @@ final class FosterRepository {
     }
   }
 
+  /// The lamb's CURRENT rearing dam, from the view.
+  ///
+  /// **A SINGLE-ROW LOOKUP, which `07 §1.2` permits beside one content
+  /// statement.** The Foster screen's content statement is the deck; this is the
+  /// one extra fact it needs, and it is one row.
+  ///
+  /// `null` means the lamb is on no ewe — which is a THIRD state and not a
+  /// match: `ToBottle()` on a lamb already on a bottle does not warn, because
+  /// null-by-intent is not *already on this ewe* and there is no ewe to be on.
+  Stream<EweId?> watchRearingDam(LambId lamb) => _db
+      .customSelect(
+        'SELECT rearing_dam FROM lamb_rearing WHERE lamb_id = ?',
+        variables: <Variable<Object>>[Variable<int>(lamb.value)],
+        // `lamb_rearing` is a view over these two, and a customSelect cannot
+        // infer that — so a foster appended elsewhere would leave this stale.
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{_db.lambs, _db.fosterEvents},
+      )
+      .watchSingleOrNull()
+      .map(
+        (QueryRow? r) =>
+            r?.readNullable<int>('rearing_dam') == null ? null : EweId(r!.read<int>('rearing_dam')),
+      );
+
   /// Appends a **compensating event** that reverses [event] and points at it.
   ///
   /// **THERE IS NO DELETE.** `FosterEvents` is append-only, `corrects` is

@@ -14,7 +14,7 @@
 //   seedEditedLambing            N16   (the provenance quad)
 //   seedContradictoryLambing     N06/N16 (the warning path, 12 §10.4)
 //   armExportBanner              N21
-//   setEntitlement · setEwesInCurrentSeason · restoreFixture   N23/N30
+//   restoreFixture               N23
 //
 // EVERY ROW HERE IS A ROW THE APP COULD HAVE PRODUCED. These helpers satisfy the
 // schema by hand — `foreign_keys = ON` (decision #28), every table `STRICT`,
@@ -208,3 +208,46 @@ Future<void> seedTouch(AppDatabase db, EweId ewe, {Instant? touchedAt}) => db
     .insertOnConflictUpdate(
       EweTouchesCompanion.insert(ewe: Value<int>(ewe.value), touchedAt: touchedAt ?? appNow()),
     );
+
+/// Sets the one entitlement row.
+///
+/// `12 §5.3`'s helper, landing at N14-T07 — the first task that needs it. The
+/// row exists from the first millisecond, because `seedFirstRun` seeds it in
+/// `onCreate`, so this is an update and never an insert.
+Future<void> setEntitlement(AppDatabase db, {required bool unlocked}) =>
+    (db.update(db.entitlements)..where(($EntitlementsTable t) => t.id.equals(1))).write(
+      EntitlementsCompanion(unlocked: Value<bool>(unlocked)),
+    );
+
+/// Tops the current season up to [n] ewes.
+///
+/// **`ewe_seasons`, not `ewes`, and the distinction is the whole reason the
+/// table exists**: a barren ewe has no lambing row, so participation has to be
+/// recorded explicitly or she vanishes from every count that matters.
+Future<void> setEwesInCurrentSeason(AppDatabase db, int n) async {
+  final SeasonId season = await _season(db);
+  final Instant now = appNow();
+
+  final int existing = (await (db.select(
+    db.eweSeasons,
+  )..where(($EweSeasonsTable t) => t.season.equals(season.value))).get()).length;
+
+  for (int i = existing; i < n; i++) {
+    final EweId ewe = await seedEwe(db, tag: 'CAP$i');
+    await db
+        .into(db.eweSeasons)
+        .insert(
+          EweSeasonsCompanion.insert(
+            season: season.value,
+            ewe: ewe.value,
+            // NO DEFAULT on status, deliberately (03 §5): defaulting to
+            // 'to_ram' would silently assert a ewe was put to the ram, which is
+            // the denominator of a commercially sensitive number.
+            status: 'to_ram',
+            uid: newUid(),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+  }
+}

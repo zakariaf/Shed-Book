@@ -456,6 +456,35 @@ One disclosure, and it is the one that is easiest to drop:
 
 There is no draft state and no Save button (decision #11). The sequence is:
 
+> **AMENDED 2026-08-02 (N14-T03). The snippet below is SUPERSEDED for the Quick Entry tap, on two
+> counts, and it is kept because the reasoning in its comments is still correct.**
+>
+> **1. It calls the verb OUTSIDE any guard.** `beginLambing` returns an id and throws;
+> `WriteController.guard()` takes a `Future<WriteOutcome> Function()`. The two do not compose, and a
+> bare `try`/`catch` deletes the double-tap defence on the product's central write — the anchor
+> *'a double tap on the lambing verb creates exactly one lambing'* is unpassable against this shape,
+> and drilling it confirms that. The adaptation is to wrap inside the guard and return the id as an
+> outcome, which is not an invention: R33 says a bare `int` appears *"as `WriteCommitted.insertedId`,
+> which the single reading call site wraps"*, and this is that call site.
+>
+> ```dart
+> Future<void> beginLambing(EweId ewe) => guard(() async {
+>   final repo = ref.read(lambingRepositoryProvider);
+>   final LambingId id = await repo.beginLambing(ewe);
+>   return WriteCommitted(insertedId: id.value);
+> });
+> ```
+>
+> **2. `lambingWriteControllerProvider` is the wrong controller for this tap, and using it does not
+> build.** It lives in `lib/features/lambing/`, so Quick Entry importing it is a `layer.sibling`
+> violation (rule 6) — the gate fails, and it should. The Quick Entry tap belongs to
+> `quickEntryWriteControllerProvider`, which reaches the repository through `lib/data/`. The
+> controller this snippet names is N16's, for writes made *from* Lambing Entry.
+>
+> **3. The `catch` arm is also superseded, by P2.** `showFailure` is correct; *"persistent SnackBar"*
+> is not — `showSnackBar(` is banned everywhere. The confirmation is the committed row, in ink.
+> Failure copy is N14-T04's.
+
 ```dart
 Future<void> onLambingTapped(BuildContext context, WidgetRef ref, EweId ewe) async {
   final controller = ref.read(lambingWriteControllerProvider.notifier);
@@ -1172,11 +1201,29 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 
 ### 15.1 The table
 
+> **AMENDED 2026-08-02 (N14-T05), by P1 and P2 together. The four ~~Hard delete~~ rows are STRUCK, and
+> so is every "SnackBar" in the Window column.**
+>
+> P1 gave every record-bearing table `struck` / `struck_at` and requires that every CSV carries the
+> columns and every struck row is exported and marked. Indelible Rule 1 is absolute — *"There is no
+> delete. Not banned — absent. The concept of erasure does not exist in the product."* So undo on these
+> rows is a **strike**: the row keeps its position, its legibility and its place in every query that is
+> not explicitly filtering, and the margin prints `STRUCK HH:mm`. `strikeLambing` is the verb
+> (`CONVENTIONS §2.13`, added in the same commit); a row that collapses or fades is the bug
+> `indelible.md` §7.3's *"the row stays in position"* exists to prevent.
+>
+> P2 abolished the window definition in §15.2 without supplying a replacement, so the window is now
+> `kStrikeWindow` in `lib/core/ui/feedback.dart` — **20 s, proposed rather than ruled**, and carried
+> into N14's pull request as a ruling because it is a number a shepherd reads on screen.
+>
+> **This amendment is load-bearing for two later epics.** A document that still prescribes a hard
+> delete will be followed by N16 for `addLamb` and by N18 for foster.
+
 | Verb | Repository method | Undo does | Window | Visible afterwards |
 |---|---|---|---|---|
-| Begin a lambing | `beginLambing` | **Hard delete**, allowed only while it has zero child rows | SnackBar | nothing |
-| Add a lamb | `addLamb` | **Hard delete** | SnackBar | nothing |
-| Add a care event | `addCare` | **Hard delete** | SnackBar | nothing |
+| Begin a lambing | `beginLambing` | ~~**Hard delete**, allowed only while it has zero child rows~~ → **strike** (`strikeLambing`): `struck = 1`, `struck_at` set | `kStrikeWindow` | the row, struck, in position and legible |
+| Add a lamb | `addLamb` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
+| Add a care event | `addCare` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
 | Remove a care event | `removeCare` | re-insert with the original `RecordedTime` | SnackBar | nothing |
 | **Foster** | `recordFoster` | a **compensating `FosterEvent`** whose `corrects` FK names the event it reverses | SnackBar | *both* events, forever, on both cards |
 | **Treatment** | `recordTreatment` | **soft-void** — sets `voided_at` | SnackBar | the row, struck through, in the medicine book |
@@ -1189,7 +1236,21 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 
 ### 15.2 The window, stated once
 
-**Until the SnackBar is dismissed or the route pops, whichever is first.** Nothing longer, and no timer that outlives the screen.
+**~~Until the SnackBar is dismissed or the route pops, whichever is first.~~ Struck 2026-08-02 (P2).**
+There is no transient message to dismiss, so this definition has no referent.
+
+**The window is `kStrikeWindow` — 20 s — declared in `lib/core/ui/feedback.dart` beside the three
+feedback functions, and STATED IN SECONDS beside the affordance.** The ARB message takes
+`kStrikeWindow.inSeconds` as a placeholder so the copy and the timer can never disagree; the number is
+never typed into copy.
+
+It is measured in **absolute time, never civil time** — a `Duration` compared against instants, so a
+window opened at 01:59 on the clocks-back night lasts 20 s and not 3600. Same reasoning decision #3
+applies to the withdrawal clear date.
+
+**Still true, and now the only part of the old sentence that is:** no timer that outlives the screen.
+The window is tied to the widget that renders the affordance and cancelled on dispose, and it is never
+reconstructed after a restart (`01 §4.5`, §15.4). No copy anywhere may say *"you can undo this later."*
 
 ### 15.3 Why this is §12.4-compliant
 

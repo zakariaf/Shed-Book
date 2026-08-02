@@ -40,9 +40,26 @@
 // column: it OVERLAYS the bottom band the way indelible §8 draws it, and a sheet
 // that pushed the band would move the slab, which is the one target the shepherd
 // aims at without looking.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
+import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/ui/feedback.dart';
+import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/tag_match.dart';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/validation/warning.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
 import 'package:shed_book/features/quick_entry/widgets/in_pens_strip.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
@@ -72,9 +89,91 @@ class QuickEntryScreen extends StatelessWidget {
   const QuickEntryScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ShedReceiptScope(
+    // INSTALLED HERE, ABOVE the page, and the reason is mechanical: `ref.listen`
+    // is registered in _QuickEntryPage.build, so its BuildContext is that
+    // widget's — which is ABOVE anything _QuickEntryPage returns. A scope
+    // installed inside the page is a scope the publisher cannot see, and
+    // confirmSaved would silently publish to nothing.
+    notifier: _receipts,
+    child: const _QuickEntryPage(),
+  );
+
+  /// One notifier for the screen. A receipt is a fact about the last committed
+  /// row rather than about a widget's lifecycle, so it outlives a rebuild.
+  static final ValueNotifier<SaveReceipt?> _receipts = ValueNotifier<SaveReceipt?>(null);
+}
+
+/// The page proper.
+///
+/// **A ConsumerWidget, and [QuickEntryScreen] deliberately is not.** The shell's
+/// immovable-boxes property rests on the screen watching nothing (`02 §10.1`),
+/// and that assertion is source text over `QuickEntryScreen`. The write path
+/// needs one `ref.listen`, so it lives one widget down — where a rebuild moves
+/// nothing, because this widget's children are the same fixed boxes.
+class _QuickEntryPage extends ConsumerWidget {
+  const _QuickEntryPage();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // THE ONE LISTEN, AND THE ONLY PLACE FEEDBACK HAPPENS (02 §7). The switch is
+    // EXHAUSTIVE with no `default:` — WriteOutcome is sealed with three
+    // variants, and the day a fourth appears this must fail to compile rather
+    // than swallow it.
+    ref.listen<WriteState>(quickEntryWriteControllerProvider, (
+      WriteState? previous,
+      WriteState next,
+    ) {
+      if (next case WriteDone(:final WriteOutcome outcome)) {
+        switch (outcome) {
+          case WriteCommitted(:final List<Warning> warnings, :final int? insertedId):
+            // The confirmation IS the committed row, in ink, one line above the
+            // one being written. Three channels: the haptic, the receipt
+            // published to the scope, and the row itself — which the drift
+            // stream has already re-emitted and is the only one of the three
+            // still true five seconds later.
+            // `undoLabel` IS SET EXPLICITLY rather than letting the 'UNDO'
+            // default through. 07 §15.3 reserves "Undo" for where the record
+            // DISAPPEARS, and after P1 it never does — the row stays in
+            // position, legible, permanently marked. The word is STRIKE.
+            final int? id = insertedId;
+            confirmSaved(
+              context,
+              SaveReceipt(
+                term: l10n.quickEntryLambing,
+                tag: '',
+                summary: l10n.quickEntryStrikeWindow(seconds: kStrikeWindow.inSeconds),
+                at: formatShedTime(appNow(), 'en_GB'),
+                expiresAt: appNow().plus(kStrikeWindow),
+                undoLabel: l10n.quickEntryStrike,
+                undo: id == null
+                    ? null
+                    : () => ref
+                          .read(quickEntryWriteControllerProvider.notifier)
+                          .strike(LambingId(id))
+                          .ignore(),
+              ),
+              warnings,
+            );
+          case WriteFailed(:final ShedFailure failure):
+            // `.userMessage` is read HERE rather than inside showFailure,
+            // because lib/core/ui/ may not import lib/core/ — see that
+            // function's doc comment for why the printed signature is wrong.
+            showFailure(context, failure.userMessage);
+          case WriteRefused(:final RefusalReason reason):
+            // Both guards live inside showCapRow rather than here: a guard at a
+            // call site is a guard somebody forgets at the thirteenth call site.
+            showCapRow(context, reason, onShedScreen: true);
+          // UNREACHABLE ON THIS SCREEN, and the arm exists to prove it stays
+          // that way. createEwe passes EntryContext.liveEntry, and
+          // FreeTierPolicy.decide cannot reach a BlockedByCap on that arm
+          // (decision #91).
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
@@ -122,29 +221,6 @@ class QuickEntryScreen extends StatelessWidget {
               const InPensStrip(height: _Grid.stripHeight),
               const RecentsStrip(height: _Grid.stripHeight),
 
-              // THE LIVE ROW IS A FIXED LAYER, NOT A SCROLLING CHILD, and this
-              // task owns that correction. indelible.html:1138 puts it inside the
-              // scrolling stream, so the open row scrolls away — the audit
-              // block's Indelible artefact defect 1. The corrected rule is that
-              // it is welded above the bottom band, and the reason is the
-              // mechanism §8 describes: "you can see it, in ink, one line above."
-              // A row you have to scroll to find is not a receipt.
-              SizedBox(
-                key: const Key('quick_entry.live_row'),
-                height: _Grid.liveRowHeight,
-                child: Row(
-                  children: <Widget>[
-                    QuickEntryMarginCell(
-                      time: '',
-                      stampAuto: l10n.quickEntryStampAuto,
-                      width: _Grid.marginWidth,
-                      height: _Grid.rowHeight,
-                    ),
-                    const Expanded(child: SizedBox.expand()),
-                  ],
-                ),
-              ),
-
               QuickEntryBottomBand(
                 indexLabel: l10n.quickEntryIndex,
                 slabLabel: l10n.quickEntrySlabTagFirst,
@@ -173,23 +249,121 @@ class QuickEntryScreen extends StatelessWidget {
                 key: const Key('quick_entry.entry_sheet'),
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
+                  // THE LIVE ROW LIVES AT THE TOP OF THE SHEET, AND THAT IS A CORRECTION
+                  // MEASURED AT N14-T05. As a sibling of the bottom band it was
+                  // COVERED by the sheet — the hit test landed on the sheet's own
+                  // background, which means the shepherd could neither see the
+                  // receipt nor press the strike word. indelible §8's whole claim
+                  // is "you can see it, in ink, one line above the one being
+                  // written", and a row under an opaque sheet is not one line
+                  // above anything.
+                  //
+                  // It is still a FIXED LAYER, NOT A SCROLLING CHILD, and this
+                  // task owns that correction. indelible.html:1138 puts it inside the
+                  // scrolling stream, so the open row scrolls away — the audit
+                  // block's Indelible artefact defect 1. The corrected rule is that
+                  // it is welded above the bottom band, and the reason is the
+                  // mechanism §8 describes: "you can see it, in ink, one line above."
+                  // A row you have to scroll to find is not a receipt.
+                  SizedBox(
+                    key: const Key('quick_entry.live_row'),
+                    height: _Grid.liveRowHeight,
+                    child: Row(
+                      children: <Widget>[
+                        QuickEntryMarginCell(
+                          time: '',
+                          stampAuto: l10n.quickEntryStampAuto,
+                          width: _Grid.marginWidth,
+                          height: _Grid.rowHeight,
+                        ),
+                        // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY. It reads
+                        // the scope rather than watching a provider, because a
+                        // feedback function has a BuildContext and no WidgetRef.
+                        Expanded(
+                          child: ValueListenableBuilder<SaveReceipt?>(
+                            valueListenable: ShedReceiptScope.of(context),
+                            builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
+                                receipt == null
+                                ? const SizedBox.expand()
+                                : _StrikeAffordance(receipt: receipt),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
                   // the keypad is fully usable before the database has opened,
                   // because it watches nothing and needs nothing.
                   ShedKeypad(
-                    onDigit: (String _) {},
-                    onBackspace: () {},
+                    // WIRED HERE, and it was a stub until N14-T06 found it. The
+                    // budget test is what noticed: with a no-op onDigit the query
+                    // never fills, so the confirm bar renders nothing and tap 4
+                    // lands on empty space. A screen test that only asserted
+                    // "the keypad is present" would never have caught it.
+                    onDigit: (String d) =>
+                        ref.read(quickEntryControllerProvider.notifier).appendDigit(d),
+                    onBackspace: () => ref.read(quickEntryControllerProvider.notifier).backspace(),
                     thirdKey: ShedKeypadThirdKey.newTag,
-                    onThirdKey: () {},
+                    // The third key clears the selection and starts a fresh tag:
+                    // "new tag" at 03:20 means the animal in front of you is not
+                    // the one on screen.
+                    onThirdKey: () =>
+                        ref.read(quickEntryControllerProvider.notifier).clearSelection(),
                     padLabel: l10n.keypadTagEntry,
                     backspaceLabel: l10n.keypadBackspace,
                     backspaceHint: l10n.hintDeleteLastDigit,
                     thirdKeyLabel: l10n.keypadNewTag,
                   ),
+                  // THE LAMBING EVENT BUTTON, in the confirm slot the shell
+                  // reserved. It is the product's central write: the tap commits
+                  // the row BEFORE any screen is pushed, which is why the label
+                  // names the event rather than an intention.
+                  //
+                  // N16 pushes LambingEntryScreen from the outcome's id. There
+                  // is no route helper for a screen that does not exist yet.
+                  // THE CONFIRM BAR AND THE EVENT BUTTON ARE TWO CONTROLS, and
+                  // T06's budget is what says so: tap 4 confirms WHICH animal,
+                  // tap 5 commits WHAT happened. Merging them would read as four
+                  // taps and would mean the shepherd cannot see which ewe they
+                  // are about to file a lambing against before they file it.
+                  //
+                  // Labelled with the OUTCOME — "Use 412" / "Create 412" — never
+                  // a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to
+                  // remember what they were confirming.
                   SizedBox(
                     key: const Key('quick_entry.confirm'),
                     height: t.tapHero,
                     width: double.infinity,
+                    child: _ConfirmBar(),
+                  ),
+
+                  SizedBox(
+                    key: const Key('quick_entry.event'),
+                    height: t.tapHero,
+                    width: double.infinity,
+                    child: ShedTapTarget(
+                      key: const Key('quick_entry.event.lambing'),
+                      semanticLabel: l10n.quickEntryLambing,
+                      minSize: t.tapHero,
+                      onTap: () {
+                        final EweId? selected = ref.read(quickEntryControllerProvider).selected;
+                        if (selected == null) {
+                          return;
+                        }
+                        ref
+                            .read(quickEntryWriteControllerProvider.notifier)
+                            .beginLambing(selected)
+                            .ignore();
+                      },
+                      child: ExcludeSemantics(
+                        child: Center(
+                          child: Text(
+                            l10n.quickEntryLambing,
+                            style: Theme.of(context).textTheme.labelLarge,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                   SizedBox(height: MediaQuery.paddingOf(context).bottom),
                 ],
@@ -197,6 +371,139 @@ class QuickEntryScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The strike word, in the just-committed row's margin, for [kStrikeWindow].
+///
+/// **The window is not a Timer that outlives the screen** (`07 §15.2`). It is
+/// tied to this widget and cancelled on dispose, and it is NEVER reconstructed
+/// after a restart: `01 §4.5` and `07 §15.4` — there is no state restoration, no
+/// undo affordance is ever rebuilt from storage, and no copy anywhere may say
+/// "you can undo this later."
+class _StrikeAffordance extends StatefulWidget {
+  const _StrikeAffordance({required this.receipt});
+
+  final SaveReceipt receipt;
+
+  @override
+  State<_StrikeAffordance> createState() => _StrikeAffordanceState();
+}
+
+class _StrikeAffordanceState extends State<_StrikeAffordance> {
+  Timer? _window;
+
+  @override
+  void initState() {
+    super.initState();
+    _schedule();
+  }
+
+  @override
+  void didUpdateWidget(_StrikeAffordance old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.receipt, widget.receipt)) {
+      _schedule();
+    }
+  }
+
+  /// Schedules ONE rebuild at the deadline. **It decides nothing** — the
+  /// receipt's `expiresAt` decides, so a `State` recreated after the deadline
+  /// recomputes *closed* rather than re-opening the window.
+  ///
+  /// MEASURED: holding the window as widget state meant the affordance re-armed
+  /// whenever its State was recreated. The timer fired, the word disappeared,
+  /// and a rebuild brought it straight back — so a window "stated in seconds"
+  /// silently lasted as long as the shepherd kept the screen open.
+  void _schedule() {
+    _window?.cancel();
+    final Instant? expires = widget.receipt.expiresAt;
+    if (expires == null) {
+      return;
+    }
+    final int ms = expires.epochMillis - appNow().epochMillis;
+    if (ms <= 0) {
+      return;
+    }
+    _window = Timer(Duration(milliseconds: ms), () {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _window?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final SaveReceipt r = widget.receipt;
+    return Semantics(
+      liveRegion: true,
+      // THE LABEL DIFFERS EVERY SAVE or the live region does not re-announce —
+      // it speaks only when its label CHANGES, so two identical saves in a row
+      // would announce once and the second lamb would get silence.
+      label: r.liveLabel,
+      child: Row(
+        children: <Widget>[
+          Expanded(
+            child: Text(r.summary, style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
+          ),
+          if (r.isOpenAt(appNow()))
+            ShedTapTarget(
+              key: const Key('quick_entry.strike'),
+              semanticLabel: r.undoLabel,
+              minSize: context.tokens.tapMin,
+              onTap: r.undo!,
+              child: ExcludeSemantics(
+                child: Text(r.undoLabel, style: Theme.of(context).textTheme.labelMedium),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tap 4 of the five-tap path: **which animal**.
+///
+/// It reads the controller's top match and commits the selection. When the tag
+/// matches no active animal it reads "Create 412" and creates one through
+/// `EntryContext.liveEntry`, which is the parameter that makes a refusal
+/// unreachable here (decision #91).
+class _ConfirmBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final QuickEntryState state = ref.watch(quickEntryControllerProvider);
+
+    if (state.query.isEmpty) {
+      return const SizedBox.expand();
+    }
+
+    final TagIndexEntry? top = state.matches.isEmpty ? null : state.matches.first;
+    final bool exact = top != null && top.tag == state.query;
+    final String label = exact
+        ? l10n.quickEntryConfirmUse(tag: top.tag)
+        : l10n.quickEntryConfirmCreate(tag: state.query);
+
+    return ShedTapTarget(
+      semanticLabel: label,
+      minSize: context.tokens.tapHero,
+      onTap: () {
+        if (exact) {
+          ref.read(quickEntryControllerProvider.notifier).select(top.eweId);
+        } else {
+          ref.read(quickEntryWriteControllerProvider.notifier).createEwe(state.query).ignore();
+        }
+      },
+      child: ExcludeSemantics(
+        child: Center(child: Text(label, style: Theme.of(context).textTheme.labelLarge)),
       ),
     );
   }

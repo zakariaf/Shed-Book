@@ -1,9 +1,16 @@
-// lib/data/flock_repository.dart — the tag index and the Quick Entry deck.
+// lib/data/flock_repository.dart — the tag index, the Quick Entry deck, and the
+// one create verb the free-tier cap can refuse.
 //
-// READS ONLY, TODAY. `createEwe` — the one verb the free-tier cap can refuse —
-// is N14-T01 and lands on this same class with `EntryContext` in its signature
-// from its first commit (critique S5). R19: the repository set is twelve and
-// closed; there is no QuickEntryRepository.
+// `createEwe` CARRIES `EntryContext` FROM ITS FIRST COMMIT (critique S5). The
+// old plan added the cap parameter sixteen epics later, which would have
+// re-opened the product's most-reviewed repository to change a signature.
+// R19: the repository set is twelve and closed; there is no
+// QuickEntryRepository.
+//
+// The class gained a `FreeTierPolicy` collaborator here, so its constructor
+// moved from positional to named — N13-T02 built it read-only and N14-T01's own
+// text calls this file "New". It is not; it is an edit, and the constructor
+// change is the one visible consequence.
 //
 // The deck lives here rather than on PenRepository for three reasons: both
 // buckets are EWES, `ewe_touches` exists only for this read and is already this
@@ -14,6 +21,10 @@
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -70,9 +81,17 @@ final class DeckEntry {
 typedef QuickEntryDeck = ({List<DeckEntry> penned, List<DeckEntry> recents});
 
 final class FlockRepository {
-  FlockRepository(this._db);
+  /// `db:` and `policy:` are the names `CONVENTIONS §2.13` prints, and the
+  /// initializing-formal lint is suppressed rather than obeyed: `this._db` would
+  /// make the PUBLIC parameter name `_db`, so every caller would be writing a
+  /// private name.
+  // ignore_for_file: prefer_initializing_formals
+  FlockRepository({required AppDatabase db, required FreeTierPolicy policy})
+    : _db = db,
+      _policy = policy;
 
   final AppDatabase _db;
+  final FreeTierPolicy _policy;
 
   /// The whole active flock's tags, held in memory and ranked in Dart.
   ///
@@ -198,6 +217,96 @@ final class FlockRepository {
       recents: _sameList(prev?.recents, recents) ? prev!.recents : recents,
     );
     return _last = deck;
+  }
+
+  /// **The one create verb the cap can refuse** (`11 §7.3`).
+  ///
+  /// On the live-entry path it is structurally incapable of refusing:
+  /// `FreeTierPolicy.decide` cannot reach a `BlockedByCap` on that arm
+  /// (decision #91). A shepherd mid-lambing is never told to pay.
+  ///
+  /// **The decision and the insert are in ONE transaction**, so the count
+  /// cannot move between them — reading a count outside and inserting inside is
+  /// a race with the restore path and with a second create.
+  ///
+  /// Reading `entitlements` here does not violate *"nothing on the 3am path
+  /// reads it"*: `11 §4.4` bans a SCREEN from watching the entitlement, and the
+  /// failure it prevents is a paywall flash at 03:20. Quick Entry watches
+  /// nothing; it calls a verb that decides.
+  Future<WriteOutcome> createEwe({required String tag, required EntryContext context}) =>
+      _db.transaction(() async {
+        final Instant now = appNow(); // ONE instant per mutation
+
+        // THE COUNTS ARE POST-WRITE, and getting that wrong is an off-by-one
+        // that ships. 11 §7.2: "the counts AS THEY WOULD BE AFTER THE WRITE".
+        // Backwards, you either refuse ewe #15 or let #16 through — and the free
+        // tier's boundary is the one number a paying user notices.
+        final CapDecision decision = _policy.decide(
+          context: context,
+          now: now,
+          unlocked: await _readUnlocked(),
+          ewesInCurrentSeason: await _countEwesInCurrentSeason() + 1,
+          seasonCount: await _countSeasons(), // this verb creates no season
+        );
+
+        // NO `default:`. CapDecision is sealed with two variants, and the day a
+        // third appears every switch must fail to compile rather than swallow it.
+        return switch (decision) {
+          BlockedByCap(:final RefusalReason reason) => WriteRefused(reason),
+          Allow(:final bool overFreeCap) => WriteCommitted(
+            insertedId: await _insertEwe(tag: tag, now: now, overFreeCap: overFreeCap),
+          ),
+        };
+      });
+
+  /// `getSingle()`, not `getSingleOrNull()`: the table has `CHECK (id = 1)` and
+  /// `seedFirstRun` seeds the row in `onCreate`, so it can never find nothing.
+  /// A null branch here would have to guess an entitlement.
+  Future<bool> _readUnlocked() async => (await _db.select(_db.entitlements).getSingle()).unlocked;
+
+  Future<int> _countEwesInCurrentSeason() async {
+    final AppSetting settings = await _db.select(_db.appSettings).getSingle();
+    final int? season = settings.currentSeason;
+    if (season == null) {
+      return 0;
+    }
+    final List<EweSeason> rows = await (_db.select(
+      _db.eweSeasons,
+    )..where(($EweSeasonsTable t) => t.season.equals(season) & t.struck.equals(false))).get();
+    return rows.length;
+  }
+
+  Future<int> _countSeasons() async => (await _db.select(_db.seasons).get()).length;
+
+  /// Returns a raw `int` — one of only two places R33 permits one, because
+  /// `WriteCommitted.insertedId` is an `int?` and the single reading call site
+  /// wraps it in an `EweId`.
+  Future<int> _insertEwe({
+    required String tag,
+    required Instant now,
+    required bool overFreeCap,
+  }) async {
+    final int id = await _db
+        .into(_db.ewes)
+        .insert(
+          EwesCompanion.insert(
+            uid: newUid(), // R15 — core/db/uid.dart
+            createdAt: now,
+            updatedAt: now,
+            // EXACTLY AS TYPED, never normalised (spec §12.4, decision #55).
+            tag: tag,
+            // A PROJECTION written in the same statement, not a correction:
+            // '0412' stores '0412' and projects '0412'.
+            tagDigits: tag.replaceAll(RegExp(r'\D'), ''),
+            overFreeCap: Value<bool>(overFreeCap),
+          ),
+        );
+
+    // ewe_touches is keyed on `ewe`, one row per ewe: upsert, never insert.
+    await _db
+        .into(_db.eweTouches)
+        .insertOnConflictUpdate(EweTouchesCompanion.insert(ewe: Value<int>(id), touchedAt: now));
+    return id;
   }
 }
 

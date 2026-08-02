@@ -324,11 +324,14 @@ void main() {
     // Fails the day somebody adds a fake early, which is the whole of critique
     // defect S1.
     //
-    // FIVE, NOT THE FOUR N12-T05 §5.4 NAMES: decision_record.dart landed in
-    // N00-T04, long before this task, and 12 §5.3's twelve-file list does not
-    // carry it either. Recorded here rather than silently accepted, because the
-    // list is closed and a file outside it is exactly what this case exists to
-    // notice.
+    // THE LIST GROWS ONE FILE PER TASK THAT NEEDS ONE, and every addition is a
+    // deliberate act rather than a drift. decision_record.dart landed in N00-T04,
+    // before N12-T05 wrote "exactly four"; reads.dart is 12 §5.3's third support
+    // file and lands at N14-T02, the first test that needed a read helper rather
+    // than an inline select.
+    //
+    // 12 §5.3 closes the folder at twelve. This case is what makes reaching
+    // thirteen a conversation.
     final List<String> files = Directory('test/support').listSync().whereType<File>().map((File f) {
       final List<String> parts = f.path.split(Platform.pathSeparator);
       return parts.last;
@@ -339,6 +342,7 @@ void main() {
       'harness.dart',
       'harness_dst_test.dart',
       'harness_test.dart',
+      'reads.dart', // N14-T02
       'seeds.dart',
     ]);
   });

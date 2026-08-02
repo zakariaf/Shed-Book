@@ -6,12 +6,16 @@ library;
 
 import 'dart:async';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 
 import '../support/harness.dart';
 import '../support/seeds.dart';
@@ -44,7 +48,7 @@ void main() {
 
   setUp(() {
     db = testDatabase();
-    repo = FlockRepository(db);
+    repo = FlockRepository(db: db, policy: const FreeTierPolicy());
   });
 
   test('the deck is one statement and it is a UNION ALL', () async {
@@ -63,7 +67,10 @@ void main() {
     await seedTouch(counted, ewe);
 
     rec.selects.clear();
-    final QuickEntryDeck deck = await FlockRepository(counted).watchQuickEntryDeck().first;
+    final QuickEntryDeck deck = await FlockRepository(
+      db: counted,
+      policy: const FreeTierPolicy(),
+    ).watchQuickEntryDeck().first;
 
     final Set<String> deckStatements = rec.selects
         .where((String s) => s.contains('UNION ALL'))
@@ -243,4 +250,144 @@ void main() {
     final QuickEntryDeck deck = await repo.watchQuickEntryDeck().first;
     expect(deck.penned.map((DeckEntry e) => e.tag), <String>['412']);
   });
+
+  test('createEwe with EntryContext.liveEntry never returns BlockedByCap and marks the row '
+      'over_free_cap', () async {
+    // THE ANCHOR, ASSERTED WITH THE VALUES RATHER THAN THE SHAPE. A case that
+    // only checks "did not throw" passes against a verb that silently swallowed
+    // the decision.
+    //
+    // Decision #91: a shepherd mid-lambing is never told to pay. The row is
+    // REAL, it is FLAGGED, and it is never hidden, greyed out or made
+    // read-only — the cap constrains the next write, never the existing records.
+    for (final int seeded in <int>[0, 15, 16, 400]) {
+      final AppDatabase own = testDatabase();
+      addTearDown(own.close);
+      final FlockRepository r = FlockRepository(db: own, policy: const FreeTierPolicy());
+
+      final SeasonId season = await _seedSeason(own);
+      for (int i = 0; i < seeded; i++) {
+        await _seedEweInSeason(own, season, tag: 'S$i');
+      }
+
+      final WriteOutcome outcome = await r.createEwe(tag: '412', context: EntryContext.liveEntry);
+
+      expect(outcome, isA<WriteCommitted>(), reason: 'seeded=$seeded');
+      expect((outcome as WriteCommitted).insertedId, isNotNull, reason: 'seeded=$seeded');
+
+      final Ewe row = await (own.select(
+        own.ewes,
+      )..where(($EwesTable t) => t.tag.equals('412'))).getSingle();
+      expect(row.overFreeCap, seeded + 1 > 15, reason: 'seeded=$seeded');
+    }
+  });
+
+  test('createEwe stores the tag exactly as typed and projects the digits beside it', () async {
+    // Spec §12.4 and decision #55. `0412` stores `0412`; the projection is
+    // written in the SAME statement and is never a correction. A unique
+    // tag_digits would refuse `0412` while `412` exists, which is the app
+    // deciding two tags are one animal.
+    await _seedSeason(db);
+    await repo.createEwe(tag: '0412', context: EntryContext.liveEntry);
+    await repo.createEwe(tag: 'RED', context: EntryContext.liveEntry);
+
+    final List<Ewe> rows = await db.select(db.ewes).get();
+    expect(rows.firstWhere((Ewe e) => e.tag == '0412').tagDigits, '0412');
+    expect(rows.firstWhere((Ewe e) => e.tag == 'RED').tagDigits, isEmpty);
+  });
+
+  test('createEwe writes the ewe_touches row in the same transaction', () async {
+    // The recents strip is built from ewe_touches, so a ewe created and not
+    // touched is a ewe the shepherd cannot find again without typing the tag —
+    // at 03:20, one-handed.
+    await _seedSeason(db);
+    final WriteOutcome outcome = await repo.createEwe(tag: '412', context: EntryContext.liveEntry);
+
+    final int id = (outcome as WriteCommitted).insertedId!;
+    final EweTouch touch = await (db.select(
+      db.eweTouches,
+    )..where(($EweTouchesTable t) => t.ewe.equals(id))).getSingle();
+    expect(touch.touchedAt, isNotNull);
+  });
+
+  test('the calm path refuses a second season and the live path never does', () async {
+    // The asymmetry IS the decision (#91). Both arms are asserted, because a
+    // policy that refused nothing would pass the live-entry case on its own.
+    await _seedSeason(db);
+    await _seedSeason(db, year: 2027);
+
+    expect(
+      await repo.createEwe(tag: '900', context: EntryContext.calm),
+      isA<WriteRefused>(),
+      reason: 'two seasons, not unlocked — the calm path is where the gate lands',
+    );
+    expect(
+      await repo.createEwe(tag: '901', context: EntryContext.liveEntry),
+      isA<WriteCommitted>(),
+      reason: 'a shepherd mid-lambing is never told to pay',
+    );
+  });
+
+  test('an unlocked flock is never over the cap', () async {
+    await _seedSeason(db);
+    await (db.update(db.entitlements)..where(($EntitlementsTable t) => t.id.equals(1))).write(
+      const EntitlementsCompanion(unlocked: Value<bool>(true)),
+    );
+
+    final SeasonId season = (await db.select(db.seasons).get())
+        .map((Season s) => SeasonId(s.id))
+        .first;
+    for (int i = 0; i < 40; i++) {
+      await _seedEweInSeason(db, season, tag: 'U$i');
+    }
+
+    await repo.createEwe(tag: '412', context: EntryContext.liveEntry);
+    final Ewe row = await (db.select(
+      db.ewes,
+    )..where(($EwesTable t) => t.tag.equals('412'))).getSingle();
+    expect(row.overFreeCap, isFalse);
+  });
+}
+
+/// A season, made current, because the cap counts ewes IN THE CURRENT SEASON.
+Future<SeasonId> _seedSeason(AppDatabase db, {int year = 2026}) async {
+  final Instant now = _at(0);
+  final int id = await db
+      .into(db.seasons)
+      .insert(
+        SeasonsCompanion.insert(
+          year: year,
+          label: '$year',
+          startDate: LocalDate(year, 1, 1),
+          // `uid` is CHECK-constrained to exactly 36 characters, so a
+          // hand-written one has to be counted rather than eyeballed. newUid()
+          // is the real generator and there is no reason for a test to fake it.
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+    AppSettingsCompanion(currentSeason: Value<int?>(id)),
+  );
+  return SeasonId(id);
+}
+
+/// A ewe AND her participation row — the cap counts `ewe_seasons`, not `ewes`,
+/// because a barren ewe has no lambing and must still be counted.
+Future<void> _seedEweInSeason(AppDatabase db, SeasonId season, {required String tag}) async {
+  final EweId ewe = await seedEwe(db, tag: tag);
+  final Instant now = _at(0);
+  await db
+      .into(db.eweSeasons)
+      .insert(
+        EweSeasonsCompanion.insert(
+          season: season.value,
+          ewe: ewe.value,
+          status: 'to_ram',
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
 }

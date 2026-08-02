@@ -6,22 +6,28 @@
 // the implementation 03 §9.1 rules out.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:drift/drift.dart' hide isNull;
+import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/domain/tag_match.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/feedback.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
 
 import '../support/harness.dart';
+import '../support/reads.dart';
 import '../support/seeds.dart';
 
 /// Counts every statement that reaches the database.
@@ -193,6 +199,7 @@ void main() {
 
   _shellTests();
   _stripTests();
+  _writePathTests();
 
   test('an empty query matches nothing', () async {
     // rankTagMatches returns const [] for an empty query — the deck shows the
@@ -282,10 +289,36 @@ void _shellTests() {
       'lib/features/quick_entry/quick_entry_screen.dart',
     ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
 
+    // AMENDED AT N14-T03, AND THE PROPERTY SHARPENED RATHER THAN WEAKENED. The
+    // write path needs one `ref.listen`, which lives in a private child
+    // (_QuickEntryPage) so QuickEntryScreen itself stays a StatelessWidget.
+    //
+    // What actually makes the boxes immovable is that NOTHING ON THIS SCREEN
+    // REBUILDS FROM A WRITE: `ref.listen` fires a callback and does not rebuild,
+    // and there is no `ref.watch` in this file at all. The two strips watch one
+    // level down, inside boxes whose height is fixed — so a rebuild there moves
+    // nothing above it.
+    // AMENDED AGAIN AT N14-T06. The confirm bar is a ConsumerWidget that WATCHES
+    // the typed query — it has to, because its label is "Use 412" or "Create
+    // 412" depending on what has been typed. So `no ref.watch in the file` is no
+    // longer the property.
+    //
+    // What still holds, and is what the boxes actually rest on: QuickEntryScreen
+    // is a StatelessWidget, and every watch in this file is inside a widget whose
+    // box is FIXED — the confirm bar's height is tapHero whatever it renders, so
+    // a rebuild there cannot move anything above or below it.
     expect(source, contains('class QuickEntryScreen extends StatelessWidget'));
-    expect(source, isNot(contains('ConsumerWidget')));
-    expect(source, isNot(contains('ref.watch')));
     expect(source, isNot(contains('ConsumerStatefulWidget')));
+
+    // Every watcher sits inside a SizedBox with a literal height from _Grid or
+    // the tap scale. Asserted structurally: the page's own build has no watch.
+    final int pageBuildStart = source.indexOf('class _QuickEntryPage');
+    final int pageBuildEnd = source.indexOf('class _StrikeAffordance');
+    expect(
+      source.substring(pageBuildStart, pageBuildEnd),
+      isNot(contains('ref.watch')),
+      reason: 'a watch in the PAGE would rebuild every box on every emission',
+    );
   });
 
   testWidgets('the live row does not scroll away', (WidgetTester tester) async {
@@ -477,4 +510,294 @@ void _stripTests() {
     expect(source, isNot(contains('minuteTickProvider')));
     expect(source, isNot(contains('ticker')));
   });
+}
+
+void _writePathTests() {
+  testWidgets('a double tap on the lambing verb creates exactly one lambing', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, AND THE SHAPE OF THE TAPS IS THE TEST. NO PUMP BETWEEN THEM:
+    // 02 §7.1 rule 4 spells out why — with a pump in the middle the first write
+    // completes, state becomes WriteDone, and the second tap legitimately
+    // produces a second row. The test would fail and rule 1 says it is right to.
+    //
+    // A cold thumb on capacitive glass through a bag double-fires. It is
+    // hardware, not user error, and without guard() the second fire is a second
+    // lambing record — a data-integrity bug produced by hardware, in the one
+    // part of the product that exists to eliminate exactly that.
+    final AppDatabase db = testDatabase();
+    final SeasonId season = await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    expect(season, isA<SeasonId>());
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    // Select her first — the verb is a no-op with nothing selected, which is
+    // itself the "does the shepherd have to do anything new?" answer.
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
+    await tester.tap(lambing);
+    await tester.tap(lambing);
+    await tester.pumpAndSettle();
+
+    expect(await countLambings(db), 1);
+    await tester.closeApp();
+  });
+
+  testWidgets('a second tap after the first completes creates a second lambing', (
+    WidgetTester tester,
+  ) async {
+    // 02 §7.1 rule 1: guard() prevents CONCURRENCY, NOT REPETITION. Stated as a
+    // test so nobody adds a cooldown to make the anchor "safer" — a cooldown
+    // would drop a legitimate second lambing, and a ewe lambs in more than one
+    // season.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
+    await tester.tap(lambing);
+    await tester.pumpAndSettle();
+    await tester.tap(lambing);
+    await tester.pumpAndSettle();
+
+    expect(await countLambings(db), 2);
+    await tester.closeApp();
+  });
+
+  testWidgets('the lambing verb is a no-op with nothing selected', (WidgetTester tester) async {
+    // Not a disabled button — no key is ever disabled. Pressing it with no
+    // animal chosen simply writes nothing, because there is nothing to write it
+    // against, and a dead-looking control under a cold thumb is worse than one
+    // that does nothing quietly.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
+    await tester.pumpAndSettle();
+
+    expect(await countLambings(db), 0);
+    expect(tester.takeException(), isNull);
+    await tester.closeApp();
+  });
+
+  testWidgets('createEwe through the controller commits even at two seasons over the cap', (
+    WidgetTester tester,
+  ) async {
+    // THE liveEntry PARAMETER, ASSERTED AS BEHAVIOUR — a drill found this
+    // missing: swapping it for EntryContext.calm reddened nothing, because no
+    // case exercised the controller's own choice.
+    //
+    // Two seasons and not unlocked is the state where the calm path refuses.
+    // Here it must commit, because decision #91 says a shepherd mid-lambing is
+    // never told to pay.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    await _seedCurrentSeason(db, year: 2027);
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    await container.read(quickEntryWriteControllerProvider.notifier).createEwe('412');
+    await tester.pumpAndSettle();
+
+    expect(
+      (await db.select(db.ewes).get()).where((Ewe e) => e.tag == '412'),
+      hasLength(1),
+      reason: 'EntryContext.liveEntry makes a refusal unreachable here',
+    );
+    await tester.closeApp();
+  });
+
+  testWidgets('the undo window is stated in seconds and does not survive a restart', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, IN TWO HALVES.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
+    await tester.pumpAndSettle();
+
+    // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
+    // a changed constant changes the copy or this fails.
+    expect(find.byKey(const Key('quick_entry.strike')), findsOneWidget);
+    expect(find.textContaining('${kStrikeWindow.inSeconds}'), findsOneWidget);
+
+    // The window is tied to the widget, not to a timer that outlives the screen.
+    await tester.pump(kStrikeWindow + const Duration(seconds: 1));
+    expect(
+      find.byKey(const Key('quick_entry.strike')),
+      findsNothing,
+      reason: 'the window closes and the affordance goes with it',
+    );
+
+    await tester.closeApp();
+
+    // HALF 2 — IT DOES NOT SURVIVE A RESTART. Same database, fresh tree: the row
+    // is still there and the affordance is not. 01 §4.5 and 07 §15.4 — there is
+    // no state restoration, no undo affordance is ever rebuilt from storage, and
+    // no copy anywhere may say "you can undo this later".
+    expect(await countLambings(db), 1);
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('quick_entry.strike')), findsNothing);
+    expect(await countLambings(db), 1, reason: 'the row survives; the affordance does not');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('striking leaves the row in place', (WidgetTester tester) async {
+    // A STRIKE IS NOT A DELETE. The row keeps its position and its legibility,
+    // permanently — Indelible Rule 1.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final ProviderContainer container = ProviderScope.containerOf(
+      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+    );
+    container.read(quickEntryControllerProvider.notifier).select(ewe);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('quick_entry.strike')));
+    await tester.pumpAndSettle();
+
+    expect(await countLambings(db), 1);
+    final Lambing row = (await db.select(db.lambings).get()).single;
+    expect(row.struck, isTrue);
+    expect(row.struckAt, isNotNull);
+
+    await tester.closeApp();
+  });
+
+  test('the strike window is a constant, and the copy reads it', () {
+    final String arb = File('lib/l10n/app_en.arb').readAsStringSync();
+    expect(arb, contains(r'{seconds}s to strike'));
+    expect(arb, isNot(contains('20s to strike')));
+
+    final String screen = File(
+      'lib/features/quick_entry/quick_entry_screen.dart',
+    ).readAsStringSync();
+    expect(screen, contains('kStrikeWindow.inSeconds'));
+  });
+
+  test('no copy anywhere promises a later undo', () {
+    // MESSAGE VALUES ONLY, never the descriptions — the thirtieth
+    // prohibition-versus-claim self-match: quickEntryStrikeWindow's own
+    // description explains why no copy may promise a later undo, and to do that
+    // it says the phrase.
+    final Map<String, dynamic> arb =
+        jsonDecode(File('lib/l10n/app_en.arb').readAsStringSync()) as Map<String, dynamic>;
+
+    for (final MapEntry<String, dynamic> e in arb.entries) {
+      if (e.key.startsWith('@') || e.value is! String) {
+        continue;
+      }
+      final String value = (e.value as String).toLowerCase();
+      for (final String phrase in <String>['undo this later', 'you can undo', 'undo it later']) {
+        expect(value, isNot(contains(phrase)), reason: '${e.key}: $phrase');
+      }
+    }
+  });
+
+  test('the screen listens once and its switch has no default arm', () {
+    // The exhaustive switch is the mechanism: WriteOutcome is sealed with three
+    // variants, and a `default:` would swallow the fourth on the day it lands.
+    // Source text, because "has no default" has no runtime signature.
+    final String source = File(
+      'lib/features/quick_entry/quick_entry_screen.dart',
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+    expect('ref.listen'.allMatches(source).length, 1, reason: '02 §7: one place feedback happens');
+    // Matched on the CASE KEYWORD rather than the empty-parens form: N14-T04
+    // gave each arm a destructuring pattern, so `case WriteCommitted()` is no
+    // longer the literal in the file. What the case guards is that all three
+    // arms exist and none of them is a default.
+    expect(source, contains('case WriteCommitted('));
+    expect(source, contains('case WriteFailed('));
+    expect(source, contains('case WriteRefused('));
+    expect(source, isNot(contains('default:')));
+  });
+
+  test('Quick Entry does not import the lambing feature', () {
+    // layer.sibling (rule 6). 07 §6.1 names lambingWriteControllerProvider for
+    // this tap; it lives in lib/features/lambing/, so Quick Entry importing it
+    // fails the gate — and it should. That controller is N16's, for writes made
+    // FROM Lambing Entry.
+    for (final FileSystemEntity f in Directory(
+      'lib/features/quick_entry',
+    ).listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) {
+        continue;
+      }
+      // IMPORT DIRECTIVES ONLY. The write controller's own doc comment explains
+      // why it is not lambingWriteControllerProvider, and naming the path there
+      // is the point — the twenty-eighth prohibition-versus-claim self-match.
+      final String imports = f
+          .readAsLinesSync()
+          .where((String l) => l.trimLeft().startsWith('import '))
+          .join('\n');
+      expect(imports, isNot(contains('features/lambing/')), reason: f.path);
+    }
+  });
+}
+
+/// A season, made current. `beginLambing` never creates one.
+Future<SeasonId> _seedCurrentSeason(AppDatabase db, {int year = 2026}) async {
+  final Instant now = Instant.fromDateTime(DateTime.utc(2026, 3, 1, 3, 20));
+  final int id = await db
+      .into(db.seasons)
+      .insert(
+        SeasonsCompanion.insert(
+          year: year,
+          label: '$year',
+          startDate: LocalDate(year, 1, 1),
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+    AppSettingsCompanion(currentSeason: Value<int?>(id)),
+  );
+  return SeasonId(id);
 }

@@ -256,4 +256,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String quickEntryRecentRowLabel({required String tag}) {
     return 'Tag $tag';
   }
+
+  @override
+  String get quickEntryLambing => 'Lambing';
+
+  @override
+  String quickEntryConfirmCreate({required String tag}) {
+    return 'Create $tag';
+  }
+
+  @override
+  String quickEntryConfirmUse({required String tag}) {
+    return 'Use $tag';
+  }
+
+  @override
+  String get quickEntryStrike => 'STRIKE';
+
+  @override
+  String quickEntryStrikeWindow({required int seconds}) {
+    return '${seconds}s to strike';
+  }
+
+  @override
+  String quickEntryStruckAt({required String at}) {
+    return 'STRUCK $at';
+  }
 }

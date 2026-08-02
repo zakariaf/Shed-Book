@@ -629,6 +629,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 
 | Name | File | Shape | Owner |
 |---|---|---|---|
+| `strikeLambing` | `lib/data/lambing_repository.dart` | `Future<WriteOutcome> strikeLambing(LambingId)` — **new 2026-08-02 (N14-T05)**. `strike`, never `delete`, never `remove`, never a generic `undo(id)`: decision #69 refuses a generic undo and §5.2 makes *strike* the project word. The first edit verb on `lambings`, which R37 permits only because the table carries the provenance quad | 07 §15.1 |
 | `TagIndexEntry` | `lib/domain/tag_match.dart` | `{EweId eweId, String tag, String digits, Instant? lastTouched}` (R26) | 05 |
 | `rankTagMatches` | same | `List<TagIndexEntry> rankTagMatches(List<TagIndexEntry> all, String query)` — pure, synchronous (R27) | 05 |
 | `DeckEntry` | `lib/data/flock_repository.dart` | `@immutable final class`; `{EweId eweId, String tag, String digits, Instant sortAt, String? penLabel}` with hand-written `==`/`hashCode` over **all five** fields. Identity equality makes `.distinct()` and the per-bucket list reuse expensive ways of always returning false (R28, drift#3295) | 07 |
@@ -1187,13 +1188,31 @@ non-`AsyncData` arm returns the `const night` pair. No `AsyncValue` accessor is 
 R10 fixes the names. Three further spellings were live: `showShedReceipt(context, {required SaveReceipt r})`
 (06), `showShedFailure(context, failure)` (07), and `confirmSaved(context, ref, warnings)` (02).
 
-**Ruling.** All three live in **`lib/core/ui/feedback.dart`**, which becomes the one file permitted to
-call `showSnackBar(` (the `gesture.raw_snackbar` rule now points there):
+**Ruling.** All three live in **`lib/core/ui/feedback.dart`**. ~~which becomes the one file permitted
+to call the framework's transient-message API (the `gesture.raw_snackbar` rule now points there)~~ —
+**struck 2026-08-02 (N14-T04) by owner ruling P2.** There is no transient confirmation anywhere,
+including in this file: the rule is scoped `lib/` with no exemption and never may have one. The
+confirmation is the committed row, in ink, one line above the one being written; undo is a time-boxed
+strike in that row's margin. P2 forbids the FALLBACK as well — `06 §10.3`'s "a house bar in an
+overlay" is out too, because a floating overlay is a toast with a different class name.
+
+**`showFailure` takes the MESSAGE, not the `ShedFailure`, and the layer table is why.** `ShedFailure`
+lives in `lib/core/` and §1.1's `_mayImport['lib/core/ui/']` is `{lib/core/ui/, lib/domain/}` — so
+`feedback.dart` cannot name the type. The gate is right and the printed signature is not: a
+shared-tier renderer takes the words it is handed rather than interpreting a failure type, which is
+the same correction `ShedKeypad`'s four label parameters made at N13-T04. The caller reads
+`.userMessage`. Admitting `lib/core/` to `lib/core/ui/` was the alternative and was rejected: it opens
+the whole tier to reach for anything.
+
+**`ShedReceiptScope` is the channel a receipt travels on** now that there is no overlay — an
+`InheritedNotifier` over a `ValueNotifier<SaveReceipt?>`, installed once by the screen above its
+ledger. It is not a provider on purpose: a feedback function holds a `BuildContext` and no `WidgetRef`
+(R30), and `of(context)` is the only lookup that signature permits.
 
 ```dart
 void confirmSaved(BuildContext context, SaveReceipt receipt, List<Warning> warnings);
-void showFailure(BuildContext context, ShedFailure failure);
-void showCapRow(BuildContext context, RefusalReason reason);
+void showFailure(BuildContext context, String userMessage);   // amended 2026-08-02
+void showCapRow(BuildContext context, RefusalReason reason, {required bool onShedScreen});
 ```
 
 `confirmSaved` takes no `WidgetRef` — a feedback function holds a `BuildContext` and nothing else.

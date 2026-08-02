@@ -176,6 +176,8 @@ void main() {
       // N13-T02
       'flockRepositoryProvider',
       'tagIndexProvider',
+      // N14-T02
+      'lambingRepositoryProvider',
     });
   });
 

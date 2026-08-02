@@ -13,10 +13,10 @@
 //   terminologyProvider         N12-T02  Provider<Terminology>
 //   flockRepositoryProvider     N13-T02  Provider<FlockRepository>
 //   tagIndexProvider            N13-T02  StreamProvider<List<TagIndexEntry>>  keepAlive
+//   lambingRepositoryProvider   N14-T02  Provider<LambingRepository>
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   lambingRepositoryProvider                                        N16
 //   noteRepositoryProvider · mediaStoreProvider ·
 //     cameraServiceProvider · voiceRecorderProvider                  N15
 //   fosterRepositoryProvider                                         N18
@@ -40,6 +40,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/tag_match.dart';
@@ -96,8 +97,17 @@ final Provider<SettingsRepository> settingsRepositoryProvider = Provider<Setting
   (ref) => SettingsRepository(ref.watch(databaseProvider).requireValue),
 );
 
+final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRepository>(
+  (ref) => LambingRepository(db: ref.watch(databaseProvider).requireValue),
+);
+
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(
-  (ref) => FlockRepository(ref.watch(databaseProvider).requireValue),
+  (ref) => FlockRepository(
+    db: ref.watch(databaseProvider).requireValue,
+    // The policy is pure — no database, no clock — so it is a plain collaborator
+    // rather than something the repository reaches for. `decide()` takes `now`.
+    policy: ref.watch(freeTierPolicyProvider),
+  ),
 );
 
 /// The whole active flock's tags, ranked in Dart by the keypad.

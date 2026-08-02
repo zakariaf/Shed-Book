@@ -97,7 +97,12 @@ final Provider<SettingsRepository> settingsRepositoryProvider = Provider<Setting
 );
 
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(
-  (ref) => FlockRepository(ref.watch(databaseProvider).requireValue),
+  (ref) => FlockRepository(
+    db: ref.watch(databaseProvider).requireValue,
+    // The policy is pure — no database, no clock — so it is a plain collaborator
+    // rather than something the repository reaches for. `decide()` takes `now`.
+    policy: ref.watch(freeTierPolicyProvider),
+  ),
 );
 
 /// The whole active flock's tags, ranked in Dart by the keypad.

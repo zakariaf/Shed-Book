@@ -173,4 +173,142 @@ void main() {
 
     expect((await _readLamb(db, lamb)).birthDam, birthDam.value);
   });
+
+  test('undoing a foster appends a corrected event and deletes nothing', () async {
+    // THE ANCHOR. The obvious implementation deletes the row, and it is wrong
+    // twice over: it loses the fact that a foster happened at all, and it makes
+    // the history unreadable in April when the shepherd is working out what
+    // actually went on.
+    //
+    // REVERSING THE VERY FIRST FOSTER MEANS WRITING `ToEwe(birthDam)`. Once any
+    // event exists for a lamb, the view's "no event at all" arm is unreachable —
+    // its EXISTS is true forever — so *put her back with her mother* has to be
+    // an explicit event naming the birth dam as the REARING dam. That is not a
+    // birth-dam mutation and the trigger never fires.
+    await _seedSeason(db);
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final EweId other = await seedEwe(db, tag: '077');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await repo.recordFoster(lamb, ToEwe(other));
+    final FosterEvent first = await db.select(db.fosterEvents).getSingle();
+
+    final WriteOutcome outcome = await repo.correctFoster(FosterEventId(first.id));
+    expect(outcome, isA<WriteCommitted>());
+
+    final List<FosterEvent> rows = await db.select(db.fosterEvents).get();
+    expect(rows, hasLength(2), reason: 'appended, never deleted');
+
+    final FosterEvent second = rows.firstWhere((FosterEvent e) => e.id != first.id);
+    expect(second.corrects, first.id, reason: 'the self-FK is what makes it a correction');
+    expect(
+      second.effectiveAt.epochMillis,
+      greaterThanOrEqualTo(first.effectiveAt.epochMillis),
+      reason: 'a graft is dated by when it took effect (R37)',
+    );
+    expect(second.timeSource, 'auto', reason: 'nothing was typed — never edited');
+    expect(second.originalEffective, isNull);
+
+    // AND THE VIEW AGREES: the rearing dam is the birth dam again, restored by a
+    // new event naming her rather than by a deletion or an UPDATE.
+    final QueryRow view = await db
+        .customSelect(
+          'SELECT rearing_dam, was_fostered FROM lamb_rearing WHERE lamb_id = ?',
+          variables: <Variable<Object>>[Variable<int>(lamb.value)],
+        )
+        .getSingle();
+
+    expect(view.read<int>('rearing_dam'), birthDam.value);
+
+    // `was_fostered` STAYS 1 FOREVER, AND THAT IS CORRECT. The lamb WAS
+    // fostered; the correction says where she ended up, not that it never
+    // happened. 09 §3.2 exports this as a CSV column and it must stay true.
+    expect(view.read<int>('was_fostered'), 1);
+  });
+
+  test('correcting the second of two fosters restores the first, not the birth dam', () async {
+    // THE OTHER ARM, AND WITHOUT IT THE ANCHOR PASSES AGAINST A VERB THAT ALWAYS
+    // WRITES THE BIRTH DAM. The state to restore is *the latest event before the
+    // corrected one*, ordered by `(effective_at, id)` exactly as `lamb_rearing`
+    // orders — so the correction restores what the view WOULD have said, rather
+    // than what a separate rule thinks it should say.
+    await _seedSeason(db);
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final EweId first = await seedEwe(db, tag: '077');
+    final EweId secondEwe = await seedEwe(db, tag: '128');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await repo.recordFoster(lamb, ToEwe(first));
+    await repo.recordFoster(lamb, ToEwe(secondEwe));
+
+    final List<FosterEvent> before = await db.select(db.fosterEvents).get();
+    final FosterEvent latest = before.reduce((FosterEvent a, FosterEvent b) => a.id > b.id ? a : b);
+
+    await repo.correctFoster(FosterEventId(latest.id));
+
+    final QueryRow view = await db
+        .customSelect(
+          'SELECT rearing_dam FROM lamb_rearing WHERE lamb_id = ?',
+          variables: <Variable<Object>>[Variable<int>(lamb.value)],
+        )
+        .getSingle();
+
+    expect(
+      view.read<int>('rearing_dam'),
+      first.value,
+      reason: 'back to the ewe she was on before, not back to her mother',
+    );
+    expect(await db.select(db.fosterEvents).get(), hasLength(3));
+  });
+
+  test('correcting a to_bottle restores the bottle, not a ewe', () async {
+    // THE THIRD ARM. A verb that only knew how to restore a ewe would put a lamb
+    // back on an animal she was never on, and the rearing-credit figures would
+    // credit that ewe with a lamb she never reared.
+    await _seedSeason(db);
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final EweId other = await seedEwe(db, tag: '077');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await repo.recordFoster(lamb, const ToBottle());
+    await repo.recordFoster(lamb, ToEwe(other));
+
+    final List<FosterEvent> before = await db.select(db.fosterEvents).get();
+    final FosterEvent latest = before.reduce((FosterEvent a, FosterEvent b) => a.id > b.id ? a : b);
+
+    await repo.correctFoster(FosterEventId(latest.id));
+
+    final FosterEvent compensating = (await db.select(db.fosterEvents).get()).reduce(
+      (FosterEvent a, FosterEvent b) => a.id > b.id ? a : b,
+    );
+
+    expect(compensating.outcome, 'to_bottle');
+    expect(compensating.rearingDam, isNull);
+  });
+
+  test('neither event can be deleted afterwards', () async {
+    // `corrects` IS `ON DELETE RESTRICT` (`07 §15.3`), and this is the mechanism
+    // rather than the convention. Proved with a raw delete, because the
+    // repository has no delete verb to test — which is the point.
+    await _seedSeason(db);
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final EweId other = await seedEwe(db, tag: '077');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await repo.recordFoster(lamb, ToEwe(other));
+    final FosterEvent first = await db.select(db.fosterEvents).getSingle();
+    await repo.correctFoster(FosterEventId(first.id));
+
+    await expectLater(
+      () => db.customStatement('DELETE FROM foster_events WHERE id = ?', <Object?>[first.id]),
+      throwsA(isA<SqliteException>()),
+      reason: 'the corrected row is referenced by its correction',
+    );
+
+    expect(await db.select(db.fosterEvents).get(), hasLength(2));
+  });
 }

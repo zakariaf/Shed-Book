@@ -90,6 +90,118 @@ final class FosterRepository {
     }
   }
 
+  /// Appends a **compensating event** that reverses [event] and points at it.
+  ///
+  /// **THERE IS NO DELETE.** `FosterEvents` is append-only, `corrects` is
+  /// `ON DELETE RESTRICT`, and `07 §15.3` is explicit: neither row can be
+  /// removed afterwards. The obvious implementation deletes the row and it is
+  /// wrong twice over — it loses the fact that a foster happened at all, and it
+  /// makes the history unreadable in April, when the shepherd is trying to work
+  /// out what actually went on.
+  ///
+  /// **REVERSING THE VERY FIRST FOSTER MEANS WRITING `ToEwe(birthDam)`.** Once
+  /// any event exists for a lamb the view's *"no event at all"* arm is
+  /// unreachable — its `EXISTS(…)` is true forever — so *put her back with her
+  /// mother* is an explicit event naming the birth dam as the REARING dam. That
+  /// is not a birth-dam mutation and the trigger never fires: `lambs.birth_dam`
+  /// is not in the statement.
+  ///
+  /// **`was_fostered` STAYS 1 FOREVER, AND THAT IS CORRECT.** The lamb WAS
+  /// fostered; the correction says where she ended up, not that it never
+  /// happened.
+  ///
+  /// **`time_source` IS `auto`, NEVER `edited`.** Nothing was typed, and this is
+  /// a NEW event rather than an edit of an old one — the paired CHECK forces
+  /// `original_effective` to NULL, which is the same statement in the schema's
+  /// own words.
+  Future<WriteOutcome> correctFoster(FosterEventId event) async {
+    final Instant now = appNow(); // ONCE per mutation
+    final RecordedTime time = RecordedTime.capture(now);
+
+    try {
+      final int id = await _db.transaction(() async {
+        final FosterEvent corrected = await (_db.select(
+          _db.fosterEvents,
+        )..where(($FosterEventsTable t) => t.id.equals(event.value))).getSingle();
+
+        // THE STATE IMMEDIATELY BEFORE THE CORRECTED EVENT. Ordered by
+        // `(effective_at, id)` exactly as `lamb_rearing` orders, so the
+        // correction restores what the view WOULD have said — not what a
+        // separate rule thinks it should say.
+        final List<FosterEvent> earlier =
+            await (_db.select(_db.fosterEvents)
+                  ..where(
+                    ($FosterEventsTable t) =>
+                        t.lamb.equals(corrected.lamb) & t.id.isSmallerThanValue(corrected.id),
+                  )
+                  ..orderBy(<OrderClauseGenerator<$FosterEventsTable>>[
+                    ($FosterEventsTable t) =>
+                        OrderingTerm(expression: t.effectiveAt, mode: OrderingMode.desc),
+                    ($FosterEventsTable t) =>
+                        OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+                  ])
+                  ..limit(1))
+                .get();
+
+        final FosterOutcome restored;
+        if (earlier.isEmpty) {
+          // ARM 1 OF THE VIEW'S COALESCE, made explicit. There was no prior
+          // event, so the state before this foster was the lamb with her own
+          // mother — and that has to be WRITTEN, because the view's no-event arm
+          // is gone the moment the first event exists.
+          final Lamb lamb = await (_db.select(
+            _db.lambs,
+          )..where(($LambsTable t) => t.id.equals(corrected.lamb))).getSingle();
+          restored = ToEwe(EweId(lamb.birthDam));
+        } else {
+          final FosterEvent previous = earlier.first;
+          restored = switch (previous.outcome) {
+            'to_ewe' => ToEwe(EweId(previous.rearingDam!)),
+            'to_bottle' => const ToBottle(),
+            'removed_unknown' => const RemovedUnknown(),
+            // NOT a silent fallback. A fourth outcome reaching here means the
+            // CHECK grew a value and this switch did not, and a correction that
+            // guessed would put a lamb on the wrong ewe.
+            _ => throw FormatException('Unknown foster outcome', previous.outcome),
+          };
+        }
+
+        final EweId? dam = switch (restored) {
+          ToEwe(:final EweId ewe) => ewe,
+          ToBottle() || RemovedUnknown() => null,
+        };
+
+        return _db
+            .into(_db.fosterEvents)
+            .insert(
+              FosterEventsCompanion.insert(
+                uid: newUid(),
+                lamb: corrected.lamb,
+                // COPIED FROM THE CORRECTED EVENT, which already carries the
+                // lamb's season — copying keeps the pair cascade-consistent.
+                season: corrected.season,
+                rearingDam: Value<int?>(dam?.value),
+                outcome: restored.key,
+                // THE SELF-FK. This is what makes the row a CORRECTION rather
+                // than a second foster, and it is why the two can never be
+                // deleted: `corrects` is ON DELETE RESTRICT.
+                corrects: Value<int?>(corrected.id),
+                // A GRAFT IS DATED BY WHEN IT TOOK EFFECT (R37), and a
+                // correction took effect now.
+                effectiveAt: time.effective,
+                capturedAt: time.capturedAt,
+                timeSource: Value<String>(time.source.key),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+      });
+      return WriteCommitted(insertedId: id);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   Future<SeasonId> _seasonOfLamb(LambId lamb) async {
     final Lamb row = await (_db.select(
       _db.lambs,

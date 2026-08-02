@@ -59,6 +59,10 @@ import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/features/treatments/treatments_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
@@ -142,6 +146,7 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.lambCard: (seed: _seedHardLamb, build: _lambCard),
   RouteNames.foster: (seed: _seedHardFoster, build: _foster),
   RouteNames.penBoard: (seed: _seedHardPenBoard, build: _penBoard),
+  RouteNames.treatments: (seed: _seedHardTreatments, build: _treatments),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -332,6 +337,49 @@ Future<Map<String, int>> _seedHardPenBoard(AppDatabase db) async {
 }
 
 Widget _penBoard(Map<String, int> _) => const PenBoardScreen();
+
+/// **THE HARD TREATMENTS LIST.** Ten rows, and they are not all the same: one is
+/// voided (struck, with its own stamp), one has a five-digit tag, one is on an
+/// untagged lamb, one has no withdrawal at all and the rest carry clear dates.
+/// The row is one ellipsised line, so the widest combination is the only thing
+/// that can overflow — a list of ten identical rows proves nothing about it.
+Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
+  await seedSeason(db);
+  final TreatmentRepository repo = TreatmentRepository(db);
+
+  final EweId longTag = await seedEwe(db, tag: '40001');
+  final LambingId lambing = await seedLambing(db, longTag);
+  final LambId untagged = await seedLamb(db, lambing, longTag);
+
+  final WriteOutcome voided = await repo.recordTreatment(
+    TreatEwe(longTag),
+    productName: 'Alamycin LA 300 mg/ml',
+    doseText: '3 ml',
+    batchNo: 'B7734-2026',
+    withdrawals: <WithdrawalPeriod>[
+      WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+    ],
+  );
+  await repo.voidTreatment(TreatmentId((voided as WriteCommitted).insertedId!));
+
+  // ONE WITH NO WITHDRAWAL AT ALL — the row that prints the absence out loud.
+  await repo.recordTreatment(TreatLamb(untagged), productName: 'Spectam Scour Halt');
+
+  for (int i = 0; i < 8; i++) {
+    final EweId ewe = await seedEwe(db, tag: '${500 + i}');
+    await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin LA 300 mg/ml',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28 + i, target: WithdrawalTarget.meat),
+      ],
+    );
+  }
+
+  return <String, int>{};
+}
+
+Widget _treatments(Map<String, int> _) => const TreatmentsScreen();
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

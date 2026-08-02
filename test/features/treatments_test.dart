@@ -12,6 +12,11 @@ import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/widgets/withdrawal_control.dart';
 import 'package:shed_book/features/treatments/widgets/withdrawal_disagreement.dart';
 
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/treatments/treatments_screen.dart';
+import '../support/seeds.dart';
 import '../support/harness.dart';
 
 const WithdrawalLabels _labels = (
@@ -228,6 +233,139 @@ void main() {
     // NO TARGET ANYWHERE IN THE SUBTREE. Not a disabled one, not a hidden one —
     // none. The absence is the mechanism.
     expect(find.byType(ShedTapTarget), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // The screen: two modes, the soft void, and the empty state
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a voided treatment is struck, still present, and absent from the countdown', (
+    WidgetTester tester,
+  ) async {
+    // FIVE THINGS IN ORDER, AND THE LAST TWO ARE ONE PROPERTY WITH TWO HALVES:
+    // leaving the countdown is NOT the same as claiming a negative. A screen
+    // that dropped the row from the countdown AND said "clear" somewhere would
+    // pass the first half and fail the second, which is why both are asserted.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final TreatmentRepository repo = TreatmentRepository(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+    final TreatmentId id = TreatmentId((outcome as WriteCommitted).insertedId!);
+
+    final TreatmentWithdrawal before = await db.select(db.treatmentWithdrawals).getSingle();
+    await repo.voidTreatment(id);
+
+    // 1 & 2 — THE ROWS SURVIVE, both of them, unchanged.
+    final Treatment treatment = await (db.select(
+      db.treatments,
+    )..where(($TreatmentsTable t) => t.id.equals(id.value))).getSingle();
+    expect(treatment.voidedAt, isNotNull);
+    final TreatmentWithdrawal after = await db.select(db.treatmentWithdrawals).getSingle();
+    expect(after.days, before.days);
+    expect(after.clearDate, before.clearDate);
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    // 4 — THE COUNTDOWN DOES NOT FIND IT. The screen opens on the countdown,
+    // because *can she go?* is the question at the gate.
+    expect(find.byKey(Key('treatments.row.${id.value}')), findsNothing);
+
+    // 5 — AND NOTHING ANYWHERE SAYS THE ANIMAL IS CLEAR.
+    for (final String claim in <String>['clear', 'CLEAR', 'safe', 'ready to go']) {
+      expect(
+        find.textContaining(claim),
+        findsNothing,
+        reason: 'the app never says "\$claim" — only the shepherd and their vet can',
+      );
+    }
+
+    // 3 — THE BOOK STILL FINDS IT, struck, with its voided date.
+    await tester.tap(find.byKey(const Key('treatments.mode.book')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key('treatments.row.${id.value}')), findsOneWidget);
+    expect(find.byKey(Key('treatments.voided.${id.value}')), findsOneWidget);
+
+    final Text line = tester.widget<Text>(find.byKey(Key('treatments.row.${id.value}')));
+    expect(
+      line.style?.decoration,
+      TextDecoration.lineThrough,
+      reason: 'struck, because it may already be printed in a book somebody holds',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the book footer is on the first painted frame of book mode only', (
+    WidgetTester tester,
+  ) async {
+    // §12.3. A disclosure behind an affordance is a disclosure that has not been
+    // made — and it belongs to the BOOK, which is the view somebody might print
+    // or show to a vet, rather than to the countdown at the gate.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('treatments.book.footer')), findsNothing);
+
+    await tester.tap(find.byKey(const Key('treatments.mode.book')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('treatments.book.footer')), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a treatment with no withdrawal says so and does not say clear', (
+    WidgetTester tester,
+  ) async {
+    // ABSENCE IS THE STATE (§12.1) AND THE SCREEN SAYS SO. It does NOT say the
+    // animal is clear, which would be the app answering a clinical question
+    // nobody asked it — and which is exactly what a blank line would imply.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final TreatmentRepository repo = TreatmentRepository(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(TreatEwe(ewe), productName: 'Alamycin');
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(Key('treatments.clears.$id')), findsOneWidget);
+    expect(find.textContaining('NO WITHDRAWAL RECORDED'), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('an empty treatments screen says nothing recorded, not an error', (
+    WidgetTester tester,
+  ) async {
+    // A flock that has treated nothing has treated nothing. The screen says so
+    // rather than inviting them to start — and it is not a spinner (07 §1.4).
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('treatments.empty')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byKey(const Key('treatments.repeat_last')), findsOneWidget);
 
     await tester.closeApp();
   });

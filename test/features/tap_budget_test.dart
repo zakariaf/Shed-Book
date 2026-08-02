@@ -17,6 +17,10 @@ import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
 import '../support/reads.dart';
+import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/domain/policy/disclaimers.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/features/treatments/treatments_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 
 import '../support/seeds.dart';
@@ -308,6 +312,64 @@ void main() {
     expect(rows, hasLength(2), reason: 'appended, never replaced');
     event = rows.last;
     expect(event.outcome, 'removed_unknown');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('repeat last treatment costs 2 taps and leaves the withdrawal days blank', (
+    WidgetTester tester,
+  ) async {
+    // TWO TAPS: one to open the repeat, one to pick the animal. No confirmation
+    // step, which is what `07 §10`'s budget buys.
+    //
+    // AND THE ASSERTION THE PUBLISHED SNIPPET DOES NOT MAKE: after the second
+    // tap there is still exactly ONE row in `treatment_withdrawals` — the
+    // original's. Counting treatments would not catch a copied period; counting
+    // withdrawal rows does, and a copied period is §12.1's exact failure.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final TreatmentRepository repo = TreatmentRepository(db);
+
+    final EweId first = await seedEwe(db, tag: '412');
+    final EweId second = await seedEwe(db, tag: '128');
+    final PenId pen = await seedPen(db, label: 'A');
+    await seedPenOccupancy(db, pen, second);
+
+    await repo.recordTreatment(
+      TreatEwe(first),
+      productName: 'Alamycin LA',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    // SETTLED BEFORE THE COUNTER STARTS. `repeatOfferProvider` resolves the
+    // previous treatment and its stored period, and the budget is about the
+    // TAPS rather than about how long a stream takes to arrive.
+    await tester.pumpAndSettle();
+
+    final TapCounter c = TapCounter();
+    await tester.countedTap(find.byKey(const Key('treatments.repeat_last')), c);
+    await tester.pumpAndSettle();
+
+    // THE PREVIOUS ENTRY IS SHOWN WITH ITS PROVENANCE, before the committing
+    // tap — so the shepherd reads what they entered last time and decides.
+    expect(find.textContaining('28'), findsWidgets);
+    expect(find.textContaining(Disclaimers.withdrawalProvenance), findsWidgets);
+
+    await tester.countedTap(find.byKey(const Key('treatment.repeat.animal.128')), c);
+
+    expect(c.taps, 2);
+    expect(c.textEntries, 0);
+    expect(await db.select(db.treatments).get(), hasLength(2));
+    expect(
+      await db.select(db.treatmentWithdrawals).get(),
+      hasLength(1),
+      reason: 'still only the original\'s — the repeat copied no period',
+    );
 
     await tester.closeApp();
   });

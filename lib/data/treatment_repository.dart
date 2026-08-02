@@ -171,6 +171,54 @@ final class TreatmentRepository {
     }
   }
 
+  /// The treatments list, in one statement, **for one mode**.
+  ///
+  /// **TWO MODES, NOT THREE.** The plan counted the log and the medicine book
+  /// separately; `07 §10` says two segments and `indelible.md §8` screen 8 says
+  /// *"the medicine book is not a separate view — it is the book filtered to
+  /// treatments"*. A third member would need a third arm in the bound
+  /// statement, which `§1.2`'s one-query rule forbids.
+  ///
+  /// **THE BOOK SHOWS VOIDED ROWS; THE COUNTDOWN DOES NOT.** That is the whole
+  /// difference, and it is the §12.3 shape: a voided treatment may already be
+  /// printed in a book handed to a vet, so the book keeps it and marks it —
+  /// while the countdown is about what is still running, and a voided treatment
+  /// is not.
+  ///
+  /// Leaving the countdown is NOT the same as claiming the animal is clear, and
+  /// nothing here says the second.
+  Stream<List<TreatmentRow>> watchTreatments(TreatmentMode mode) => _db
+      .customSelect(
+        _treatmentsSql,
+        variables: <Variable<Object>>[Variable<String>(mode.key)],
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+          _db.treatments,
+          _db.treatmentWithdrawals,
+          _db.ewes,
+          _db.lambs,
+        },
+      )
+      .watch()
+      .map(
+        (List<QueryRow> rows) => <TreatmentRow>[
+          for (final QueryRow r in rows)
+            TreatmentRow(
+              id: TreatmentId(r.read<int>('id')),
+              productName: r.read<String>('product_name'),
+              doseText: r.readNullable<String>('dose_text'),
+              batchNo: r.readNullable<String>('batch_no'),
+              animalTag: r.readNullable<String>('animal_tag'),
+              administeredAt: Instant(r.read<int>('administered_at')),
+              voidedAt: r.readNullable<int>('voided_at') == null
+                  ? null
+                  : Instant(r.read<int>('voided_at')),
+              earliestClearDate: r.readNullable<String>('earliest_clear') == null
+                  ? null
+                  : LocalDate.parse(r.read<String>('earliest_clear')),
+            ),
+        ],
+      );
+
   /// Voids a treatment. **A SOFT VOID: the row stays, and so does its
   /// withdrawal.**
   ///
@@ -208,7 +256,32 @@ final class TreatmentRepository {
   /// What *repeat last* offers. It carries the product, the dose, the route and
   /// the batch — **and never the withdrawal period**, which is `withdrawalFor`'s
   /// to answer separately and deliberately.
-  Future<Treatment?> lastTreatment() =>
+  /// **RETURNS `TreatmentRow`, NOT THE DRIFT CLASS.** `lib/features/` may not
+  /// import the database directory at all, so a verb handing back a generated
+  /// row type is a verb no screen can call — the same layer rule that put
+  /// `LambCardData` and `VocabEntry` in this layer.
+  Future<TreatmentRow?> lastTreatment() async {
+    final Treatment? row = await _lastTreatmentRow();
+    if (row == null) {
+      return null;
+    }
+    return TreatmentRow(
+      id: TreatmentId(row.id),
+      productName: row.productName,
+      doseText: row.doseText,
+      batchNo: row.batchNo,
+      // NOT JOINED HERE. The repeat sheet shows the PRODUCT and the previous
+      // period; which animal it was on last time is not what the shepherd is
+      // choosing, and joining for it would be a second read for a fact nobody
+      // reads.
+      animalTag: null,
+      administeredAt: row.administeredAt,
+      voidedAt: row.voidedAt,
+      earliestClearDate: null,
+    );
+  }
+
+  Future<Treatment?> _lastTreatmentRow() =>
       (_db.select(_db.treatments)
             ..where(($TreatmentsTable t) => t.voidedAt.isNull())
             ..orderBy(<OrderClauseGenerator<$TreatmentsTable>>[
@@ -232,16 +305,22 @@ final class TreatmentRepository {
   /// batch, and its withdrawal is **not recorded** until the shepherd says
   /// otherwise. The previous entry is SHOWN with `Disclaimers.withdrawalProvenance`
   /// beside it, so they can read what they entered last time and decide.
-  Future<WriteOutcome> repeatTreatment(Treatment previous, TreatmentSubject onto) =>
-      recordTreatment(
-        onto,
-        productName: previous.productName,
-        doseText: previous.doseText,
-        routeKey: previous.route,
-        batchNo: previous.batchNo,
-        // EMPTY, EXPLICITLY. Not `previous`'s periods, and not a default.
-        withdrawals: const <WithdrawalPeriod>[],
-      );
+  Future<WriteOutcome> repeatTreatment(TreatmentId previous, TreatmentSubject onto) async {
+    final Treatment row = await (_db.select(
+      _db.treatments,
+    )..where(($TreatmentsTable t) => t.id.equals(previous.value))).getSingle();
+
+    return recordTreatment(
+      onto,
+      productName: row.productName,
+      doseText: row.doseText,
+      routeKey: row.route,
+      batchNo: row.batchNo,
+      // EMPTY, EXPLICITLY. Not the previous treatment's periods, and not a
+      // default.
+      withdrawals: const <WithdrawalPeriod>[],
+    );
+  }
 
   /// Every withdrawal on a treatment, **with the clear date exactly as stored**.
   ///
@@ -324,3 +403,68 @@ final class StoredWithdrawal {
   /// `null` on a `not_applicable` row — there is nothing to clear.
   final LocalDate? clearDate;
 }
+
+/// The two segments `07 §10.1`'s statement binds into `:mode`.
+enum TreatmentMode {
+  countdown('countdown'),
+  book('book');
+
+  const TreatmentMode(this.key);
+
+  /// Bound into the statement. **Frozen, never localised.**
+  final String key;
+}
+
+/// One row of the treatments list.
+final class TreatmentRow {
+  const TreatmentRow({
+    required this.id,
+    required this.productName,
+    required this.doseText,
+    required this.batchNo,
+    required this.animalTag,
+    required this.administeredAt,
+    required this.voidedAt,
+    required this.earliestClearDate,
+  });
+
+  final TreatmentId id;
+  final String productName;
+  final String? doseText;
+  final String? batchNo;
+
+  /// The ewe's or the lamb's tag. `null` on an untagged lamb, which is most
+  /// lambs for most of their first week.
+  final String? animalTag;
+
+  final Instant administeredAt;
+
+  /// Non-null on a voided row. **The book renders these struck and keeps them**;
+  /// the countdown never sees them at all.
+  final Instant? voidedAt;
+
+  /// The EARLIEST open clear date across this treatment's withdrawals, read from
+  /// the stored column and never recomputed. `null` when nothing was recorded or
+  /// nothing applies — which is not the same as *clear*, and no screen may say
+  /// the second.
+  final LocalDate? earliestClearDate;
+}
+
+/// `07 §10.1`'s statement, with the mode bound rather than branched.
+///
+/// **ONE STATEMENT AND ONE DEPENDENCY LIST.** Two statements — one per mode —
+/// would be two lists that can disagree about when the screen is stale, and a
+/// screen that went stale in one mode only is the hardest kind of bug to
+/// believe.
+const String _treatmentsSql = '''
+SELECT t.id, t.product_name, t.dose_text, t.batch_no,
+       t.administered_at, t.voided_at,
+       COALESCE(e.tag, l.tag) AS animal_tag,
+       (SELECT MIN(tw.clear_date) FROM treatment_withdrawals tw
+         WHERE tw.treatment = t.id AND tw.clear_date IS NOT NULL) AS earliest_clear
+  FROM treatments t
+  LEFT JOIN ewes  e ON e.id = t.ewe
+  LEFT JOIN lambs l ON l.id = t.lamb
+ WHERE (? = 'book' OR t.voided_at IS NULL)
+ ORDER BY t.administered_at DESC, t.id DESC
+''';

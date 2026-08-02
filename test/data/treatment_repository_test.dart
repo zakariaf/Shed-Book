@@ -285,10 +285,10 @@ void main() {
       ],
     );
 
-    final Treatment? previous = await repo.lastTreatment();
+    final TreatmentRow? previous = await repo.lastTreatment();
     expect(previous, isNotNull);
 
-    final WriteOutcome outcome = await repo.repeatTreatment(previous!, TreatEwe(second));
+    final WriteOutcome outcome = await repo.repeatTreatment(previous!.id, TreatEwe(second));
     expect(outcome, isA<WriteCommitted>());
     final TreatmentId repeated = TreatmentId((outcome as WriteCommitted).insertedId!);
 
@@ -325,12 +325,11 @@ void main() {
     await repo.recordTreatment(TreatEwe(ewe), productName: 'Alamycin');
     await repo.recordTreatment(TreatEwe(ewe), productName: 'Spectam');
 
-    final Treatment latest = (await repo.lastTreatment())!;
+    final TreatmentRow latest = (await repo.lastTreatment())!;
     expect(latest.productName, 'Spectam');
 
-    await (db.update(db.treatments)..where(($TreatmentsTable t) => t.id.equals(latest.id))).write(
-      TreatmentsCompanion(voidedAt: Value<Instant?>(appNow())),
-    );
+    await (db.update(db.treatments)..where(($TreatmentsTable t) => t.id.equals(latest.id.value)))
+        .write(TreatmentsCompanion(voidedAt: Value<Instant?>(appNow())));
 
     expect((await repo.lastTreatment())!.productName, 'Alamycin');
   });

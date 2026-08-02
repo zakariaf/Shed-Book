@@ -487,6 +487,86 @@ void main() {
 
     await tester.closeApp();
   });
+  // ---------------------------------------------------------------------------
+  // T05 — the matrix variant and the empty state
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a freshly-born lamb renders every region and no death detail', (
+    WidgetTester tester,
+  ) async {
+    // THE STATE THE CARD OPENS IN. A lamb tapped from a lambing seconds after it
+    // was tallied has a birth dam, a rearing dam and one history row, and
+    // nothing else — and every region must still be there, because a card that
+    // rendered nothing until the shepherd filled something in would make the tap
+    // look like it failed.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lamb_card.title')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.summary')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.birth_dam')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.rearing_dam')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.sex')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.status')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.pet_lamb')), findsOneWidget);
+
+    // NOT AN EMPTY STATE — the `born` arm always yields one row, so the line
+    // says nothing ELSE has been recorded, which is the true statement.
+    expect(find.byKey(const Key('lamb_card.nothing_else')), findsOneWidget);
+
+    // AND NO DEATH DETAIL, because she is alive.
+    expect(find.byKey(const Key('lamb_card.death_date')), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsNothing, reason: '07 §1.4 — no spinner');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('every act on the card is reachable at the smallest device and textScaler 1.3', (
+    WidgetTester tester,
+  ) async {
+    // `12 §6.2`'s REACHABILITY CLAIM, which is not the overflow matrix's claim.
+    // The matrix proves nothing is clipped; this proves everything can still be
+    // REACHED — a control pushed below the fold on a 375 pt phone at 130% text
+    // is not clipped, it is gone. 1.3 is the Android 14+ ceiling most users
+    // reach.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(
+      LambCardScreen(lambId: lamb),
+      db: db,
+      device: Device.small,
+      textScale: 1.3,
+    );
+    await tester.pumpAndSettle();
+
+    for (final String key in <String>[
+      'lamb_card.sex.f',
+      'lamb_card.sex.m',
+      'lamb_card.sex.unknown',
+      'lamb_card.weight',
+      'lamb_card.status.alive',
+      'lamb_card.status.dead',
+      'lamb_card.status.stillborn',
+      'lamb_card.pet_lamb',
+    ]) {
+      final Finder act = find.byKey(Key(key));
+      expect(act, findsOneWidget, reason: key);
+      await tester.ensureVisible(act);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.closeApp();
+  });
 }
 
 String _read(String path) => File(path).readAsStringSync();

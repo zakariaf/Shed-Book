@@ -6,6 +6,8 @@
 // and a write to guard. Declaring them now would be declaring two providers
 // nobody reads.
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -23,3 +25,32 @@ final AutoDisposeStreamProviderFamily<LambingEntryData, LambingId> lambingEntryP
       await ref.watch(databaseProvider.future);
       yield* ref.watch(lambingRepositoryProvider).watchLambingEntry(id);
     });
+
+/// The screen's writes.
+///
+/// `lambingControllerProvider` is a banned spelling (`07 §6.1`): the noun is
+/// **write controller**, and a name that drops the word invites a second
+/// controller holding read state.
+final class LambingWriteController extends WriteController {
+  /// `addLamb` throws rather than returning a `WriteOutcome`, so the guard body
+  /// converts.
+  ///
+  /// **The id is discarded here on purpose** — the stream re-emits with the new
+  /// row, so the screen learns about the lamb the same way it learns about
+  /// every other change. A controller that held the id would be a second source
+  /// of truth about what is on the page.
+  ///
+  /// A failure reaches `guard()`'s catch-all as an `UnexpectedFailure`, which is
+  /// correct: a lamb that will not insert is a bug, not a storage condition the
+  /// shepherd can act on.
+  Future<void> addLamb(LambingId lambing) => guard(() async {
+    await ref.read(lambingRepositoryProvider).addLamb(lambing);
+    return const WriteCommitted();
+  });
+}
+
+/// **Always `.autoDispose`** for a write controller (`CONVENTIONS §3.4`).
+final AutoDisposeNotifierProvider<LambingWriteController, WriteState>
+lambingWriteControllerProvider = NotifierProvider.autoDispose<LambingWriteController, WriteState>(
+  LambingWriteController.new,
+);

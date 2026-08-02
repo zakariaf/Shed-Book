@@ -605,6 +605,40 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Care'**
   String get lambingEntryCare;
+
+  /// The DERIVED birth type. P8 abolished the chooser: the type is counted from the tally strokes and labelled so, which is what makes §12.4 structural rather than procedural — the app never declares a type the shepherd did not. The stamp is unboxed and all-caps; it is never the sole carrier of its meaning, because the strokes are on screen beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} (COUNTED)'**
+  String lambingTypeCounted({required String type});
+
+  /// Five or more. countedBirthType returns null there deliberately — quintPlus means 'more than four, count NOT declared', and a counted five is not open-ended. So the count itself is printed rather than a word that would throw the number away. The animal noun comes from terminologyProvider, never a literal.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {animals} (COUNTED)'**
+  String lambingTypeCountedMany({required int count, required String animals});
+
+  /// No strokes yet. NOT 'single': zero strokes is not recorded, and defaulting would be the app answering for the shepherd. It replaces 07 §6.3's 'the five buttons are unselected', which described a control P8 removed.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get lambingTypeNotRecorded;
+
+  /// The corner slab. One press is one stroke and one committed lamb row — there is no confirmation step, because the row is the confirmation. The animal noun comes from terminologyProvider (10 §8): a shepherd who renamed 'lamb' sees their own word.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {animal}'**
+  String lambingAddLamb({required String animal});
+
+  /// The tally's semantic label. The marks are painted, so a screen reader has nothing to read without this — and it says the NUMBER rather than describing the marks, because the number is what the shepherd wants.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No {animals} yet} =1{1 {animal}} other{{count} {animals}}}'**
+  String lambingTallySemantics({
+    required int count,
+    required String animal,
+    required String animals,
+  });
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

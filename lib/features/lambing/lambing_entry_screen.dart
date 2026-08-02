@@ -12,7 +12,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class LambingEntryScreen extends ConsumerWidget {
@@ -25,6 +28,27 @@ class LambingEntryScreen extends ConsumerWidget {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final AsyncValue<LambingEntryData> data = ref.watch(lambingEntryProvider(lambingId));
+
+    // THE ONE LISTEN. The switch is exhaustive with no `default:` — WriteOutcome
+    // is sealed with three variants, and the day a fourth lands this must fail
+    // to compile rather than swallow it.
+    ref.listen<WriteState>(lambingWriteControllerProvider, (WriteState? previous, WriteState next) {
+      if (next case WriteDone(:final WriteOutcome outcome)) {
+        switch (outcome) {
+          case WriteCommitted():
+            // The confirmation IS the stroke: the stream re-emits and the mark
+            // appears. There is nothing else to say and no SnackBar to say it
+            // in (P2).
+            break;
+          case WriteFailed():
+            // T06's warning strip. A failure is never silence.
+            break;
+          case WriteRefused():
+            // Unreachable: no write on this screen is gated by the cap.
+            break;
+        }
+      }
+    });
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
@@ -94,6 +118,10 @@ class _Regions extends StatelessWidget {
             key: const Key('lambing_entry.lambs'),
             style: text.bodyMedium,
           ),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+          child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
         ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: t.gapMin),

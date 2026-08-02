@@ -308,4 +308,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lambingEntryCare => 'Care';
+
+  @override
+  String lambingTypeCounted({required String type}) {
+    return '$type (COUNTED)';
+  }
+
+  @override
+  String lambingTypeCountedMany({required int count, required String animals}) {
+    return '$count $animals (COUNTED)';
+  }
+
+  @override
+  String get lambingTypeNotRecorded => 'NOT RECORDED';
+
+  @override
+  String lambingAddLamb({required String animal}) {
+    return '+ $animal';
+  }
+
+  @override
+  String lambingTallySemantics({
+    required int count,
+    required String animal,
+    required String animals,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count $animals',
+      one: '1 $animal',
+      zero: 'No $animals yet',
+    );
+    return '$_temp0';
+  }
 }

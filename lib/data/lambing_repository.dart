@@ -97,6 +97,47 @@ final class LambingRepository {
     });
   }
 
+  /// Adds one lamb to [lambing].
+  ///
+  /// **Returns an id and THROWS** — one of only two verbs that do (R32), the
+  /// other being `beginLambing`. There is no id to hand back on failure and the
+  /// caller has nowhere to put a `WriteOutcome`.
+  ///
+  /// **`{Sex? sex}`, not `{required Sex sex}`.** A stroke is one press: the
+  /// shepherd counts the lamb now and sexes it later, or never. Making sex
+  /// required would put a decision between the thumb and the record, which is
+  /// exactly what the five-tap budget exists to prevent — and NULL is not
+  /// `Sex.unknown` (R45), so the column keeps "not recorded" distinguishable
+  /// from "recorded as unknown".
+  ///
+  /// `birth_dam` is denormalised from `lambings.ewe` in the same transaction. It
+  /// is not redundancy: a lamb's birth dam never changes, while a FOSTER moves
+  /// the rearing dam — and reading the birth dam through the lambing would make
+  /// a foster look like a rewrite of history.
+  Future<LambId> addLamb(LambingId lambing, {Sex? sex}) {
+    final Instant now = appNow(); // ONE instant per mutation
+
+    return _db.transaction(() async {
+      final Lambing parent = await (_db.select(
+        _db.lambings,
+      )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+      final int id = await _db
+          .into(_db.lambs)
+          .insert(
+            LambsCompanion.insert(
+              lambing: lambing.value,
+              birthDam: parent.ewe,
+              sex: Value<String?>(sex?.key),
+              uid: newUid(),
+              createdAt: now,
+              updatedAt: now,
+            ),
+          );
+      return LambId(id);
+    });
+  }
+
   /// Strikes a lambing. **The row STAYS.**
   ///
   /// `strike`, never `delete`, never `remove`, never a generic `undo(id)`:

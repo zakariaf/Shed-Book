@@ -15,6 +15,7 @@ import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/core/ui/components/shed_tally.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -157,6 +158,143 @@ void main() {
     expect(label.data, isNotNull);
     expect(label.data, isNotEmpty);
     expect(label.data, 'recorded automatically', reason: 'beginLambing captures');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('three strokes print TRIPLET (COUNTED) and no widget carries a birth_type key', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, AND THE STROKES ARE PRESSED RATHER THAN SEEDED — that is what
+    // makes the case prove the whole path, and it is the same three presses
+    // indelible.md §9 describes.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    for (int i = 0; i < 3; i++) {
+      await tester.tap(find.byKey(const Key('lambing_entry.tally.stroke')));
+      await tester.pumpAndSettle();
+    }
+
+    // READ THE COUNT BACK OUT OF SQLITE, so a label that agrees with a widget
+    // field rather than with the database cannot pass.
+    expect((await db.select(db.lambs).get()).length, 3);
+
+    final Text label = tester.widget<Text>(find.byKey(const Key('lambing_entry.counted_type')));
+    expect(label.data, 'triplet (COUNTED)');
+
+    // THE CANARY. P8 abolished the chooser, and this walks the whole tree
+    // rather than one widget: a birth-type key anywhere is the chooser coming
+    // back somewhere nobody is looking.
+    const String banned =
+        'birth_'
+        'type';
+    for (final Widget w in tester.allWidgets) {
+      final Key? k = w.key;
+      if (k is ValueKey<String>) {
+        expect(k.value, isNot(contains(banned)), reason: '${w.runtimeType}');
+      }
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no strokes prints NOT RECORDED, never single', (WidgetTester tester) async {
+    // Zero is NOT RECORDED. Defaulting to `single` would be the app answering
+    // for the shepherd, which is §12.4 in one line — and it is the exact
+    // failure 07 §6.3's old "the five buttons are unselected" row described a
+    // control for.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Text label = tester.widget<Text>(find.byKey(const Key('lambing_entry.counted_type')));
+    expect(label.data, 'NOT RECORDED');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('five strokes print the count rather than a word', (WidgetTester tester) async {
+    // countedBirthType returns null at five and above deliberately: quintPlus
+    // means "more than four, count NOT declared", and a counted five is not
+    // open-ended. Printing the number is what keeps the tally's information.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    for (int i = 0; i < 5; i++) {
+      await tester.tap(find.byKey(const Key('lambing_entry.tally.stroke')));
+      await tester.pumpAndSettle();
+    }
+
+    final Text label = tester.widget<Text>(find.byKey(const Key('lambing_entry.counted_type')));
+    expect(label.data, '5 lambs (COUNTED)');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a double tap on the slab adds exactly one lamb', (WidgetTester tester) async {
+    // guard(), on the screen the shepherd is using with one cold hand. NO PUMP
+    // BETWEEN THE TAPS: with one, the first write completes and the second is a
+    // legitimate second lamb.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder slab = find.byKey(const Key('lambing_entry.tally.stroke'));
+    await tester.tap(slab);
+    await tester.tap(slab);
+    await tester.pumpAndSettle();
+
+    expect((await db.select(db.lambs).get()).length, 1);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a struck lamb keeps its mark and leaves the count', (WidgetTester tester) async {
+    // Both halves of Indelible Rule 1 at once: the MARK stays on the page, and
+    // the DERIVED TYPE is about the animals that exist. A struck stroke that
+    // vanished would make the shepherd's own count wrong.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId first = await seedLamb(db, lambing, ewe);
+    await seedLamb(db, lambing, ewe);
+
+    await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(first.value))).write(
+      LambsCompanion(
+        struck: const Value<bool>(true),
+        struckAt: Value<Instant?>(Instant.fromDateTime(DateTime.utc(2026, 3, 14, 4))),
+      ),
+    );
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final ShedTally tally = tester.widget<ShedTally>(find.byKey(const Key('lambing_entry.tally')));
+    expect(tally.count, 2, reason: 'the mark stays');
+    expect(tally.struck, <int>{0});
+
+    final Text label = tester.widget<Text>(find.byKey(const Key('lambing_entry.counted_type')));
+    expect(label.data, 'single (COUNTED)', reason: 'one live lamb');
 
     await tester.closeApp();
   });

@@ -171,6 +171,38 @@ final class TreatmentRepository {
     }
   }
 
+  /// Voids a treatment. **A SOFT VOID: the row stays, and so does its
+  /// withdrawal.**
+  ///
+  /// The obvious implementation deletes. It is wrong for a reason that has
+  /// nothing to do with tidiness: the treatment may ALREADY HAVE BEEN PRINTED
+  /// INTO A MEDICINE BOOK and handed to a vet, and a book that disagrees with
+  /// the app is worse than either alone. `09 §3.2` exports voided rows marked
+  /// as voided for exactly that.
+  ///
+  /// **THE WITHDRAWAL ROW IS NOT TOUCHED — not deleted, not blanked, not
+  /// recalculated.** Its `days` are what the shepherd typed and its `clear_date`
+  /// is what they were told; a void says the treatment should not have been
+  /// recorded, not that those numbers were never read.
+  ///
+  /// Every *"is she clear?"* query filters `voided_at IS NULL` UPSTREAM, which is
+  /// where the exclusion belongs: leaving the countdown is not the same as
+  /// claiming the animal is clear, and no screen may say the second.
+  Future<WriteOutcome> voidTreatment(TreatmentId treatment) async {
+    try {
+      final Instant now = appNow();
+      final int rows =
+          await (_db.update(
+            _db.treatments,
+          )..where(($TreatmentsTable t) => t.id.equals(treatment.value))).write(
+            TreatmentsCompanion(voidedAt: Value<Instant?>(now), updatedAt: Value<Instant>(now)),
+          );
+      return WriteCommitted(insertedId: rows > 0 ? treatment.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// The most recent treatment for the current season, or `null`.
   ///
   /// What *repeat last* offers. It carries the product, the dose, the route and

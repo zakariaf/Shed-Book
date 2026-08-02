@@ -334,4 +334,42 @@ void main() {
 
     expect((await repo.lastTreatment())!.productName, 'Alamycin');
   });
+
+  test('a voided treatment keeps its row and its withdrawal untouched', () async {
+    // THE OBVIOUS IMPLEMENTATION DELETES, and it is wrong for a reason that has
+    // nothing to do with tidiness: the treatment may ALREADY HAVE BEEN PRINTED
+    // INTO A MEDICINE BOOK and handed to a vet, and a book that disagrees with
+    // the app is worse than either alone.
+    //
+    // The withdrawal row is not touched either — not deleted, not blanked, not
+    // recalculated. Its days are what the shepherd typed and its clear date is
+    // what they were told; a void says the treatment should not have been
+    // RECORDED, not that those numbers were never read.
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+    final TreatmentId id = TreatmentId((outcome as WriteCommitted).insertedId!);
+
+    final TreatmentWithdrawal before = await db.select(db.treatmentWithdrawals).getSingle();
+
+    expect(await repo.voidTreatment(id), isA<WriteCommitted>());
+
+    final Treatment treatment = await (db.select(
+      db.treatments,
+    )..where(($TreatmentsTable t) => t.id.equals(id.value))).getSingle();
+    expect(treatment.voidedAt, isNotNull, reason: 'marked, not removed');
+
+    final TreatmentWithdrawal after = await db.select(db.treatmentWithdrawals).getSingle();
+    expect(after.days, before.days, reason: 'what they typed');
+    expect(after.clearDate, before.clearDate, reason: 'what they were told');
+    expect(after.kind, before.kind);
+
+    // AND THE PERIOD STILL READS BACK. A void does not un-record a number.
+    expect(await repo.withdrawalFor(id, WithdrawalTarget.meat), isA<WithdrawalDays>());
+  });
 }

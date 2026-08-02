@@ -16,10 +16,11 @@
 //   lambingRepositoryProvider   N14-T02  Provider<LambingRepository>
 //   mediaStoreProvider          N15-T01  Provider<MediaStore>                 keepAlive
 //   cameraServiceProvider       N15-T02  Provider<CameraService>              keepAlive
+//   voiceRecorderProvider       N15-T03  Provider<VoiceRecorder>              keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   noteRepositoryProvider · voiceRecorderProvider                   N15
+//   noteRepositoryProvider                                           N15
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
@@ -44,6 +45,7 @@ import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/tag_match.dart';
@@ -106,6 +108,10 @@ final Provider<SettingsRepository> settingsRepositoryProvider = Provider<Setting
 /// every caller for a value that is never awaited at construction.
 final Provider<CameraService> cameraServiceProvider = Provider<CameraService>(
   (ref) => CameraService(),
+);
+
+final Provider<VoiceRecorder> voiceRecorderProvider = Provider<VoiceRecorder>(
+  (ref) => VoiceRecorder(),
 );
 
 final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());

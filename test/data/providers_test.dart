@@ -181,6 +181,8 @@ void main() {
       // N15-T01, N15-T02
       'mediaStoreProvider',
       'cameraServiceProvider',
+      // N15-T03
+      'voiceRecorderProvider',
     });
   });
 

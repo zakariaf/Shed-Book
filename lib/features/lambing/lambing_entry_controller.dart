@@ -18,6 +18,7 @@ import 'package:shed_book/domain/lambing_ease.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/validation/lambing_checks.dart';
 import 'package:shed_book/domain/validation/warning.dart';
@@ -80,6 +81,55 @@ final class LambingWriteController extends WriteController {
   /// Strikes rather than deletes — see `LambingRepository.removeCare`.
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
+
+  Future<void> setPetLamb(LambId lamb, {required bool petLamb}) =>
+      guard(() => ref.read(lambingRepositoryProvider).setPetLamb(lamb, petLamb: petLamb));
+
+  Future<void> addBottleFeed(LambId lamb) =>
+      guard(() => ref.read(lambingRepositoryProvider).addBottleFeed(lamb));
+
+  /// Records a death, **and this is where the validator runs** (R53).
+  ///
+  /// The repository is structurally incapable of producing a warning; the
+  /// controller is the only thing that can. So the outcome's `warnings` are
+  /// populated HERE, from `checkLambDeath`, after the write has committed —
+  /// **after**, because `05 §7.5` guarantee 3 is absolute: a warning never gates
+  /// a write. A blocked write produces a lost record, which is worse than a
+  /// queried one.
+  Future<void> recordDeath(
+    LambId lamb, {
+    required LambStatus status,
+    required LocalDate? deathDate,
+    required LocalDate bornOn,
+    String? causeKey,
+  }) => guard(() async {
+    final WriteOutcome outcome = await ref
+        .read(lambingRepositoryProvider)
+        .recordDeath(lamb, status: status, deathDate: deathDate, causeKey: causeKey);
+
+    return switch (outcome) {
+      WriteCommitted() => WriteCommitted(
+        insertedId: lamb.value,
+        warnings: checkLambDeath(deathDate: deathDate, bornOn: bornOn),
+      ),
+      // A failure keeps its failure. Attaching warnings to it would suggest the
+      // shepherd could act on something, when the write did not happen at all.
+      WriteFailed() || WriteRefused() => outcome,
+    };
+  });
+
+  Future<void> clearDeath(LambId lamb) =>
+      guard(() => ref.read(lambingRepositoryProvider).clearDeath(lamb));
+
+  /// **NO NEW WRITE CONTROLLER.** `CONVENTIONS §3.4` has no
+  /// `lambCardWriteControllerProvider`, and adding one would give the Lamb Card
+  /// a second place for a write to live — the two screens write to the same
+  /// aggregate through the same guard.
+  Future<void> setLambSex(LambId lamb, Sex? sex) =>
+      guard(() => ref.read(lambingRepositoryProvider).setLambSex(lamb, sex));
+
+  Future<void> setBirthWeight(LambId lamb, Grams? weight) =>
+      guard(() => ref.read(lambingRepositoryProvider).setBirthWeight(lamb, weight));
 
   Future<void> setAssistedBy(LambingId lambing, String? value) =>
       guard(() => ref.read(lambingRepositoryProvider).setAssistedBy(lambing, value));

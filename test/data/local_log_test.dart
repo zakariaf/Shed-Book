@@ -120,7 +120,14 @@ void main() {
 
     expect(ours, isNotEmpty, reason: 'the record must actually have been written');
     for (final String line in ours) {
-      expect(line, isNot(contains('28')), reason: line);
+      // `'28 days'`, NOT A BARE `'28'`, AND THAT IS A SECOND CORRECTION. Every
+      // record carries a TIMESTAMP, so a bare 28 appears in this line legitimately
+      // whenever the clock's minute or second happens to be 28 — a flake that
+      // fires roughly three runs in a hundred and looks exactly like a
+      // regression. The period is what must not survive, and the period is a
+      // number followed by its unit.
+      expect(line, isNot(contains('28 days')), reason: line);
+      expect(line, isNot(contains('withdrawal 28')), reason: line);
     }
 
     // AND THE REDACTOR ITSELF, independent of any file. This is the half that

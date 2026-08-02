@@ -957,6 +957,198 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How it was lying, not required'**
   String get detailPresentationSemantics;
+
+  /// The Lamb Card's heading, headingLevel 1. It is the animal noun and the tag when there is one - never 'Lamb details' or 'Lamb record', because the shepherd came here from a row that already said which lamb.
+  ///
+  /// In en, this message translates to:
+  /// **'{animal}'**
+  String lambCardTitle({required String animal});
+
+  /// The birth dam row. A lamb has ONE birth dam, forever - no verb in the app moves it. A foster moves the REARING dam, and making a foster look like a rewrite of history is the failure the lamb_rearing view exists to prevent.
+  ///
+  /// In en, this message translates to:
+  /// **'BIRTH DAM {tag}'**
+  String lambCardBirthDam({required String tag});
+
+  /// The rearing dam row, projected by the lamb_rearing view and never copied onto the lamb. On an unfostered lamb it is the birth dam, which is what the view's COALESCE says and is NOT the same as having no rearing dam.
+  ///
+  /// In en, this message translates to:
+  /// **'REARING DAM {tag}'**
+  String lambCardRearingDam({required String tag});
+
+  /// Marks a foster whose outcome was recorded as permanent. It is a fact about the foster event, never a judgement about the lamb.
+  ///
+  /// In en, this message translates to:
+  /// **'PERMANENT'**
+  String get lambCardPermanent;
+
+  /// One of the TWO reasons a rearing dam can be absent, and 07 7.2 forbids rendering them with one string. This one is a fact the shepherd recorded: the lamb came off a ewe and onto a bottle.
+  ///
+  /// In en, this message translates to:
+  /// **'ON THE BOTTLE'**
+  String get lambCardNoEweBottle;
+
+  /// The OTHER reason a rearing dam can be absent: the lamb was removed from a ewe and where it went was not recorded. Merging this with ON THE BOTTLE would have the app claim a bottle feed that nobody wrote down.
+  ///
+  /// In en, this message translates to:
+  /// **'REARING DAM NOT RECORDED'**
+  String get lambCardNoEweNotRecorded;
+
+  /// The history list when only the birth row exists. NOT an empty state - the born row is always there, because a lamb that exists was born. It says nothing ELSE, which is the true statement.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTHING ELSE RECORDED YET'**
+  String get lambCardNothingElseRecorded;
+
+  /// A lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number: a tag the app invented would be a tag on no ear.
+  ///
+  /// In en, this message translates to:
+  /// **'UNTAGGED'**
+  String get lambCardUntagged;
+
+  /// The 'born' arm of the history union. Always present - it is the one row a lamb card can never be missing.
+  ///
+  /// In en, this message translates to:
+  /// **'BORN'**
+  String get lambCardHistoryBorn;
+
+  /// The 'foster' arm. Past tense because it is an event that happened, not a state the lamb is in.
+  ///
+  /// In en, this message translates to:
+  /// **'FOSTERED'**
+  String get lambCardHistoryFoster;
+
+  /// The 'care' arm - a care event recorded against this lamb rather than against the lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'CARE'**
+  String get lambCardHistoryCare;
+
+  /// The 'treatment' arm. The withdrawal that may hang off it is the treatment record's own business and is never summarised here.
+  ///
+  /// In en, this message translates to:
+  /// **'TREATMENT'**
+  String get lambCardHistoryTreatment;
+
+  /// The sex group's label on the Lamb Card. Three targets, not two: not-recorded is reached by clearing, and recorded-as-unknown is its own answer.
+  ///
+  /// In en, this message translates to:
+  /// **'SEX'**
+  String get lambCardSexLabel;
+
+  /// Sex.unknown, and the words are chosen to be UNMISTAKABLE for not-recorded (R45). The shepherd LOOKED and could not say - which is a fact worth keeping, and merging it with an empty field would have the app answer a question they deliberately left open. Never 'Unknown' alone, which reads like a missing value.
+  ///
+  /// In en, this message translates to:
+  /// **'COULD NOT TELL'**
+  String get lambCardSexUnknown;
+
+  /// The weight cell's label, above the line. One word, the trade's own.
+  ///
+  /// In en, this message translates to:
+  /// **'BIRTHWEIGHT'**
+  String get lambCardWeightLabel;
+
+  /// The weight cell before anything is typed. Never a zero and never a placeholder figure: 05 7.3 - the app may transform a number the shepherd supplied, never originate one.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambCardWeightUnset;
+
+  /// The kg suffix beside the weight keypad. The unit comes from unitsProvider (R68), never from the locale: a UK smallholder may genuinely want lb, and a wrong inference silently mislabels every weight ever recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get lambCardWeightUnitKg;
+
+  /// The lb suffix. Entry is in whole pounds and the decimal key adds a fraction of one; the decomposition into ounces happens at display, where poundsOunces rounds once and carries at sixteen.
+  ///
+  /// In en, this message translates to:
+  /// **'lb'**
+  String get lambCardWeightUnitLb;
+
+  /// The implausible-birthweight observation. It says WHAT WE OBSERVED and never what to do - a warning that instructs is advice (12.2) and a warning that changes a value is a correction (12.4). It NEVER blocks the write: a blocked write produces a lost record, which is worse than a queried one. Never 'too heavy', never 'please check', never a suggested figure. It also carries NO ANIMAL NOUN: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft of this message for saying 'for a lamb'. There is no placeholder to use here either, because the string is a Warning.message from lib/domain/, which cannot reach terminologyProvider.
+  ///
+  /// In en, this message translates to:
+  /// **'That is outside the usual birthweight range.'**
+  String get warningImplausibleBirthWeight;
+
+  /// The status group's label. Three targets - alive, dead, stillborn - because those are the three the shepherd records at the shed. SOLD is set elsewhere, from the flock list, and putting it here would offer a sale as a thing that happens in a lambing pen.
+  ///
+  /// In en, this message translates to:
+  /// **'STATUS'**
+  String get lambCardStatusLabel;
+
+  /// The death date's label. One word, because the three quick answers under it carry the meaning.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN'**
+  String get lambCardDeathDateLabel;
+
+  /// The commonest answer, first. A death recorded at the shed is almost always today's, and 07 7.3 puts the three quick answers ahead of the stepper so the usual case is one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY'**
+  String get lambCardDeathDateToday;
+
+  /// The second quick answer. It exists because a shepherd who finds a dead lamb at 06:00 often means the night before.
+  ///
+  /// In en, this message translates to:
+  /// **'YESTERDAY'**
+  String get lambCardDeathDateYesterday;
+
+  /// The third quick answer, and the last: beyond this the stepper is more honest than another word, because 'THREE DAYS AGO' and 'FOUR DAYS AGO' are guesses dressed as buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'2 DAYS AGO'**
+  String get lambCardDeathDateTwoDaysAgo;
+
+  /// The death cause's label. The list is user-editable vocabulary (vocab_terms, list='death_cause'), never a fixed enum: causes vary by farm and by county.
+  ///
+  /// In en, this message translates to:
+  /// **'CAUSE'**
+  String get lambCardDeathCauseLabel;
+
+  /// No cause recorded. This is UNATTRIBUTED, and it is NOT the same as the dc_unknown term the shepherd can pick - a lamb died and nobody wrote down why is a different fact from a lamb died and the shepherd recorded that the cause was unknown. The vocabulary keeps them apart and so does this label.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get lambCardDeathCauseUnattributed;
+
+  /// The deathBeforeBirth observation, and it is the ARB copy of a string the domain also holds - lib/domain/ ships English because v1 is en-only (#108). It says what we observed and never what to do: it does not say 'check the date' and it does not offer to swap them. It never blocks the write, because a blocked write produces a lost record and this one is about a lamb that died.
+  ///
+  /// In en, this message translates to:
+  /// **'The death date is before the lambing.'**
+  String get warningDeathBeforeBirth;
+
+  /// The pet-lamb toggle's label. The trade phrase, not 'Pet lamb status': a shepherd says a lamb is on the bottle. Clearing it does NOT zero the feed count - which lambs cost six weeks of bottles is exactly the April question, and a lamb weaned off the bottle is still a lamb that was on it.
+  ///
+  /// In en, this message translates to:
+  /// **'ON THE BOTTLE'**
+  String get lambCardPetLambLabel;
+
+  /// The bottle-feed counter's label. It counts feeds, and the total is the stored fact: indelible.md 8 asks for a timestamped FEED 4 - 06:40 line per feed, and no table can hold one (care_events.kind is a closed CHECK wired to frozen notification channel ids). Printing that line from a counter would invent a timestamp the record does not have.
+  ///
+  /// In en, this message translates to:
+  /// **'FEEDS'**
+  String get lambCardFeedsLabel;
+
+  /// The feed count before the lamb is marked as on the bottle. It is NOT a zero: bottle_feeds has DEFAULT 0 and that column's 0 means 'no feeds recorded', while pet_lamb is what says whether the count is meaningful at all. A confident 0 on a lamb nobody bottle-fed would be the app originating a number the shepherd never pressed.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambCardFeedsUnset;
+
+  /// The increment target's glyph. There is no minus: a feed that happened cannot un-happen, and a decrement would be an undo for an event rather than a correction of a value. If a mis-tap needs undoing that is a screens decision, not a local one.
+  ///
+  /// In en, this message translates to:
+  /// **'+'**
+  String get lambCardFeedsAdd;
+
+  /// The increment target for a screen reader. A bare '+' is unreadable aloud, and the label says what is counted.
+  ///
+  /// In en, this message translates to:
+  /// **'Record one more bottle feed'**
+  String get lambCardFeedsAddSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

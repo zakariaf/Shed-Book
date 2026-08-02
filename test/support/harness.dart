@@ -58,6 +58,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
@@ -135,6 +136,7 @@ T atFixed<T>(DateTime instant, T Function() body) => withClock(Clock.fixed(insta
 const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>{
   RouteNames.quickEntry: (seed: _seedNothing, build: _quickEntry),
   RouteNames.lambingEntry: (seed: _seedHardLambing, build: _lambingEntry),
+  RouteNames.lambCard: (seed: _seedHardLamb, build: _lambCard),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -208,6 +210,61 @@ Future<Map<String, int>> _seedHardLambing(AppDatabase db) async {
 
 Widget _lambingEntry(Map<String, int> ids) =>
     LambingEntryScreen(lambingId: LambingId(ids['lambing']!));
+
+/// **THE HARD LAMB.** Every cell on the card populated at once: a tag, a sex, a
+/// weight, a death with a date and a cause, pet-lamb status with a long feed
+/// count, a foster onto a second ewe, and care and treatment rows in the
+/// history. That is the arrangement where the summary line, the two parentage
+/// rows, the status wrap and the feed row are all as wide as they can be — and
+/// it is the only arrangement that can overflow.
+///
+/// A freshly-born lamb passes eighteen cells and proves almost nothing.
+Future<Map<String, int>> _seedHardLamb(AppDatabase db) async {
+  final Map<String, int> ids = await _seedHardLambing(db);
+  final LambingId lambing = LambingId(ids['lambing']!);
+
+  final Lamb lamb = (await (db.select(
+    db.lambs,
+  )..where(($LambsTable t) => t.lambing.equals(lambing.value))).get()).first;
+  final EweId fosterDam = await seedEwe(db, tag: '1077');
+  final Instant when = Instant.fromDateTime(DateTime.utc(2026, 3, 14, 5));
+
+  await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(lamb.id))).write(
+    LambsCompanion(
+      tag: const Value<String?>('A12345'),
+      status: const Value<String>('dead'),
+      deathDate: Value<LocalDate?>(LocalDate(2026, 3, 20)),
+      deathCause: const Value<String?>('dc_hypothermia'),
+      petLamb: const Value<bool>(true),
+      bottleFeeds: const Value<int>(128),
+    ),
+  );
+
+  final Lambing parent = await (db.select(
+    db.lambings,
+  )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+  await db
+      .into(db.fosterEvents)
+      .insert(
+        FosterEventsCompanion.insert(
+          uid: newUid(),
+          createdAt: when,
+          updatedAt: when,
+          lamb: lamb.id,
+          season: parent.season,
+          rearingDam: Value<int?>(fosterDam.value),
+          outcome: 'to_ewe',
+          effectiveAt: when,
+          capturedAt: when,
+        ),
+      );
+  await seedCareEvent(db, kind: 'warmed', lamb: LambId(lamb.id));
+
+  return <String, int>{'lamb': lamb.id};
+}
+
+Widget _lambCard(Map<String, int> ids) => LambCardScreen(lambId: LambId(ids['lamb']!));
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

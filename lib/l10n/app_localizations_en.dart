@@ -521,4 +521,106 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailPresentationSemantics => 'How it was lying, not required';
+
+  @override
+  String lambCardTitle({required String animal}) {
+    return '$animal';
+  }
+
+  @override
+  String lambCardBirthDam({required String tag}) {
+    return 'BIRTH DAM $tag';
+  }
+
+  @override
+  String lambCardRearingDam({required String tag}) {
+    return 'REARING DAM $tag';
+  }
+
+  @override
+  String get lambCardPermanent => 'PERMANENT';
+
+  @override
+  String get lambCardNoEweBottle => 'ON THE BOTTLE';
+
+  @override
+  String get lambCardNoEweNotRecorded => 'REARING DAM NOT RECORDED';
+
+  @override
+  String get lambCardNothingElseRecorded => 'NOTHING ELSE RECORDED YET';
+
+  @override
+  String get lambCardUntagged => 'UNTAGGED';
+
+  @override
+  String get lambCardHistoryBorn => 'BORN';
+
+  @override
+  String get lambCardHistoryFoster => 'FOSTERED';
+
+  @override
+  String get lambCardHistoryCare => 'CARE';
+
+  @override
+  String get lambCardHistoryTreatment => 'TREATMENT';
+
+  @override
+  String get lambCardSexLabel => 'SEX';
+
+  @override
+  String get lambCardSexUnknown => 'COULD NOT TELL';
+
+  @override
+  String get lambCardWeightLabel => 'BIRTHWEIGHT';
+
+  @override
+  String get lambCardWeightUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambCardWeightUnitKg => 'kg';
+
+  @override
+  String get lambCardWeightUnitLb => 'lb';
+
+  @override
+  String get warningImplausibleBirthWeight => 'That is outside the usual birthweight range.';
+
+  @override
+  String get lambCardStatusLabel => 'STATUS';
+
+  @override
+  String get lambCardDeathDateLabel => 'WHEN';
+
+  @override
+  String get lambCardDeathDateToday => 'TODAY';
+
+  @override
+  String get lambCardDeathDateYesterday => 'YESTERDAY';
+
+  @override
+  String get lambCardDeathDateTwoDaysAgo => '2 DAYS AGO';
+
+  @override
+  String get lambCardDeathCauseLabel => 'CAUSE';
+
+  @override
+  String get lambCardDeathCauseUnattributed => 'NOT RECORDED';
+
+  @override
+  String get warningDeathBeforeBirth => 'The death date is before the lambing.';
+
+  @override
+  String get lambCardPetLambLabel => 'ON THE BOTTLE';
+
+  @override
+  String get lambCardFeedsLabel => 'FEEDS';
+
+  @override
+  String get lambCardFeedsUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambCardFeedsAdd => '+';
+
+  @override
+  String get lambCardFeedsAddSemantics => 'Record one more bottle feed';
 }

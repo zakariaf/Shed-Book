@@ -367,11 +367,12 @@ void main() {
     final String source = File('test/support/harness.dart').readAsStringSync();
 
     expect(source, contains(needle));
-    expect(kPumpableVariants, hasLength(2));
+    expect(kPumpableVariants, hasLength(3));
     expect(kPumpableVariants.keys.toSet(), <String>{
       'quick_entry',
       'lambing_entry',
-    }, reason: 'two screens exist; each screen epic adds its own row');
+      'lamb_card',
+    }, reason: 'three screens exist; each screen epic adds its own row');
     expect(
       source,
       contains('N33-T01'),

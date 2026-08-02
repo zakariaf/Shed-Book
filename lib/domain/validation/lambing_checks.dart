@@ -169,3 +169,39 @@ String _kilograms(Grams g) {
   final String trimmed = fixed.replaceFirst(RegExp(r'0+$'), '');
   return trimmed.endsWith('.') ? '${trimmed}0' : trimmed;
 }
+
+/// One lamb's death, checked on its own.
+///
+/// **NOT A DUPLICATE OF `checkLambing`'s LOOP, AND NOT A REFACTOR OF IT.**
+/// `checkLambing` answers *"is this lambing internally consistent?"* over every
+/// lamb at once, which is what the Lambing Entry screen asks. This answers *"is
+/// THIS death consistent with THIS birth?"*, which is what the Lamb Card asks
+/// while the shepherd is typing — and it must answer for a date that is not in
+/// the database yet.
+///
+/// A pure top-level function returning `List<Warning>`: no class, no `Validator`
+/// suffix (`05 §7.5` guarantee 1), and **no writer of any kind**. It cannot
+/// correct the date it is given, because there is nothing here that could.
+List<Warning> checkLambDeath({required LocalDate? deathDate, required LocalDate bornOn}) {
+  if (deathDate == null) {
+    return const <Warning>[];
+  }
+
+  // EQUAL DATES ARE ORDINARY. A stillborn lamb and a same-day loss both die on
+  // the day they were born, and warning about those would put a mark on the
+  // saddest ordinary record in the book. Only STRICTLY BEFORE is impossible.
+  if (deathDate.compareTo(bornOn) >= 0) {
+    return const <Warning>[];
+  }
+
+  return <Warning>[
+    Warning(
+      WarningCode.deathBeforeBirth,
+      // WHAT WE OBSERVED, NEVER WHAT TO DO. A warning that instructs is advice
+      // (§12.2); one that changes a value is a correction (§12.4). It does not
+      // say "check the date" and it does not offer to swap them.
+      'The death date is before the lambing.',
+      fieldPath: 'death_date',
+    ),
+  ];
+}

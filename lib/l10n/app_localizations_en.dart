@@ -623,4 +623,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lambCardFeedsAddSemantics => 'Record one more bottle feed';
+
+  @override
+  String get fosterTitle => 'FOSTER';
+
+  @override
+  String fosterOnto({required String tag}) {
+    return 'ONTO $tag';
+  }
+
+  @override
+  String get fosterToBottle => 'ONTO THE BOTTLE';
+
+  @override
+  String fosterRemovedUnknown({required String animal}) {
+    return 'OFF THE $animal · WHERE NOT RECORDED';
+  }
+
+  @override
+  String get fosterNoMatch => 'NO MATCH YET';
+
+  @override
+  String fosterBirthDamNote({required String tag}) {
+    return 'BIRTH DAM $tag · UNCHANGED';
+  }
 }

@@ -104,7 +104,19 @@ class _Card extends ConsumerWidget {
     final TextTheme text = Theme.of(context).textTheme;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final String locale = Localizations.localeOf(context).toLanguageTag();
-    final LambingWriteController write = ref.read(lambingWriteControllerProvider.notifier);
+    // READ AT CALL TIME, NEVER CAPTURED AT BUILD TIME. The write controller is
+    // `.autoDispose` and `ref.read` does not subscribe, so nothing keeps it
+    // alive between builds — a notifier captured in one build may be disposed by
+    // the time a later tap runs, and on 2.6.1 assigning state to a disposed
+    // notifier does not throw. The tap simply does nothing.
+    //
+    // THIS CARD WORKED ANYWAY, BY ACCIDENT: it watches `lambCardProvider`, so
+    // every write re-emits and rebuilds, and each rebuild happened to produce a
+    // fresh notifier. N18-T02's Foster screen does not re-emit on a write, which
+    // is where the bug finally showed — the first tap wrote a row and the second
+    // wrote nothing, silently. Fixed here too rather than left resting on a
+    // coincidence.
+    LambingWriteController write() => ref.read(lambingWriteControllerProvider.notifier);
 
     return SingleChildScrollView(
       child: Column(
@@ -160,7 +172,7 @@ class _Card extends ConsumerWidget {
                 // third answer. The words say what the shepherd did.
                 unknown: l10n.lambCardSexUnknown,
               ),
-              onSelected: (Sex? s) => write.setLambSex(data.lambId, s),
+              onSelected: (Sex? s) => write().setLambSex(data.lambId, s),
             ),
           ),
           Padding(
@@ -173,7 +185,7 @@ class _Card extends ConsumerWidget {
               key: const Key('lamb_card.weight'),
               semanticLabel: l10n.lambCardWeightLabel,
               minSize: t.tapIndelible,
-              onTap: () => _openWeightSheet(context, write, l10n),
+              onTap: () => _openWeightSheet(context, write(), l10n),
               child: ExcludeSemantics(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -209,9 +221,9 @@ class _Card extends ConsumerWidget {
                   // BACK TO ALIVE CLEARS THE DATE AND THE CAUSE WITH IT. A lamb
                   // that is alive is not a lamb that is alive and died on
                   // Tuesday, and the CHECK refuses that row anyway.
-                  write.clearDeath(data.lambId);
+                  write().clearDeath(data.lambId);
                 } else {
-                  write.recordDeath(
+                  write().recordDeath(
                     data.lambId,
                     status: s,
                     // THE DATE IS NOT INVENTED. Choosing *dead* records the
@@ -247,7 +259,7 @@ class _Card extends ConsumerWidget {
                   twoDaysAgo: l10n.lambCardDeathDateTwoDaysAgo,
                   formatted: (LocalDate d) => formatShedDate(d, locale),
                 ),
-                onPicked: (LocalDate picked) => write.recordDeath(
+                onPicked: (LocalDate picked) => write().recordDeath(
                   data.lambId,
                   status: data.status,
                   deathDate: picked,
@@ -290,7 +302,7 @@ class _Card extends ConsumerWidget {
                       key: const Key('lamb_card.pet_lamb'),
                       semanticLabel: l10n.lambCardPetLambLabel,
                       minSize: t.tapIndelible,
-                      onTap: () => write.setPetLamb(data.lambId, petLamb: !data.petLamb),
+                      onTap: () => write().setPetLamb(data.lambId, petLamb: !data.petLamb),
                       child: ExcludeSemantics(
                         child: DecoratedBox(
                           decoration: BoxDecoration(
@@ -343,7 +355,7 @@ class _Card extends ConsumerWidget {
                     // NO MINUS. A feed that happened cannot un-happen, and a
                     // decrement would be an undo for an event rather than a
                     // correction of a value.
-                    onTap: () => write.addBottleFeed(data.lambId),
+                    onTap: () => write().addBottleFeed(data.lambId),
                     child: ExcludeSemantics(
                       child: Center(child: Text(l10n.lambCardFeedsAdd, style: text.displaySmall)),
                     ),

@@ -20,6 +20,7 @@
 //   noteRepositoryProvider      N15-T04  FutureProvider<NoteRepository>       keepAlive
 //   vocabProvider               N16-T04  StreamProvider<List<VocabEntry>>     keepAlive
 //   quickEntryDeckProvider      N18-T02  StreamProvider<QuickEntryDeck>       keepAlive  (moved, R83)
+//   fosterRepositoryProvider    N18-T02  Provider<FosterRepository>
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
@@ -44,6 +45,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/foster_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
@@ -128,6 +130,12 @@ final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => Me
 
 final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRepository>(
   (ref) => LambingRepository(db: ref.watch(databaseProvider).requireValue),
+);
+
+/// N18-T01's repository. It takes the database positionally and no clock, ever
+/// (R19).
+final Provider<FosterRepository> fosterRepositoryProvider = Provider<FosterRepository>(
+  (ref) => FosterRepository(ref.watch(databaseProvider).requireValue),
 );
 
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(

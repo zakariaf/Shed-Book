@@ -7,6 +7,8 @@
 // twelve destinations, so no screen has to know a second one.
 import 'package:flutter/material.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/lambing/foster_screen.dart';
+import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 
 /// Every route name that can appear in the diagnostics log. Route name is one of
@@ -143,4 +145,18 @@ abstract final class Routes {
   static Future<void> lambingEntry(BuildContext context, LambingId id) => Navigator.of(
     context,
   ).push(route(RouteNames.lambingEntry, (BuildContext _) => LambingEntryScreen(lambingId: id)));
+
+  /// N17-T01's screen. `LambId`, never `LambingId` — the two are one letter
+  /// apart in prose and unmistakable in the type system, which is the point of
+  /// R33.
+  static Future<void> lambCard(BuildContext context, LambId id) => Navigator.of(
+    context,
+  ).push(route(RouteNames.lambCard, (BuildContext _) => LambCardScreen(lambId: id)));
+
+  /// N18-T02's screen, opened FROM a lamb card. It takes the lamb rather than
+  /// the ewe, because a foster is a fact about a lamb: the ewe is what the
+  /// shepherd picks once they are here.
+  static Future<void> foster(BuildContext context, LambId id) => Navigator.of(
+    context,
+  ).push(route(RouteNames.foster, (BuildContext _) => FosterScreen(lambId: id)));
 }

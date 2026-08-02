@@ -190,6 +190,7 @@ void main() {
       // N18-T02 — MOVED here from lib/features/quick_entry/ (R83), because the
       // Foster screen needs the same deck and one feature may not import another.
       'quickEntryDeckProvider',
+      'fosterRepositoryProvider',
     });
   });
 

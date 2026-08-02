@@ -17,6 +17,8 @@ import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
 import '../support/reads.dart';
+import 'package:shed_book/features/lambing/foster_screen.dart';
+
 import '../support/seeds.dart';
 
 final class TapCounter {
@@ -215,6 +217,97 @@ void main() {
     expect(c.textEntries, 0);
     expect(await countLambings(db), 1);
     expect((await db.select(db.lambs).get()).length, 1);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('foster reassignment from the Foster screen costs 1 tap', (
+    WidgetTester tester,
+  ) async {
+    // THE COUNT IS 1, NOT *AT MOST* 1. This is the budget CI holds, and a screen
+    // that got CHEAPER would mean a target moved — so the assertion is an
+    // equality in both directions.
+    //
+    // Spec §7.3 names this as the flow most likely to be abandoned if it takes
+    // five taps, and an abandoned foster is a lamb whose rearing nobody can
+    // account for in April.
+    //
+    // The digits are typed BEFORE the counter starts, deliberately: this budget
+    // is about the reassignment itself, and the tag lookup is the same keypad
+    // cost Quick Entry already pays and already counts.
+    final AppDatabase db = testDatabase();
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final EweId spare = await seedEwe(db, tag: '128');
+    final PenId pen = await seedPen(db, label: 'A');
+    await seedPenOccupancy(db, pen, spare);
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    final int birthDamBefore = (await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle()).birthDam;
+
+    await tester.pumpApp(FosterScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    for (final String digit in <String>['1', '2', '8']) {
+      await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
+      await tester.pump();
+    }
+    await tester.pumpAndSettle();
+
+    final TapCounter c = TapCounter();
+    await tester.countedTap(find.byKey(const Key('foster.target.128')), c);
+
+    expect(c.taps, 1);
+    expect(c.textEntries, 0, reason: 'the keypad is not a keyboard');
+
+    final FosterEvent event = await db.select(db.fosterEvents).getSingle();
+    expect(event.outcome, 'to_ewe');
+    expect(event.rearingDam, spare.value);
+
+    // AND THE BIRTH DAM DID NOT MOVE — the epic's whole claim, asserted from the
+    // screen as well as from the repository.
+    expect(
+      (await (db.select(
+        db.lambs,
+      )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle()).birthDam,
+      birthDamBefore,
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the two no-ewe outcomes are two taps to two different facts', (
+    WidgetTester tester,
+  ) async {
+    // ONE TAP EACH, AND THEY WRITE DIFFERENT ROWS. `to_bottle` is null BY
+    // INTENT; `removed_unknown` is null BY OMISSION. A screen that offered one
+    // button for "no ewe" would merge them, and the rearing-credit figures for a
+    // whole season would quietly change.
+    final AppDatabase db = testDatabase();
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId a = await seedLamb(db, lambing, birthDam);
+
+    await tester.pumpApp(FosterScreen(lambId: a), db: db);
+    await tester.pumpAndSettle();
+
+    final TapCounter c = TapCounter();
+    await tester.countedTap(find.byKey(const Key('foster.to_bottle')), c);
+    expect(c.taps, 1);
+
+    FosterEvent event = await db.select(db.fosterEvents).getSingle();
+    expect(event.outcome, 'to_bottle');
+    expect(event.rearingDam, isNull);
+
+    await tester.countedTap(find.byKey(const Key('foster.removed_unknown')), c);
+    expect(c.taps, 2);
+
+    final List<FosterEvent> rows = await db.select(db.fosterEvents).get();
+    expect(rows, hasLength(2), reason: 'appended, never replaced');
+    event = rows.last;
+    expect(event.outcome, 'removed_unknown');
 
     await tester.closeApp();
   });

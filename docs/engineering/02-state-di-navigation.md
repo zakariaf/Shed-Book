@@ -165,7 +165,7 @@ final eweCardControllerProvider = AsyncNotifierProvider.autoDispose
 
 | Need | Shape | Example |
 |---|---|---|
-| Live data from SQLite | `StreamProvider` over one drift `watch()` (decision #12) | `penBoardProvider`, `quickEntryDeckProvider`, `tagIndexProvider` |
+| Live data from SQLite | `StreamProvider` over one drift `watch()` (decision #12) | `penBoardProvider`, `quickEntryDeckProvider` (in `lib/data/providers.dart` from N18-T02 — **R83**), `tagIndexProvider` |
 | Screen-local state (query, filter, expanded section) | `Notifier` over an `@immutable` state class | `quickEntryControllerProvider` |
 | Per-animal anything | the same, `.autoDispose.family` | `eweCardControllerProvider` |
 | Any mutation | `WriteController` (§7) | `lambingWriteControllerProvider` |

@@ -904,5 +904,56 @@
   "lambCardFeedsAddSemantics": "Record one more bottle feed",
   "@lambCardFeedsAddSemantics": {
     "description": "The increment target for a screen reader. A bare '+' is unreadable aloud, and the label says what is counted."
+  },
+  "fosterTitle": "FOSTER",
+  "@fosterTitle": {
+    "description": "The Foster screen's heading, headingLevel 1. The verb, not 'Foster lamb' - the shepherd arrived here from a lamb and already knows which one."
+  },
+  "fosterOnto": "ONTO {tag}",
+  "@fosterOnto": {
+    "description": "One ewe target in the match list. ONE TAP COMMITS - there is no confirm step, because 07 8.2's budget is one tap and spec 7.3 names this as the flow most likely to be abandoned if it takes five. The tag is the ewe's, and it is what the shepherd reads off the ear.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "fosterToBottle": "ONTO THE BOTTLE",
+  "@fosterToBottle": {
+    "description": "The to_bottle outcome, and it is a DELIBERATE fact: the shepherd put this lamb on a bottle. It is NOT the same as the removed-from-a-ewe outcome beside it, and merging the two would change a season's rearing-credit figures silently - which is why setRearingDam(LambId, EweId?) is a banned signature (07 8.4 rule 1)."
+  },
+  "fosterRemovedUnknown": "OFF THE {animal} · WHERE NOT RECORDED",
+  "@fosterRemovedUnknown": {
+    "description": "The removed_unknown outcome. The lamb came off a ewe and where it went was not written down - null BY OMISSION, where the bottle outcome is null BY INTENT. The label says both halves out loud so the two can never be read as the same button. The animal noun is a PLACEHOLDER: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft of this message for spelling it.",
+    "placeholders": {
+      "animal": {
+        "type": "String"
+      }
+    }
+  },
+  "fosterNoMatch": "NO MATCH YET",
+  "@fosterNoMatch": {
+    "description": "The match list before enough digits are typed. NOT an error and NOT an empty state: the shepherd is mid-tag, and a screen that said 'not found' after two digits would be arguing with someone who has not finished."
+  },
+  "fosterBirthDamNote": "BIRTH DAM {tag} · UNCHANGED",
+  "@fosterBirthDamNote": {
+    "description": "Printed on the Foster screen so the shepherd can see that fostering does not rewrite the birth dam. It is the product's own promise made visible at the moment it matters: a lamb has one birth dam forever, and lamb_birth_dam_is_immutable is the trigger that holds it.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "warningFosterToSelf": "That {animal} is already on this {dam}.",
+  "@warningFosterToSelf": {
+    "description": "The fosterToSelf observation. It says WHAT WE OBSERVED and never what to do, and it NEVER blocks: fostering a lamb onto the ewe she is already on is a thing a shepherd does at 03:20 by mistake, and refusing it would lose the record of an action they took. The comparison is against the CURRENT REARING DAM, never the birth dam - after a foster to B, fostering the lamb back to her birth dam is not a self-foster at all. BOTH nouns are placeholders: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft for spelling 'ewe'.",
+    "placeholders": {
+      "animal": {
+        "type": "String"
+      },
+      "dam": {
+        "type": "String"
+      }
+    }
   }
 }

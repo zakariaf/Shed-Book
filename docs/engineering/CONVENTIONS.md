@@ -695,7 +695,7 @@ spellings only. Production has zero overrides.
 |---|---|---|---|
 | `tagIndexProvider` | `StreamProvider<List<TagIndexEntry>>` | `lib/data/providers.dart` | keepAlive — active animals only (R26) |
 | `vocabProvider` | `StreamProvider<List<VocabEntry>>` | `lib/data/providers.dart` | keepAlive — forty rows, four screens; **not** the drift row class (R81) |
-| `quickEntryDeckProvider` | `StreamProvider<QuickEntryDeck>` | `lib/features/quick_entry/quick_entry_controller.dart` | keepAlive — **one** statement, two buckets; the strips read it with `.select` (R28) |
+| `quickEntryDeckProvider` | `StreamProvider<QuickEntryDeck>` | ~~`lib/features/quick_entry/quick_entry_controller.dart`~~ `lib/data/providers.dart` (**R83**) | keepAlive — **one** statement, two buckets; the strips read it with `.select` (R28) |
 | `penBoardProvider` | `StreamProvider<List<PenTile>>` | `lib/features/pens/pen_board_controller.dart` | keepAlive |
 | `flockListProvider` | `StreamProvider<List<FlockRow>>` | `lib/features/flock/flock_controller.dart` | keepAlive |
 | `eweTimelineProvider` | `StreamProvider.autoDispose.family<List<TimelineRow>, EweId>` | `lib/features/flock/ewe_card_controller.dart` | autoDispose |
@@ -2051,6 +2051,28 @@ compile error at 09:00. Unstorable becomes unconstructible.
 
 **`removeCare` strikes.** `07 §15.1`'s row is amended in the same commit; see R79 for the mixin and
 `indelible.md §7.10` for the rendering that requires the row to survive.
+
+### R83 — `quickEntryDeckProvider` lives in `lib/data/providers.dart`
+
+**Ruled 2026-08-02 (N18-T02).** It was declared in
+`lib/features/quick_entry/quick_entry_controller.dart`. The Foster screen needs the same deck — the
+pen strip is where a ewe with a spare teat is found — and the gate's `layer.features` row forbids one
+feature importing another.
+
+**A provider declared in a feature folder is a provider only that feature can ever read**, which is a
+constraint on the architecture wearing a file location as a disguise. Moving it is not a convenience:
+the alternative is a second statement over the same two buckets, which decision #12 rules out because
+two statements over one transaction can emit at different times.
+
+**Nothing else changes.** The name, the type and `keepAlive` are unchanged; `QuickEntryDeck` and
+`DeckEntry` were already declared in `lib/data/flock_repository.dart`, so they did not move. R28 is
+untouched — Quick Entry's two strips still read the one provider with
+`.select((d) => d.penned)` and `.select((d) => d.recents)`.
+
+**Files that must change together:** `lib/data/providers.dart` (declaration + the header ledger),
+`lib/features/quick_entry/quick_entry_controller.dart` (deleted, with a comment saying where it went),
+the two strip widgets and the Quick Entry screen (imports), `test/data/providers_test.dart` (the
+ledger tripwire), §3.2's file column above, and `02 §4`'s provider home.
 
 **The colostrum detail is written with the event, not after it.** `addCare` takes `volumeMl` and
 `method` as arguments, so the sheet's RECORD button is what commits — one row, one transaction, one

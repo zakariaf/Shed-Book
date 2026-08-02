@@ -630,6 +630,8 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 |---|---|---|---|
 | `TagIndexEntry` | `lib/domain/tag_match.dart` | `{EweId eweId, String tag, String digits, Instant? lastTouched}` (R26) | 05 |
 | `rankTagMatches` | same | `List<TagIndexEntry> rankTagMatches(List<TagIndexEntry> all, String query)` — pure, synchronous (R27) | 05 |
+| `DeckEntry` | `lib/data/flock_repository.dart` | `@immutable final class`; `{EweId eweId, String tag, String digits, Instant sortAt, String? penLabel}` with hand-written `==`/`hashCode` over **all five** fields. Identity equality makes `.distinct()` and the per-bucket list reuse expensive ways of always returning false (R28, drift#3295) | 07 |
+| `QuickEntryDeck` | same | `typedef QuickEntryDeck = ({List<DeckEntry> penned, List<DeckEntry> recents})` — a **record**, which is what makes `.select((d) => d.penned)` legal. ONE provider for both strips; `recentEwesProvider` and `inPensProvider` are banned spellings (R28) | 07 |
 | `timeSincePenned` | `lib/domain/penning.dart` | `Duration timeSincePenned(Instant enteredAt, Instant now)` — takes `now`, never reads a clock (R24) | 05 |
 | `ReminderBudget` | `lib/domain/reminder_budget.dart` | `abstract final class ReminderBudget { static int forPlatform(); }` → 56 iOS / 200 Android (R50) | 05 → 08 |
 | `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed | 05 |
@@ -638,7 +640,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 | `ResumePolicy` | `lib/app.dart` | `static const staleAfter = Duration(minutes: 2); static bool shouldClearSelection(DateTime, DateTime)` | 02 |
 | `LocalLog` | `lib/core/log/local_log.dart` | singleton `LocalLog.instance`; `write(String, Object, StackTrace)`, `flutterError(FlutterErrorDetails)`, `record(String event)`, `attachTo(Directory)`, `markCleanPause()` (R11, R52) | 01 + 13 |
 | `ShedBookApp` | `lib/app.dart` | `class ShedBookApp extends ConsumerStatefulWidget` (R34) | 01 |
-| `RouteNames`, `Routes` | `lib/routing/routes.dart` | 13 names, 12 push helpers, `Routes.navigatorKey` | 02 |
+| `RouteNames`, `Routes` | `lib/routing/routes.dart` | 13 names, 12 push helpers (**0 today** — each screen epic adds its own; N13-T01), `Routes.navigatorKey`, and `Routes.route(name, builder)` — `@visibleForTesting` rather than private, because nothing pushes until N14 and `unused_element` is a warning the `gate` job fails on | 02 |
 
 ---
 

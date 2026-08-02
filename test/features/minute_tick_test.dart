@@ -1,13 +1,16 @@
 // test/features/minute_tick_test.dart
 //
-// testWidgets throughout, because the advancing fake clock only exists inside
-// the widget binding: `tester.pump(duration)` is what moves both the scheduler
-// and `Future.delayed`.
+// testWidgets for every behavioural case, because the advancing fake clock only
+// exists inside the widget binding: AutomatedTestWidgetsFlutterBinding runs the
+// body inside a FakeAsync zone and installs that zone's clock as
+// package:clock's ambient clock, so `tester.pump(duration)` moves BOTH the
+// scheduler and `appNow()`. The ticker's alignment arithmetic reads `appNow()`
+// and its sleep is a `Future.delayed`; a test that advanced only one of them
+// would prove nothing about either.
 //
-// `withClock` supplies the wall time, so the two are driven together — the
-// ticker's alignment arithmetic reads `appNow()` and its sleep is a
-// `Future.delayed`, and a test that advanced only one of them would prove
-// nothing about either.
+// NO `atFixed` ANYWHERE IN THIS FILE, and that is 12 §2.2's rule rather than a
+// preference: every case here measures ELAPSED TIME, and `Clock.fixed` freezes
+// `now()`. Pin the clock and each one silently measures nothing and passes.
 library;
 
 import 'dart:io';
@@ -30,6 +33,34 @@ List<String> _authoredDart(String root) =>
 
 String _declarations(String path) =>
     File(path).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+/// Listens to the ticker and appends every emitted [Instant] to [into].
+///
+/// `fireImmediately: true`, because the first emission is a property under test
+/// rather than a detail: a pen tile that is blank until the next boundary is a
+/// blank tile for up to a minute.
+ProviderSubscription<AsyncValue<Instant>> _subscribe(ProviderContainer c, List<Instant> into) =>
+    c.listen<AsyncValue<Instant>>(minuteTickProvider, (
+      AsyncValue<Instant>? previous,
+      AsyncValue<Instant> next,
+    ) {
+      if (next is AsyncData<Instant>) {
+        into.add(next.value);
+      }
+    }, fireImmediately: true);
+
+/// How long until the next minute boundary after [from] — the ticker's own
+/// arithmetic, recomputed here so a case never assumes the binding's fake clock
+/// started on a boundary. It does not.
+Duration _toBoundary(Instant from) => Duration(milliseconds: 60000 - (from.epochMillis % 60000));
+
+/// Runs the outstanding `Future.delayed` out.
+///
+/// **07 §9.2 ACCEPTS THIS TAIL** — "up to 60 s ... one wake-up, once, and it is
+/// cheaper than the StreamController plumbing that would avoid it" — so a test
+/// that ended without draining it would fail on a pending timer while asserting
+/// something the shape never promised. 61 s covers the longest possible gap.
+Future<void> _drainTail(WidgetTester tester) => tester.pump(const Duration(seconds: 61));
 
 void main() {
   test('the provider is autoDispose and yields Instant, not DateTime', () {
@@ -58,35 +89,176 @@ void main() {
   });
 
   // ---------------------------------------------------------------------
-  // WHY THERE IS NO BEHAVIOURAL CASE HERE, AND WHAT IT COSTS
+  // THE BEHAVIOURAL CASES, AND WHAT MADE THEM WRITABLE
   // ---------------------------------------------------------------------
   //
-  // N12-T03 §5.4 asks for six pumped cases — first emission immediate, second
-  // on the boundary, five minutes gives six emissions, two listeners share one
-  // loop, re-subscription restarts, and the type. They cannot be written against
-  // 01 §7.2's printed body, and the reason is structural rather than fixable in
-  // a test.
+  // N12 first landed WITHOUT these six, on the reading that the loop always has
+  // an outstanding Future.delayed and flutter_test fails any test ending with a
+  // pending timer. That reading was half right and the missing half is in
+  // 07 §9.2, which ACCEPTS the tail: "after the last listener goes the pending
+  // Future.delayed still completes — up to 60 s of tail. That is one wake-up,
+  // once, and it is cheaper than the StreamController plumbing that would avoid
+  // it."
   //
-  // MEASURED: the generator loops forever, so there is ALWAYS a Future.delayed
-  // outstanding, and a Future.delayed cannot be cancelled. Dropping the last
-  // listener makes autoDispose cancel the subscription and pauses the generator
-  // at its `await` — the timer survives, and flutter_test fails any test that
-  // ends with one pending: "A Timer is still pending even after the widget tree
-  // was disposed."
+  // So the fix was never a cancellation seam — the doc set declines that
+  // plumbing by name — it is to PUMP THE TAIL TO COMPLETION before the test
+  // ends. [_drainTail] does exactly that, and the test tier owes the loop that
+  // courtesy rather than the loop owing the test tier a seam.
   //
-  // The emission itself was OBSERVED during that run: subscribing at :17
-  // created a timer of exactly 43 s, which is the alignment arithmetic working.
-  // So the behaviour is right and only the assertion is unwritable.
-  //
-  // Two honest ways out, and both are somebody else's call:
-  //   * give the loop a cancellation seam — a Completer raced against the delay,
-  //     closed on ref.onDispose — which changes 01 §7.2's printed body; or
-  //   * pump the pending delay to completion in the harness, which N12-T05's
-  //     pumpApp could own once it exists.
-  //
-  // Neither is taken here. What IS held below is everything the source can
-  // prove: the autoDispose shape, the Instant type, the alignment expression,
-  // the single declaration, and the absence of a drifting periodic timer.
+  // MEASURED: the binding seeds its FakeAsync clock at an arbitrary offset
+  // (48003 ms past the minute in the run that proved this), so none of these
+  // cases may assume it starts on a boundary. Every one computes the gap from
+  // the instant it actually saw.
+
+  testWidgets('the ticker fires on the minute boundary, once, and disposes with its '
+      'last listener', (WidgetTester tester) async {
+    // THE ANCHOR — all three properties in one case, because they are one
+    // behaviour: a pen board that opens mid-minute, updates on the minute with
+    // every other tile, and stops costing anything when it closes.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> seen = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, seen);
+
+    await tester.pump();
+    expect(seen, hasLength(1), reason: 'immediate');
+
+    await tester.pump(_toBoundary(seen.first));
+    expect(seen, hasLength(2));
+    expect(seen[1].epochMillis % 60000, 0, reason: 'on the boundary');
+
+    sub.close();
+    container.dispose();
+    await _drainTail(tester);
+    expect(seen, hasLength(2), reason: 'nothing arrives after the last listener goes');
+  });
+
+  testWidgets('the first emission is immediate', (WidgetTester tester) async {
+    // A tile must not be blank for up to 60 s after the board opens. At 03:20
+    // that reads as a broken app, and the shepherd taps it.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> seen = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, seen);
+
+    await tester.pump();
+    expect(seen, hasLength(1));
+
+    sub.close();
+    container.dispose();
+    await _drainTail(tester);
+  });
+
+  testWidgets('the second emission lands on the boundary when the first did not', (
+    WidgetTester tester,
+  ) async {
+    // THE ALIGNMENT PROPERTY, ISOLATED, and pumped one millisecond short first
+    // so the case cannot pass on a fixed 60 s delay: a fixed delay would still
+    // be waiting at the boundary, and would fire 1 ms late — off the boundary.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> seen = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, seen);
+
+    await tester.pump();
+    final Duration gap = _toBoundary(seen.first);
+    expect(gap.inMilliseconds, lessThanOrEqualTo(60000));
+
+    await tester.pump(gap - const Duration(milliseconds: 1));
+    expect(seen, hasLength(1), reason: 'not yet — the boundary is 1 ms away');
+
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(seen, hasLength(2));
+    expect(seen[1].epochMillis % 60000, 0);
+
+    sub.close();
+    container.dispose();
+    await _drainTail(tester);
+  });
+
+  testWidgets('five simulated minutes produce six emissions', (WidgetTester tester) async {
+    // THE RATE, ISOLATED. Not ten, not three hundred. Six because the immediate
+    // one is followed by five boundaries, whatever offset the subscription
+    // happened to start at — the first gap is short and every later one is 60 s,
+    // so the count does not depend on where the clock was.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> seen = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, seen);
+
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+
+    expect(seen, hasLength(6));
+    for (final Instant i in seen.skip(1)) {
+      expect(i.epochMillis % 60000, 0);
+    }
+
+    sub.close();
+    container.dispose();
+    await _drainTail(tester);
+  });
+
+  testWidgets('two listeners share one loop', (WidgetTester tester) async {
+    // Each sees six, rather than twelve between them. Riverpod gives both
+    // listeners the SAME stream, so a pen board with forty tiles is one wake-up
+    // a minute and not forty — which is the difference between a battery that
+    // lasts the night and one that does not.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> first = <Instant>[];
+    final List<Instant> second = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> a = _subscribe(container, first);
+    final ProviderSubscription<AsyncValue<Instant>> b = _subscribe(container, second);
+
+    await tester.pump();
+    await tester.pump(const Duration(minutes: 5));
+
+    expect(first, hasLength(6));
+    expect(second, hasLength(6));
+    expect(first.map((Instant i) => i.epochMillis), second.map((Instant i) => i.epochMillis));
+
+    a.close();
+    b.close();
+    container.dispose();
+    await _drainTail(tester);
+  });
+
+  testWidgets('a re-subscription after the last listener leaves starts a new loop with an '
+      'immediate emission', (WidgetTester tester) async {
+    // The .autoDispose property, expressed the way the async* shape allows
+    // (07 §9.2): prove the SUBSCRIPTION is gone and that a new one starts a new
+    // loop — not that no timer is outstanding, which would be asserting
+    // something the shape deliberately does not promise.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> firstLife = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, firstLife);
+
+    await tester.pump();
+    expect(firstLife, hasLength(1));
+
+    sub.close();
+    await _drainTail(tester);
+    expect(firstLife, hasLength(1), reason: 'the old loop is not still feeding the old listener');
+
+    final List<Instant> secondLife = <Instant>[];
+    _subscribe(container, secondLife);
+    await tester.pump();
+    expect(secondLife, hasLength(1), reason: 'a new loop emits immediately, as at first open');
+
+    container.dispose();
+    await _drainTail(tester);
+  });
+
+  testWidgets('the provider yields Instant, not DateTime', (WidgetTester tester) async {
+    // R25, as a runtime assertion beside the source-text one above. Cheap, and
+    // the two fail differently: a changed declaration and a changed emission.
+    final ProviderContainer container = ProviderContainer();
+    final List<Instant> seen = <Instant>[];
+    final ProviderSubscription<AsyncValue<Instant>> sub = _subscribe(container, seen);
+
+    await tester.pump();
+    expect(seen.single, isA<Instant>());
+
+    sub.close();
+    container.dispose();
+    await _drainTail(tester);
+  });
 
   test('Timer.periodic appears nowhere under lib/', () {
     // Duplicates net.sync_timer deliberately, in the tier a developer runs

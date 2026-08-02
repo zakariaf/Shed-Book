@@ -80,56 +80,41 @@ class LambRow extends StatelessWidget {
         // the fix is a token, not a multiplier.
         padding: EdgeInsets.symmetric(horizontal: t.gapMin),
         child: ExcludeSemantics(
-          child: Row(
-            children: <Widget>[
-              SizedBox(width: t.gapMin),
-              Text(labels.ordinal, style: text.labelMedium),
-              const _Sep(),
-              // The three variable cells share what is left. Each one FLEXES
-              // and ellipsises rather than shrinking its glyph: a shrink-to-fit
-              // widget is banned (10 §4.4), and 18 pt is the floor whatever the
-              // tag length.
-              _Cell(labels.sex, style: text.bodyMedium),
-              const _Sep(),
-              _Cell(labels.status, style: text.bodyMedium),
-              const _Sep(),
-              _Cell(labels.weight, style: text.bodyMedium),
-              if (labels.tag.isNotEmpty) ...<Widget>[
-                const _Sep(),
-                _Cell(labels.tag, style: text.labelMedium),
-              ],
-            ],
+          // ONE Text, NOT A ROW OF CELLS, AND THE OVERFLOW MATRIX RULED IT.
+          //
+          // It was five Flexible cells with four middot separators between them.
+          // Flex lays out the NON-FLEXIBLE children first and shares what is
+          // left, so at textScaler 2.0 the four separators alone claimed more
+          // than the row had — 92 px over at Device.small, measured across six
+          // matrix cells. Making the separators flexible too would let a middot
+          // ellipsise into nothing, which is worse than either.
+          //
+          // One line, one ellipsis, at the end where it belongs: the ordinal and
+          // the sex survive on the narrowest phone at the largest text, and the
+          // tag is what gives way — which is the right order, because the tag is
+          // the one thing a lamb does not have yet at 03:20.
+          //
+          // The separator's spaces are in the string for the same reason as
+          // before: the gap either side of a middot is typographic.
+          child: Text(
+            <String>[
+              labels.ordinal,
+              labels.sex,
+              labels.status,
+              labels.weight,
+              if (labels.tag.isNotEmpty) labels.tag,
+            ].join(' · '),
+            style: text.bodyMedium,
+            maxLines: 1,
+            // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned (10
+            // §4.4): shrinking this line is how an 18 pt floor becomes 9 pt on
+            // the one device whose owner turned the text up.
+            overflow: TextOverflow.ellipsis,
           ),
         ),
       ),
     );
   }
-}
-
-class _Cell extends StatelessWidget {
-  const _Cell(this.value, {required this.style});
-
-  final String value;
-  final TextStyle? style;
-
-  @override
-  Widget build(BuildContext context) => Flexible(
-    child: Text(value, style: style, maxLines: 1, overflow: TextOverflow.ellipsis),
-  );
-}
-
-/// The middot. A `Text` and not a border, because it must ellipsise out of
-/// existence with the cell beside it rather than survive as a stranded mark.
-///
-/// **The spaces are in the string.** The gap either side of a middot is
-/// typographic — it belongs to the glyph the way a word space does — and the
-/// alternative was `gapMin / 2`, which is a literal that arithmetic has been
-/// asked to hide.
-class _Sep extends StatelessWidget {
-  const _Sep();
-
-  @override
-  Widget build(BuildContext context) => Text(' · ', style: Theme.of(context).textTheme.bodyMedium);
 }
 
 /// Turns one lamb's four facts into the strings the row draws.

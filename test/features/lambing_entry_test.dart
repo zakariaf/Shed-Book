@@ -24,6 +24,7 @@ import 'package:shed_book/core/ui/components/shed_tally.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 
 import '../support/harness.dart';
 import '../support/seeds.dart';
@@ -341,9 +342,14 @@ void main() {
     expect(yOf(first), lessThan(yOf(second)));
     expect(yOf(second), lessThan(yOf(third)), reason: 'the dead lamb stays second');
 
-    expect(find.text('LAMB 1'), findsOneWidget);
-    expect(find.text('LAMB 2'), findsOneWidget);
-    expect(find.text('LAMB 3'), findsOneWidget);
+    // `textContaining`, BECAUSE THE ROW IS ONE LINE. T09's overflow matrix
+    // ruled the five-cell Row into a single ellipsised Text — the four middot
+    // separators were non-flexible and claimed more than the row had at
+    // textScaler 2.0. The ordinal is still the first thing on the line, which is
+    // what this case is about.
+    expect(find.textContaining('LAMB 1'), findsOneWidget);
+    expect(find.textContaining('LAMB 2'), findsOneWidget);
+    expect(find.textContaining('LAMB 3'), findsOneWidget);
 
     await tester.closeApp();
   });
@@ -371,7 +377,9 @@ void main() {
     // as the plain noun. It is NOT the word "unknown": 10 §8.5 keeps domain
     // nouns out of sentences, and l10n_bootstrap_test.dart catches the version
     // of this case that hard-coded "EWE LAMB" into the ARB.
-    expect(find.text('LAMB'), findsOneWidget, reason: 'the one the shepherd entered');
+    // The sex cell reads as the plain animal noun for a recorded unknown, and
+    // it sits inside the row's one joined line.
+    expect(find.textContaining('· LAMB ·'), findsOneWidget, reason: 'the one the shepherd entered');
     expect(
       find.textContaining('NOT RECORDED'),
       findsWidgets,
@@ -1683,6 +1691,81 @@ void main() {
       expect(size.height, greaterThanOrEqualTo(64.0), reason: key);
       expect(size.width, greaterThanOrEqualTo(64.0), reason: key);
     }
+
+    await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // T09 — the matrix variant and the empty state
+  // ---------------------------------------------------------------------------
+
+  testWidgets('every act is reachable at the smallest device and textScaler 1.3', (
+    WidgetTester tester,
+  ) async {
+    // `12 §6.2`'s EXTRA REACHABILITY ASSERTION for this screen, and it is a
+    // different claim from "does not overflow". The overflow matrix proves
+    // nothing is CLIPPED; this proves everything can still be REACHED — a
+    // control pushed below the fold on a 375 pt phone at 130% text is not
+    // clipped, it is just gone, and 1.3 is the Android 14+ ceiling most users
+    // actually reach.
+    //
+    // `ensureVisible` is the assertion: it throws if the target is not in a
+    // scrollable that can bring it into view.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    for (int i = 0; i < 5; i++) {
+      await seedLamb(db, lambing, ewe);
+    }
+
+    await tester.pumpApp(
+      LambingEntryScreen(lambingId: lambing),
+      db: db,
+      device: Device.small,
+      textScale: 1.3,
+    );
+    await tester.pumpAndSettle();
+
+    for (final Finder act in <Finder>[
+      find.byKey(const Key('lambing_entry.provenance_header')),
+      find.byKey(const Key('lambing_entry.ease')),
+      for (final CareKind kind in CareKind.values)
+        find.byKey(Key('lambing_entry.care.${kind.key}')),
+      find.byKey(const Key('lambing_entry.presentation')),
+    ]) {
+      expect(act, findsOneWidget);
+      await tester.ensureVisible(act);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a lambing with no lambs yet renders its regions and no lamb rows', (
+    WidgetTester tester,
+  ) async {
+    // THE EMPTY STATE, WHICH IS THE STATE THE SCREEN OPENS IN — `beginLambing`
+    // commits the row before the route is pushed, so the first frame every
+    // shepherd sees has zero lambs on it.
+    //
+    // NO SPINNER AND NO BLANK (07 §1.4): the regions are there, the tally prints
+    // NOT RECORDED, and the detail fields print SKIPPABLE. A screen that
+    // rendered nothing until the first stroke would make the shepherd wonder
+    // whether the tap worked.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(LambRow), findsNothing, reason: 'no lambs, so no lamb rows');
+    expect(find.text('Lambs 0'), findsOneWidget);
+    expect(find.byKey(const Key('lambing_entry.provenance')), findsOneWidget);
+    expect(find.byKey(const Key('lambing_entry.ease')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing, reason: '07 §1.4 — no spinner');
 
     await tester.closeApp();
   });

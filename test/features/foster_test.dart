@@ -180,4 +180,71 @@ void main() {
 
     await tester.closeApp();
   });
+
+  // ---------------------------------------------------------------------------
+  // T05 — the matrix variant and the empty state
+  // ---------------------------------------------------------------------------
+
+  testWidgets('every foster act is reachable at the smallest device and textScaler 1.3', (
+    WidgetTester tester,
+  ) async {
+    // `12 §6.2`'s REACHABILITY CLAIM, which the overflow matrix does not make.
+    // The matrix proves nothing is clipped; this proves the two no-ewe targets
+    // and the keypad can still be REACHED at 375 pt and 130% text — and on this
+    // screen that matters more than most, because the whole page scrolls and a
+    // target that cannot be scrolled to is a target that is gone.
+    final AppDatabase db = testDatabase();
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final PenId pen = await seedPen(db, label: 'A');
+    await seedPenOccupancy(db, pen, birthDam);
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await tester.pumpApp(
+      FosterScreen(lambId: lamb),
+      db: db,
+      device: Device.small,
+      textScale: 1.3,
+    );
+    await tester.pumpAndSettle();
+
+    for (final String key in <String>[
+      'foster.to_bottle',
+      'foster.removed_unknown',
+      'quick_entry.keypad.digit_4',
+      'quick_entry.keypad.digit_0',
+      'quick_entry.keypad.backspace',
+    ]) {
+      final Finder act = find.byKey(Key(key));
+      expect(act, findsOneWidget, reason: key);
+      await tester.ensureVisible(act);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a lamb with no ewes in pens still offers the two no-ewe outcomes', (
+    WidgetTester tester,
+  ) async {
+    // THE EMPTY STATE, AND IT IS NOT AN EMPTY SCREEN. An empty deck means no
+    // match list — but a lamb whose dam has died at 03:20 needs the bottle
+    // target most of all, and a screen that showed only "no match" would be
+    // useless at exactly the moment it is needed.
+    final AppDatabase db = testDatabase();
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await tester.pumpApp(FosterScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('foster.no_match')), findsOneWidget);
+    expect(find.byKey(const Key('foster.to_bottle')), findsOneWidget);
+    expect(find.byKey(const Key('foster.removed_unknown')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing, reason: '07 §1.4 — no spinner');
+
+    await tester.closeApp();
+  });
 }

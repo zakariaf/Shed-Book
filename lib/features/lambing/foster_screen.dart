@@ -75,122 +75,137 @@ class FosterScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
+      // THE WHOLE PAGE SCROLLS, like Lambing Entry and the Lamb Card, and the
+      // matrix is what settled it. A fixed pad under a Flexible list still
+      // overflowed by 17 px at textScaler 2.0 on a 375 pt device — two cells,
+      // both at the smallest size and the largest text, which is exactly the
+      // corner a matrix exists to reach.
+      //
+      // Shrinking the pad was the alternative and it is the one thing that must
+      // not give: the keys are the 3am contract. Vertical scrolling is the one
+      // tracked gesture (06 §7).
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.all(t.gapMin),
-              child: Semantics(
-                headingLevel: 1,
-                child: Text(
-                  l10n.fosterTitle,
-                  key: const Key('foster.title'),
-                  style: Theme.of(context).textTheme.labelMedium,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: EdgeInsets.all(t.gapMin),
+                child: Semantics(
+                  headingLevel: 1,
+                  child: Text(
+                    l10n.fosterTitle,
+                    key: const Key('foster.title'),
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    // THE MATCHES. Each is a TARGET THAT COMMITS — the key
-                    // carries the ewe's tag, so `foster.target.128` is the tap
-                    // the budget test counts.
-                    if (matches.isEmpty)
+              // FLEXIBLE, NOT EXPANDED, AND MEASURED. `Expanded` fills whatever
+              // is left AFTER the keypad, and at textScaler 2.0 on a 667 pt
+              // device the pad alone is taller than the body — the outer column
+              // overflowed by 17 px. `Flexible` lets the match list give way
+              // instead, which is the right one to lose: the list scrolls, and the
+              // pad is the 3am contract that must not shrink.
+              // NO INNER SCROLLER AND NO Expanded: the page scroller above owns
+              // the axis, and nesting a second one on the same axis is how a list
+              // stops responding to a thumb.
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  // THE MATCHES. Each is a TARGET THAT COMMITS — the key
+                  // carries the ewe's tag, so `foster.target.128` is the tap
+                  // the budget test counts.
+                  if (matches.isEmpty)
+                    Padding(
+                      padding: EdgeInsets.all(t.gapMin),
+                      child: Text(
+                        l10n.fosterNoMatch,
+                        key: const Key('foster.no_match'),
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(color: t.textSecondary),
+                      ),
+                    )
+                  else
+                    for (final DeckEntry e in matches)
                       Padding(
-                        padding: EdgeInsets.all(t.gapMin),
-                        child: Text(
-                          l10n.fosterNoMatch,
-                          key: const Key('foster.no_match'),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: t.textSecondary),
-                        ),
-                      )
-                    else
-                      for (final DeckEntry e in matches)
-                        Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: t.gapMin,
-                            vertical: t.gapMin / 4,
+                        padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+                        child: ShedTapTarget(
+                          key: Key('foster.target.${e.tag}'),
+                          semanticLabel: l10n.fosterOnto(tag: e.tag),
+                          minSize: t.tapPrimary,
+                          // ONE TAP, AND IT IS THE WRITE. No confirm.
+                          onTap: () => write().recordFoster(
+                            lambId,
+                            ToEwe(e.eweId),
+                            currentRearingDam: rearingDam,
                           ),
-                          child: ShedTapTarget(
-                            key: Key('foster.target.${e.tag}'),
-                            semanticLabel: l10n.fosterOnto(tag: e.tag),
-                            minSize: t.tapPrimary,
-                            // ONE TAP, AND IT IS THE WRITE. No confirm.
-                            onTap: () => write().recordFoster(
-                              lambId,
-                              ToEwe(e.eweId),
-                              currentRearingDam: rearingDam,
-                            ),
-                            child: ExcludeSemantics(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: Text(
-                                  l10n.fosterOnto(tag: e.tag),
-                                  style: Theme.of(context).textTheme.bodyMedium,
-                                ),
+                          child: ExcludeSemantics(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                l10n.fosterOnto(tag: e.tag),
+                                style: Theme.of(context).textTheme.bodyMedium,
                               ),
                             ),
                           ),
                         ),
-                    SizedBox(height: t.gapMin),
-                    FosterNoEweTargets(
-                      onToBottle: () => write().recordFoster(
-                        lambId,
-                        const ToBottle(),
-                        currentRearingDam: rearingDam,
                       ),
-                      onRemoved: () => write().recordFoster(
-                        lambId,
-                        const RemovedUnknown(),
-                        currentRearingDam: rearingDam,
-                      ),
-                      bottleLabel: l10n.fosterToBottle,
-                      removedLabel: l10n.fosterRemovedUnknown(
-                        animal: l10n.termEweSingular.toUpperCase(),
-                      ),
+                  SizedBox(height: t.gapMin),
+                  FosterNoEweTargets(
+                    onToBottle: () => write().recordFoster(
+                      lambId,
+                      const ToBottle(),
+                      currentRearingDam: rearingDam,
                     ),
-                  ],
-                ),
-              ),
-            ),
-            // THE WARNING, UNDER THE LIST AND ABOVE THE PAD. It renders from
-            // the last write's outcome, which is where the validator put it —
-            // and it appears AFTER the row was committed, never instead of it.
-            if (ref.watch(fosterWriteControllerProvider) case WriteDone(
-              outcome: WriteCommitted(:final List<Warning> warnings),
-            ) when warnings.isNotEmpty)
-              Padding(
-                padding: EdgeInsets.all(t.gapMin),
-                child: Text(
-                  l10n.warningFosterToSelf(
-                    animal: l10n.termLambSingular,
-                    dam: l10n.termEweSingular,
+                    onRemoved: () => write().recordFoster(
+                      lambId,
+                      const RemovedUnknown(),
+                      currentRearingDam: rearingDam,
+                    ),
+                    bottleLabel: l10n.fosterToBottle,
+                    removedLabel: l10n.fosterRemovedUnknown(
+                      animal: l10n.termEweSingular.toUpperCase(),
+                    ),
                   ),
-                  key: const Key('foster.warning.to_self'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.statusAttention),
-                ),
+                ],
               ),
-            // THE PAD AT THE BOTTOM, where the thumb is. Decision #57: it is the
-            // only numeric route in the app.
-            ShedKeypad(
-              onDigit: input.digit,
-              onBackspace: input.backspace,
-              thirdKey: ShedKeypadThirdKey.decimal,
-              // A TAG HAS NO DECIMAL, so this key appends nothing. It stays LIVE
-              // because a dead key under a cold thumb is indistinguishable from
-              // a missed tap (`indelible.md §7.2`).
-              onThirdKey: () {},
-              padLabel: l10n.fosterTitle,
-              backspaceLabel: l10n.keypadBackspace,
-              backspaceHint: l10n.hintDeleteLastDigit,
-              thirdKeyLabel: '.',
-            ),
-          ],
+              // THE WARNING, UNDER THE LIST AND ABOVE THE PAD. It renders from
+              // the last write's outcome, which is where the validator put it —
+              // and it appears AFTER the row was committed, never instead of it.
+              if (ref.watch(fosterWriteControllerProvider) case WriteDone(
+                outcome: WriteCommitted(:final List<Warning> warnings),
+              ) when warnings.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.all(t.gapMin),
+                  child: Text(
+                    l10n.warningFosterToSelf(
+                      animal: l10n.termLambSingular,
+                      dam: l10n.termEweSingular,
+                    ),
+                    key: const Key('foster.warning.to_self'),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: t.statusAttention),
+                  ),
+                ),
+              // THE PAD AT THE BOTTOM, where the thumb is. Decision #57: it is the
+              // only numeric route in the app.
+              ShedKeypad(
+                onDigit: input.digit,
+                onBackspace: input.backspace,
+                thirdKey: ShedKeypadThirdKey.decimal,
+                // A TAG HAS NO DECIMAL, so this key appends nothing. It stays LIVE
+                // because a dead key under a cold thumb is indistinguishable from
+                // a missed tap (`indelible.md §7.2`).
+                onThirdKey: () {},
+                padLabel: l10n.fosterTitle,
+                backspaceLabel: l10n.keypadBackspace,
+                backspaceHint: l10n.hintDeleteLastDigit,
+                thirdKeyLabel: '.',
+              ),
+            ],
+          ),
         ),
       ),
     );

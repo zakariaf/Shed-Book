@@ -58,6 +58,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
@@ -137,6 +138,7 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.quickEntry: (seed: _seedNothing, build: _quickEntry),
   RouteNames.lambingEntry: (seed: _seedHardLambing, build: _lambingEntry),
   RouteNames.lambCard: (seed: _seedHardLamb, build: _lambCard),
+  RouteNames.foster: (seed: _seedHardFoster, build: _foster),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -265,6 +267,29 @@ Future<Map<String, int>> _seedHardLamb(AppDatabase db) async {
 }
 
 Widget _lambCard(Map<String, int> ids) => LambCardScreen(lambId: LambId(ids['lamb']!));
+
+/// **THE HARD FOSTER.** The Foster screen's width comes from its match list, so
+/// the seed puts SIX ewes in pens with tags that all share a prefix — every one
+/// of them renders at once when a single digit is typed, and the longest of them
+/// is a five-digit tag beside the longest label on the screen.
+///
+/// A lamb with an empty deck passes eighteen cells and proves nothing: the list
+/// would be the no-match line, which is one short string.
+Future<Map<String, int>> _seedHardFoster(AppDatabase db) async {
+  final Map<String, int> ids = await _seedHardLamb(db);
+
+  for (final String tag in <String>['40001', '40002', '40003', '40004', '40005', '40006']) {
+    final EweId ewe = await seedEwe(db, tag: tag);
+    final PenId pen = await seedPen(db, label: 'PEN $tag');
+    // ONE EWE PER PEN — `pen_occupancies` has a UNIQUE on the pen, which is the
+    // schema saying what a lambing pen is.
+    await seedPenOccupancy(db, pen, ewe);
+  }
+
+  return ids;
+}
+
+Widget _foster(Map<String, int> ids) => FosterScreen(lambId: LambId(ids['lamb']!));
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

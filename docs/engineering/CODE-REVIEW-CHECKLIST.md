@@ -89,10 +89,12 @@ Defined in [`02-state-di-navigation.md`](02-state-di-navigation.md) §2.2–§2.
 | Proven | Rule id | Defined in |
 |---|---|---|
 | No `combineLatest` anywhere in `lib/` | `stream.combine` | [`01-architecture.md`](01-architecture.md) §4.4 |
-| No `ref.invalidate(` anywhere under `lib/` — drift tracks tables; manual invalidation is a stale read | `stream.invalidate` | [`02-state-di-navigation.md`](02-state-di-navigation.md) §3 |
+| No `ref.invalidate(` under `lib/` **except the two architected arguments** — `minuteTickProvider` (02 §9.1) and `databaseProvider` (04 §7 step 14) | `stream.invalidate` | [`02-state-di-navigation.md`](02-state-di-navigation.md) §3, §4.1 |
 | No `CircularProgressIndicator` under `lib/features/` — loading is a fixed-height placeholder or it is nothing | `ui.spinner` | [`07-screens.md`](07-screens.md) §1.4 |
 
-> **`stream.invalidate` has no exemption and the codebase needs exactly one.** `CONVENTIONS.md` §3.3 and 02 §9.1 both require `ref.invalidate(minuteTickProvider)` on `AppLifecycleState.resumed` — one call, in `lib/app.dart`, restarting a wall-clock ticker with no database behind it. The rule is scoped to `lib/` with no `[exempt]` line in R56's four, so **as specified the gate fails the build on the one call the architecture mandates.** Either the row narrows to drift-backed providers (02 §3's own wording) or `lib/app.dart :: stream.invalidate` joins the allowlist. Until one of those lands, treat a red `stream.invalidate` on `app.dart` as expected and a red one anywhere else as a defect. This is the second of the three open gate questions (§1.3, here, §1.10).
+> **~~`stream.invalidate` has no exemption and the codebase needs exactly one.~~ CLOSED 2026-08-02 (N12), by narrowing rather than by exemption.** The row moved from the substring family to the pattern family and now reads `RegExp(r'ref\.invalidate\((?!minuteTickProvider\)|databaseProvider\))'` — it fires on every argument except the **two** the architecture mandates: `minuteTickProvider` on `AppLifecycleState.resumed` (02 §9.1, 02 §4.1) and `databaseProvider` at restore step 14 (04 §7). Neither has a drift stream behind it, which is what 02 §4.1 scopes the ban to.
+>
+> **Narrowing beat the allowlist on two counts, and both matter at review time.** An `[exempt]` line deletes the whole rule for one file forever and silently — a later `ref.invalidate(settingsProvider)` in `app.dart` would have gone unreported — and it would not have reached the restore flow in `lib/data/` at all. The `[exempt]` section is untouched and still has exactly four lines (R56). `test/policy/gate_rules_test.dart` drills it from both sides: the two arguments pass, a third argument in the same file fires, and a longer name beginning with an allowed one fires. Two of the three open gate questions remain (§1.3, §1.10).
 
 ### 1.6 Database, schema and migrations
 
@@ -251,7 +253,7 @@ These rows are specified by a written document and belong in the same single `to
 
 - **`12-testing.md` is written**, and it carries R58's 252-cell figure (12 §7). Where this file, 07 §21.2 and 13 §4 also state a testing rule, 12 is the owner and the other three restate it.
 - **A general "no user-facing string literal outside `lib/features/`" gate does not exist.** `copy.literal_text` deliberately stops at `lib/features/`, because `lib/core/ui/` takes its strings as parameters and `night_error_panel.dart` must contain literal English (10 §10). Those files are reviewed by hand — see §2.15.
-- **The three coinage/conflict gaps:** `time.ambient_clock` (§1.3), the `stream.invalidate` exemption (§1.5), and `copy.tier3_claim` (§1.10). None is closed.
+- **The three coinage/conflict gaps:** `time.ambient_clock` (§1.3), ~~the `stream.invalidate` exemption (§1.5)~~ — **closed 2026-08-02 by narrowing the row, not by exempting a file** — and `copy.tier3_claim` (§1.10). Two remain.
 - **`flutter_timezone` is required and was never audited.** Decision-record §5.1 and 08 §11 item 1 both say so, and 08 calls it *blocking the first release build*. Audit it by c1's method and record the verified version in decision-record §5 *before* it enters a pubspec. Do not copy a version number out of a research note. See §2.17.
 
 ---
@@ -650,7 +652,7 @@ If the answer is yes, the change does not land on Quick Entry. It lands somewher
 - [ ] Every rule id named in §1 exists as a row in `tool/check_policy.dart`, and each has been proven to fire once: plant a violation, confirm the failure, delete the file.
 - [ ] `dart tool/check_policy.dart` exits 0 on a clean tree and prints `policy ok`.
 - [ ] `tool/policy_allowlist.txt`'s `[exempt]` section matches R56's count, each line has a reason in the commit message that added it, and **the 08-versus-10 disagreement over the fifth line (`notify.zoned_schedule`) is resolved in `CONVENTIONS.md` R56 itself** — not settled locally by whichever document was edited last (§1.1).
-- [ ] The three gaps §1 names are closed or recorded as open with an owner: a `time.ambient_clock` row for `clock.now(` (§1.3); the `stream.invalidate` exemption or narrowing that lets `ref.invalidate(minuteTickProvider)` compile (§1.5); and a `copy.tier3_claim` row for *"your data never leaves your phone"* (§1.10).
+- [ ] The two gaps §1 still names are closed or recorded as open with an owner: a `time.ambient_clock` row for `clock.now(` (§1.3) and a `copy.tier3_claim` row for *"your data never leaves your phone"* (§1.10). §1.5 closed on 2026-08-02 — `stream.invalidate` narrowed to exclude the two architected arguments.
 - [ ] The two driver amendments 10 §10 requires are in `01-architecture.md` §3.2 — the `lib/l10n/*.arb` reader is shared, and `lib/l10n/app_localizations*.dart` is on the skip list — or the ARB rows in §1.13 are struck from §1 until they are.
 - [ ] Every cross-link in §2 and §1.13 resolves to a live section in a written document, and no document is marked unwritten — the set is complete.
 - [ ] `layer.in_app_purchase` and `launch.store_call` key to `PurchaseService` exactly as `CONVENTIONS.md` R74 spells it, and no second spelling (`BillingService`, `IapGateway`, `StoreClient`, `StoreGateway`, `PurchaseRepository`) has appeared anywhere in `lib/` or `test/`.

@@ -451,7 +451,10 @@ const _bannedText = <(String, String, String, String)>[
   ('rp3.state_provider','StateProvider',       'lib/',  'legacy/3.x provider — #18'),
   ('rp3.state_notifier','StateNotifierProvider','lib/', 'legacy/3.x provider — #18'),
   ('stream.combine',    'combineLatest',       'lib/',  'torn state across drift streams — #12'),
-  ('stream.invalidate', 'ref.invalidate(',     'lib/',  'drift tracks tables; manual invalidation is a stale read — #12'),
+  // NARROWED 2026-08-02 (N12). A substring row fired on the two invalidates the
+  // architecture MANDATES, so it lives in the pattern family now. See §4.4.
+  ('stream.invalidate', RegExp(r'ref\.invalidate\((?!minuteTickProvider\)|databaseProvider\))'),
+                                               'lib/',  'drift tracks tables; manual invalidation is a stale read — #12'),
   ('db.raw_statement',  'customStatement(',    'lib/data/', 'bypasses stream tracking — rule 8'),
   ('stat.zero_default', '?? 0',                'lib/features/season/', 'unknown is not zero — #58'),
   ('stat.zero_default2','?? 0',                'lib/features/flock/',  'unknown is not zero — #58'),

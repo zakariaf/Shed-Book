@@ -286,12 +286,6 @@ const List<(String, String, String, String)> _bannedText = <(String, String, Str
   // the other half. One rule, two mechanisms — not two rules.
   ('db.raw_statement', 'customStatement(', 'lib/data/', 'bypasses stream tracking — rule 8'),
   ('stream.combine', 'combineLatest', 'lib/', 'torn state across drift streams — #12'),
-  (
-    'stream.invalidate',
-    'ref.invalidate(',
-    'lib/',
-    'drift tracks tables; manual invalidation is a stale read — #12',
-  ),
   ('stat.zero_default', '?? 0', 'lib/features/season/', 'unknown is not zero — #58'),
   ('stat.zero_default2', '?? 0', 'lib/features/flock/', 'unknown is not zero — #58'),
 
@@ -463,6 +457,38 @@ const List<String> _tier3Claims = <String>['your data never leaves your phone', 
 /// `[exempt]` line never matches the id in this table, and R54 exists because a
 /// duplicated rule is a rule that gets weakened twice.
 final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, String, String)>[
+  // -- the read path's manual-invalidation ban, narrowed to what it means ----
+  //
+  // MOVED HERE FROM _bannedText ON 2026-08-02, and the move IS the fix. As a
+  // substring row it fired on `ref.invalidate(` anywhere under lib/, which meant
+  // it fired on the two call sites the architecture MANDATES — and
+  // CODE-REVIEW-CHECKLIST §1.5 recorded that as one of three open gate
+  // questions: "as specified the gate fails the build on the one call the
+  // architecture mandates."
+  //
+  // 02 §4.1 is explicit that the ban is scoped to DRIFT-BACKED providers. The
+  // two architected arguments are named in the primary documents and neither has
+  // a database behind the thing being restarted:
+  //
+  //   minuteTickProvider   02 §9.1     a wall-clock ticker, restarted on resume
+  //   databaseProvider     04 §7 s.14  the restore reopen — the database itself
+  //
+  // A negative lookahead is narrower than either move N12-T03 §5.3 offered: an
+  // [exempt] line would delete the rule for lib/app.dart FOREVER AND SILENTLY,
+  // and a path exception would not reach the restore flow at all. This still
+  // fires on every other ref.invalidate in both files. Encoding the exception in
+  // the rule rather than in the allowlist is the whole difference between "these
+  // two are the architecture" and "that file was excused" — the same doctrine
+  // copy.disclaimer_retyped's `except` already follows.
+  //
+  // The allowlist is untouched and still has exactly four [exempt] lines (R56).
+  (
+    'stream.invalidate',
+    RegExp(r'ref\.invalidate\((?!minuteTickProvider\)|databaseProvider\))'),
+    'lib/',
+    'drift tracks tables; manual invalidation is a stale read — #12',
+  ),
+
   // -- tokens ---------------------------------------------------------------
   (
     'token.raw_color_ctor',

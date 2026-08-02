@@ -113,32 +113,39 @@ void main() {
     expect(declarations, 1);
   });
 
-  test('the manual refresh is absent from lib/ and the gap is named', () {
-    // N12-T03 §5.2 asks for one call to Riverpod's manual refresh in app.dart's
-    // resumed arm, and anticipates an [exempt] line for the gate row that scans
-    // for it.
+  test('the resume refresh is written exactly once, in app.dart, on the ticker', () {
+    // CLOSED ON 2026-08-02, and the shape of the close is the point. N12-T03
+    // §5.2 offered two moves: a fifth `[exempt]` line, or narrowing the rule.
+    // The `[exempt]` line was the wrong one — it deletes stream.invalidate for
+    // lib/app.dart forever and silently, and it would not have reached the
+    // SECOND architected call site at all (databaseProvider, 04 §7 step 14).
     //
-    // BOTH CANNOT BE TRUE AT ONCE. R56 fixes the allowlist at four lines and
-    // CLAUDE.md forbids adding one to silence a gate, so the call is not
-    // written. What IS asserted is that the gap is NAMED rather than forgotten:
-    // a TODO in the resumed arm, and a line in N12's pull request.
+    // The rule now carries a negative lookahead for the two architected
+    // arguments and still fires on every other one. The allowlist is untouched.
     const String needle =
         'ref.in'
         'validate(';
+
+    final Map<String, int> byFile = <String, int>{};
     for (final String path in _authoredDart('lib')) {
-      expect(_declarations(path), isNot(contains(needle)), reason: path);
+      final int n = needle.allMatches(_declarations(path)).length;
+      if (n > 0) {
+        byFile[path] = n;
+      }
     }
 
+    expect(byFile, <String, int>{'lib/app.dart': 1});
     expect(
-      File('lib/app.dart').readAsStringSync(),
-      contains('TODO(owner)'),
-      reason: 'the deferral must be visible where the code is, not only in a PR',
+      _declarations('lib/app.dart'),
+      contains('${needle}minuteTickProvider)'),
+      reason: '02 §4.1: the ticker is the argument, and a second one is a defect',
     );
   });
 
   test('the allowlist still has exactly four exempt lines', () {
-    // The assertion that makes the deferral above meaningful: if a fifth line
-    // ever appears, this is where it is noticed.
+    // R56, and it is what makes the case above meaningful: the refresh landed
+    // WITHOUT buying a fifth line. If one ever appears, this is where it is
+    // noticed.
     final List<String> lines = File('tool/policy_allowlist.txt').readAsLinesSync();
     final int start = lines.indexWhere((String l) => l.trim() == '[exempt]');
     final List<String> keys = lines

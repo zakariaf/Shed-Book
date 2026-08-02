@@ -761,5 +761,68 @@
   "detailPresentationSemantics": "How it was lying, not required",
   "@detailPresentationSemantics": {
     "description": "The presentation group's container label. It says the field may be skipped and does NOT say which word is selected - the buttons carry `selected` and a screen reader announces state itself (10 3.2 rule 2)."
+  },
+  "lambCardTitle": "{animal}",
+  "@lambCardTitle": {
+    "description": "The Lamb Card's heading, headingLevel 1. It is the animal noun and the tag when there is one - never 'Lamb details' or 'Lamb record', because the shepherd came here from a row that already said which lamb.",
+    "placeholders": {
+      "animal": {
+        "type": "String"
+      }
+    }
+  },
+  "lambCardBirthDam": "BIRTH DAM {tag}",
+  "@lambCardBirthDam": {
+    "description": "The birth dam row. A lamb has ONE birth dam, forever - no verb in the app moves it. A foster moves the REARING dam, and making a foster look like a rewrite of history is the failure the lamb_rearing view exists to prevent.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "lambCardRearingDam": "REARING DAM {tag}",
+  "@lambCardRearingDam": {
+    "description": "The rearing dam row, projected by the lamb_rearing view and never copied onto the lamb. On an unfostered lamb it is the birth dam, which is what the view's COALESCE says and is NOT the same as having no rearing dam.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "lambCardPermanent": "PERMANENT",
+  "@lambCardPermanent": {
+    "description": "Marks a foster whose outcome was recorded as permanent. It is a fact about the foster event, never a judgement about the lamb."
+  },
+  "lambCardNoEweBottle": "ON THE BOTTLE",
+  "@lambCardNoEweBottle": {
+    "description": "One of the TWO reasons a rearing dam can be absent, and 07 7.2 forbids rendering them with one string. This one is a fact the shepherd recorded: the lamb came off a ewe and onto a bottle."
+  },
+  "lambCardNoEweNotRecorded": "REARING DAM NOT RECORDED",
+  "@lambCardNoEweNotRecorded": {
+    "description": "The OTHER reason a rearing dam can be absent: the lamb was removed from a ewe and where it went was not recorded. Merging this with ON THE BOTTLE would have the app claim a bottle feed that nobody wrote down."
+  },
+  "lambCardNothingElseRecorded": "NOTHING ELSE RECORDED YET",
+  "@lambCardNothingElseRecorded": {
+    "description": "The history list when only the birth row exists. NOT an empty state - the born row is always there, because a lamb that exists was born. It says nothing ELSE, which is the true statement."
+  },
+  "lambCardUntagged": "UNTAGGED",
+  "@lambCardUntagged": {
+    "description": "A lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number: a tag the app invented would be a tag on no ear."
+  },
+  "lambCardHistoryBorn": "BORN",
+  "@lambCardHistoryBorn": {
+    "description": "The 'born' arm of the history union. Always present - it is the one row a lamb card can never be missing."
+  },
+  "lambCardHistoryFoster": "FOSTERED",
+  "@lambCardHistoryFoster": {
+    "description": "The 'foster' arm. Past tense because it is an event that happened, not a state the lamb is in."
+  },
+  "lambCardHistoryCare": "CARE",
+  "@lambCardHistoryCare": {
+    "description": "The 'care' arm - a care event recorded against this lamb rather than against the lambing."
+  },
+  "lambCardHistoryTreatment": "TREATMENT",
+  "@lambCardHistoryTreatment": {
+    "description": "The 'treatment' arm. The withdrawal that may hang off it is the treatment record's own business and is never summarised here."
   }
 }

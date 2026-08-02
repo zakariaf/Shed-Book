@@ -521,4 +521,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailPresentationSemantics => 'How it was lying, not required';
+
+  @override
+  String lambCardTitle({required String animal}) {
+    return '$animal';
+  }
+
+  @override
+  String lambCardBirthDam({required String tag}) {
+    return 'BIRTH DAM $tag';
+  }
+
+  @override
+  String lambCardRearingDam({required String tag}) {
+    return 'REARING DAM $tag';
+  }
+
+  @override
+  String get lambCardPermanent => 'PERMANENT';
+
+  @override
+  String get lambCardNoEweBottle => 'ON THE BOTTLE';
+
+  @override
+  String get lambCardNoEweNotRecorded => 'REARING DAM NOT RECORDED';
+
+  @override
+  String get lambCardNothingElseRecorded => 'NOTHING ELSE RECORDED YET';
+
+  @override
+  String get lambCardUntagged => 'UNTAGGED';
+
+  @override
+  String get lambCardHistoryBorn => 'BORN';
+
+  @override
+  String get lambCardHistoryFoster => 'FOSTERED';
+
+  @override
+  String get lambCardHistoryCare => 'CARE';
+
+  @override
+  String get lambCardHistoryTreatment => 'TREATMENT';
 }

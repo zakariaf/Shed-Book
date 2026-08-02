@@ -957,6 +957,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'How it was lying, not required'**
   String get detailPresentationSemantics;
+
+  /// The Lamb Card's heading, headingLevel 1. It is the animal noun and the tag when there is one - never 'Lamb details' or 'Lamb record', because the shepherd came here from a row that already said which lamb.
+  ///
+  /// In en, this message translates to:
+  /// **'{animal}'**
+  String lambCardTitle({required String animal});
+
+  /// The birth dam row. A lamb has ONE birth dam, forever - no verb in the app moves it. A foster moves the REARING dam, and making a foster look like a rewrite of history is the failure the lamb_rearing view exists to prevent.
+  ///
+  /// In en, this message translates to:
+  /// **'BIRTH DAM {tag}'**
+  String lambCardBirthDam({required String tag});
+
+  /// The rearing dam row, projected by the lamb_rearing view and never copied onto the lamb. On an unfostered lamb it is the birth dam, which is what the view's COALESCE says and is NOT the same as having no rearing dam.
+  ///
+  /// In en, this message translates to:
+  /// **'REARING DAM {tag}'**
+  String lambCardRearingDam({required String tag});
+
+  /// Marks a foster whose outcome was recorded as permanent. It is a fact about the foster event, never a judgement about the lamb.
+  ///
+  /// In en, this message translates to:
+  /// **'PERMANENT'**
+  String get lambCardPermanent;
+
+  /// One of the TWO reasons a rearing dam can be absent, and 07 7.2 forbids rendering them with one string. This one is a fact the shepherd recorded: the lamb came off a ewe and onto a bottle.
+  ///
+  /// In en, this message translates to:
+  /// **'ON THE BOTTLE'**
+  String get lambCardNoEweBottle;
+
+  /// The OTHER reason a rearing dam can be absent: the lamb was removed from a ewe and where it went was not recorded. Merging this with ON THE BOTTLE would have the app claim a bottle feed that nobody wrote down.
+  ///
+  /// In en, this message translates to:
+  /// **'REARING DAM NOT RECORDED'**
+  String get lambCardNoEweNotRecorded;
+
+  /// The history list when only the birth row exists. NOT an empty state - the born row is always there, because a lamb that exists was born. It says nothing ELSE, which is the true statement.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTHING ELSE RECORDED YET'**
+  String get lambCardNothingElseRecorded;
+
+  /// A lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number: a tag the app invented would be a tag on no ear.
+  ///
+  /// In en, this message translates to:
+  /// **'UNTAGGED'**
+  String get lambCardUntagged;
+
+  /// The 'born' arm of the history union. Always present - it is the one row a lamb card can never be missing.
+  ///
+  /// In en, this message translates to:
+  /// **'BORN'**
+  String get lambCardHistoryBorn;
+
+  /// The 'foster' arm. Past tense because it is an event that happened, not a state the lamb is in.
+  ///
+  /// In en, this message translates to:
+  /// **'FOSTERED'**
+  String get lambCardHistoryFoster;
+
+  /// The 'care' arm - a care event recorded against this lamb rather than against the lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'CARE'**
+  String get lambCardHistoryCare;
+
+  /// The 'treatment' arm. The withdrawal that may hang off it is the treatment record's own business and is never summarised here.
+  ///
+  /// In en, this message translates to:
+  /// **'TREATMENT'**
+  String get lambCardHistoryTreatment;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

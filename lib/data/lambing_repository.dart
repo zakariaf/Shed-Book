@@ -241,6 +241,30 @@ final class LambingRepository {
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
+  /// The Lamb Card, from one statement.
+  ///
+  /// **`readsFrom:` IS EXPLICIT AND IT IS LOAD-BEARING.** A `customSelect`
+  /// cannot infer its dependencies, so a stream that omitted a table would go
+  /// stale silently — the shepherd fosters a lamb and the card keeps showing the
+  /// old dam until they navigate away and back. The five tables here are the
+  /// five the statement reads; `lamb_rearing` is a VIEW over `lambs` and
+  /// `foster_events`, both of which are named, so drift can see through it.
+  Stream<LambCardData> watchLambCard(LambId lamb) => _db
+      .customSelect(
+        _lambCardSql,
+        variables: <Variable<Object>>[Variable<int>(lamb.value)],
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+          _db.lambs,
+          _db.lambings,
+          _db.fosterEvents,
+          _db.ewes,
+          _db.careEvents,
+          _db.treatments,
+        },
+      )
+      .watch()
+      .map(_foldLambCard);
+
   /// Corrects the time the lambing happened.
   ///
   /// **THE FIRST CODE IN THE APP THAT WRITES AN `edited` ROW.** `Lambings` has
@@ -806,3 +830,248 @@ SELECT lg.id AS lambing_id, lg.ewe, lg.season, lg.declared_birth_type, lg.ease,
  WHERE lg.id = ?
  ORDER BY l.id ASC, c.id ASC
 ''';
+
+/// `07 §7.1`'s statement, fanned in **in SQL**.
+///
+/// The `WITH` carries the header onto every history row, so there is ONE
+/// statement and ONE dependency list. Two statements would be two lists that can
+/// disagree about when the card is stale — and the card is the screen a shepherd
+/// opens in year two to answer *"what did 412 do last year?"*, which is the
+/// product's whole reason for existing.
+const String _lambCardSql = '''
+WITH card AS (
+  SELECT lb.id  AS lamb_id,  lb.tag        AS tag,        lb.sex           AS sex,
+         lb.birth_weight_g   AS birth_weight_g,           lb.status        AS status,
+         lb.death_date       AS death_date,               lb.death_cause   AS death_cause,
+         lb.pet_lamb         AS pet_lamb,                 lb.bottle_feeds  AS bottle_feeds,
+         lb.struck           AS struck,
+         lb.lambing          AS lambing_id,
+         lg.occurred_at      AS born_at,                  lg.local_date    AS born_local_date,
+         lg.captured_at      AS born_captured_at,
+         lg.original_effective AS born_original_effective,
+         lg.time_source      AS born_time_source,
+         lr.birth_dam        AS birth_dam,    bd.tag      AS birth_dam_tag,
+         lr.rearing_dam      AS rearing_dam,  rd.tag      AS rearing_dam_tag,
+         lr.was_fostered     AS was_fostered,
+         (SELECT fe.outcome FROM foster_events fe
+           WHERE fe.lamb = lb.id
+           ORDER BY fe.effective_at DESC, fe.id DESC LIMIT 1) AS latest_outcome
+    FROM lambs lb
+    JOIN lambings     lg ON lg.id      = lb.lambing
+    JOIN lamb_rearing lr ON lr.lamb_id = lb.id
+    JOIN ewes         bd ON bd.id      = lb.birth_dam
+    LEFT JOIN ewes    rd ON rd.id      = lr.rearing_dam
+   WHERE lb.id = ?
+)
+SELECT c.*, 'born' AS kind, c.lambing_id AS ref, c.born_at AS at,
+       c.born_captured_at AS captured_at,
+       c.born_original_effective AS original_effective,
+       c.born_time_source AS time_source
+  FROM card c
+UNION ALL
+SELECT c.*, 'foster', f.id, f.effective_at, f.captured_at, f.original_effective, f.time_source
+  FROM card c JOIN foster_events f ON f.lamb = c.lamb_id
+UNION ALL
+SELECT c.*, 'care', ce.id, ce.occurred_at, ce.captured_at, ce.original_effective, ce.time_source
+  FROM card c JOIN care_events ce ON ce.lamb = c.lamb_id
+UNION ALL
+SELECT c.*, 'treatment', t.id, t.administered_at, t.captured_at, t.original_effective, t.time_source
+  FROM card c JOIN treatments t ON t.lamb = c.lamb_id
+ ORDER BY at DESC
+''';
+
+/// One history row on the Lamb Card.
+///
+/// **THE §12.5 TRIPLE TRAVELS WITH EVERY ROW**, on every arm of the union, so no
+/// arm can be rendered without its provenance. A history list that showed four
+/// kinds of event and a bare time for each would be the one screen where the
+/// provenance claim quietly stops being true.
+final class LambHistoryRow {
+  const LambHistoryRow({
+    required this.kind,
+    required this.ref,
+    required this.at,
+    required this.capturedAt,
+    required this.timeSource,
+    this.originalEffective,
+  });
+
+  /// `born` · `foster` · `care` · `treatment` — the union arm.
+  final String kind;
+
+  /// The source row's id, **raw and never leaving this layer**: a typed id per
+  /// arm would need a sealed hierarchy for a value nothing above here reads.
+  final int ref;
+
+  final Instant at;
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final TimeSource timeSource;
+
+  /// Rebuilt rather than stored, so the card renders the same label the lambing
+  /// header does.
+  RecordedTime get time => recordedTimeFromColumns(
+    effective: at,
+    capturedAt: capturedAt,
+    originalEffective: originalEffective,
+    sourceKey: timeSource.key,
+  );
+}
+
+/// Both dams, and **the two different reasons the rearing dam can be absent**.
+///
+/// `rearingDam == null` is NEVER rendered with one string (`07 §7.2`): a lamb on
+/// the bottle and a lamb whose rearing dam was not recorded are different facts,
+/// and `latestOutcome` is what tells them apart.
+final class LambRearing {
+  const LambRearing({
+    required this.birthDam,
+    required this.birthDamTag,
+    required this.wasFostered,
+    this.rearingDam,
+    this.rearingDamTag,
+    this.latestOutcome,
+  });
+
+  /// **A lamb has one birth dam, forever.** It is on the lamb row and no verb
+  /// in the app moves it — a foster moves the REARING dam, and making a foster
+  /// look like a rewrite of history is the failure `lamb_rearing` exists to
+  /// prevent.
+  final EweId birthDam;
+  final String birthDamTag;
+
+  /// True when any foster event exists, including one that removed the lamb from
+  /// a ewe. It is not `rearingDam != birthDam`: a lamb fostered back is still a
+  /// lamb that was fostered.
+  final bool wasFostered;
+
+  final EweId? rearingDam;
+  final String? rearingDamTag;
+
+  /// `to_ewe` · `to_bottle` · `removed_unknown` · null.
+  final String? latestOutcome;
+}
+
+/// Everything the Lamb Card renders, from one statement.
+final class LambCardData {
+  const LambCardData({
+    required this.lambId,
+    required this.lambingId,
+    required this.bornTime,
+    required this.bornLocalDate,
+    required this.rearing,
+    required this.status,
+    required this.petLamb,
+    required this.bottleFeeds,
+    required this.history,
+    required this.struck,
+    this.tag,
+    this.sex,
+    this.birthWeight,
+    this.deathDate,
+    this.deathCauseKey,
+  });
+
+  final LambId lambId;
+  final LambingId lambingId;
+
+  /// The LAMBING's provenance, because that is when the lamb was born — a lamb
+  /// has no time of its own.
+  final RecordedTime bornTime;
+  final LocalDate bornLocalDate;
+
+  final LambRearing rearing;
+  final LambStatus status;
+  final bool petLamb;
+  final int bottleFeeds;
+
+  /// **Never empty**: the `born` arm always yields one row.
+  final List<LambHistoryRow> history;
+
+  final bool struck;
+
+  /// `null` is UNTAGGED, which is the state a lamb is in for most of its first
+  /// week.
+  final String? tag;
+
+  /// **NULL is not `Sex.unknown`** (R45).
+  final Sex? sex;
+
+  final Grams? birthWeight;
+  final LocalDate? deathDate;
+
+  /// A `vocab_terms` key, or **null = unattributed** — which is not the same as
+  /// the `dc_unknown` term the shepherd can pick. The vocabulary keeps those two
+  /// apart and so does this field.
+  final String? deathCauseKey;
+}
+
+/// Folds the union back into one card.
+///
+/// The header repeats on every row — that is what the `WITH` is for — so the
+/// first row carries it and the rest contribute only their history entry.
+LambCardData _foldLambCard(List<QueryRow> rows) {
+  if (rows.isEmpty) {
+    // A lamb that does not exist, or one whose lambing was hard-deleted — which
+    // cannot happen, because nothing in this app hard-deletes. Throwing is
+    // right: the route was pushed with an id, and an empty card would be a blank
+    // screen with no explanation.
+    throw StateError('no lamb card rows — the lamb id does not exist');
+  }
+
+  final QueryRow first = rows.first;
+
+  return LambCardData(
+    lambId: LambId(first.read<int>('lamb_id')),
+    lambingId: LambingId(first.read<int>('lambing_id')),
+    bornTime: recordedTimeFromColumns(
+      effective: Instant(first.read<int>('born_at')),
+      capturedAt: Instant(first.read<int>('born_captured_at')),
+      originalEffective: first.readNullable<int>('born_original_effective') == null
+          ? null
+          : Instant(first.read<int>('born_original_effective')),
+      sourceKey: first.read<String>('born_time_source'),
+    ),
+    bornLocalDate: LocalDate.parse(first.read<String>('born_local_date')),
+    rearing: LambRearing(
+      birthDam: EweId(first.read<int>('birth_dam')),
+      birthDamTag: first.read<String>('birth_dam_tag'),
+      wasFostered: first.read<int>('was_fostered') != 0,
+      rearingDam: first.readNullable<int>('rearing_dam') == null
+          ? null
+          : EweId(first.read<int>('rearing_dam')),
+      rearingDamTag: first.readNullable<String>('rearing_dam_tag'),
+      latestOutcome: first.readNullable<String>('latest_outcome'),
+    ),
+    status: LambStatus.fromKey(first.read<String>('status')),
+    petLamb: first.read<int>('pet_lamb') != 0,
+    bottleFeeds: first.read<int>('bottle_feeds'),
+    struck: first.read<int>('struck') != 0,
+    tag: first.readNullable<String>('tag'),
+    // NULL IS NOT `Sex.unknown` (R45), and the ternary is where that would be
+    // lost by anybody reaching for a default.
+    sex: first.readNullable<String>('sex') == null
+        ? null
+        : Sex.values.firstWhere((Sex s) => s.key == first.read<String>('sex')),
+    birthWeight: first.readNullable<int>('birth_weight_g') == null
+        ? null
+        : Grams(first.read<int>('birth_weight_g')),
+    deathDate: first.readNullable<String>('death_date') == null
+        ? null
+        : LocalDate.parse(first.read<String>('death_date')),
+    deathCauseKey: first.readNullable<String>('death_cause'),
+    history: <LambHistoryRow>[
+      for (final QueryRow r in rows)
+        LambHistoryRow(
+          kind: r.read<String>('kind'),
+          ref: r.read<int>('ref'),
+          at: Instant(r.read<int>('at')),
+          capturedAt: Instant(r.read<int>('captured_at')),
+          originalEffective: r.readNullable<int>('original_effective') == null
+              ? null
+              : Instant(r.read<int>('original_effective')),
+          timeSource: TimeSource.fromKey(r.read<String>('time_source')),
+        ),
+    ],
+  );
+}

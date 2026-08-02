@@ -9,6 +9,8 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
+import 'dart:ui' show Tristate;
+import 'package:shed_book/domain/care_kind.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
@@ -735,6 +737,220 @@ void main() {
     }
 
     handle.dispose();
+    await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // T05 — care events as EXISTS
+  // ---------------------------------------------------------------------------
+
+  testWidgets('an unrecorded care event renders as not recorded, never as no', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, AND THE FAILURE MODE IS NOT A MISSING LABEL — IT IS A
+    // PLAUSIBLE WRONG ONE. Decision #43 and `07 §6.2`: a shepherd who did not
+    // dip a navel has recorded NOTHING, and the app must not turn that into a
+    // claim. There is no way to record "no" anywhere in this product.
+    //
+    // So the case asserts the unset line's own words AND that the three
+    // plausible wrong ones appear on no care line at all.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    for (final CareKind kind in CareKind.values) {
+      final Finder line = find.byKey(Key('lambing_entry.care.${kind.key}'));
+      expect(line, findsOneWidget, reason: kind.key);
+
+      // THE STATE IS IN THE SEMANTIC LABEL, which is where a screen reader
+      // finds it and where the eye finds the same words.
+      final SemanticsNode node = tester.getSemantics(line);
+      expect(node.label, contains('NOT RECORDED'), reason: kind.key);
+
+      for (final String wrong in <String>['No', 'Not given', '0', 'None']) {
+        expect(
+          node.label.split(RegExp(r'[ ,]')).contains(wrong),
+          isFalse,
+          reason: '"\$wrong" on \${kind.key} would be a claim the shepherd never made',
+        );
+      }
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('recording colostrum prints DONE with the time it was pressed', (
+    WidgetTester tester,
+  ) async {
+    // THE TIME IS WHEN THEY PRESSED IT, not when the lambing was — that is the
+    // fact being recorded, and it is what makes an event better than a tick.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    // SCROLLED INTO VIEW FIRST, BECAUSE THE PAGE SCROLLS FROM T04. This is not
+    // test ceremony: the care lines sit below the ease group on a real phone,
+    // and a case that tapped them without scrolling would be testing a layout
+    // no shepherd has.
+    final Finder colostrum = find.byKey(const Key('lambing_entry.care.colostrum'));
+    await tester.ensureVisible(colostrum);
+    await tester.pumpAndSettle();
+    await tester.tap(colostrum);
+    await tester.pumpAndSettle();
+
+    // THE ROW EXISTS, and its subject is the LAMBING rather than a lamb —
+    // exactly one of the two, which is what the CHECK constrains and what
+    // `CareSubject` makes unconstructible any other way.
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    expect(row.kind, 'colostrum');
+    expect(row.lambing, lambing.value);
+    expect(row.lamb, isNull);
+    expect(row.volumeMl, isNull, reason: 'no default volume — 05 §7.3');
+    expect(row.method, isNull, reason: 'no default method');
+
+    final SemanticsNode node = tester.getSemantics(
+      find.byKey(const Key('lambing_entry.care.colostrum')),
+    );
+    expect(node.label, contains('DONE'));
+    expect(node.label, isNot(contains('NOT RECORDED')));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('removing a care event leaves DONE struck and prints UNDONE with its own time', (
+    WidgetTester tester,
+  ) async {
+    // `indelible.md §7.10`'s UNDONE STATE. The line does NOT revert to unset:
+    // both times stay on the page, because the shepherd pressed it at one time
+    // and unpressed it at another and both are true. Rule 1 applies to a
+    // checkbox exactly as it applies to a lambing.
+    //
+    // THIS IS ALSO WHERE `07 §15.1` LOSES. It says the undo of removeCare is
+    // "re-insert with the original RecordedTime", which implies a delete — and a
+    // deleted row has no stamp to strike. P1 put `struck` / `struck_at` on
+    // care_events, so the row survives and the rendering is possible.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder line = find.byKey(const Key('lambing_entry.care.navel_dip'));
+    await tester.ensureVisible(line);
+    await tester.pumpAndSettle();
+    await tester.tap(line);
+    await tester.pumpAndSettle();
+    await tester.tap(line);
+    await tester.pumpAndSettle();
+
+    // THE ROW IS STRUCK, NOT GONE. A delete would satisfy a screen-only
+    // assertion about the line reverting, which is why the database is checked.
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    expect(row.struck, isTrue);
+    expect(row.struckAt, isNotNull);
+
+    expect(find.textContaining('UNDONE'), findsOneWidget);
+    expect(
+      find.textContaining('DONE'),
+      findsWidgets,
+      reason: 'the struck DONE stamp stays on the page',
+    );
+
+    // AND IT IS ACTUALLY STRUCK. Drilled: removing `TextDecoration.lineThrough`
+    // left every other assertion in this case passing, because "the stamp is on
+    // the page" and "the stamp is struck" are different claims and only the
+    // first was being made. indelible.md §7.10 prints `D̶O̶N̶E̶ ̶0̶3̶:̶2̶4̶ · UNDONE
+    // 03:31` — the strike IS the state, not decoration on it.
+    final Text doneStamp = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('lambing_entry.care.navel_dip')),
+        matching: find.textContaining('DONE').first,
+      ),
+    );
+    expect(
+      doneStamp.style?.decoration,
+      TextDecoration.lineThrough,
+      reason: 'a DONE stamp beside an UNDONE stamp must be struck through',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no care line renders a checkbox glyph and no care line is ever disabled', (
+    WidgetTester tester,
+  ) async {
+    // TWO CLAIMS, BOTH MECHANICAL.
+    //
+    // NO CHECKBOX: `indelible.md §7.10` — "a tick is a state and this system
+    // does not record states, it records events". Asserted against the WIDGET
+    // TYPE and against the glyphs, because a Unicode tick in a Text is the
+    // version of this that passes a `find.byType(Checkbox)` check.
+    //
+    // NEVER DISABLED: a dead control under a cold thumb is indistinguishable
+    // from a missed tap. Asserted the way keypad_test.dart asserts it — the node
+    // announces enabled AND carries a tap action AND actually fires.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+    for (final String glyph in <String>['✓', '☑', '☐', '✔']) {
+      expect(find.textContaining(glyph), findsNothing, reason: glyph);
+    }
+
+    for (final CareKind kind in CareKind.values) {
+      final Finder line = find.byKey(Key('lambing_entry.care.${kind.key}'));
+      await tester.ensureVisible(line);
+      await tester.pumpAndSettle();
+      final SemanticsData sd = tester.getSemantics(line).getSemanticsData();
+      expect(sd.flagsCollection.isEnabled, Tristate.isTrue, reason: kind.key);
+      expect(sd.hasAction(SemanticsAction.tap), isTrue, reason: kind.key);
+      expect(
+        tester.getSize(line).height,
+        greaterThanOrEqualTo(64.0),
+        reason: '${kind.key} is a 64 pt line',
+      );
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a double-fired care press writes one row', (WidgetTester tester) async {
+    // DECISION #22. `guard()` refuses to run concurrently, so there is NO PUMP
+    // BETWEEN THE TWO TAPS — pumping would make this a test of a press and an
+    // undo, which is the previous case and a different claim.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder line = find.byKey(const Key('lambing_entry.care.warmed'));
+    await tester.ensureVisible(line);
+    await tester.pumpAndSettle();
+    await tester.tap(line);
+    await tester.tap(line, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(await db.select(db.careEvents).get(), hasLength(1));
+
     await tester.closeApp();
   });
 }

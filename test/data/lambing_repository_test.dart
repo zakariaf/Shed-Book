@@ -14,6 +14,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -41,6 +42,28 @@ Future<SeasonId> _seedSeason(AppDatabase db) async {
   await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
     AppSettingsCompanion(currentSeason: Value<int?>(id)),
   );
+  return SeasonId(id);
+}
+
+/// A season that is NOT current, seeded only to push the real one's id off 1.
+///
+/// Without it, `SeasonId(1)` and "the season this lambing is actually in" are
+/// the same number, and a verb that never reads the parent passes every
+/// assertion about seasons in this file. Drilled — see the care cases.
+Future<SeasonId> _seedDecoySeason(AppDatabase db) async {
+  final Instant now = Instant.fromDateTime(DateTime.utc(2025, 3, 1, 3, 20));
+  final int id = await db
+      .into(db.seasons)
+      .insert(
+        SeasonsCompanion.insert(
+          year: 2025,
+          label: '2025',
+          startDate: LocalDate(2025, 1, 1),
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
   return SeasonId(id);
 }
 
@@ -336,5 +359,142 @@ void main() {
 
     final List<Lamb> rows = await db.select(db.lambs).get();
     expect(rows.map((Lamb l) => l.uid).toSet(), hasLength(3));
+  });
+
+  test('addCare copies the season from the parent and writes the provenance quad', () async {
+    // TWO CLAIMS THAT ONLY A REPOSITORY TEST CAN MAKE.
+    //
+    // SEASON — `care_events.season` is NOT NULL, and it is read from the parent
+    // INSIDE the transaction rather than handed in. Reading it from the screen's
+    // copy is one frame stale, and getting it wrong scopes the row into the
+    // wrong season's statistics forever.
+    //
+    // PROVENANCE — the quad is what §12.5 is made of. `auto` here is honest: the
+    // shepherd pressed a line and the app read the clock.
+    //
+    // THE DECOY SEASON IS LOAD-BEARING. With one season every id is 1, and
+    // `return const SeasonId(1)` — a verb that never walks to the parent at all
+    // — passes. Drilled, and it did. A prior season pushes the real one to 2.
+    await _seedDecoySeason(db);
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final WriteOutcome outcome = await repo.addCare(
+      CareForLambing(lambing),
+      kind: CareKind.colostrum,
+    );
+    expect(outcome, isA<WriteCommitted>());
+
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    final Lambing parent = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(row.season, parent.season, reason: 'copied from the parent, not guessed');
+    expect(row.timeSource, 'auto');
+    expect(row.originalEffective, isNull);
+    expect(row.occurredAt.epochMillis, row.capturedAt.epochMillis, reason: 'one instant');
+    expect(row.uid, isNotEmpty, reason: 'export identity — #32');
+  });
+
+  test('a volume over the guard is a failure, never a correction', () async {
+    // `volume_ml BETWEEN 1 AND 2000` IS A UNIT-SLIP GUARD AND NEVER A DOSE
+    // (`03 §5.6`). 3000 trips the CHECK and comes back as a WriteFailed.
+    //
+    // THE THREE THINGS IT MUST NOT DO are each asserted, because each is §12.4
+    // with a helpful face on: clamping to 2000, rounding, or silently dropping
+    // the column would all leave a row on disk that the shepherd never entered.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final WriteOutcome outcome = await repo.addCare(
+      CareForLambing(lambing),
+      kind: CareKind.colostrum,
+      volumeMl: 3000,
+    );
+
+    expect(outcome, isA<WriteFailed>());
+    expect(
+      await db.select(db.careEvents).get(),
+      isEmpty,
+      reason: 'not clamped to 2000, not rounded, and not written without the column',
+    );
+  });
+
+  test('a volume inside the guard is stored exactly as typed', () async {
+    // THE OTHER ARM, and without it the case above passes against a verb that
+    // rejects EVERY volume. A guard that refuses everything is not a guard.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    await repo.addCare(
+      CareForLambing(lambing),
+      kind: CareKind.colostrum,
+      volumeMl: 250,
+      method: ColostrumMethod.tube,
+    );
+
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    expect(row.volumeMl, 250, reason: 'exactly as typed — no rounding, no clamping');
+    expect(row.method, 'tube');
+  });
+
+  test('care against a lamb sets lamb and leaves lambing null, and the reverse', () async {
+    // `CHECK ((lambing IS NOT NULL) + (lamb IS NOT NULL) = 1)` — EXACTLY one.
+    // `CareSubject` is sealed so the two unstorable combinations, both set and
+    // neither set, are UNCONSTRUCTIBLE rather than caught by the CHECK at 03:20.
+    // This case is what proves the two arms actually differ.
+    await _seedDecoySeason(db);
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+    final LambId lamb = await repo.addLamb(lambing);
+
+    await repo.addCare(CareForLamb(lamb), kind: CareKind.navelDip);
+    await repo.addCare(CareForLambing(lambing), kind: CareKind.warmed);
+
+    final List<CareEvent> rows = await db.select(db.careEvents).get();
+    final CareEvent forLamb = rows.firstWhere((CareEvent c) => c.kind == 'navel_dip');
+    final CareEvent forLambing = rows.firstWhere((CareEvent c) => c.kind == 'warmed');
+
+    expect(forLamb.lamb, lamb.value);
+    expect(forLamb.lambing, isNull);
+    expect(forLambing.lambing, lambing.value);
+    expect(forLambing.lamb, isNull);
+
+    // AND THE LAMB ARM STILL FOUND THE SEASON, two joins up. A verb that only
+    // knew how to walk from a lambing would have written NULL here and tripped
+    // NOT NULL — or worse, defaulted. The decoy above is what makes "found it"
+    // distinguishable from "returned 1".
+    expect(forLamb.season, forLambing.season);
+    expect(forLamb.season, isNot(1), reason: 'walked to the parent, not assumed');
+  });
+
+  test('removeCare strikes the row and keeps its original time', () async {
+    // P1 OVER `07 §15.1`. That document says the undo of this verb is "re-insert
+    // with the original RecordedTime", which implies the row was deleted — and a
+    // deleted row cannot render indelible.md §7.10's Undone state, which prints
+    // the STRUCK done stamp beside the new one. `care_events` carries
+    // `Struckable`, so the row survives.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+    await repo.addCare(CareForLambing(lambing), kind: CareKind.warmed);
+
+    final CareEvent before = await db.select(db.careEvents).getSingle();
+    await repo.removeCare(CareEventId(before.id));
+
+    final CareEvent after = await db.select(db.careEvents).getSingle();
+    expect(after.struck, isTrue);
+    expect(after.struckAt, isNotNull);
+    expect(
+      after.occurredAt.epochMillis,
+      before.occurredAt.epochMillis,
+      reason: 'the time it was pressed is not rewritten by unpressing it',
+    );
+    expect(after.timeSource, before.timeSource, reason: '§12.5 — undoing is not editing');
   });
 }

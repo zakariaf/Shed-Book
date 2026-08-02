@@ -1220,13 +1220,21 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 >
 > **This amendment is load-bearing for two later epics.** A document that still prescribes a hard
 > delete will be followed by N16 for `addLamb` and by N18 for foster.
+>
+> **AMENDED AGAIN 2026-08-02 (N16-T05), for `removeCare`.** The row above said the undo of
+> `removeCare` is *"re-insert with the original `RecordedTime`"*, which implies the row was deleted.
+> That is **unrenderable**: `indelible.md §7.10`'s **Undone** state prints `D̶O̶N̶E̶ ̶0̶3̶:̶2̶4̶ · UNDONE 03:31`
+> — a struck stamp beside a new one — and a deleted row has no stamp to strike. `care_events` carries
+> `Struckable` (P1, N00-T05), so `removeCare` sets `struck` / `struck_at`, both times stay on the
+> page, and the line does **not** revert to unset. The SnackBar column dies with P2 as everywhere
+> else: the confirmation is the line itself.
 
 | Verb | Repository method | Undo does | Window | Visible afterwards |
 |---|---|---|---|---|
 | Begin a lambing | `beginLambing` | ~~**Hard delete**, allowed only while it has zero child rows~~ → **strike** (`strikeLambing`): `struck = 1`, `struck_at` set | `kStrikeWindow` | the row, struck, in position and legible |
 | Add a lamb | `addLamb` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
 | Add a care event | `addCare` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
-| Remove a care event | `removeCare` | re-insert with the original `RecordedTime` | SnackBar | nothing |
+| Remove a care event | `removeCare` | ~~re-insert with the original `RecordedTime`~~ **STRIKES** — see the N16-T05 note below | ~~SnackBar~~ the line's own Undone state | nothing |
 | **Foster** | `recordFoster` | a **compensating `FosterEvent`** whose `corrects` FK names the event it reverses | SnackBar | *both* events, forever, on both cards |
 | **Treatment** | `recordTreatment` | **soft-void** — sets `voided_at` | SnackBar | the row, struck through, in the medicine book |
 | Pen a ewe | `enterPen` | **Hard delete** of the occupancy row | SnackBar | nothing |

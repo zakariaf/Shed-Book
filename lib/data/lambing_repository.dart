@@ -16,6 +16,7 @@ import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/data/recorded_time_columns.dart';
 import 'package:shed_book/domain/birth_type.dart';
+import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/lambing_ease.dart';
 import 'package:shed_book/domain/sex.dart';
@@ -149,6 +150,125 @@ final class LambingRepository {
     } on Object catch (e) {
       return WriteFailed(shedFailureFrom(e));
     }
+  }
+
+  /// Records one care event against exactly one subject.
+  ///
+  /// **THERE IS NO WAY TO RECORD "NO", AND THAT IS THE DESIGN** (decision #43,
+  /// `07 §6.2`). A care line has two states — *not recorded* and *done* — and a
+  /// shepherd who did not dip a navel has recorded nothing. The app must not
+  /// turn that into a claim. The state is `EXISTS` over rows precisely because
+  /// it *"keeps 'colostrum given at 03:22' recoverable"*; a boolean column would
+  /// delete both facts at once.
+  ///
+  /// **NO DEFAULT VOLUME AND NO DEFAULT METHOD.** `05 §7.3` settles it: the app
+  /// may arithmetic-transform a number the user supplied; it may never originate
+  /// a number that is a clinical decision. No suggested volume, no "typical"
+  /// figure, no last-value autofill. `volume_ml BETWEEN 1 AND 2000` is a
+  /// UNIT-SLIP GUARD and never a dose (`03 §5.6`) — 3000 trips the `CHECK` and
+  /// comes back as a `WriteFailed`. It is not clamped to 2000, not rounded and
+  /// not silently dropped: all three are §12.4 with a helpful face on.
+  ///
+  /// **`season` is copied from the parent INSIDE the transaction.**
+  /// `care_events.season` is `NOT NULL`; reading it from the screen's copy is
+  /// one frame stale, and getting it wrong scopes the row into the wrong
+  /// season's statistics forever.
+  ///
+  /// N24 writes the colostrum and navel reminder rows INSIDE this transaction,
+  /// so that completing a reminder and writing the care event stay the same tap
+  /// (`03 §5.6`). The boundary is here rather than in a second transaction the
+  /// next epic would have to open.
+  Future<WriteOutcome> addCare(
+    CareSubject subject, {
+    required CareKind kind,
+    int? volumeMl,
+    ColostrumMethod? method,
+  }) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+      final RecordedTime when = RecordedTime.capture(now); // §12.5 provenance
+
+      return await _db.transaction(() async {
+        // The season comes from the SUBJECT's lambing, and the two arms differ
+        // only in how far they have to walk to find it.
+        final SeasonId season = switch (subject) {
+          CareForLambing(:final LambingId lambing) => await _seasonOfLambing(lambing),
+          CareForLamb(:final LambId lamb) => await _seasonOfLamb(lamb),
+        };
+
+        final int id = await _db
+            .into(_db.careEvents)
+            .insert(
+              CareEventsCompanion.insert(
+                uid: newUid(), // export identity — #32, R15
+                createdAt: now,
+                updatedAt: now,
+                season: season.value,
+                lambing: Value<int?>(switch (subject) {
+                  CareForLambing(:final LambingId lambing) => lambing.value,
+                  CareForLamb() => null,
+                }),
+                lamb: Value<int?>(switch (subject) {
+                  CareForLamb(:final LambId lamb) => lamb.value,
+                  CareForLambing() => null,
+                }),
+                kind: kind.key,
+                occurredAt: when.effective,
+                capturedAt: when.capturedAt,
+                originalEffective: Value<Instant?>(when.originalEffective),
+                timeSource: Value<String>(when.source.key),
+                volumeMl: Value<int?>(volumeMl),
+                method: Value<String?>(method?.key),
+              ),
+            );
+        return WriteCommitted(insertedId: id);
+      });
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  /// **STRIKES, AND DOES NOT DELETE.**
+  ///
+  /// `07 §15.1` predates P1 and says the undo of this verb is *"re-insert with
+  /// the original `RecordedTime`"*, which implies the row was deleted. That is
+  /// unrenderable: `indelible.md §7.10`'s **Undone** state prints the struck
+  /// stamp beside a new one, and a deleted row has no stamp to strike. P1
+  /// (N00-T05) puts `struck` / `struck_at` on `care_events` through
+  /// `mixin Struckable`, which is what settles it — Indelible rule 1, *"if a
+  /// proposal makes information disappear from the page, it is wrong"*, is
+  /// binding rather than advisory. `07 §15.1` is amended in this commit.
+  Future<WriteOutcome> removeCare(CareEventId id) async {
+    try {
+      final Instant now = appNow();
+      final int rows =
+          await (_db.update(
+            _db.careEvents,
+          )..where(($CareEventsTable t) => t.id.equals(id.value))).write(
+            CareEventsCompanion(
+              struck: const Value<bool>(true),
+              struckAt: Value<Instant?>(now),
+              updatedAt: Value<Instant>(now),
+            ),
+          );
+      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  Future<SeasonId> _seasonOfLambing(LambingId id) async {
+    final Lambing row = await (_db.select(
+      _db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(id.value))).getSingle();
+    return SeasonId(row.season);
+  }
+
+  Future<SeasonId> _seasonOfLamb(LambId id) async {
+    final Lamb lamb = await (_db.select(
+      _db.lambs,
+    )..where(($LambsTable t) => t.id.equals(id.value))).getSingle();
+    return _seasonOfLambing(LambingId(lamb.lambing));
   }
 
   Future<LambId> addLamb(LambingId lambing, {Sex? sex}) {

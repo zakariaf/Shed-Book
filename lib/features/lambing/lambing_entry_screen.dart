@@ -19,6 +19,9 @@ import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/domain/care_kind.dart';
+import 'package:shed_book/features/lambing/widgets/care_line.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
@@ -93,7 +96,7 @@ class LambingEntryScreen extends ConsumerWidget {
   }
 }
 
-class _Regions extends StatelessWidget {
+class _Regions extends ConsumerWidget {
   const _Regions({
     required this.data,
     required this.lambsLabel,
@@ -111,7 +114,7 @@ class _Regions extends StatelessWidget {
   final WeightUnit units;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final TextTheme text = Theme.of(context).textTheme;
     final ShedTokens t = context.tokens;
 
@@ -172,6 +175,28 @@ class _Regions extends StatelessWidget {
           // UNDER THE LAMBS, ABOVE CARE. Ease is about the lambing rather than
           // about any one lamb, so it sits below the list it describes.
           EaseRow(lambingId: data.lambing.id, ease: data.lambing.ease),
+          // THE FOUR CARE LINES. On this screen every care event is written
+          // against the LAMBING — the lamb arm is for care given to one lamb,
+          // which is N17's per-lamb detail. `CareSubject` is sealed so neither
+          // arm can be forgotten at a call site.
+          for (final CareKind kind in CareKind.values)
+            CareLine(
+              key: Key('lambing_entry.care.${kind.key}'),
+              state: _careState(context, kind),
+              onPressed: () {
+                final CareEntryRow? existing = _liveCare(kind);
+                final LambingWriteController write = ref.read(
+                  lambingWriteControllerProvider.notifier,
+                );
+                // A SECOND PRESS UNDOES, AND UNDOING IS A STRIKE. It does not
+                // revert the line to unset: both stamps stay on the page.
+                if (existing != null) {
+                  write.removeCare(existing.id);
+                } else {
+                  write.addCare(CareForLambing(data.lambing.id), kind: kind);
+                }
+              },
+            ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
             child: Text(
@@ -182,6 +207,76 @@ class _Regions extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// The LIVE care event of one kind against this lambing, or null.
+  ///
+  /// **DERIVED FROM THE ONE STATEMENT, NOT FROM A SECOND QUERY.** T01's
+  /// statement already returns the care rows; this is `any` over data in hand.
+  /// An `EXISTS` subquery would be a second content stream and `07 §1.2` forbids
+  /// it — the word *exists* in that document names the SHAPE OF THE STATE, not a
+  /// SQL construct to go and write.
+  ///
+  /// **Struck rows are excluded from LIVE but not from the page.** A struck care
+  /// event still renders — its DONE stamp struck, its UNDONE stamp beside it —
+  /// which is why the two lookups below are different functions rather than one
+  /// with a flag.
+  CareEntryRow? _liveCare(CareKind kind) {
+    for (final CareEntryRow c in data.lambingCare) {
+      if (c.kind == kind.key && !c.struck) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  CareEntryRow? _struckCare(CareKind kind) {
+    for (final CareEntryRow c in data.lambingCare) {
+      if (c.kind == kind.key && c.struck) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  /// One care line's words.
+  ///
+  /// **THERE IS NO "NO" ARM**, and the `switch` has nowhere to put one: the
+  /// state is a done stamp or the not-recorded label, and `null` is what an
+  /// unpressed line carries. Decision #43.
+  CareLineState _careState(BuildContext context, CareKind kind) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String locale = Localizations.localeOf(context).toLanguageTag();
+    final String label = switch (kind) {
+      // EXHAUSTIVE, NO `default:`. A fifth kind is a schema migration AND a
+      // notification-channel decision (R49); it must not be able to reach the
+      // screen as a blank label.
+      CareKind.colostrum => l10n.careColostrum,
+      CareKind.navelDip => l10n.careNavelDip,
+      CareKind.stomachTube => l10n.careStomachTube,
+      CareKind.warmed => l10n.careWarmed,
+    };
+
+    final CareEntryRow? live = _liveCare(kind);
+    final CareEntryRow? struck = _struckCare(kind);
+
+    final String? doneAt = switch ((live, struck)) {
+      (final CareEntryRow c, _) => l10n.careDoneAt(time: formatShedTime(c.time.effective, locale)),
+      (null, final CareEntryRow c) => l10n.careDoneAt(
+        time: formatShedTime(c.time.effective, locale),
+      ),
+      (null, null) => null,
+    };
+    final String? undoneAt = live == null && struck != null
+        ? l10n.careUndoneAt(time: formatShedTime(struck.time.effective, locale))
+        : null;
+
+    return (
+      label: label,
+      doneAt: doneAt,
+      undoneAt: undoneAt,
+      semanticLabel: l10n.careLineSemantics(label: label, state: doneAt ?? l10n.careNotRecorded),
     );
   }
 

@@ -10,6 +10,7 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/lambing_ease.dart';
 
@@ -54,6 +55,23 @@ final class LambingWriteController extends WriteController {
   /// #22) commits one value rather than two.
   Future<void> setEase(LambingId lambing, LambingEase ease) =>
       guard(() => ref.read(lambingRepositoryProvider).setEase(lambing, ease));
+
+  /// One press is one committed care event. `guard()` refuses to run
+  /// concurrently, so a double-fired press writes one row.
+  Future<void> addCare(
+    CareSubject subject, {
+    required CareKind kind,
+    int? volumeMl,
+    ColostrumMethod? method,
+  }) => guard(
+    () => ref
+        .read(lambingRepositoryProvider)
+        .addCare(subject, kind: kind, volumeMl: volumeMl, method: method),
+  );
+
+  /// Strikes rather than deletes — see `LambingRepository.removeCare`.
+  Future<void> removeCare(CareEventId id) =>
+      guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
 }
 
 /// **Always `.autoDispose`** for a write controller (`CONVENTIONS §3.4`).

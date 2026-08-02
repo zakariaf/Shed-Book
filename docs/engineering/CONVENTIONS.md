@@ -74,6 +74,7 @@ shed_book/
 │   │   ├── ids.dart                  # the extension-type ids ONLY (R5). No package:uuid here.
 │   │   ├── birth_type.dart           # enum BirthType + int code 1..5 + expectedLambCount()
 │   │   ├── lambing_ease.dart         # extension type LambingEase(int) 1..5. NO descriptions (R44).
+│   │   ├── care_kind.dart            # CareKind · ColostrumMethod · sealed CareSubject (R82)
 │   │   ├── sex.dart                  # enum Sex { female('f'), male('m'), unknown('unknown') }
 │   │   ├── foster_outcome.dart       # sealed FosterOutcome (R64)
 │   │   ├── penning.dart              # timeSincePenned(entered, now), isReadyToTurnOut(...)  (R24)
@@ -486,6 +487,9 @@ for the type.
 | Type | File | Members → stored key |
 |---|---|---|
 | `BirthType` | `lib/domain/birth_type.dart` | `single`→1, `twin`→2, `triplet`→3, `quad`→4, `quintPlus`→5, on `int code`. `int? expectedLambCount(BirthType)` lives in this file and returns **null** for `quintPlus` (R46). |
+| `CareKind` | `lib/domain/care_kind.dart` | `enum CareKind { colostrum('colostrum'), navelDip('navel_dip'), stomachTube('stomach_tube'), warmed('warmed') }` — a closed `CHECK` and a frozen notification channel id, never a `vocab_terms` FK (R82, R49). |
+| `ColostrumMethod` | `lib/domain/care_kind.dart` | `enum ColostrumMethod { teat('teat'), tube('tube'), bottle('bottle') }`. Skippable, never defaulted (R82). |
+| `CareSubject` | `lib/domain/care_kind.dart` | `sealed class CareSubject` with `CareForLamb` / `CareForLambing` — exactly one, made unconstructible rather than checked at 03:20 (R82). |
 | `LambingEase` | `lib/domain/lambing_ease.dart` | `extension type const LambingEase(int code)` 1..5, validated. **No descriptions in the domain** — the five labels are `vocab_terms` keys `ease_1`…`ease_5` with ARB defaults (R44). |
 | `Sex` | `lib/domain/sex.dart` | `female('f')`, `male('m')`, `unknown('unknown')` (R45). `NULL` ≠ `unknown`. |
 | `LambStatus` | `lib/domain/stats/season_counts.dart` | `alive`, `dead`, `stillborn`, `sold` |
@@ -2024,3 +2028,26 @@ and `lib/core/`, so no layer boundary is crossed.
 
 The task document is **not** silently corrected — its instruction stands on disk with this ruling
 against it, which is the amendment rule working rather than being worked around.
+
+### R82 — `CareKind`, `ColostrumMethod` and the sealed `CareSubject`
+
+**Ruled 2026-08-02 (N16-T05).** Three closed sets in `lib/domain/care_kind.dart`, each member carrying
+the string the schema stores (§2.9), plus one sealed subject.
+
+| Dart | Stored key | Where the key is frozen |
+|---|---|---|
+| `CareKind.colostrum` · `.navelDip` · `.stomachTube` · `.warmed` | `colostrum` · `navel_dip` · `stomach_tube` · `warmed` | `care_events`' `CHECK (kind IN (…))`, **and** the Android notification channel id, which is byte-identical to the key and frozen at release (decision #65, R49) |
+| `ColostrumMethod.teat` · `.tube` · `.bottle` | `teat` · `tube` · `bottle` | `CHECK (method IS NULL OR method IN (…))` |
+| `CareForLamb` · `CareForLambing` | the `lamb` / `lambing` column | `CHECK ((lambing IS NOT NULL) + (lamb IS NOT NULL) = 1)` |
+
+`kind` is a **closed `CHECK`, not a vocabulary foreign key**: `vocab_terms` holds the lists the
+shepherd may rename, and these four are not among them. A fifth care kind is a schema migration **and**
+a channel decision — the correct amount of friction.
+
+`CareSubject` is **sealed rather than two nullable id parameters**, and that is the safety-rule
+hierarchy applied to an ordinary column: two nullables make the two unstorable combinations — both set,
+neither set — *constructible*, and the `CHECK` then fires as a `WriteFailed` at 03:20 instead of as a
+compile error at 09:00. Unstorable becomes unconstructible.
+
+**`removeCare` strikes.** `07 §15.1`'s row is amended in the same commit; see R79 for the mixin and
+`indelible.md §7.10` for the rendering that requires the row to survive.

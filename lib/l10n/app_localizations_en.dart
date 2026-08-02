@@ -378,4 +378,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String lambingEaseValueSemantics({required int ordinal, required String description}) {
     return 'Ease $ordinal, $description';
   }
+
+  @override
+  String get careColostrum => 'Colostrum';
+
+  @override
+  String get careNavelDip => 'Navel dip';
+
+  @override
+  String get careStomachTube => 'Stomach tube';
+
+  @override
+  String get careWarmed => 'Warmed';
+
+  @override
+  String careDoneAt({required String time}) {
+    return 'DONE $time';
+  }
+
+  @override
+  String careUndoneAt({required String time}) {
+    return 'UNDONE $time';
+  }
+
+  @override
+  String get careNotRecorded => 'NOT RECORDED';
+
+  @override
+  String careLineSemantics({required String label, required String state}) {
+    return '$label, $state';
+  }
 }

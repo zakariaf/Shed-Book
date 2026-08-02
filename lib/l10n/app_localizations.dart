@@ -699,6 +699,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Ease {ordinal}, {description}'**
   String lambingEaseValueSemantics({required int ordinal, required String description});
+
+  /// One of the four frozen care kinds (key 'colostrum'). The label is the NOUN, not a claim: 'Colostrum' with a DONE stamp beside it says when the shepherd pressed it, which is a better record than a tick. Never 'Colostrum given?' - the line is not a question.
+  ///
+  /// In en, this message translates to:
+  /// **'Colostrum'**
+  String get careColostrum;
+
+  /// Care kind 'navel_dip'. Two words, the trade term. Never 'Navel dipped' - the past tense would read as a claim on a line that has not been pressed.
+  ///
+  /// In en, this message translates to:
+  /// **'Navel dip'**
+  String get careNavelDip;
+
+  /// Care kind 'stomach_tube'. Never 'Tubed', which is shed shorthand a screen reader cannot render, and never 'Tube fed', which is a different act.
+  ///
+  /// In en, this message translates to:
+  /// **'Stomach tube'**
+  String get careStomachTube;
+
+  /// Care kind 'warmed'. Covers a warming box, a jacket or a hot box; the app records that it happened and never how, because how is not a field and inventing one would be the app asking a question at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmed'**
+  String get careWarmed;
+
+  /// The done stamp. UNBOXED (indelible.md 7.10): DONE in the chrome voice, the time tabular beside it. The time is when the shepherd PRESSED IT, which is the fact being recorded - not when the care was planned and not when the lambing was.
+  ///
+  /// In en, this message translates to:
+  /// **'DONE {time}'**
+  String careDoneAt({required String time});
+
+  /// The undone stamp, printed BESIDE the struck DONE stamp rather than replacing it (indelible.md 7.10, rule 1). Both times stay on the page: the shepherd pressed it at 03:24 and unpressed it at 03:31, and both are true.
+  ///
+  /// In en, this message translates to:
+  /// **'UNDONE {time}'**
+  String careUndoneAt({required String time});
+
+  /// A care line that has not been pressed. NEVER 'No', NEVER 'Not given', NEVER '0' - decision #43 and 07 6.2: a shepherd who did not dip a navel has recorded NOTHING, and the app must not turn that into a claim. There is no way to record 'no' anywhere in this product, on purpose.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get careNotRecorded;
+
+  /// One care line as one utterance for a screen reader. The state is the not-recorded label or the done stamp - the same words the eye gets, so a support call about 'the third line' is about the same thing for both users.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {state}'**
+  String careLineSemantics({required String label, required String state});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

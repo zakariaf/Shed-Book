@@ -1042,5 +1042,22 @@
   "withdrawalUnit": "days",
   "@withdrawalUnit": {
     "description": "The unit beside the days keypad. Days, always - 05 4.4 fixes the unit even for milk, where a different milking frequency could be argued, because one unit is one thing to get wrong."
+  },
+  "withdrawalDisagrees": "Nothing has been changed. The stored clear date is shown first; the second is what today's arithmetic gives.",
+  "@withdrawalDisagrees": {
+    "description": "Printed when the stored clear date and a recomputation disagree - which happens when the device changed timezone between the write and the read. BOTH numbers are shown and NEITHER is updated: 12.4 forbids silently correcting a user's entry, and the stored one is what the shepherd was told and may have written in a book. The line says nothing was changed, in as many words, and there is no control offering to reconcile them - offering would make the app the arbiter of a clinical date."
+  },
+  "withdrawalStored": "STORED {date}",
+  "@withdrawalStored": {
+    "description": "Labels the stored clear date, which renders FIRST because it is the one the shepherd was told and the one in the book.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "withdrawalRecomputed": "TODAY'S ARITHMETIC {date}",
+  "@withdrawalRecomputed": {
+    "description": "Labels the recomputed date, shown second and only when it disagrees. It is an observation, never an offer: there is no button beside it."
   }
 }

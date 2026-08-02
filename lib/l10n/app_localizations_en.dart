@@ -708,4 +708,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get withdrawalUnit => 'days';
+
+  @override
+  String get withdrawalDisagrees =>
+      'Nothing has been changed. The stored clear date is shown first; the second is what today\'s arithmetic gives.';
+
+  @override
+  String withdrawalStored({required String date}) {
+    return 'STORED $date';
+  }
+
+  @override
+  String withdrawalRecomputed({required Object date}) {
+    return 'TODAY\'S ARITHMETIC $date';
+  }
 }

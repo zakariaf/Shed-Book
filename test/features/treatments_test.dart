@@ -10,6 +10,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/widgets/withdrawal_control.dart';
+import 'package:shed_book/features/treatments/widgets/withdrawal_disagreement.dart';
 
 import '../support/harness.dart';
 
@@ -180,6 +181,53 @@ void main() {
     // numeric route in the app, and a numeric keyboard is the thing it replaced.
     expect(find.byType(TextField), findsNothing);
     expect(find.byType(ShedTapTarget), findsWidgets);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a disagreeing clear date renders both numbers and offers no correction', (
+    WidgetTester tester,
+  ) async {
+    // BOTH NUMBERS, NEITHER UPDATED. The disagreement happens when the device
+    // changed timezone between the write and the read, and §12.4 forbids
+    // silently correcting a user's entry — the stored date is the one the
+    // shepherd was told and may have written in a book.
+    //
+    // THE STORED ONE RENDERS FIRST, asserted geometrically rather than by index:
+    // a column that built them in one order and laid them out in another would
+    // satisfy any find-based check.
+    //
+    // AND THERE IS NO CONTROL OFFERING TO RECONCILE THEM. Offering would make
+    // the app the arbiter of a clinical date — the same line §12.2 draws.
+    final AppDatabase db = testDatabase();
+
+    await tester.pumpApp(
+      const WithdrawalDisagreement(
+        labels: (
+          stored: 'STORED 11 Mar 2026',
+          recomputed: "TODAY'S ARITHMETIC 12 Mar 2026",
+          explanation: 'Nothing has been changed.',
+        ),
+      ),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('11 Mar 2026'), findsOneWidget);
+    expect(find.textContaining('12 Mar 2026'), findsOneWidget);
+    expect(find.textContaining('Nothing has been changed'), findsOneWidget);
+
+    final double storedY = tester
+        .getTopLeft(find.byKey(const Key('treatment.withdrawal.stored')))
+        .dy;
+    final double recomputedY = tester
+        .getTopLeft(find.byKey(const Key('treatment.withdrawal.recomputed')))
+        .dy;
+    expect(storedY, lessThan(recomputedY), reason: 'the one in the book comes first');
+
+    // NO TARGET ANYWHERE IN THE SUBTREE. Not a disabled one, not a hidden one —
+    // none. The absence is the mechanism.
+    expect(find.byType(ShedTapTarget), findsNothing);
 
     await tester.closeApp();
   });

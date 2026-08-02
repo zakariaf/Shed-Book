@@ -1287,6 +1287,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'days'**
   String get withdrawalUnit;
+
+  /// Printed when the stored clear date and a recomputation disagree - which happens when the device changed timezone between the write and the read. BOTH numbers are shown and NEITHER is updated: 12.4 forbids silently correcting a user's entry, and the stored one is what the shepherd was told and may have written in a book. The line says nothing was changed, in as many words, and there is no control offering to reconcile them - offering would make the app the arbiter of a clinical date.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been changed. The stored clear date is shown first; the second is what today\'s arithmetic gives.'**
+  String get withdrawalDisagrees;
+
+  /// Labels the stored clear date, which renders FIRST because it is the one the shepherd was told and the one in the book.
+  ///
+  /// In en, this message translates to:
+  /// **'STORED {date}'**
+  String withdrawalStored({required String date});
+
+  /// Labels the recomputed date, shown second and only when it disagrees. It is an observation, never an offer: there is no button beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY\'S ARITHMETIC {date}'**
+  String withdrawalRecomputed({required Object date});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

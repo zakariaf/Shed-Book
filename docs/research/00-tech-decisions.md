@@ -524,6 +524,38 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 13 | Does a lamb kept as a breeding ewe become a `Ewe` row? — **ruled 2026-08-01** | **Yes.** `lambs.became_ewe`, nullable, in the v1 schema. | A nullable FK to `ewes(id)` with `onDelete: KeyAction.setNull`, plus a hand-written `@TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})` — SQLite creates no child-key index automatically (#31). It re-opens the cross-table tag rule at `03 §6`, whose sentence *"a lamb tagged 412 and an active ewe tagged 412 can coexist… v1 has no lamb→ewe promotion"* is only true while the answer is no: `03 §6` is amended in the same commit and **no cross-table trigger is added to paper over it**, by that section's own instruction. The partial unique index on active tags is unchanged — promotion writes a `ewes` row that takes its own tag through the same create-on-the-fly path every other ewe does. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
 
+### 7.0a P3 — the navigation model. RULED 2026-08-02 (N13-T01).
+
+**The conflict.** `02 §8.1`–§8.3 and §9.1 specify `Navigator` 1.0, a stack at most three pushes deep,
+twelve typed push helpers, `PopScope` with `canPop: true` everywhere, Android predictive back, and a
+two-minute resume reset to Quick Entry. `indelible.md` §7.17 says *"There is no tab bar, no rail, no
+stack, and no back button — pressing `INDEX` and choosing another filter is always one press deeper,
+never one press back"*, and its Screen 3 says *"There is no Quick Entry screen, and that is the
+design."* The two are not reconcilable by wording.
+
+**The ruling splits, because the disagreement has two halves and they resolve opposite ways.**
+
+| Half | Ruling | Why the other answer was wrong |
+|---|---|---|
+| **Mechanism** — is navigation a `Navigator` stack at all? | **`02` wins. It is a stack.** | Indelible's *"one press deeper, never one press back"* is a claim about **what the shepherd is told and sees**, not about the widget tree. A push whose only exit is `Routes.popToQuickEntry` satisfies it from the user's side while keeping three things that are otherwise hand-built on every screen: the route name the diagnostics log is allowed to record (#124), `ModalRoute.withName` for the pen-board flow's explicit return, and Android's hardware **and predictive** back. Deleting the stack means owning the Android back button by hand, twelve times, in an app whose users are one-handed at 03:20. That is the higher-risk half and it buys nothing the user can perceive. |
+| **Affordance** — does an on-screen back control exist? | **Indelible wins. There is no back chevron anywhere in this app.** | This is not a concession: `02` never *required* a visible back control, only that the platform gesture works. `INDEX` (96 × 64, bottom-left, `indelible.md` §4.5) is the only navigation affordance, and `AppBar`'s automatic leading button is therefore suppressed on every screen. A chevron would teach a shepherd that the app has a history to walk backwards through, which is exactly the model Indelible is refusing. |
+
+**What is struck.** `indelible.md` §7.17's *"no stack"* — the mechanism claim only — with this reason.
+Its *"no back button"* stands and is now enforceable. Screen 3's *"There is no Quick Entry screen"* is
+struck too: `07 §5` makes Quick Entry the root route and N13-T05 builds `QuickEntryScreen`, and
+`07-screens.md` outranks `indelible.md` on which screens exist. What Screen 3 was describing — one
+scrolling ruled page under different filters, `INDEX` bottom-left, the slab bottom-right — is a layout
+claim and it survives untouched.
+
+**What this binds.** `lib/routing/routes.dart` is the only place a route is constructed;
+`Routes.navigatorKey` is the one `GlobalKey`; `canPop` is `true` on every screen (the single exception
+is the season-deletion flow, #69); `onPopInvokedWithResult`, never the deprecated spelling; no
+`restorationScopeId` and no `Restorable*` (#24); and **no screen renders a back affordance** —
+`automaticallyImplyLeading: false` wherever an `AppBar` appears, asserted per screen from N13-T05
+onward.
+
+---
+
 Questions 1, 2, 4, 9, 12, 14 and 17 below remain genuinely open. Items 3, 5, 6, 7 and 8 were settled on 2026-07-27; items 16 and 18 on 2026-08-01, before `pubspec.yaml` closed; items 10, 11, 13 and 15 on 2026-08-01, before the schema freeze at N07-T08.
 
 ---

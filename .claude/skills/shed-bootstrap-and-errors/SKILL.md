@@ -85,7 +85,7 @@ Four layers, one colour, and **the first two have no Dart-side fix** — by the 
 ## Gotchas
 
 - `ResumePolicy.shouldClearSelection` takes two `Instant`s, not `DateTime`s: `appNow()` is the only wall-clock reader (R23) and returns `Instant`. CONVENTIONS §2.14's table cell still spells `DateTime` — R23 is the later ruling in the same file and wins. Flag the cell; do not follow it.
-- `ref.invalidate(minuteTickProvider)` in the `resumed` arm is the **one** legitimate `ref.invalidate` in the codebase (elapsed times are 20 minutes stale) — but rule `stream.invalidate` scans all of `lib/` and `[exempt]` has four lines, none for `lib/app.dart` (R56). Keep the call and raise the missing allowlist line; deleting it to green the gate ships stale times.
+- `ref.invalidate(minuteTickProvider)` in the `resumed` arm is one of the **two** legitimate `ref.invalidate` calls in the codebase (elapsed times are 20 minutes stale); the other is `ref.invalidate(databaseProvider)` at restore step 14. Rule `stream.invalidate` was narrowed on 2026-08-02 to fire on every OTHER argument, so both compile green and a third fires. The `[exempt]` allowlist still has four lines (R56) and none of them is this. Never delete the call to green a gate — that ships stale times.
 - `main.no_await` is a substring match, so the word in a **comment** fails the build. Do not paste `examples/main.dart`'s annotations into the real file.
 - `WidgetsBinding.instance` and `PlatformDispatcher.instance` are the SDK's and belong in `main.dart`/`app.dart`; the "one `.instance` in `lib/`" grep means one *non-framework* singleton.
 - `reminderReconcilerProvider` is a `FutureProvider`, so resume reaches it via `.future`; `ref.read(p)` hands you the `AsyncValue`, not the reconciler.

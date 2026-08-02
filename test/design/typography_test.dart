@@ -239,30 +239,54 @@ void main() {
     }
   });
 
-  test('exactly one family is declared, and the second voice is an open question', () {
-    // P7's OTHER half, and it is NOT closed by this task.
+  test('exactly one family is declared, and the two voices ride the weight ladder', () {
+    // P7 IS CLOSED — 2026-08-02 — AND ONE FAMILY WON.
     //
-    // indelible.md §3.2 asks for two bundled faces — Source Serif 4 for the
-    // record voice, Source Sans 3 for the control voice, "two families, four
-    // instances, whole payload under 700 kB" — and calls the two-voice split
-    // one of its four rules. Decision #98 names Atkinson Hyperlegible Next and
-    // only that; #98 is rank 1 in the authority order and is not struck, so one
-    // family ships today.
+    // indelible.md §3.2 asked for two bundled faces, "two families, four
+    // instances, whole payload under 700 kB", because its Rule 2 was
+    // serif = record, sans = control. Decision #98 — rank 1 in the authority
+    // order, and not struck — bundles Atkinson Hyperlegible Next, which is a
+    // SANS. So a second face for controls would have been sans against sans:
+    // the letterform-shape distinction collapses either way, and the 700 kB
+    // buys nothing it was chosen for.
     //
-    // The cost is real: with one face the two voices are carried by size and
-    // weight alone. That is an owner's ruling to make, not a task's, and it is
-    // carried into N09's pull request with both sides cited.
-    //
-    // This case pins the STATUS QUO so the question cannot be answered by
-    // drift — adding a second family will fail here and force the ruling to be
-    // written down.
+    // The two voices survive on CASE AND WEIGHT, which indelible.md §3.1 now
+    // states. This case holds the WEIGHT half mechanically; the case half is a
+    // review question, because a TextTheme cannot know whether a label was
+    // written in capitals.
     final int declared = 'family:'.allMatches(File('pubspec.yaml').readAsStringSync()).length;
     expect(
       declared,
       1,
       reason:
-          'a second family is P7\'s open half — record the ruling in the '
-          'decision record and in indelible.md §3.2 before adding one',
+          'P7 is closed at one family. A second one re-opens it: amend the '
+          'decision record, indelible.md §3.1 and 06 §5.2 in the same change, '
+          'and it must beat case-and-weight on the two-voice test',
     );
+  });
+
+  test('records are lighter than controls at the same size', () {
+    // THE WEIGHT LADDER IS THE TWO-VOICE MECHANISM NOW, so it is asserted rather
+    // than assumed. body* is the record voice, label* is the control voice, and
+    // at every shared size the control is heavier — which is what a shepherd
+    // reads at a glance when the letterforms can no longer tell them apart.
+    // Over EVERY palette, because the night-shift palettes buy stroke with size
+    // (#98) and a future direction that bought it with weight instead would
+    // flatten the ladder in exactly one palette and nowhere else.
+    for (final ShedPalette p in shedPalettes) {
+      final TextTheme t = buildShedTextTheme(p.tokens);
+
+      expect(t.bodyMedium!.fontWeight, FontWeight.w500, reason: p.id.name);
+      expect(t.bodyLarge!.fontWeight, FontWeight.w500, reason: p.id.name);
+      expect(t.bodySmall!.fontWeight, FontWeight.w500, reason: p.id.name);
+
+      for (final TextStyle? control in <TextStyle?>[t.labelLarge, t.labelMedium, t.labelSmall]) {
+        expect(
+          control!.fontWeight!.value,
+          greaterThan(t.bodyMedium!.fontWeight!.value),
+          reason: 'control must read heavier than record — ${p.id.name}',
+        );
+      }
+    }
   });
 }

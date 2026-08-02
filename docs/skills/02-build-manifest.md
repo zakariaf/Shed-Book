@@ -888,7 +888,10 @@ tests · **a routing table naming the other four design skills**.
    exempt stamps. `--t-stamp: 14px` and `--t-head: 16px` in the mockup are defects, not the spec.
 2. **The 390 / 420 / 520 / 600 weights need `FontVariation` on a variable axis**, because Flutter's
    `FontWeight` is w100–w900 in hundreds. `06 §5.2` records the Atkinson axis as covering **500–700**,
-   which excludes 390 and 420 — **P7 is open and the skill says so rather than picking**.
+   which excludes 390 and 420. **P7 CLOSED 2026-08-02**: the axis MEASURES 200–800, so 06 §5.2's
+   "500–700" was wrong and the fractional weights were always reachable — what rules them out is that
+   `Text.build` ignores `fontVariations` for Bold Text. One family, `fontWeight` never
+   `FontVariation`, and the two voices ride case and weight.
 3. **P10 is open**: `06`'s definition of done says the haptic vocabulary has exactly **four** entries;
    Indelible §5.4 lists **five** with distinct rhythms. `HapticFeedback.successNotification()` is
    carried as **unverified** in `00-README §10`.
@@ -1122,7 +1125,7 @@ except through §4.3's single graft · the four skill-authoring research notes, 
 ### 7.1 Before a single `SKILL.md` is written
 
 1. **Rule P1** — `struck` / `struck_at`. Schema-irreversible; blocks E6 and E13.
-2. **P2 and P8 are ruled** (§4.1, §4.2). P3, P7, P9, P10, P14 are recorded as open **inside the owning
+2. **P2, P8, P7 and P14 are ruled** (§4.1, §4.2; P7 2026-08-02; P14 at N11-T04). P3, P9, P10 are recorded as open **inside the owning
    skill**, with both sides cited and neither picked.
 3. **Write `CLAUDE.md`** (§6.1) and wire the six hooks (§6.2). Both reduce what the skills must carry,
    and the size targets in §3 assume they exist.
@@ -1183,5 +1186,5 @@ gotchas section."* The gotchas sections are the only part of this manifest that 
 | **Skills authored** | 0 |
 | **Design system** | `../design/indelible.md` v1.0 — the only direction any skill may cite, plus the one graft in §4.3 |
 | **Extras** | 1 script · 6 examples · 9 references |
-| **Blocking before authoring** | **P1** (schema-irreversible). P2 and P8 are ruled in §4.1–§4.2. P3, P7, P9, P10, P14 are carried as open, inside their owning skill |
+| **Blocking before authoring** | **P1** (schema-irreversible). P2, P8, P7 and P14 are ruled. P3, P9, P10 are carried as open, inside their owning skill |
 | **Amendment rule** | Changing a skill's scope changes this manifest in the same commit, including §1's arithmetic, §3's table and §7.3's acceptance test. A skill whose description no longer matches its row here is worse than a missing skill — and any description edit re-runs §1.2's sum. |

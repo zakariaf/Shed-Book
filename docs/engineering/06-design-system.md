@@ -995,7 +995,9 @@ flutter:
 
 **`google_fonts` is banned** and grepped for: 8.2.0 depends on `http` and fetches at runtime by default, which is categorically wrong in an app that ships with no `INTERNET` permission.
 
-If the chosen direction needs a second face (an editorial serif, a condensed grotesque, a monospace instrument face), it must be an OFL/SIL-licensed TTF bundled the same way, added to `ShedTokens` as a `fontFamily*` token, and counted against the < 5 MB bundled-asset budget (decision #127). It may not be fetched, and it must ship `tnum` if it renders any numeral that aligns.
+**P7 IS CLOSED — 2026-08-02, and one family ships.** `indelible.md` §3.1 required two bundled families because its Rule 2 was *serif = record, sans = control*. Decision #98, which outranks it, bundles Atkinson Hyperlegible Next — a **sans** — so a second face for controls would have been sans against sans: the letterform-shape distinction collapses either way, and the two-family payload buys nothing it was chosen for. `indelible.md` §3.1 is amended in the same change to carry the two voices on **case and weight** instead, and its own acceptance test for a record face (the 1/7 and 6/8 pairs, at 32 px, at 30% brightness, through a sandwich bag) is the design brief Atkinson was drawn to. `test/design/typography_test.dart` pins the family count at one and asserts the weight ladder.
+
+This paragraph's mechanism survives for any FUTURE second face, and the bar is now higher: it must be an OFL/SIL-licensed TTF bundled the same way, added to `ShedTokens` as a `fontFamily*` token, counted against the < 5 MB bundled-asset budget (decision #127), **and it must beat case-and-weight on the two-voice test rather than merely differ from Atkinson.** It may not be fetched, and it must ship `tnum` if it renders any numeral that aligns.
 
 **Unverified:** Atkinson Hyperlegible Next has no `zero` (slashed-zero) feature and no `ss01`/`cv` variants; it separates `0` from `O` by counter shape and width alone. Confirm on a real device under a head torch before the font is locked in. If it fails, Inter (also OFL 1.1) with `FontFeature.slashedZero()` is the documented fallback.
 

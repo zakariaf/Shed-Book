@@ -1478,6 +1478,39 @@ lib/core/ui/palettes.dart          :: token.primitives_import
         }).map((String v) => v.split(']').first.substring(1)),
         contains('stream.invalidate'),
       );
+
+      // THE NARROWING, DRILLED FROM BOTH SIDES (2026-08-02). The rule moved from
+      // the substring family to the pattern family with a negative lookahead for
+      // the two architected arguments — 02 §4.1's ticker on resume and 04 §7
+      // step 14's database reopen. Neither has a drift stream behind it, which
+      // is exactly what the ban is scoped to.
+      //
+      // The `[exempt]` line CODE-REVIEW-CHECKLIST §1.5 offered as the other move
+      // would have deleted the rule for one whole file and would not have
+      // reached the restore flow at all. These four assertions are what make the
+      // narrower move safe: it still fires on everything else, in the same two
+      // files.
+      for (final String allowed in <String>['minuteTickProvider', 'databaseProvider']) {
+        expect(
+          gateOn(<String, String>{'lib/app.dart': 'void f() => ref.invalidate($allowed);\n'}),
+          isEmpty,
+          reason: '$allowed is architected',
+        );
+      }
+      expect(
+        gateOn(<String, String>{
+          'lib/app.dart': 'void f() => ref.invalidate(settingsProvider);\n',
+        }).map((String v) => v.split(']').first.substring(1)),
+        contains('stream.invalidate'),
+        reason: 'the allowance is two arguments, not one file',
+      );
+      expect(
+        gateOn(<String, String>{
+          'lib/app.dart': 'void f() => ref.invalidate(minuteTickProviderish);\n',
+        }).map((String v) => v.split(']').first.substring(1)),
+        contains('stream.invalidate'),
+        reason: 'the lookahead closes on the paren, so a longer name is not the allowance',
+      );
       expect(
         gateOn(<String, String>{
           'lib/features/season/season_controller.dart': 'final n = count ?? 0;\n',

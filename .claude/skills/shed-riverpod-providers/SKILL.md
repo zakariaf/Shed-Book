@@ -90,10 +90,12 @@ Family arguments are the cache key, compared with `==`. Use the extension-type i
   (02 §9.1, R25 — a wall-clock ticker with no database behind it), and
   `ref.invalidate(databaseProvider)` at step 14 of restore (04 §7, `shed-export-and-restore`) — the
   live database file has been *replaced*, so re-opening it is the point, not a stale-read patch.
-  A third is a defect. `stream.invalidate` scans all of `lib/` with no `[exempt]` line (R56's four),
-  so both call sites are expected red until the row narrows to drift-backed reads or the two lines
-  are allowlisted (`CODE-REVIEW-CHECKLIST §1.5`, an open gate question) — **raise it; never delete
-  the call to green the gate.**
+  A third is a defect. `stream.invalidate` was **narrowed on 2026-08-02** to
+  `RegExp(r'ref\.invalidate\((?!minuteTickProvider\)|databaseProvider\))'`, so both call sites are
+  green and every other argument fires — including in the same two files. `CODE-REVIEW-CHECKLIST
+  §1.5` is closed by that narrowing, and the `[exempt]` allowlist is untouched at four lines.
+  **Never delete the call to green a gate**, and never reach for a fifth `[exempt]` line: the
+  exception belongs in the rule, where it is legible.
 
 ## 5. `watch` / `read` / `listen` / `.select`
 

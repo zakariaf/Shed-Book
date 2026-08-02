@@ -879,6 +879,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'QUAD OR MORE'**
   String get birthTypeQuintPlus;
+
+  /// Prefixes the ORIGINAL time on the header's second line - 'was 03:20'. It is the FIRST value, never the previous one: an unbounded chain of edits keeps what we first thought, because recording THAT a time was edited while losing WHAT IT WAS EDITED FROM makes the 12.5 label true and useless.
+  ///
+  /// In en, this message translates to:
+  /// **'was'**
+  String get provenanceWasPrefix;
+
+  /// The header for a screen reader. The provenance travels with the time here exactly as it does on screen - a spoken time without its source would be the one place 12.5's claim goes silent. The provenance string is RecordedTime.provenanceLabel itself, never a second spelling of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambing time {time}, {provenance}'**
+  String provenanceHeaderSemantics({required String time, required String provenance});
+
+  /// onTapHint for the header. 07 6.4 gives this screen exactly one time-editing action and this is it. The verb is CORRECT rather than EDIT or CHANGE: the record is not wrong, the clock reading was.
+  ///
+  /// In en, this message translates to:
+  /// **'correct the time this lambing happened'**
+  String get provenanceEditHint;
+
+  /// The time editor's heading. A question without a question mark, in the sheet's own voice. Never 'Set time' - the app is not setting anything, the shepherd is saying what they remember.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN DID IT HAPPEN'**
+  String get timeEditorHeading;
+
+  /// How to type it. 24-hour because the whole app is (en_GB, HH:mm) and because 03:20 and 15:20 are a lambing apart. Four digits because the keypad has no colon key - the colon is punctuation the field adds, never something to type.
+  ///
+  /// In en, this message translates to:
+  /// **'24-hour, four digits'**
+  String get timeEditorHint;
+
+  /// The commit button. Never 'Save' (indelible.md 11 test 7) and never 'OK'. An impossible time leaves this inert rather than clamping - silently turning 25:99 into 23:59 is 12.4.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT IT'**
+  String get timeEditorConfirm;
+
+  /// The commit button for a screen reader. It names what changes, because CORRECT IT alone does not say what.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct the lambing time to what you typed'**
+  String get timeEditorConfirmSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

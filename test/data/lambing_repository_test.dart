@@ -497,4 +497,121 @@ void main() {
     );
     expect(after.timeSource, before.timeSource, reason: '§12.5 — undoing is not editing');
   });
+
+  test('correctOccurredAt keeps the FIRST original through a chain of edits', () async {
+    // `05 §4.4`'s PUBLISHED CASE. `editedTo` is `originalEffective ?? effective`,
+    // so an unbounded chain keeps WHAT WE FIRST THOUGHT. Storing the previous
+    // value instead records THAT a time was edited and loses WHAT IT WAS EDITED
+    // FROM, which makes §12.5's label true and useless — and a single edit
+    // cannot tell the two implementations apart, which is why this edits three
+    // times.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final Lambing first = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    final Instant originally = first.occurredAt;
+
+    for (final int hour in <int>[7, 8, 9]) {
+      await repo.correctOccurredAt(lambing, Instant.fromDateTime(DateTime.utc(2026, 3, 14, hour)));
+    }
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(row.originalEffective, originally, reason: 'the FIRST value, not the second edit');
+    expect(row.occurredAt.epochMillis, DateTime.utc(2026, 3, 14, 9).millisecondsSinceEpoch);
+    expect(row.timeSource, 'edited');
+  });
+
+  test('correctOccurredAt never moves captured_at', () async {
+    // `05 §4.1`'s ANTI-PATTERN LIST names "a copyWith on RecordedTime that
+    // accepts capturedAt" for exactly this. That field is how `entryLag` is
+    // measurable at all, and how spec §15's "within five minutes of the event"
+    // can ever be checked — a correction at 09:00 that rewrote it would make
+    // every deferred entry look instantaneous.
+    //
+    // The companion says so with ABSENCE: `Value.absent()` leaves the column
+    // alone, where `Value(null)` would write NULL and trip the CHECK.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final Lambing before = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    await repo.correctOccurredAt(lambing, Instant.fromDateTime(DateTime.utc(2026, 3, 14, 3, 20)));
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(after.capturedAt, before.capturedAt);
+  });
+
+  test('local_date moves with the corrected instant, in the same statement', () async {
+    // `12 §2.4`'s PUBLISHED CASE. A one-day error puts a bar in the wrong column
+    // of the lambing-spread histogram and fires `localDateDisagrees` on every
+    // subsequent read — a defect that is invisible until somebody looks at a
+    // chart in June.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final Lambing before = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    // Corrected SIX DAYS EARLIER, because a same-day correction cannot tell
+    // "moved with the instant" from "never written at all".
+    await repo.correctOccurredAt(lambing, Instant.fromDateTime(DateTime.utc(2026, 3, 20, 12)));
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    // ASSERTED AS A RELATIONSHIP, NOT AS A LITERAL DAY. The first version of
+    // this case asserted `day == 20` and failed on a host east of UTC — the
+    // stored date is CIVIL and the test process's zone is not London. The claim
+    // 12 §2.4 makes is that the two agree, and that is what is checked; the
+    // zone-specific cases live under test/domain/uk_zone/ with TZ pinned.
+    expect(row.localDate, LocalDate.of(row.occurredAt), reason: 'the two agree');
+    expect(row.localDate, isNot(before.localDate), reason: 'and it actually moved');
+  });
+
+  test('an edited row with no original is unstorable at the database', () async {
+    // THE MECHANISM, NOT A DART-SIDE INVARIANT.
+    // `CHECK ((time_source = 'edited') = (original_effective IS NOT NULL))`
+    // makes the broken state impossible to persist, so a future verb that got
+    // this wrong fails at the write rather than producing a row whose §12.5
+    // label is a lie.
+    //
+    // Attempted as a RAW UPDATE, deliberately: going through the repository
+    // would only prove the repository is careful, which is the weaker claim.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    await expectLater(
+      () => db.customStatement(
+        "UPDATE lambings SET time_source = 'edited', original_effective = NULL WHERE id = ?",
+        <Object?>[lambing.value],
+      ),
+      throwsA(isA<SqliteException>()),
+    );
+
+    // AND THE OTHER DIRECTION, because the CHECK is an equality rather than an
+    // implication: an original with an unedited source is equally impossible.
+    await expectLater(
+      () => db.customStatement(
+        "UPDATE lambings SET time_source = 'auto', original_effective = 1 WHERE id = ?",
+        <Object?>[lambing.value],
+      ),
+      throwsA(isA<SqliteException>()),
+    );
+  });
 }

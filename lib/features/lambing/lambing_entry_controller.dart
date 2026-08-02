@@ -16,6 +16,7 @@ import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/lambing_ease.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/validation/lambing_checks.dart';
@@ -79,6 +80,12 @@ final class LambingWriteController extends WriteController {
   /// Strikes rather than deletes — see `LambingRepository.removeCare`.
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
+
+  /// Corrects the header time. The warnings recompute on the next emission —
+  /// `lambingWarningsProvider` watches the same statement, so nothing needs to
+  /// be invalidated and nothing may be (`02 §4.1`).
+  Future<void> correctOccurredAt(LambingId lambing, Instant when) =>
+      guard(() => ref.read(lambingRepositoryProvider).correctOccurredAt(lambing, when));
 
   /// The deliberate declaration. **Writes the type and leaves the lambs alone.**
   Future<void> setBirthType(LambingId lambing, BirthType type) =>

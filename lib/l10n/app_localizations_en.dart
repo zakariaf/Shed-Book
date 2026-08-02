@@ -480,4 +480,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get birthTypeQuintPlus => 'QUAD OR MORE';
+
+  @override
+  String get provenanceWasPrefix => 'was';
+
+  @override
+  String provenanceHeaderSemantics({required String time, required String provenance}) {
+    return 'Lambing time $time, $provenance';
+  }
+
+  @override
+  String get provenanceEditHint => 'correct the time this lambing happened';
+
+  @override
+  String get timeEditorHeading => 'WHEN DID IT HAPPEN';
+
+  @override
+  String get timeEditorHint => '24-hour, four digits';
+
+  @override
+  String get timeEditorConfirm => 'CORRECT IT';
+
+  @override
+  String get timeEditorConfirmSemantics => 'Correct the lambing time to what you typed';
 }

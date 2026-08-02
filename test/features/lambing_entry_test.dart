@@ -10,6 +10,8 @@ import 'dart:io';
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
 import 'dart:ui' show Tristate;
+import 'package:shed_book/data/recorded_time_columns.dart';
+import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/domain/care_kind.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1345,6 +1347,173 @@ void main() {
 
     // The sheet lists what was found ON THIS CELL and nothing else.
     expect(find.textContaining('future'), findsNothing, reason: 'that is the time cell\'s finding');
+
+    await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // T07 — correctOccurredAt and the provenance header
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a corrected time renders both the captured and the corrected time with the '
+      'provenance label', (WidgetTester tester) async {
+    // THE ANCHOR. Three clauses, and the third is the one that survives an
+    // edit to the wording: the label is compared against
+    // `RecordedTime.provenanceLabel` — THE GETTER — and never against a
+    // literal. `12 §10.1`'s `Disclaimers.withdrawalProvenance` case is the
+    // same trick for the same reason.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder header = find.byKey(const Key('lambing_entry.provenance_header'));
+    await tester.ensureVisible(header);
+    await tester.pumpAndSettle();
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+
+    for (final String digit in <String>['0', '3', '2', '0']) {
+      final Finder key = find.byKey(Key('quick_entry.keypad.digit_$digit'));
+      await tester.ensureVisible(key);
+      await tester.pumpAndSettle();
+      await tester.tap(key);
+      await tester.pump();
+    }
+
+    final Finder confirm = find.byKey(const Key('lambing_entry.time_editor.confirm'));
+    await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    // THE CORRECTED TIME, 24-hour en_GB.
+    expect(find.text('03:20'), findsOneWidget);
+
+    // AND THE ORIGINAL, because a label saying a time was edited without
+    // saying what it was edited FROM is true and useless.
+    expect(find.byKey(const Key('lambing_entry.provenance_was')), findsOneWidget);
+    expect(find.byKey(const Key('lambing_entry.provenance_dagger')), findsOneWidget);
+
+    // THE LABEL IS THE GETTER'S, not a literal in this file.
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    final RecordedTime stored = recordedTimeFromColumns(
+      effective: row.occurredAt,
+      capturedAt: row.capturedAt,
+      originalEffective: row.originalEffective,
+      sourceKey: row.timeSource,
+    );
+    expect(stored.source, TimeSource.userEdited);
+    expect(find.text(stored.provenanceLabel), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the header is on screen before anything is corrected', (WidgetTester tester) async {
+    // ALWAYS VISIBLE (`07 §4`'s screen matrix). §12.5 is unrepresentable in the
+    // domain — RecordedTime has no constructor that makes a time without a
+    // source — and this header is the one place that claim reaches the shepherd.
+    // A header that only appeared after an edit would make the mechanism true
+    // and the product silent about it.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lambing_entry.provenance')), findsOneWidget);
+    expect(find.byKey(const Key('lambing_entry.provenance_time')), findsOneWidget);
+
+    // AND THE EDIT MARKS ARE ABSENT, because nothing was edited. An always-on
+    // dagger would make the mark meaningless.
+    expect(find.byKey(const Key('lambing_entry.provenance_dagger')), findsNothing);
+    expect(find.byKey(const Key('lambing_entry.provenance_was')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the time editor is the app keypad, never a Material picker', (
+    WidgetTester tester,
+  ) async {
+    // THE SINGLE MOST LIKELY SHORTCUT ON THIS SCREEN, held mechanically. Three
+    // rules forbid the Material pickers: both are dialog call sites and the gate
+    // bans those outside two destructive files; the time picker defaults to the
+    // DIAL, which is a drag gesture banned outright (#101); and its input mode is
+    // a text field with a numeric keyboard, which #57 replaced.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder header = find.byKey(const Key('lambing_entry.provenance_header'));
+    await tester.ensureVisible(header);
+    await tester.pumpAndSettle();
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('an impossible time commits nothing and is never clamped', (
+    WidgetTester tester,
+  ) async {
+    // §12.4. Silently turning 25:99 into 23:59 is a correction the shepherd did
+    // not make, and it would be invisible: the field would simply show a
+    // different time from the one they typed. The button stays live — a greyed
+    // control at 03:20 reads as a broken app — and pressing it does nothing.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    final Lambing before = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder header = find.byKey(const Key('lambing_entry.provenance_header'));
+    await tester.ensureVisible(header);
+    await tester.pumpAndSettle();
+    await tester.tap(header);
+    await tester.pumpAndSettle();
+
+    for (final String digit in <String>['2', '5', '9', '9']) {
+      final Finder key = find.byKey(Key('quick_entry.keypad.digit_$digit'));
+      await tester.ensureVisible(key);
+      await tester.pumpAndSettle();
+      await tester.tap(key);
+      await tester.pump();
+    }
+
+    final Finder confirm = find.byKey(const Key('lambing_entry.time_editor.confirm'));
+    await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(after.occurredAt, before.occurredAt, reason: 'not clamped to 23:59');
+    expect(after.timeSource, 'auto', reason: 'nothing was edited');
+    expect(after.originalEffective, isNull);
 
     await tester.closeApp();
   });

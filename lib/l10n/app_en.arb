@@ -701,5 +701,41 @@
   "birthTypeQuintPlus": "QUAD OR MORE",
   "@birthTypeQuintPlus": {
     "description": "BirthType.quintPlus, stored code 5, and the word is OPEN-ENDED on purpose. expectedLambCount returns null for it, so six lambs on a declared quintPlus is undefined rather than contradictory and prints NO query mark. Encoding it as exactly 5 would put a false mark on every set of sextuplets - the litters a shepherd is most likely to be looking at."
+  },
+  "provenanceWasPrefix": "was",
+  "@provenanceWasPrefix": {
+    "description": "Prefixes the ORIGINAL time on the header's second line - 'was 03:20'. It is the FIRST value, never the previous one: an unbounded chain of edits keeps what we first thought, because recording THAT a time was edited while losing WHAT IT WAS EDITED FROM makes the 12.5 label true and useless."
+  },
+  "provenanceHeaderSemantics": "Lambing time {time}, {provenance}",
+  "@provenanceHeaderSemantics": {
+    "description": "The header for a screen reader. The provenance travels with the time here exactly as it does on screen - a spoken time without its source would be the one place 12.5's claim goes silent. The provenance string is RecordedTime.provenanceLabel itself, never a second spelling of it.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "provenance": {
+        "type": "String"
+      }
+    }
+  },
+  "provenanceEditHint": "correct the time this lambing happened",
+  "@provenanceEditHint": {
+    "description": "onTapHint for the header. 07 6.4 gives this screen exactly one time-editing action and this is it. The verb is CORRECT rather than EDIT or CHANGE: the record is not wrong, the clock reading was."
+  },
+  "timeEditorHeading": "WHEN DID IT HAPPEN",
+  "@timeEditorHeading": {
+    "description": "The time editor's heading. A question without a question mark, in the sheet's own voice. Never 'Set time' - the app is not setting anything, the shepherd is saying what they remember."
+  },
+  "timeEditorHint": "24-hour, four digits",
+  "@timeEditorHint": {
+    "description": "How to type it. 24-hour because the whole app is (en_GB, HH:mm) and because 03:20 and 15:20 are a lambing apart. Four digits because the keypad has no colon key - the colon is punctuation the field adds, never something to type."
+  },
+  "timeEditorConfirm": "CORRECT IT",
+  "@timeEditorConfirm": {
+    "description": "The commit button. Never 'Save' (indelible.md 11 test 7) and never 'OK'. An impossible time leaves this inert rather than clamping - silently turning 25:99 into 23:59 is 12.4."
+  },
+  "timeEditorConfirmSemantics": "Correct the lambing time to what you typed",
+  "@timeEditorConfirmSemantics": {
+    "description": "The commit button for a screen reader. It names what changes, because CORRECT IT alone does not say what."
   }
 }

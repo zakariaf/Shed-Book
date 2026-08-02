@@ -26,10 +26,14 @@ import 'package:shed_book/domain/birth_type.dart';
 import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/care_line.dart';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/lambing/widgets/colostrum_detail.dart';
 import 'package:shed_book/features/lambing/widgets/declare_type_sheet.dart';
+import 'package:shed_book/features/lambing/widgets/provenance_header.dart';
 import 'package:shed_book/features/lambing/widgets/query_mark.dart';
+import 'package:shed_book/features/lambing/widgets/time_editor_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
@@ -161,15 +165,13 @@ class _Regions extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: Text(
-              // The provenance travels with the time, always — it is the only
-              // place §12.5's claim reaches the shepherd.
-              data.lambing.time.provenanceLabel,
-              key: const Key('lambing_entry.provenance'),
-              style: text.bodySmall,
-            ),
+          // THE MARGIN CELL OVER THE RECORD (T07). It replaces the bare
+          // provenance line: the time, the stamp, the dagger when edited, and a
+          // second line saying what it was edited FROM.
+          ProvenanceHeader(
+            time: data.lambing.time,
+            labels: _provenanceLabels(context, data.lambing.time),
+            onCorrect: () => _openTimeEditor(context, ref, data.lambing.id),
           ),
           Padding(
             padding: EdgeInsets.all(t.gapMin),
@@ -265,6 +267,70 @@ class _Regions extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// The header's words.
+  ProvenanceLabels _provenanceLabels(BuildContext context, RecordedTime time) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String locale = Localizations.localeOf(context).toLanguageTag();
+    final String effective = formatShedTime(time.effective, locale);
+
+    return (
+      effective: effective,
+      wasEffective: time.originalEffective == null
+          ? null
+          : formatShedTime(time.originalEffective!, locale),
+      wasPrefix: l10n.provenanceWasPrefix,
+      // THE PROVENANCE IS IN THE SPOKEN LABEL TOO. A time read aloud without its
+      // source would be the one place §12.5's claim goes silent, and it is
+      // `provenanceLabel` itself rather than a second spelling of it.
+      semanticLabel: l10n.provenanceHeaderSemantics(
+        time: effective,
+        provenance: time.provenanceLabel,
+      ),
+      editSemanticLabel: l10n.provenanceEditHint,
+    );
+  }
+
+  /// The app's own keypad in a sheet. **Never a Material time picker** — see
+  /// `time_editor_sheet.dart` for the three separate rules that forbid it.
+  void _openTimeEditor(BuildContext context, WidgetRef ref, LambingId lambing) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final LambingWriteController write = ref.read(lambingWriteControllerProvider.notifier);
+    final LambingEntryData current = data;
+
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.timeEditorHeading,
+        fillsViewport: true,
+        child: TimeEditorSheet(
+          labels: (
+            heading: l10n.timeEditorHeading,
+            hint: l10n.timeEditorHint,
+            confirmLabel: l10n.timeEditorConfirm,
+            confirmSemanticLabel: l10n.timeEditorConfirmSemantics,
+            padLabel: l10n.timeEditorHeading,
+            backspaceLabel: l10n.keypadBackspace,
+            backspaceHint: l10n.hintDeleteLastDigit,
+          ),
+          onCorrect: (int hour, int minute) {
+            // THE DAY IS THE ONE ALREADY ON THE RECORD. A shepherd correcting a
+            // time at 03:47 means "it was 03:20 THAT NIGHT", not "03:20 today" —
+            // and taking the day from the clock would move a 3am lambing across
+            // a date boundary the moment they corrected it after midnight.
+            final DateTime day = current.lambing.time.effective.local;
+            write.correctOccurredAt(
+              lambing,
+              Instant.fromDateTime(DateTime(day.year, day.month, day.day, hour, minute).toUtc()),
+            );
+            Navigator.of(context).pop();
+          },
+        ),
       ),
     );
   }

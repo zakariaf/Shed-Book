@@ -152,6 +152,68 @@ final class LambingRepository {
     }
   }
 
+  /// Corrects the time the lambing happened.
+  ///
+  /// **THE FIRST CODE IN THE APP THAT WRITES AN `edited` ROW.** `Lambings` has
+  /// carried the provenance quad and both paired `CHECK`s since N07-T04; this is
+  /// the verb that finally uses them.
+  ///
+  /// **`captured_at` NEVER MOVES, AND THE COMPANION SAYS SO WITH ABSENCE.**
+  /// `Value.absent()` leaves the column alone; `Value(null)` would write NULL
+  /// and trip the `CHECK`. `05 §4.1`'s anti-pattern list names *"a `copyWith` on
+  /// `RecordedTime` that accepts `capturedAt`"* for the same reason: that field
+  /// is how `entryLag` is measurable at all, and how spec §15's *"within five
+  /// minutes of the event"* can ever be checked.
+  ///
+  /// **`original_effective` IS THE FIRST VALUE, NOT THE PREVIOUS ONE.**
+  /// `editedTo` is `originalEffective ?? effective`, so an unbounded chain of
+  /// edits keeps what we first thought. Storing the previous value instead
+  /// records THAT a time was edited and loses WHAT IT WAS EDITED FROM, which
+  /// makes §12.5's label true but useless.
+  ///
+  /// **`local_date` MOVES WITH THE INSTANT, IN THE SAME STATEMENT** (`12 §2.4`).
+  /// A one-day error puts a bar in the wrong column of the lambing-spread
+  /// histogram and fires `localDateDisagrees` on every subsequent read.
+  ///
+  /// This verb produces `userEdited` and never `userEntered`. *A deferred entry
+  /// typed at 7am for a 03:20 lambing was never wrong, whereas an edited one
+  /// was* — they are different facts, and v1's Quick Entry does not offer the
+  /// first: every lambing starts `auto`.
+  Future<WriteOutcome> correctOccurredAt(LambingId id, Instant when) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+
+      return await _db.transaction(() async {
+        final Lambing row = await (_db.select(
+          _db.lambings,
+        )..where(($LambingsTable t) => t.id.equals(id.value))).getSingle();
+
+        final RecordedTime corrected = recordedTimeFromColumns(
+          effective: row.occurredAt,
+          capturedAt: row.capturedAt,
+          originalEffective: row.originalEffective,
+          sourceKey: row.timeSource,
+        ).editedTo(when);
+
+        await (_db.update(_db.lambings)..where(($LambingsTable t) => t.id.equals(id.value))).write(
+          LambingsCompanion(
+            occurredAt: Value<Instant>(corrected.effective),
+            originalEffective: Value<Instant?>(corrected.originalEffective),
+            timeSource: Value<String>(corrected.source.key),
+            // MOVED IN THE SAME STATEMENT — never in a second write, which
+            // could be the one that is lost.
+            localDate: Value<LocalDate>(LocalDate.of(corrected.effective)),
+            // ABSENT, NOT NULL. See the doc comment above.
+            updatedAt: Value<Instant>(now),
+          ),
+        );
+        return WriteCommitted(insertedId: id.value);
+      });
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// **THE ONLY WRITER OF `declared_birth_type` IN THE APP**, and it is reached
   /// only from the deliberate declaration path — the type cell or a query mark,
   /// never the five-tap path.

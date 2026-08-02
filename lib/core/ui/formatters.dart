@@ -77,9 +77,16 @@ String formatShedTime(Instant t, String localeName) =>
 String formatShedWeight(Grams g, WeightUnit u, String localeName) => switch (u) {
   WeightUnit.kg => '${g.inKilograms.toStringAsFixed(1)} kg',
   // Decomposed rather than `9.1 lb`, because that is how the trade reads a
-  // birthweight. wholePounds floors and remainderOunces takes what is left, so
-  // the pair sums back to the canonical grams.
-  WeightUnit.lb => '${g.wholePounds} lb ${g.remainderOunces.round()} oz',
+  // birthweight.
+  //
+  // `poundsOunces` AND NOT `wholePounds` BESIDE `remainderOunces.round()`. That
+  // was this line until N17-T02, and it rounded twice at two different scales:
+  // 4 lb stores as 1814 g, floors to 3 lb with 15.99 oz left, and printed
+  // "3 lb 16 oz". Sixteen ounces is a pound. The getter rounds once and carries.
+  WeightUnit.lb => () {
+    final ({int pounds, int ounces}) p = g.poundsOunces;
+    return '${p.pounds} lb ${p.ounces} oz';
+  }(),
 };
 
 /// A count, grouped by the locale rather than by hand — `1,240` and not `1240`.

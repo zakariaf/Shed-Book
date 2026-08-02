@@ -45,7 +45,31 @@ extension type const Grams(int value) {
   /// — not a rounding of the canonical value, and nothing here is stored. Do
   /// not "make it consistent" with `round()`; `floor()` is what makes the pair
   /// sum back to the original.
+  ///
+  /// **THIS PAIR IS EXACT AND MUST NOT BE ROUNDED BY ITS CALLER.** See
+  /// [poundsOunces], which is the one a display uses.
   int get wholePounds => inPounds.floor();
 
   double get remainderOunces => (value - wholePounds * _gPerLb) / _gPerOz;
+
+  /// The pair a display prints, **rounded once and carried at sixteen**.
+  ///
+  /// **THIS EXISTS BECAUSE OF A REAL DEFECT THAT N17-T02'S ANCHOR FOUND.**
+  /// `formatShedWeight` printed `wholePounds` beside `remainderOunces.round()` —
+  /// two roundings at two different scales — and that names quantities that do
+  /// not exist:
+  ///
+  ///   4 lb → 1814 g → floor(3.9992) = 3 lb, 15.99 oz → **"3 lb 16 oz"**
+  ///
+  /// Sixteen ounces is a pound. Measured at 1, 4, 9 and 12 lb, three of the four
+  /// printed the pound BELOW the one the shepherd typed — and a birthweight is
+  /// the number they read most often on a lamb card.
+  ///
+  /// [wholePounds] and [remainderOunces] are left EXACT, because N04's
+  /// round-trip property depends on them summing back to within a gram. The
+  /// rounding belongs where the display is, which is here.
+  ({int pounds, int ounces}) get poundsOunces {
+    final int totalOunces = (value / _gPerOz).round();
+    return (pounds: totalOunces ~/ 16, ounces: totalOunces % 16);
+  }
 }

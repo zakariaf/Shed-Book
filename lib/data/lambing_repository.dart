@@ -11,6 +11,8 @@ import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
@@ -86,6 +88,41 @@ final class LambingRepository {
 
       return LambingId(id);
     });
+  }
+
+  /// Strikes a lambing. **The row STAYS.**
+  ///
+  /// `strike`, never `delete`, never `remove`, never a generic `undo(id)`:
+  /// decision #69 refuses a generic undo, and `CONVENTIONS §5.2` makes *strike*
+  /// the project word. Indelible Rule 1 is absolute — *"There is no delete. Not
+  /// banned — absent. The concept of erasure does not exist in the product."*
+  ///
+  /// **THE FIRST EDIT VERB ON `lambings`**, which R37 permits only because the
+  /// table carries the provenance quad. A table without the quad has no edit
+  /// verb.
+  ///
+  /// `struck_at` is a real instant from `appNow()`, in the same mutation. It is
+  /// a MACHINE FACT ABOUT THE STRIKE rather than an event time, so it takes no
+  /// provenance quad of its own and never claims one. The paired-nullable CHECK
+  /// — `(struck = 1) = (struck_at IS NOT NULL)` — is what makes a struck row
+  /// with no time unrepresentable.
+  Future<WriteOutcome> strikeLambing(LambingId id) async {
+    try {
+      final Instant now = appNow();
+      final int rows =
+          await (_db.update(
+            _db.lambings,
+          )..where(($LambingsTable t) => t.id.equals(id.value))).write(
+            LambingsCompanion(
+              struck: const Value<bool>(true),
+              struckAt: Value<Instant?>(now),
+              updatedAt: Value<Instant>(now),
+            ),
+          );
+      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
   }
 
   /// **Never creates a season.** A verb that invented one would give the

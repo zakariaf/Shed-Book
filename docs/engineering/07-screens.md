@@ -1201,11 +1201,29 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 
 ### 15.1 The table
 
+> **AMENDED 2026-08-02 (N14-T05), by P1 and P2 together. The four ~~Hard delete~~ rows are STRUCK, and
+> so is every "SnackBar" in the Window column.**
+>
+> P1 gave every record-bearing table `struck` / `struck_at` and requires that every CSV carries the
+> columns and every struck row is exported and marked. Indelible Rule 1 is absolute — *"There is no
+> delete. Not banned — absent. The concept of erasure does not exist in the product."* So undo on these
+> rows is a **strike**: the row keeps its position, its legibility and its place in every query that is
+> not explicitly filtering, and the margin prints `STRUCK HH:mm`. `strikeLambing` is the verb
+> (`CONVENTIONS §2.13`, added in the same commit); a row that collapses or fades is the bug
+> `indelible.md` §7.3's *"the row stays in position"* exists to prevent.
+>
+> P2 abolished the window definition in §15.2 without supplying a replacement, so the window is now
+> `kStrikeWindow` in `lib/core/ui/feedback.dart` — **20 s, proposed rather than ruled**, and carried
+> into N14's pull request as a ruling because it is a number a shepherd reads on screen.
+>
+> **This amendment is load-bearing for two later epics.** A document that still prescribes a hard
+> delete will be followed by N16 for `addLamb` and by N18 for foster.
+
 | Verb | Repository method | Undo does | Window | Visible afterwards |
 |---|---|---|---|---|
-| Begin a lambing | `beginLambing` | **Hard delete**, allowed only while it has zero child rows | SnackBar | nothing |
-| Add a lamb | `addLamb` | **Hard delete** | SnackBar | nothing |
-| Add a care event | `addCare` | **Hard delete** | SnackBar | nothing |
+| Begin a lambing | `beginLambing` | ~~**Hard delete**, allowed only while it has zero child rows~~ → **strike** (`strikeLambing`): `struck = 1`, `struck_at` set | `kStrikeWindow` | the row, struck, in position and legible |
+| Add a lamb | `addLamb` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
+| Add a care event | `addCare` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
 | Remove a care event | `removeCare` | re-insert with the original `RecordedTime` | SnackBar | nothing |
 | **Foster** | `recordFoster` | a **compensating `FosterEvent`** whose `corrects` FK names the event it reverses | SnackBar | *both* events, forever, on both cards |
 | **Treatment** | `recordTreatment` | **soft-void** — sets `voided_at` | SnackBar | the row, struck through, in the medicine book |
@@ -1218,7 +1236,21 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 
 ### 15.2 The window, stated once
 
-**Until the SnackBar is dismissed or the route pops, whichever is first.** Nothing longer, and no timer that outlives the screen.
+**~~Until the SnackBar is dismissed or the route pops, whichever is first.~~ Struck 2026-08-02 (P2).**
+There is no transient message to dismiss, so this definition has no referent.
+
+**The window is `kStrikeWindow` — 20 s — declared in `lib/core/ui/feedback.dart` beside the three
+feedback functions, and STATED IN SECONDS beside the affordance.** The ARB message takes
+`kStrikeWindow.inSeconds` as a placeholder so the copy and the timer can never disagree; the number is
+never typed into copy.
+
+It is measured in **absolute time, never civil time** — a `Duration` compared against instants, so a
+window opened at 01:59 on the clocks-back night lasts 20 s and not 3600. Same reasoning decision #3
+applies to the withdrawal clear date.
+
+**Still true, and now the only part of the old sentence that is:** no timer that outlives the screen.
+The window is tied to the widget that renders the affordance and cancelled on dispose, and it is never
+reconstructed after a restart (`01 §4.5`, §15.4). No copy anywhere may say *"you can undo this later."*
 
 ### 15.3 Why this is §12.4-compliant
 

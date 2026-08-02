@@ -20,6 +20,25 @@ import 'package:shed_book/core/ui/motion.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 
+/// How long the strike affordance stays in the margin.
+///
+/// **THE NUMBER IS NOT RULED BY ANY DOCUMENT.** `07 §15.2` defined the window as
+/// a widget lifetime and P2 abolished that definition without supplying a
+/// replacement figure. 20 s is a proposal: long enough to notice a mis-pressed
+/// slab with gloves on, short enough that it is gone before the next lamb. It is
+/// carried into N14's pull request as a ruling, because it is a number a
+/// shepherd READS ON SCREEN rather than an implementation detail.
+///
+/// **Measured in absolute time, never civil time.** It is a `Duration` compared
+/// against instants, so a window opened at 01:59 on the clocks-back night lasts
+/// 20 s and not 3600 — the same reasoning decision #3 applies to the withdrawal
+/// clear date.
+///
+/// The copy and the timer must never disagree: the ARB message takes
+/// `kStrikeWindow.inSeconds` as a placeholder, and the number is never typed
+/// into copy.
+const Duration kStrikeWindow = Duration(seconds: 20);
+
 /// What a receipt says.
 ///
 /// `at` is pre-formatted `HH:mm`, 24-hour, en_GB, by

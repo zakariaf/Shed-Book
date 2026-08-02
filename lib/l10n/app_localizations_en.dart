@@ -269,4 +269,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String quickEntryConfirmUse({required String tag}) {
     return 'Use $tag';
   }
+
+  @override
+  String get quickEntryStrike => 'STRIKE';
+
+  @override
+  String quickEntryStrikeWindow({required int seconds}) {
+    return '${seconds}s to strike';
+  }
+
+  @override
+  String quickEntryStruckAt({required String at}) {
+    return 'STRUCK $at';
+  }
 }

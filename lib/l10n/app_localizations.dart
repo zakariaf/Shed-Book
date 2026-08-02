@@ -547,6 +547,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Use {tag}'**
   String quickEntryConfirmUse({required String tag});
+
+  /// The in-stream word button in the just-committed row's margin. STRIKE, never 'Undo': 07 §15.3 reserves 'Undo' for where the record DISAPPEARS, and after P1 the record never disappears — the row stays in position, legible, permanently marked. Capitals because it is the control voice.
+  ///
+  /// In en, this message translates to:
+  /// **'STRIKE'**
+  String get quickEntryStrike;
+
+  /// The window, STATED IN SECONDS beside the affordance (P2). The number arrives as a placeholder read from kStrikeWindow.inSeconds and is NEVER typed into copy, so a changed constant changes the sentence rather than making it a lie. No copy anywhere may say 'you can undo this later' — there is no state restoration and the affordance is never rebuilt after a restart.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds}s to strike'**
+  String quickEntryStrikeWindow({required int seconds});
+
+  /// The stamp that REPLACES the strike word once the row is struck. It keeps indelible §3.4's sub-18px stamp exemption: at most 12 characters, all-caps, and never the sole carrier of its meaning — the 3px madder line across the row says it too. {at} is pre-formatted HH:mm by formatShedTime.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK {at}'**
+  String quickEntryStruckAt({required String at});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

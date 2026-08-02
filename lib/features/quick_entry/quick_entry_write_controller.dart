@@ -53,6 +53,16 @@ final class QuickEntryWriteController extends WriteController {
     final LambingId id = await repo.beginLambing(ewe);
     return WriteCommitted(insertedId: id.value);
   });
+
+  /// Strikes a lambing the shepherd has just committed.
+  ///
+  /// It goes through `guard()` like every other write: a double tap on the
+  /// strike word must not strike twice, and the second one would be striking a
+  /// row that is already struck.
+  Future<void> strike(LambingId id) => guard(() async {
+    final LambingRepository repo = ref.read(lambingRepositoryProvider);
+    return repo.strikeLambing(id);
+  });
 }
 
 /// `.autoDispose`, always, for a write controller (`02 §4.2`,

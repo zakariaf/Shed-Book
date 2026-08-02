@@ -629,6 +629,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 
 | Name | File | Shape | Owner |
 |---|---|---|---|
+| `strikeLambing` | `lib/data/lambing_repository.dart` | `Future<WriteOutcome> strikeLambing(LambingId)` — **new 2026-08-02 (N14-T05)**. `strike`, never `delete`, never `remove`, never a generic `undo(id)`: decision #69 refuses a generic undo and §5.2 makes *strike* the project word. The first edit verb on `lambings`, which R37 permits only because the table carries the provenance quad | 07 §15.1 |
 | `TagIndexEntry` | `lib/domain/tag_match.dart` | `{EweId eweId, String tag, String digits, Instant? lastTouched}` (R26) | 05 |
 | `rankTagMatches` | same | `List<TagIndexEntry> rankTagMatches(List<TagIndexEntry> all, String query)` — pure, synchronous (R27) | 05 |
 | `DeckEntry` | `lib/data/flock_repository.dart` | `@immutable final class`; `{EweId eweId, String tag, String digits, Instant sortAt, String? penLabel}` with hand-written `==`/`hashCode` over **all five** fields. Identity equality makes `.distinct()` and the per-bucket list reuse expensive ways of always returning false (R28, drift#3295) | 07 |

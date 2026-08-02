@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/lambing_repository.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
@@ -157,5 +158,55 @@ void main() {
 
     expect(first.value, isNot(second.value));
     expect(await countLambings(db), 2);
+  });
+
+  test('strikeLambing marks the row and leaves it in place', () async {
+    // A STRIKE IS NOT A DELETE AND NOT A SOFT-DELETE. The row keeps its
+    // position, its legibility and its place in every query that is not
+    // explicitly filtering. Indelible Rule 1: nothing is ever removed.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId id = await repo.beginLambing(ewe);
+
+    expect(await repo.strikeLambing(id), isA<WriteCommitted>());
+
+    final Lambing row = await readLambing(db, id);
+    expect(row.struck, isTrue);
+    expect(row.struckAt, isNotNull);
+    expect(await countLambings(db), 1, reason: 'the row STAYS — there is no delete');
+  });
+
+  test('a struck row still carries its provenance quad unchanged', () async {
+    // struck_at is a MACHINE FACT ABOUT THE STRIKE, not an event time. It takes
+    // no provenance quad of its own and must not disturb the one the lambing
+    // already has — a strike that rewrote occurred_at would be the app editing
+    // when the lamb was born.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId id = await repo.beginLambing(ewe);
+
+    final Lambing before = await readLambing(db, id);
+    await repo.strikeLambing(id);
+    final Lambing after = await readLambing(db, id);
+
+    expect(after.occurredAt, before.occurredAt);
+    expect(after.capturedAt, before.capturedAt);
+    expect(after.timeSource, before.timeSource);
+    expect(after.originalEffective, before.originalEffective);
+  });
+
+  test('striking twice is idempotent at the row level', () async {
+    // guard() stops a double tap, and the schema stops the rest: the
+    // paired-nullable CHECK makes a struck row with no time unrepresentable, so
+    // a second strike can only ever rewrite the same two columns.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId id = await repo.beginLambing(ewe);
+
+    await repo.strikeLambing(id);
+    await repo.strikeLambing(id);
+
+    expect((await readLambing(db, id)).struck, isTrue);
+    expect(await countLambings(db), 1);
   });
 }

@@ -7,6 +7,7 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/drift.dart' show Value;
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
@@ -135,5 +136,77 @@ void main() {
 
     final List<PenBoardRow> board = await repo.watchBoard().first;
     expect(board.map((PenBoardRow r) => r.pen).toSet(), <PenId>{live});
+  });
+
+  test('the next pen label is the smallest unused number, not MAX + 1', () async {
+    // `MAX(label) + 1` IS WRONG TWICE OVER, and both halves are here. `label` is
+    // TEXT, so `'10' < '9'` and a tenth pen would be numbered 10 forever; and a
+    // renamed pen makes the cast meaningless.
+    //
+    // GAP-FILLING IS THE POINT, not a side effect: a shed whose pens run 1..12
+    // stays 1..12 rather than drifting to 1..40 over three seasons — and the
+    // number on the tile is the number chalked on the hurdle.
+    expect(nextPenLabel(const <String>[]), '1', reason: 'the first pen');
+    expect(nextPenLabel(const <String>['1', '2', '3']), '4');
+    expect(nextPenLabel(const <String>['1', '3']), '2', reason: 'the gap is filled');
+
+    // THE TEXT-SORT TRAP, stated directly.
+    expect(
+      nextPenLabel(const <String>['1', '2', '3', '4', '5', '6', '7', '8', '9']),
+      '10',
+      reason: "MAX over TEXT would answer '9' here forever",
+    );
+
+    // A RENAMED PEN IS IGNORED, not skipped over. It holds its own string in the
+    // unique index and nothing else; it does not push the numbering along.
+    expect(nextPenLabel(const <String>['Shed A', 'Back pen']), '1');
+    expect(nextPenLabel(const <String>['1', 'Shed A', '3']), '2');
+
+    // AND SO ARE NON-POSITIVE NUMBERS, which cannot be a pen.
+    expect(nextPenLabel(const <String>['0', '-1']), '1');
+  });
+
+  test('a deactivated pen still owns its label', () async {
+    // `03 §5.9` DECLARES `uniqueKeys => [{label}]` WITH NO PARTIAL PREDICATE —
+    // unlike the tag index, which IS partial. So a pen deactivated last season
+    // still owns its string, and choosing the next label from the ACTIVE pens
+    // makes the first `addPen` after a deactivation fail with a UNIQUE violation
+    // the UI has no honest message for.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository repo = PenRepository(db);
+
+    await repo.addPen();
+    await repo.addPen();
+
+    final Pen second = (await db.select(db.pens).get()).last;
+    await (db.update(db.pens)..where(($PensTable t) => t.id.equals(second.id))).write(
+      const PensCompanion(isActive: Value<bool>(false)),
+    );
+
+    // The BOARD shows one pen; the LABELS still count two.
+    expect(await repo.watchBoard().first, hasLength(1));
+    expect(await repo.addPen(), isA<WriteCommitted>(), reason: 'and it does not collide');
+
+    final List<String> labels = (await db.select(db.pens).get()).map((Pen p) => p.label).toList();
+    expect(labels, <String>['1', '2', '3']);
+  });
+
+  test('addPen is one tap and needs no name', () async {
+    // The shepherd is standing in front of a pen at 03:20. Asking what to call
+    // it is asking for a decision they do not have and do not want — so the
+    // number is chosen for them and renaming happens in daylight.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository repo = PenRepository(db);
+
+    expect(await repo.watchBoard().first, isEmpty, reason: 'a flock starts with no pens');
+
+    expect(await repo.addPen(), isA<WriteCommitted>());
+
+    final List<PenBoardRow> board = await repo.watchBoard().first;
+    expect(board, hasLength(1));
+    expect(board.single.label, '1');
+    expect(board.single.occupancy, isNull, reason: 'created empty, ready to use');
   });
 }

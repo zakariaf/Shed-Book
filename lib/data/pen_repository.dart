@@ -12,6 +12,7 @@
 library;
 
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
@@ -117,6 +118,47 @@ final class PenRepository {
         );
       });
       return WriteCommitted(insertedId: occupancy.value);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  /// Creates the next pen. **One tap, no wizard, no naming step.**
+  ///
+  /// The shepherd is standing in front of a pen at 03:20; asking them what to
+  /// call it is asking for a decision they do not have and do not want. The
+  /// number is chosen here and they can rename it in daylight.
+  ///
+  /// **THE NEXT LABEL IS THE SMALLEST UNUSED POSITIVE INTEGER, NOT
+  /// `MAX(label) + 1`**, which is wrong twice over. `label` is `TEXT`, so
+  /// `'10' < '9'` and the tenth pen would be numbered 10 forever; and a
+  /// user-renamed pen — `'Shed A'` — makes the cast meaningless.
+  ///
+  /// **AND IT IS CHECKED AGAINST EVERY PEN, NOT THE ACTIVE ONES.**
+  /// `03 §5.9` declares `uniqueKeys => [{label}]` with NO partial predicate —
+  /// unlike the tag index, which is partial. So a pen `3` deactivated last
+  /// season still owns the string `'3'`, and skipping only the active labels
+  /// makes the first `addPen` after a deactivation fail with a UNIQUE violation
+  /// the UI has no honest message for.
+  Future<WriteOutcome> addPen() async {
+    final Instant now = appNow();
+
+    try {
+      final int id = await _db.transaction(() async {
+        final List<Pen> all = await _db.select(_db.pens).get();
+        return _db
+            .into(_db.pens)
+            .insert(
+              PensCompanion.insert(
+                uid: newUid(),
+                createdAt: now,
+                updatedAt: now,
+                label: _nextPenLabel(all.map((Pen p) => p.label)),
+                sortOrder: Value<int>(all.length),
+              ),
+            );
+      });
+      return WriteCommitted(insertedId: id);
     } on Object catch (e) {
       return WriteFailed(shedFailureFrom(e));
     }
@@ -241,3 +283,33 @@ SELECT p.id AS pen_id, p.label AS label,
  WHERE p.is_active = 1 AND p.struck = 0
  ORDER BY p.sort_order ASC, p.id ASC
 ''';
+
+/// The smallest positive integer not already used as a pen label.
+///
+/// **Visible for testing rather than private**, because it is the one piece of
+/// `addPen` worth exercising directly: the gap-filling behaviour is easy to state
+/// and easy to get wrong, and driving it through a database makes the cases
+/// slower and less clear about what they claim.
+///
+/// Labels that do not parse as a positive integer — `'Shed A'`, a renamed pen —
+/// are IGNORED rather than skipped over. They hold their own string in the
+/// unique index and nothing else; they do not push the numbering along.
+@visibleForTesting
+String nextPenLabel(Iterable<String> existing) => _nextPenLabel(existing);
+
+String _nextPenLabel(Iterable<String> existing) {
+  final Set<int> taken = <int>{
+    for (final String label in existing)
+      if (int.tryParse(label) case final int n when n > 0) n,
+  };
+
+  // GAP-FILLING, AND THAT IS THE POINT. A pen deactivated last season frees its
+  // number the moment the label is free, and a shed whose pens run 1..12 stays
+  // 1..12 rather than drifting to 1..40 over three seasons — which matters
+  // because the number on the tile is the number chalked on the hurdle.
+  int candidate = 1;
+  while (taken.contains(candidate)) {
+    candidate++;
+  }
+  return '$candidate';
+}

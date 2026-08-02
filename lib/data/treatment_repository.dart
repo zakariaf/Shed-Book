@@ -171,6 +171,31 @@ final class TreatmentRepository {
     }
   }
 
+  /// Every withdrawal on a treatment, **with the clear date exactly as stored**.
+  ///
+  /// **NOTHING RECOMPUTES IT.** The stored date is what the shepherd was told on
+  /// the day; a screen that recalculated on build would silently move a date
+  /// they may have written in a book and handed to a vet — and it would move it
+  /// for the one reason nobody would think to look for, a device that changed
+  /// timezone between the write and the read.
+  ///
+  /// `05 §6.9` says the same thing about `local_date` and for the same reason:
+  /// a stored civil date is a record of the day as it was lived.
+  Stream<List<StoredWithdrawal>> watchWithdrawals(TreatmentId treatment) =>
+      (_db.select(
+        _db.treatmentWithdrawals,
+      )..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value))).watch().map(
+        (List<TreatmentWithdrawal> rows) => <StoredWithdrawal>[
+          for (final TreatmentWithdrawal r in rows)
+            StoredWithdrawal(
+              target: WithdrawalTarget.values.firstWhere((WithdrawalTarget t) => t.key == r.target),
+              days: r.days,
+              // READ, NEVER DERIVED. The whole point of the column.
+              clearDate: r.clearDate,
+            ),
+        ],
+      );
+
   /// The period recorded for one target, or [WithdrawalNotRecorded].
   ///
   /// **NO ROW IS THE ANSWER, NOT A MISSING ANSWER.** This is where §12.1 becomes
@@ -207,4 +232,23 @@ final class TreatmentRepository {
     }
     return SeasonId(current);
   }
+}
+
+/// One stored withdrawal, as the screen renders it.
+///
+/// **[clearDate] IS READ, NEVER DERIVED.** It is the date the shepherd was told
+/// on the day the medicine went in, and the reason it is a column rather than a
+/// computation is that a computation would answer differently after a device
+/// moved timezone — silently, and for a row nobody would think to re-check.
+final class StoredWithdrawal {
+  const StoredWithdrawal({required this.target, required this.days, required this.clearDate});
+
+  final WithdrawalTarget target;
+
+  /// `null` on a `not_applicable` row. It is not zero: nothing applies is not
+  /// the same as zero days.
+  final int? days;
+
+  /// `null` on a `not_applicable` row — there is nothing to clear.
+  final LocalDate? clearDate;
 }

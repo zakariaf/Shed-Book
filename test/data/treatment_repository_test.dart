@@ -4,6 +4,7 @@
 // where that stops being a sentence.
 library;
 
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -197,5 +198,65 @@ void main() {
     expect(forEwe.lamb, isNull);
     expect(forLamb.lamb, lamb.value);
     expect(forLamb.ewe, isNull);
+  });
+
+  test('the clear date is read exactly as stored, never recomputed', () async {
+    // N20-T03'S ANCHOR, AND THE ASSERTION IS NOT "THE DATE IS RIGHT" — IT IS
+    // "THE DATE IS THE STORED ONE". Those differ in precisely the case that
+    // matters.
+    //
+    // `TZ` cannot be changed inside a running Dart process, so the CONSEQUENCE
+    // is seeded instead: a stored `clear_date` that does NOT match what today's
+    // arithmetic would produce is exactly the row a device that moved zone
+    // leaves behind. A screen that recomputes on build renders the other date,
+    // and a shepherd who wrote the first one in a book is now holding a
+    // different answer from the app.
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+    final TreatmentId treatment = TreatmentId((outcome as WriteCommitted).insertedId!);
+
+    final TreatmentWithdrawal computed = await db.select(db.treatmentWithdrawals).getSingle();
+    final LocalDate asComputed = computed.clearDate!;
+    final LocalDate asStored = asComputed.plusDays(-1);
+
+    await (db.update(db.treatmentWithdrawals)
+          ..where(($TreatmentWithdrawalsTable t) => t.id.equals(computed.id)))
+        .write(TreatmentWithdrawalsCompanion(clearDate: Value<LocalDate?>(asStored)));
+
+    final List<StoredWithdrawal> read = await repo.watchWithdrawals(treatment).first;
+
+    expect(read, hasLength(1));
+    expect(read.single.clearDate, asStored, reason: 'the stored one');
+    expect(
+      read.single.clearDate,
+      isNot(asComputed),
+      reason: 'and NOT what recomputing would produce',
+    );
+    expect(read.single.days, 28, reason: 'the shepherd\'s own number, unchanged');
+  });
+
+  test('a not-applicable withdrawal has no days and no clear date', () async {
+    // NULL DAYS IS NOT ZERO DAYS, and null clear date is not "clears today".
+    // Nothing applies, so there is nothing to count and nothing to clear.
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: const <WithdrawalPeriod>[WithdrawalNotApplicable(WithdrawalTarget.milk)],
+    );
+
+    final List<StoredWithdrawal> read = await repo
+        .watchWithdrawals(TreatmentId((outcome as WriteCommitted).insertedId!))
+        .first;
+
+    expect(read.single.target, WithdrawalTarget.milk);
+    expect(read.single.days, isNull);
+    expect(read.single.clearDate, isNull);
   });
 }

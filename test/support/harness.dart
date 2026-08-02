@@ -161,6 +161,14 @@ Directory freshSupportDir() {
   return dir;
 }
 
+/// The container [PumpApp.pumpApp] built, so [PumpApp.closeApp] can dispose it
+/// inside the test body.
+///
+/// A top-level field rather than a member because an extension cannot hold
+/// state. One test pumps one app, so one slot is enough — and `closeApp` clears
+/// it, so a second `pumpApp` in the same body starts clean.
+ProviderContainer? _container;
+
 extension PumpApp on WidgetTester {
   /// Pumps [screen] inside the app's real theme, locale and container.
   ///
@@ -180,6 +188,7 @@ extension PumpApp on WidgetTester {
     EdgeInsets padding = const EdgeInsets.only(top: 47, bottom: 34),
   }) async {
     final ProviderContainer container = shedContainer(db, overrides: overrides);
+    _container = container;
 
     view.physicalSize = device.size * device.dpr;
     view.devicePixelRatio = device.dpr;
@@ -254,7 +263,8 @@ extension PumpApp on WidgetTester {
     await pump(const Duration(milliseconds: 1));
   }
 
-  /// Unmounts the app and lets every provider dispose.
+  /// Unmounts the app, disposes its container, and lets every provider dispose —
+  /// **inside the test body**, which is the whole point.
   ///
   /// **A TEST THAT PUMPS A SCREEN WATCHING `minuteTickProvider` MUST END WITH
   /// THIS**, and the reason is a property of `flutter_test` rather than a defect
@@ -279,6 +289,19 @@ extension PumpApp on WidgetTester {
   /// thing on screen holding a timer.
   Future<void> closeApp() async {
     await pumpWidget(const SizedBox.shrink());
+
+    // DISPOSING HERE, NOT LEAVING IT TO THE TEAR-DOWN, IS THE FIX — INSTRUMENTED
+    // AND CONFIRMED. Unmounting alone is not enough: an UncontrolledProviderScope
+    // does not own its container, so the provider survives the tree and
+    // `onDispose` does not run until `shedContainer`'s tear-down — which is
+    // AFTER `_verifyInvariants`. Printing from inside the generator showed the
+    // order plainly: one iteration, then the failure, then onDispose.
+    //
+    // shedContainer still registers its own dispose; Riverpod's is idempotent,
+    // so the tear-down finds nothing left to do when a test has called this.
+    _container?.dispose();
+    _container = null;
+
     await pump(const Duration(milliseconds: 1));
   }
 }

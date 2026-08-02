@@ -102,6 +102,19 @@ final AutoDisposeStreamProvider<Instant> minuteTickProvider = StreamProvider.aut
         boundary.complete();
       }
     });
+
+    // THE SECOND CHECK, AND IT IS A DIFFERENT RACE FROM THE FIRST. Riverpod
+    // cancels the stream subscription BEFORE it runs onDispose, and cancelling
+    // resumes a generator suspended at its yield. So the loop can get all the
+    // way here — past the check above, with `cancelled` still false — and create
+    // a timer that onDispose then never sees, because `wake` was assigned after
+    // the callback had already read it. Re-reading the flag on this side of the
+    // assignment is what closes it.
+    if (cancelled) {
+      wake.cancel();
+      break;
+    }
+
     await boundary.future;
   }
 });

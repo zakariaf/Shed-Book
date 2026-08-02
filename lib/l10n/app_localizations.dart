@@ -493,6 +493,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tag first'**
   String get quickEntrySlabTagFirst;
+
+  /// The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing penned yet.'**
+  String get quickEntryPennedEmpty;
+
+  /// The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent animals.'**
+  String get quickEntryRecentsEmpty;
+
+  /// Shown when the deck stream carries a failure. It names no code and no cause, because neither is actionable at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'The deck could not be read.'**
+  String get quickEntryDeckUnavailable;
+
+  /// The penned strip's trailing figure — elapsed PHYSICAL time from timeSincePenned, never two subtracted wall clocks. 03 §8 rule 1: a ewe penned at 22:00 before UK spring-forward and seen at 08:00 has been penned 9 hours, not 10.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String quickEntryHoursPenned({required int hours});
+
+  /// The penned row's semantic label. It spells out 'hours' where the figure abbreviates to h, because a screen reader saying 'nine aitch' is not a duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}, in {pen}, penned {hours} hours'**
+  String quickEntryPennedRowLabel({required String tag, required String pen, required int hours});
+
+  /// The recents row's semantic label. It carries NO time, because the recents strip shows none (07 §5.2).
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}'**
+  String quickEntryRecentRowLabel({required String tag});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

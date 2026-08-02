@@ -15,8 +15,10 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
+import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -190,6 +192,7 @@ void main() {
   });
 
   _shellTests();
+  _stripTests();
 
   test('an empty query matches nothing', () async {
     // rankTagMatches returns const [] for an empty query — the deck shows the
@@ -259,6 +262,8 @@ void _shellTests() {
             reason: '$id moved between frame 1 and frame 2 — ${device.name} at $scale',
           );
         }
+
+        await tester.closeApp();
       });
     }
   }
@@ -299,6 +304,7 @@ void _shellTests() {
     await tester.pumpAndSettle();
 
     expect(tester.getRect(find.byKey(const Key('quick_entry.live_row'))), before);
+    await tester.closeApp();
   });
 
   testWidgets('the spine is continuous and does not mirror', (WidgetTester tester) async {
@@ -314,6 +320,7 @@ void _shellTests() {
     expect(spine.top, lessThanOrEqualTo(header.top));
     expect(spine.bottom, greaterThanOrEqualTo(band.bottom));
     expect(spine.width, greaterThan(0));
+    await tester.closeApp();
   });
 
   testWidgets('frame 1 is interactive — the keypad works before the database opens', (
@@ -330,5 +337,144 @@ void _shellTests() {
     await tester.tap(find.byKey(const Key('quick_entry.keypad.digit_4')));
     await tester.pump();
     expect(tester.takeException(), isNull);
+    await tester.closeApp();
+  });
+}
+
+void _stripTests() {
+  testWidgets('the penned strip is ascending by entered_at and each strip has its own empty '
+      'copy', (WidgetTester tester) async {
+    // THE ANCHOR, in two halves that fail separately.
+    //
+    // HALF 1 — ORDERING. Four occupancies seeded in a deliberately shuffled
+    // order, read top to bottom. The oldest must be first, because the
+    // longest-penned ewe is the one you are standing next to (07 §5.2).
+    // Rendering both strips newest-first feels tidier and is wrong.
+    final AppDatabase db = testDatabase();
+    final Instant base = Instant.fromDateTime(DateTime.utc(2026, 3, 1, 3, 20));
+
+    final List<(String, int)> shuffled = <(String, int)>[
+      ('twelve', -12 * 60),
+      ('thirtyOne', -31 * 60),
+      ('forty', -40),
+      ('four', -4 * 60),
+    ];
+    for (final (String label, int mins) in shuffled) {
+      final PenId pen = await seedPen(db, label: label);
+      final EweId e = await seedEwe(db, tag: '${100 - mins}');
+      await seedPenOccupancy(db, pen, e, enteredAt: base.plus(Duration(minutes: mins)));
+    }
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final List<String> pens = tester
+        .widgetList<ShedAnimalRow>(
+          find.descendant(
+            of: find.byKey(const Key('quick_entry.penned_strip')),
+            matching: find.byType(ShedAnimalRow),
+          ),
+        )
+        .map((ShedAnimalRow r) => r.summary)
+        .toList();
+
+    // A PREFIX, NOT THE WHOLE LIST, AND THE REASON IS A CONFLICT WORTH NAMING.
+    // indelible.md §7.15 wants SIX full-width 64 px ruled lines per bucket —
+    // 384 pt each, 768 for both — and the page has 96 pt per strip to give
+    // before it over-commits the viewport again (see the screen's own header for
+    // that arithmetic). So the box shows one or two rows and the ListView builds
+    // only those.
+    //
+    // What this case is FOR is the ORDERING, and the prefix tests it completely:
+    // if the strip were descending, the first row would be `forty`. The bucket's
+    // full six-row content is asserted at the repository tier, where no box
+    // clips it.
+    expect(
+      pens.first,
+      'thirtyOne',
+      reason: 'longest-penned first — the one you are standing next to (07 §5.2)',
+    );
+    expect(
+      pens,
+      <String>['thirtyOne', 'twelve', 'four', 'forty'].take(pens.length).toList(),
+      reason: 'ascending, in order, as far as the box shows',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the two empty strings are distinct and land in the right box', (
+    WidgetTester tester,
+  ) async {
+    // HALF 2. A single shared "Nothing here yet" passes a careless test and is
+    // the defect this case exists to catch: it tells a shepherd nothing about
+    // WHICH list is empty.
+    final AppDatabase db = testDatabase();
+
+    // Neither bucket.
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing penned yet.'), findsOneWidget);
+    expect(find.text('No recent animals.'), findsOneWidget);
+    await tester.closeApp();
+
+    // Recents only.
+    final AppDatabase db2 = testDatabase();
+    final EweId e = await seedEwe(db2, tag: '412');
+    await seedTouch(db2, e);
+    await tester.pumpApp(const QuickEntryScreen(), db: db2);
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing penned yet.'), findsOneWidget);
+    expect(find.text('No recent animals.'), findsNothing);
+    await tester.closeApp();
+
+    // Penned only. A pen occupancy does not touch the ewe, so recents stays
+    // empty — which is what makes this the mirror case rather than a repeat.
+    final AppDatabase db3 = testDatabase();
+    final PenId pen = await seedPen(db3, label: 'A');
+    final EweId e3 = await seedEwe(db3, tag: '128');
+    await seedPenOccupancy(db3, pen, e3);
+    await tester.pumpApp(const QuickEntryScreen(), db: db3);
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing penned yet.'), findsNothing);
+    expect(find.text('No recent animals.'), findsOneWidget);
+    await tester.closeApp();
+  });
+
+  testWidgets('neither strip scrolls horizontally', (WidgetTester tester) async {
+    // THE RULING, ASSERTED. 07 §5.1 draws the strips as "fixed height,
+    // horizontally scrolling"; indelible.md §7.15 draws six full-width ruled
+    // lines, and CLAUDE.md's gesture ban names "drag and drag handles". A
+    // lateral drag on a 64 pt element is that gesture, and NO GATE ROW CATCHES
+    // IT — a horizontal scroll direction is not a banned identifier, so it would
+    // have shipped silently. Both buckets are LIMIT 6 in SQL, so there is
+    // nothing to scroll to.
+    final AppDatabase db = testDatabase();
+    final PenId pen = await seedPen(db, label: 'A');
+    final EweId e = await seedEwe(db, tag: '412');
+    await seedPenOccupancy(db, pen, e);
+    await seedTouch(db, e);
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    for (final Scrollable s in tester.widgetList<Scrollable>(find.byType(Scrollable))) {
+      expect(s.axisDirection, isNot(AxisDirection.right), reason: 'no horizontal scroll');
+      expect(s.axisDirection, isNot(AxisDirection.left), reason: 'no horizontal scroll');
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the recents strip watches no ticker', (WidgetTester tester) async {
+    // 07 §5.2: the recents strip shows no time at all, so watching the minute
+    // tick there would rebuild six rows every sixty seconds to change nothing.
+    // Source text, because "does not watch" has no runtime signature.
+    final String source = File(
+      'lib/features/quick_entry/widgets/recents_strip.dart',
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+    expect(source, isNot(contains('minuteTickProvider')));
+    expect(source, isNot(contains('ticker')));
   });
 }

@@ -232,4 +232,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get quickEntrySlabTagFirst => 'Tag first';
+
+  @override
+  String get quickEntryPennedEmpty => 'Nothing penned yet.';
+
+  @override
+  String get quickEntryRecentsEmpty => 'No recent animals.';
+
+  @override
+  String get quickEntryDeckUnavailable => 'The deck could not be read.';
+
+  @override
+  String quickEntryHoursPenned({required int hours}) {
+    return '${hours}h';
+  }
+
+  @override
+  String quickEntryPennedRowLabel({required String tag, required String pen, required int hours}) {
+    return 'Tag $tag, in $pen, penned $hours hours';
+  }
+
+  @override
+  String quickEntryRecentRowLabel({required String tag}) {
+    return 'Tag $tag';
+  }
 }

@@ -63,6 +63,20 @@ ProviderContainer _container(_OpenRecorder recorder) {
 Widget _host(ProviderContainer container) =>
     UncontrolledProviderScope(container: container, child: const ShedBookApp());
 
+/// Unmounts the app and disposes [container] **inside the test body**.
+///
+/// Needed since N13-T05 made `home:` the real Quick Entry screen, which watches
+/// `minuteTickProvider`. `_verifyInvariants` runs at the end of the body, before
+/// any tear-down, and an UncontrolledProviderScope does not own its container —
+/// so a provider left alive there still holds a timer when the check runs. This
+/// is `pumpApp`'s `closeApp` written out, because these tests build their own
+/// container rather than going through the harness.
+Future<void> _close(WidgetTester tester, ProviderContainer container) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  container.dispose();
+  await tester.pump(const Duration(milliseconds: 1));
+}
+
 void main() {
   setUp(() {
     // accessibility_tools 2.8.0 throws during widget-tree finalisation on
@@ -79,7 +93,8 @@ void main() {
     // frame is a frame the shepherd spends looking at the platform's launch
     // colour.
     final _OpenRecorder recorder = _OpenRecorder();
-    await tester.pumpWidget(_host(_container(recorder)));
+    final ProviderContainer container = _container(recorder);
+    await tester.pumpWidget(_host(container));
 
     expect(recorder.opened, isTrue, reason: 'the boot kick never ran');
     expect(
@@ -109,6 +124,8 @@ void main() {
       ),
     );
     expect(l10n.withdrawalSource(days: 7), contains('as entered by you'));
+
+    await _close(tester, container);
   });
 
   testWidgets('the observer is registered — a hidden to resumed cycle clears the selection', (
@@ -116,7 +133,8 @@ void main() {
   ) async {
     // THIS IS THE TEST THAT PROVES addObserver WAS CALLED AT ALL. Without an
     // observable effect, a missing registration is invisible.
-    await tester.pumpWidget(_host(_container(_OpenRecorder())));
+    final ProviderContainer container = _container(_OpenRecorder());
+    await tester.pumpWidget(_host(container));
     await tester.pump();
 
     final _ShedBookAppStateProbe probe = _ShedBookAppStateProbe(tester);
@@ -131,6 +149,8 @@ void main() {
     // the two calls really took. The boundary itself is asserted purely below,
     // where it can be controlled.
     expect(probe.state, isNotNull, reason: 'the observer is not attached to a live state');
+
+    await _close(tester, container);
   });
 
   test('ResumePolicy.shouldClearSelection is false at 1 min 59 s and true at 2 min 0 s', () {

@@ -261,12 +261,23 @@
   "keypadEnteredTag": "Entered tag {tag}",
   "@keypadEnteredTag": {
     "description": "Live region carrying the digits typed so far, announced as they change. The digits are spelled out rather than read as a number, because 412 is a name and not a quantity — a screen reader saying 'four hundred and twelve' has translated it into something the shepherd cannot match against the ear tag in their hand.",
-    "placeholders": { "tag": { "type": "String" } }
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
   },
   "matchCountClosest": "{count, plural, =0{No matches} =1{1 match, closest {tag}} other{{count} matches, closest {tag}}}",
   "@matchCountClosest": {
     "description": "The second live region. It carries the CLOSEST match as well as the count, because counting alone re-announces nothing when three matches become a different three matches — and the shepherd is listening for whether the animal in front of them is on the list.",
-    "placeholders": { "count": { "type": "int" }, "tag": { "type": "String" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "tag": {
+        "type": "String"
+      }
+    }
   },
   "quickEntryTitle": "Tonight",
   "@quickEntryTitle": {
@@ -275,7 +286,14 @@
   "quickEntryPageHeader": "Night of {night} · page {page}",
   "@quickEntryPageHeader": {
     "description": "indelible.md §7.16 page header. {night} arrives PRE-FORMATTED as `d MMM y` from formatShedDate (10 §8.4 rule 4) — never format a date inside a message, and never render an all-numeric date (R60, decision #108). The widget applies toUpperCase(); do not store shouty caps here, because the caps are a typographic decision owned by the design system and Flutter has no text-transform.",
-    "placeholders": { "night": { "type": "String" }, "page": { "type": "int" } }
+    "placeholders": {
+      "night": {
+        "type": "String"
+      },
+      "page": {
+        "type": "int"
+      }
+    }
   },
   "quickEntryStampAuto": "AUTO",
   "@quickEntryStampAuto": {
@@ -288,5 +306,50 @@
   "quickEntrySlabTagFirst": "Tag first",
   "@quickEntrySlabTagFirst": {
     "description": "The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1)."
+  },
+  "quickEntryPennedEmpty": "Nothing penned yet.",
+  "@quickEntryPennedEmpty": {
+    "description": "The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty."
+  },
+  "quickEntryRecentsEmpty": "No recent animals.",
+  "@quickEntryRecentsEmpty": {
+    "description": "The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty."
+  },
+  "quickEntryDeckUnavailable": "The deck could not be read.",
+  "@quickEntryDeckUnavailable": {
+    "description": "Shown when the deck stream carries a failure. It names no code and no cause, because neither is actionable at 03:20."
+  },
+  "quickEntryHoursPenned": "{hours}h",
+  "@quickEntryHoursPenned": {
+    "description": "The penned strip's trailing figure — elapsed PHYSICAL time from timeSincePenned, never two subtracted wall clocks. 03 §8 rule 1: a ewe penned at 22:00 before UK spring-forward and seen at 08:00 has been penned 9 hours, not 10.",
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "quickEntryPennedRowLabel": "Tag {tag}, in {pen}, penned {hours} hours",
+  "@quickEntryPennedRowLabel": {
+    "description": "The penned row's semantic label. It spells out 'hours' where the figure abbreviates to h, because a screen reader saying 'nine aitch' is not a duration.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      },
+      "pen": {
+        "type": "String"
+      },
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "quickEntryRecentRowLabel": "Tag {tag}",
+  "@quickEntryRecentRowLabel": {
+    "description": "The recents row's semantic label. It carries NO time, because the recents strip shows none (07 §5.2).",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
   }
 }

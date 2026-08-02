@@ -43,10 +43,12 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/features/quick_entry/widgets/in_pens_strip.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
+import 'package:shed_book/features/quick_entry/widgets/recents_strip.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// The reference geometry, from `indelible.md` §4.3–§4.4 at the 393 × 852
@@ -117,16 +119,8 @@ class QuickEntryScreen extends StatelessWidget {
 
               // The deck's two strips. T06 fills them; the sizes are final now,
               // which is what makes frame 1 and frame 2 identical.
-              const SizedBox(
-                key: Key('quick_entry.penned_strip'),
-                height: _Grid.stripHeight,
-                width: double.infinity,
-              ),
-              const SizedBox(
-                key: Key('quick_entry.recents_strip'),
-                height: _Grid.stripHeight,
-                width: double.infinity,
-              ),
+              const InPensStrip(height: _Grid.stripHeight),
+              const RecentsStrip(height: _Grid.stripHeight),
 
               // THE LIVE ROW IS A FIXED LAYER, NOT A SCROLLING CHILD, and this
               // task owns that correction. indelible.html:1138 puts it inside the

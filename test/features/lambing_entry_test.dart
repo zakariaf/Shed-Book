@@ -806,6 +806,20 @@ void main() {
     await tester.tap(colostrum);
     await tester.pumpAndSettle();
 
+    // COLOSTRUM OPENS ITS DETAIL SHEET; the other three lines commit on the tap.
+    // Volume and method exist only for colostrum, and a sheet in front of a
+    // navel dip would add a decision to a one-tap act at 03:20 for a field that
+    // does not exist.
+    // SCROLLED TO, BECAUSE THE SHEET SCROLLS TOO. `indelible.md §7.14` gives it
+    // 60% of the viewport and the keypad does not leave room for the button
+    // below it — measured. The pad is what must not shrink, so the sheet scrolls.
+    final Finder record = find.byKey(const Key('lambing_entry.colostrum.record'));
+    expect(record, findsOneWidget);
+    await tester.ensureVisible(record);
+    await tester.pumpAndSettle();
+    await tester.tap(record);
+    await tester.pumpAndSettle();
+
     // THE ROW EXISTS, and its subject is the LAMBING rather than a lamb —
     // exactly one of the two, which is what the CHECK constrains and what
     // `CareSubject` makes unconstructible any other way.
@@ -950,6 +964,110 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(await db.select(db.careEvents).get(), hasLength(1));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('closing the colostrum sheet without a volume still records the feed', (
+    WidgetTester tester,
+  ) async {
+    // THE SHEET ASKS FOR DETAIL, NEVER FOR PERMISSION. The shepherd pressed
+    // COLOSTRUM, which means they gave colostrum; dismissing the sheet must not
+    // discard that, and the dismiss word says so in as many words.
+    //
+    // This is the case that would be missing if the sheet were treated as a
+    // form — and the row it protects is the one that matters most on this
+    // screen, because a lamb that did not get colostrum is the one a shepherd
+    // goes back for.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder colostrum = find.byKey(const Key('lambing_entry.care.colostrum'));
+    await tester.ensureVisible(colostrum);
+    await tester.pumpAndSettle();
+    await tester.tap(colostrum);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('CLOSE'));
+    await tester.pumpAndSettle();
+
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    expect(row.kind, 'colostrum');
+    expect(row.volumeMl, isNull, reason: 'no volume, because they did not give one');
+    expect(row.method, isNull);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a volume typed on the keypad is stored exactly, with no placeholder before it', (
+    WidgetTester tester,
+  ) async {
+    // TWO CLAIMS.
+    //
+    // THE FIELD IS EMPTY UNTIL THEY TYPE (`indelible.md §7.12`): in the dark a
+    // grey placeholder is indistinguishable from an entered value, so there is
+    // no "e.g. 200", no ghosted last value and no default. Asserted by reading
+    // the field's own Text before any key is pressed.
+    //
+    // THE NUMBER GOES THROUGH THE KEYPAD (decision #57, R70). It is the only
+    // number-entry route in the app; a TextField with a numeric keyboard is the
+    // thing it exists to replace.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder colostrum = find.byKey(const Key('lambing_entry.care.colostrum'));
+    await tester.ensureVisible(colostrum);
+    await tester.pumpAndSettle();
+    await tester.tap(colostrum);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(TextField), findsNothing, reason: 'decision #57 — the keypad or nothing');
+
+    final Text field = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('lambing_entry.colostrum.volume')),
+        matching: find.byType(Text),
+      ),
+    );
+    expect(field.data, isEmpty, reason: 'empty is empty — no placeholder, no default');
+
+    // ensureVisible PER KEY. `0` is on the bottom row, which starts below the
+    // fold in a 60% sheet — and the first version of this case recorded `2`
+    // rather than `200`, because the two zero taps landed on nothing and the
+    // hit-test warning is not a failure. The assertion caught it; the scroll is
+    // what fixes it.
+    for (final String digit in <String>['2', '0', '0']) {
+      final Finder key = find.byKey(Key('quick_entry.keypad.digit_$digit'));
+      await tester.ensureVisible(key);
+      await tester.pumpAndSettle();
+      await tester.tap(key);
+      await tester.pump();
+    }
+    final Finder tube = find.byKey(const Key('lambing_entry.colostrum.method.Tube'));
+    await tester.ensureVisible(tube);
+    await tester.pumpAndSettle();
+    await tester.tap(tube);
+    await tester.pump();
+
+    final Finder record = find.byKey(const Key('lambing_entry.colostrum.record'));
+    await tester.ensureVisible(record);
+    await tester.pumpAndSettle();
+    await tester.tap(record);
+    await tester.pumpAndSettle();
+
+    final CareEvent row = await db.select(db.careEvents).getSingle();
+    expect(row.volumeMl, 200, reason: 'exactly as typed');
+    expect(row.method, 'tube');
 
     await tester.closeApp();
   });

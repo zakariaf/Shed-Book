@@ -408,4 +408,42 @@ class AppLocalizationsEn extends AppLocalizations {
   String careLineSemantics({required String label, required String state}) {
     return '$label, $state';
   }
+
+  @override
+  String get colostrumVolumeLabel => 'VOLUME';
+
+  @override
+  String get colostrumVolumeUnit => 'ml';
+
+  @override
+  String get colostrumMethodLabel => 'METHOD';
+
+  @override
+  String get colostrumMethodTeat => 'Teat';
+
+  @override
+  String get colostrumMethodTube => 'Tube';
+
+  @override
+  String get colostrumMethodBottle => 'Bottle';
+
+  @override
+  String colostrumMethodSemantics({required String word}) {
+    return '$word';
+  }
+
+  @override
+  String get colostrumRecord => 'RECORD';
+
+  @override
+  String get colostrumRecordSemantics => 'Record the colostrum detail';
+
+  @override
+  String get colostrumSheetClose => 'CLOSE';
+
+  @override
+  String get colostrumSheetCloseSemantics => 'Close without adding a volume or a method';
+
+  @override
+  String get colostrumSheetBarrier => 'Colostrum detail';
 }

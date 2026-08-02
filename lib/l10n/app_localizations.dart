@@ -747,6 +747,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{label}, {state}'**
   String careLineSemantics({required String label, required String state});
+
+  /// The volume field's label, ABOVE the line in the control voice (indelible.md 7.12). It is never placeholder text inside the field: in the dark a grey placeholder is indistinguishable from an entered value. The field is empty until the shepherd types - no default, no suggested figure, no last-value autofill (05 7.3).
+  ///
+  /// In en, this message translates to:
+  /// **'VOLUME'**
+  String get colostrumVolumeLabel;
+
+  /// The unit beside the volume field. Millilitres are the stored unit and the only one: volume_ml is canonical, and unlike weight there is no imperial alternative a UK shepherd would want for colostrum.
+  ///
+  /// In en, this message translates to:
+  /// **'ml'**
+  String get colostrumVolumeUnit;
+
+  /// The method group's label. Skippable, like the volume: a shepherd who fed colostrum without saying how has recorded the feed, which is the fact that matters at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'METHOD'**
+  String get colostrumMethodLabel;
+
+  /// ColostrumMethod.teat - the lamb sucked. The stored key is 'teat'.
+  ///
+  /// In en, this message translates to:
+  /// **'Teat'**
+  String get colostrumMethodTeat;
+
+  /// ColostrumMethod.tube - stomach tube. The stored key is 'tube'. Distinct from the 'stomach_tube' CARE KIND, which records that tubing happened at all; this records how the colostrum went in.
+  ///
+  /// In en, this message translates to:
+  /// **'Tube'**
+  String get colostrumMethodTube;
+
+  /// ColostrumMethod.bottle. The stored key is 'bottle'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottle'**
+  String get colostrumMethodBottle;
+
+  /// One method button's label. The word and nothing else: the node carries `selected` and a screen reader announces state itself, so a state word here would be the doubled announcement 10 3.2 rule 2 names.
+  ///
+  /// In en, this message translates to:
+  /// **'{word}'**
+  String colostrumMethodSemantics({required String word});
+
+  /// The sheet's commit button. NOT 'Save' and NOT 'Done': indelible.md 11 test 7 bans Save, and the word names the act - the care event itself was already committed by the line that opened this sheet, so this adds the detail rather than saving a draft.
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD'**
+  String get colostrumRecord;
+
+  /// The commit button for a screen reader. It says what is recorded, because RECORD alone does not say record what.
+  ///
+  /// In en, this message translates to:
+  /// **'Record the colostrum detail'**
+  String get colostrumRecordSemantics;
+
+  /// The sheet's dismiss word (indelible.md 7.14). Never 'Cancel' - 07 15.5: Cancel is not a verb here, and nothing is lost by closing, because the care event is already recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get colostrumSheetClose;
+
+  /// The dismiss word for a screen reader. It says explicitly that closing loses nothing, because a shepherd who cannot see the page above needs to know the colostrum event is already recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Close without adding a volume or a method'**
+  String get colostrumSheetCloseSemantics;
+
+  /// The modal barrier's label, required by showModalBottomSheet for accessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Colostrum detail'**
+  String get colostrumSheetBarrier;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

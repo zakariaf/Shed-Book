@@ -2051,3 +2051,10 @@ compile error at 09:00. Unstorable becomes unconstructible.
 
 **`removeCare` strikes.** `07 §15.1`'s row is amended in the same commit; see R79 for the mixin and
 `indelible.md §7.10` for the rendering that requires the row to survive.
+
+**The colostrum detail is written with the event, not after it.** `addCare` takes `volumeMl` and
+`method` as arguments, so the sheet's RECORD button is what commits — one row, one transaction, one
+provenance quad. Writing on open and updating on close would make the second write the losable one,
+which is the shape this project exists to avoid. Dismissing the sheet still writes the event with both
+fields null: the shepherd pressed COLOSTRUM, so they gave colostrum, and the sheet asks for detail
+rather than for permission.

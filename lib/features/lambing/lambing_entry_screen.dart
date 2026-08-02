@@ -7,6 +7,8 @@
 // It watches ONE provider. lib/features/ may not import package:drift or
 // lib/core/db/ at all (layer rule 5), which is why LambingEntryData is declared
 // in lib/data/ and assembled there.
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -21,7 +23,9 @@ import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/domain/care_kind.dart';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/care_line.dart';
+import 'package:shed_book/features/lambing/widgets/colostrum_detail.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
@@ -192,6 +196,12 @@ class _Regions extends ConsumerWidget {
                 // revert the line to unset: both stamps stay on the page.
                 if (existing != null) {
                   write.removeCare(existing.id);
+                } else if (kind == CareKind.colostrum) {
+                  // COLOSTRUM OPENS ITS DETAIL SHEET; THE OTHER THREE DO NOT.
+                  // Volume and method exist only for colostrum, and putting a
+                  // sheet in front of a navel dip would add a decision to a
+                  // one-tap act at 03:20 for a field that does not exist.
+                  _openColostrumDetail(context, write, data.lambing.id);
                 } else {
                   write.addCare(CareForLambing(data.lambing.id), kind: kind);
                 }
@@ -207,6 +217,68 @@ class _Regions extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  /// Opens the colostrum detail and records whatever comes back.
+  ///
+  /// **THE CARE EVENT IS WRITTEN WHEN THE SHEET CLOSES, NOT WHEN IT OPENS**, and
+  /// that is the one place on this screen where a tap does not commit
+  /// immediately. It is deliberate and it is bounded: `addCare` takes the volume
+  /// and the method as arguments, so writing on open would mean writing twice —
+  /// an insert and then an update — and the second write is the one that could
+  /// be lost. One row, one transaction, one provenance quad.
+  ///
+  /// Closing the sheet without pressing RECORD writes the event with both fields
+  /// null, because the shepherd DID give colostrum: the sheet asks for detail,
+  /// never for permission. The dismiss word says so.
+  void _openColostrumDetail(BuildContext context, LambingWriteController write, LambingId lambing) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.colostrumSheetBarrier,
+        // 60% of the viewport — the keypad does not fit without it
+        // (indelible.md §7.14).
+        fillsViewport: true,
+        child: ColostrumDetailSheet(
+          labels: (
+            volumeLabel: l10n.colostrumVolumeLabel,
+            methodLabel: l10n.colostrumMethodLabel,
+            unitSuffix: l10n.colostrumVolumeUnit,
+            recordLabel: l10n.colostrumRecord,
+            recordSemanticLabel: l10n.colostrumRecordSemantics,
+            padLabel: l10n.colostrumVolumeLabel,
+            backspaceLabel: l10n.keypadBackspace,
+            backspaceHint: l10n.hintDeleteLastDigit,
+            methodWords: <String>[
+              l10n.colostrumMethodTeat,
+              l10n.colostrumMethodTube,
+              l10n.colostrumMethodBottle,
+            ],
+            methodSemanticLabel: (String w) => l10n.colostrumMethodSemantics(word: w),
+          ),
+          onRecord: (ColostrumDetail detail) {
+            write.addCare(
+              CareForLambing(lambing),
+              kind: CareKind.colostrum,
+              volumeMl: detail.volumeMl,
+              method: detail.method,
+            );
+            Navigator.of(context).pop();
+          },
+        ),
+      ).then((void _) {
+        // DISMISSED WITHOUT RECORDING STILL WRITES THE EVENT — see above. The
+        // guard is what stops the RECORD path writing twice: it has already run
+        // by the time this fires, so the row exists and `_liveCare` is not null.
+        if (_liveCare(CareKind.colostrum) == null) {
+          write.addCare(CareForLambing(lambing), kind: CareKind.colostrum);
+        }
+      }),
     );
   }
 

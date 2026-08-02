@@ -587,6 +587,24 @@ abstract class AppLocalizations {
     required String time,
     required String provenance,
   });
+
+  /// The screen's headingLevel: 1 title. Lambing Entry deliberately has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any. The title still emits a level-1 node, because 12 §7.3's gate asserts at least one heading on every variant.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambing'**
+  String get lambingEntryTitle;
+
+  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambs'**
+  String get lambingEntryLambs;
+
+  /// The care region's label. 'Care' rather than 'Treatments': a treatment is a medicine with a withdrawal period (§12.1) and care is colostrum, warming and drying. Merging the two words would put a withdrawal question on a screen that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'Care'**
+  String get lambingEntryCare;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

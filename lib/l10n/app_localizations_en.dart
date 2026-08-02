@@ -299,4 +299,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }) {
     return 'Photo taken $date $time, $provenance';
   }
+
+  @override
+  String get lambingEntryTitle => 'Lambing';
+
+  @override
+  String get lambingEntryLambs => 'Lambs';
+
+  @override
+  String get lambingEntryCare => 'Care';
 }

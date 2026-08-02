@@ -251,3 +251,64 @@ Future<void> setEwesInCurrentSeason(AppDatabase db, int n) async {
         );
   }
 }
+
+/// One lamb on [lambing], born to [birthDam].
+///
+/// `sex` and `birth_weight_g` stay ABSENT rather than null-by-default: not
+/// recorded and recorded-as-unknown are different facts (R45), and a seed that
+/// filled them in would make every read-back case assert against data the app
+/// would never have produced on the five-tap path.
+Future<LambId> seedLamb(
+  AppDatabase db,
+  LambingId lambing,
+  EweId birthDam, {
+  String status = 'alive',
+}) async {
+  final Instant now = appNow();
+  final int id = await db
+      .into(db.lambs)
+      .insert(
+        LambsCompanion.insert(
+          lambing: lambing.value,
+          birthDam: birthDam.value,
+          status: Value<String>(status),
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return LambId(id);
+}
+
+/// One care event, against a LAMB or against the LAMBING.
+///
+/// `care_events`' CHECK is exactly one of the two, and the distinction is real:
+/// a care action taken before the first lamb is attached belongs to the lambing.
+/// Passing both, or neither, is a schema failure rather than a Dart one.
+Future<CareEventId> seedCareEvent(
+  AppDatabase db, {
+  required String kind,
+  LambingId? lambing,
+  LambId? lamb,
+  int? volumeMl,
+}) async {
+  final Instant now = appNow();
+  final SeasonId season = await _season(db);
+  final int id = await db
+      .into(db.careEvents)
+      .insert(
+        CareEventsCompanion.insert(
+          season: season.value,
+          lambing: Value<int?>(lambing?.value),
+          lamb: Value<int?>(lamb?.value),
+          kind: kind,
+          occurredAt: now,
+          capturedAt: now,
+          volumeMl: Value<int?>(volumeMl),
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return CareEventId(id);
+}

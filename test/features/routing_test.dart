@@ -52,7 +52,7 @@ const List<String> _expected = <String>[
 ];
 
 void main() {
-  test('RouteNames has thirteen constants and exactly one push helper exists today', () {
+  test('RouteNames has thirteen constants and one push helper per screen that exists', () {
     // THE ANCHOR, and its name is about a HELPER, not a push. Quick Entry is
     // MaterialApp.home — route 0, isFirst — so it is never pushed, and the one
     // helper the file ships today is a POP. Zero `push(` call sites is the
@@ -80,14 +80,31 @@ void main() {
           'ModalRoute.withName ambiguous and the diagnostics log unreadable',
     );
 
+    // AMENDED AT N16-T01, WHICH LANDED THE FIRST PUSH HELPER. The case used to
+    // assert ZERO pushes, and that was right while zero screens existed to push
+    // to. What it guards now is the same rule stated the other way round: the
+    // table grows ONE helper per screen epic, in the commit that adds the
+    // screen — never twelve at once for screens that do not exist.
+    //
+    // Quick Entry is still never pushed. It is MaterialApp.home, route 0,
+    // isFirst, and its helper is a POP — which is why the count below is one
+    // push and not two.
     expect(
       '.push('.allMatches(declarations).length,
-      0,
-      reason:
-          'Quick Entry is MaterialApp.home and is never pushed; the one helper '
-          'today is popToQuickEntry, which is a pop',
+      1,
+      reason: 'lambingEntry (N16-T01). Quick Entry is home: and is never pushed',
     );
     expect(declarations, contains('popToQuickEntry'));
+    expect(declarations, contains('static Future<void> lambingEntry('));
+
+    // The arithmetic 12 §6.2 will assert at N33 — thirteen names minus twelve
+    // helpers equals one — is still not written here, because it is still not
+    // true: eleven screens remain.
+    expect(
+      RegExp(r'static Future<void> \w+\(').allMatches(declarations).length,
+      1,
+      reason: 'one screen exists to push to; N33-T01 asserts the final count',
+    );
   });
 
   test("the thirteen RouteNames values are exactly 02 §8.1's list", () {

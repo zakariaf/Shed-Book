@@ -1517,4 +1517,173 @@ void main() {
 
     await tester.closeApp();
   });
+
+  // ---------------------------------------------------------------------------
+  // T08 — the assistance detail, every field skippable
+  // ---------------------------------------------------------------------------
+
+  testWidgets('every field after the first tap is skippable and each one commits on its own', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, BOTH HALVES.
+    //
+    // SKIPPABLE — a lambing with one stroke and nothing else is a COMPLETE,
+    // VALID record: every detail column NULL, and the row is on disk. This is
+    // the promise the whole screen rests on, because at 03:20 the tally is the
+    // record and everything after it is detail.
+    //
+    // EACH COMMITS ON ITS OWN — one field is set and the OTHERS are asserted
+    // byte-identical. A screen that writes the whole row on every edit passes a
+    // naive version of this case and loses a field the moment two edits race.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    await seedLamb(db, lambing, ewe);
+
+    final Lambing skipped = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(skipped.assistedBy, isNull);
+    expect(skipped.presentation, isNull);
+    expect(skipped.presentationNote, isNull);
+    expect(skipped.note, isNull);
+    expect(skipped.ease, isNull);
+    expect(
+      skipped.occurredAt,
+      isNotNull,
+      reason: 'the record is complete with every detail column empty',
+    );
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    // Set exactly ONE field.
+    final Finder breech = find.byKey(const Key('lambing_entry.presentation.mp_breech'));
+    await tester.ensureVisible(breech);
+    await tester.pumpAndSettle();
+    await tester.tap(breech);
+    await tester.pumpAndSettle();
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(after.presentation, 'mp_breech');
+
+    // AND NOTHING ELSE MOVED. `updated_at` is excluded deliberately — it is the
+    // one column a write is SUPPOSED to touch.
+    expect(after.assistedBy, skipped.assistedBy);
+    expect(after.presentationNote, skipped.presentationNote);
+    expect(after.note, skipped.note);
+    expect(after.ease, skipped.ease);
+    expect(after.occurredAt, skipped.occurredAt);
+    expect(after.capturedAt, skipped.capturedAt);
+    expect(after.timeSource, skipped.timeSource);
+    expect(after.declaredBirthType, skipped.declaredBirthType);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('tapping the selected presentation clears it back to not recorded', (
+    WidgetTester tester,
+  ) async {
+    // THE FIELD IS SKIPPABLE, SO IT MUST BE UN-ANSWERABLE. Without this there is
+    // no way back to *not recorded* after a mis-tap, and the app would be
+    // holding a claim the shepherd disowned — which is §12.4 from the other
+    // direction: not a silent correction, but a silent refusal to un-record.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder ringwomb = find.byKey(const Key('lambing_entry.presentation.mp_ringwomb'));
+    await tester.ensureVisible(ringwomb);
+    await tester.pumpAndSettle();
+    await tester.tap(ringwomb);
+    await tester.pumpAndSettle();
+    await tester.tap(ringwomb);
+    await tester.pumpAndSettle();
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(row.presentation, isNull, reason: 'un-recorded, not left as entered');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('there is no chip and no placeholder anywhere in the feature', (
+    WidgetTester tester,
+  ) async {
+    // TWO DESIGN RULES, BOTH MECHANICAL.
+    //
+    // NO CHIPS: `07 §6.4` uses the word, and indelible.md overrules it — "the
+    // filters are not chips; chips are containers with a radius, and this system
+    // has neither". Asserted against the four Material chip types by name.
+    //
+    // NO PLACEHOLDER: `indelible.md §7.12` — in the dark a grey placeholder is
+    // indistinguishable from an entered value. There is no text field on this
+    // screen at all, which is the strongest available form of that: a field with
+    // no `hintText` could grow one, and a screen with no field cannot.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Chip), findsNothing);
+    expect(find.byType(FilterChip), findsNothing);
+    expect(find.byType(ActionChip), findsNothing);
+    expect(find.byType(InputChip), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+
+    // AND THE UNSET LINE SAYS SKIPPABLE, in as many words, because a shepherd
+    // at 03:20 needs to know they may walk away.
+    expect(find.byKey(const Key('lambing_entry.presentation.unset')), findsOneWidget);
+    expect(find.textContaining('SKIPPABLE'), findsWidgets);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('every presentation word clears 64 by 64', (WidgetTester tester) async {
+    // The eight words are a Wrap of word buttons, not a Row, and each one is a
+    // target. Asserted at Device.small, where the wrap is doing the most work.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(
+      LambingEntryScreen(lambingId: lambing),
+      db: db,
+      device: Device.small,
+    );
+    await tester.pumpAndSettle();
+
+    for (final String key in <String>[
+      'mp_head_back',
+      'mp_one_leg_back',
+      'mp_both_legs_back',
+      'mp_breech',
+      'mp_backwards',
+      'mp_twins_together',
+      'mp_ringwomb',
+      'mp_other',
+    ]) {
+      final Finder word = find.byKey(Key('lambing_entry.presentation.$key'));
+      expect(word, findsOneWidget, reason: key);
+      final Size size = tester.getSize(word);
+      expect(size.height, greaterThanOrEqualTo(64.0), reason: key);
+      expect(size.width, greaterThanOrEqualTo(64.0), reason: key);
+    }
+
+    await tester.closeApp();
+  });
 }

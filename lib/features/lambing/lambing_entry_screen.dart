@@ -22,6 +22,7 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/domain/birth_type.dart';
 import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
@@ -34,6 +35,8 @@ import 'package:shed_book/features/lambing/widgets/declare_type_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/provenance_header.dart';
 import 'package:shed_book/features/lambing/widgets/query_mark.dart';
 import 'package:shed_book/features/lambing/widgets/time_editor_sheet.dart';
+import 'package:shed_book/data/settings_repository.dart';
+import 'package:shed_book/features/lambing/widgets/detail_rows.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
@@ -97,6 +100,9 @@ class LambingEntryScreen extends ConsumerWidget {
                   // RECOMPUTED ON EVERY EMISSION, NEVER STORED. Decision #54
                   // closes the `warnings` column permanently.
                   warnings: ref.watch(lambingWarningsProvider(lambingId)),
+                  // THE SAME APP-LEVEL SINGLETON THE EASE ROW READS (R81). One
+                  // watch, four consumers, no second content statement.
+                  vocab: ref.watch(vocabProvider).value ?? <VocabEntry>[],
                 ),
                 // NO SPINNER (07 §1.4): loading is a fixed-height placeholder or
                 // it is nothing. A spinner on a screen the shepherd reached by
@@ -118,6 +124,7 @@ class _Regions extends ConsumerWidget {
     required this.careLabel,
     required this.units,
     required this.warnings,
+    required this.vocab,
   });
 
   final LambingEntryData data;
@@ -134,6 +141,9 @@ class _Regions extends ConsumerWidget {
   /// and on this screen there is nothing to block anyway, because every field
   /// committed the moment it was tapped.
   final List<Warning> warnings;
+
+  /// The forty vocabulary rows, for the presentation picker's labels.
+  final List<VocabEntry> vocab;
 
   /// The warnings against one cell, grouped.
   ///
@@ -258,6 +268,25 @@ class _Regions extends ConsumerWidget {
                 }
               },
             ),
+          // THE ASSISTANCE DETAIL (T08). Every field below is SKIPPABLE and
+          // each commits on its own — four narrow verbs, never one wide write,
+          // because a wide write is how a second edit clobbers the first.
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+            child: Text(AppLocalizations.of(context).detailPresentation, style: text.labelMedium),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: PresentationPicker(
+              key: const Key('lambing_entry.presentation'),
+              choices: _presentationChoices(context),
+              unsetLabel: AppLocalizations.of(context).detailUnset,
+              groupSemanticLabel: AppLocalizations.of(context).detailPresentationSemantics,
+              onSelected: (String? key) => ref
+                  .read(lambingWriteControllerProvider.notifier)
+                  .setPresentation(data.lambing.id, key),
+            ),
+          ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
             child: Text(
@@ -269,6 +298,52 @@ class _Regions extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  /// The eight malpresentation words, in `sort_order`.
+  ///
+  /// **A HIDDEN TERM IS NOT OFFERED**, which is what `vocabProvider`'s ordering
+  /// and the seed's `hidden_at` between them decide — and a lambing that already
+  /// references a hidden term still renders its label, because the label comes
+  /// from the same list rather than from the offered subset. Filtering the
+  /// lookup as well as the list is how an existing record starts printing a raw
+  /// key at 03:20.
+  List<PresentationChoice> _presentationChoices(BuildContext context) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    const List<String> keys = <String>[
+      'mp_head_back',
+      'mp_one_leg_back',
+      'mp_both_legs_back',
+      'mp_breech',
+      'mp_backwards',
+      'mp_twins_together',
+      'mp_ringwomb',
+      'mp_other',
+    ];
+
+    String shipped(String key) => switch (key) {
+      'mp_head_back' => l10n.vocabMpHeadBack,
+      'mp_one_leg_back' => l10n.vocabMpOneLegBack,
+      'mp_both_legs_back' => l10n.vocabMpBothLegsBack,
+      'mp_breech' => l10n.vocabMpBreech,
+      'mp_backwards' => l10n.vocabMpBackwards,
+      'mp_twins_together' => l10n.vocabMpTwinsTogether,
+      'mp_ringwomb' => l10n.vocabMpRingwomb,
+      'mp_other' => l10n.vocabMpOther,
+      _ => throw ArgumentError.value(key, 'key', 'not a frozen malpresentation key'),
+    };
+
+    return <PresentationChoice>[
+      for (final String key in keys)
+        (
+          key: key,
+          label: vocabLabel(
+            vocab.where((VocabEntry v) => v.key == key).firstOrNull?.label,
+            shipped(key),
+          ),
+          selected: data.lambing.presentation == key,
+        ),
+    ];
   }
 
   /// The header's words.

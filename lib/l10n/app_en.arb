@@ -737,5 +737,29 @@
   "timeEditorConfirmSemantics": "Correct the lambing time to what you typed",
   "@timeEditorConfirmSemantics": {
     "description": "The commit button for a screen reader. It names what changes, because CORRECT IT alone does not say what."
+  },
+  "detailAssistedBy": "WHO ELSE WAS THERE",
+  "@detailAssistedBy": {
+    "description": "The assisted_by field's label, above the line. Free text, never a picker: the app has no people table, and inventing one would ask a shepherd to maintain a contacts list at 03:20. Never 'Assisted by' as a heading - the trade phrasing is who was with you."
+  },
+  "detailPresentation": "HOW IT WAS LYING",
+  "@detailPresentation": {
+    "description": "The malpresentation picker's label. Plain words rather than the clinical noun, because the picker's own entries are the vocabulary and a heading that repeats it teaches nothing."
+  },
+  "detailPresentationNote": "ROPES, LUBRICANT, VET",
+  "@detailPresentationNote": {
+    "description": "The presentation_note field's label, and it is DELIBERATELY SPECIFIC. Spec 7.2 lists lubricant/ropes/vet under assistance detail; 03 5.4 ships no column for it and the schema froze at N07-T08, so it lands here as free text. The label names the three so the next reader does not go looking for a column or propose one. A structured version is a v2 migration, not a widget."
+  },
+  "detailNote": "ANYTHING ELSE",
+  "@detailNote": {
+    "description": "The lambing's own note column. Distinct from a notes ROW, which is the attachment-bearing kind NoteRepository owns."
+  },
+  "detailUnset": "NOT RECORDED · SKIPPABLE",
+  "@detailUnset": {
+    "description": "Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value."
+  },
+  "detailPresentationSemantics": "How it was lying, not required",
+  "@detailPresentationSemantics": {
+    "description": "The presentation group's container label. It says the field may be skipped and does NOT say which word is selected - the buttons carry `selected` and a screen reader announces state itself (10 3.2 rule 2)."
   }
 }

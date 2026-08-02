@@ -921,6 +921,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Correct the lambing time to what you typed'**
   String get timeEditorConfirmSemantics;
+
+  /// The assisted_by field's label, above the line. Free text, never a picker: the app has no people table, and inventing one would ask a shepherd to maintain a contacts list at 03:20. Never 'Assisted by' as a heading - the trade phrasing is who was with you.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO ELSE WAS THERE'**
+  String get detailAssistedBy;
+
+  /// The malpresentation picker's label. Plain words rather than the clinical noun, because the picker's own entries are the vocabulary and a heading that repeats it teaches nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'HOW IT WAS LYING'**
+  String get detailPresentation;
+
+  /// The presentation_note field's label, and it is DELIBERATELY SPECIFIC. Spec 7.2 lists lubricant/ropes/vet under assistance detail; 03 5.4 ships no column for it and the schema froze at N07-T08, so it lands here as free text. The label names the three so the next reader does not go looking for a column or propose one. A structured version is a v2 migration, not a widget.
+  ///
+  /// In en, this message translates to:
+  /// **'ROPES, LUBRICANT, VET'**
+  String get detailPresentationNote;
+
+  /// The lambing's own note column. Distinct from a notes ROW, which is the attachment-bearing kind NoteRepository owns.
+  ///
+  /// In en, this message translates to:
+  /// **'ANYTHING ELSE'**
+  String get detailNote;
+
+  /// Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get detailUnset;
+
+  /// The presentation group's container label. It says the field may be skipped and does NOT say which word is selected - the buttons carry `selected` and a screen reader announces state itself (10 3.2 rule 2).
+  ///
+  /// In en, this message translates to:
+  /// **'How it was lying, not required'**
+  String get detailPresentationSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

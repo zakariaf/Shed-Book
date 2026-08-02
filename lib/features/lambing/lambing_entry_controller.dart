@@ -81,6 +81,18 @@ final class LambingWriteController extends WriteController {
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
 
+  Future<void> setAssistedBy(LambingId lambing, String? value) =>
+      guard(() => ref.read(lambingRepositoryProvider).setAssistedBy(lambing, value));
+
+  Future<void> setPresentation(LambingId lambing, String? vocabKey) =>
+      guard(() => ref.read(lambingRepositoryProvider).setPresentation(lambing, vocabKey));
+
+  Future<void> setPresentationNote(LambingId lambing, String? value) =>
+      guard(() => ref.read(lambingRepositoryProvider).setPresentationNote(lambing, value));
+
+  Future<void> setNote(LambingId lambing, String? value) =>
+      guard(() => ref.read(lambingRepositoryProvider).setNote(lambing, value));
+
   /// Corrects the header time. The warnings recompute on the next emission —
   /// `lambingWarningsProvider` watches the same statement, so nothing needs to
   /// be invalidated and nothing may be (`02 §4.1`).

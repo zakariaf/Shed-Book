@@ -503,4 +503,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get timeEditorConfirmSemantics => 'Correct the lambing time to what you typed';
+
+  @override
+  String get detailAssistedBy => 'WHO ELSE WAS THERE';
+
+  @override
+  String get detailPresentation => 'HOW IT WAS LYING';
+
+  @override
+  String get detailPresentationNote => 'ROPES, LUBRICANT, VET';
+
+  @override
+  String get detailNote => 'ANYTHING ELSE';
+
+  @override
+  String get detailUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get detailPresentationSemantics => 'How it was lying, not required';
 }

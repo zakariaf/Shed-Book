@@ -152,6 +152,95 @@ final class LambingRepository {
     }
   }
 
+  /// Who else was there. Free text, **never a picker and never a list of
+  /// names** — the app has no people table and inventing one would be asking a
+  /// shepherd to maintain a contacts list at 03:20.
+  Future<WriteOutcome> setAssistedBy(LambingId id, String? value) => _setOneColumn(
+    id,
+    (Instant now) => LambingsCompanion(
+      assistedBy: Value<String?>(_blankToNull(value)),
+      updatedAt: Value<Instant>(now),
+    ),
+  );
+
+  /// The malpresentation, as a `vocab_terms.key`.
+  ///
+  /// **An FK with `ON DELETE RESTRICT`**, so a term in use cannot be deleted —
+  /// removal sets `hidden_at` instead. Two consequences the picker honours: a
+  /// hidden term is not OFFERED, and a lambing that already references one still
+  /// RENDERS ITS LABEL. Filtering hidden terms out of the label lookup as well
+  /// as out of the list is how an existing record starts printing a raw key.
+  Future<WriteOutcome> setPresentation(LambingId id, String? vocabKey) => _setOneColumn(
+    id,
+    (Instant now) => LambingsCompanion(
+      presentation: Value<String?>(_blankToNull(vocabKey)),
+      updatedAt: Value<Instant>(now),
+    ),
+  );
+
+  /// Free text beside the presentation.
+  ///
+  /// **THIS IS WHERE `lubricant / ropes / vet` LIVES**, and it is free text
+  /// because the frozen schema has no column for it. Spec §7.2 lists it under
+  /// assistance detail; `03 §5.4` ships four columns and the schema froze at
+  /// N07-T08. A structured version is a v2 migration, not a widget — the ARB
+  /// description and the field label both say so, so the next reader does not go
+  /// looking for a column or propose one.
+  Future<WriteOutcome> setPresentationNote(LambingId id, String? value) => _setOneColumn(
+    id,
+    (Instant now) => LambingsCompanion(
+      presentationNote: Value<String?>(_blankToNull(value)),
+      updatedAt: Value<Instant>(now),
+    ),
+  );
+
+  /// The lambing's own note. Distinct from a `notes` row, which is the
+  /// attachment-bearing kind `NoteRepository` owns.
+  Future<WriteOutcome> setNote(LambingId id, String? value) => _setOneColumn(
+    id,
+    (Instant now) => LambingsCompanion(
+      note: Value<String?>(_blankToNull(value)),
+      updatedAt: Value<Instant>(now),
+    ),
+  );
+
+  /// **FOUR NARROW VERBS SHARE THIS, AND THERE IS NO `updateDetail(...)`.**
+  ///
+  /// Each caller builds a companion naming ONE column plus `updated_at`, so drift
+  /// writes exactly those two. A wide write — one verb taking four nullable
+  /// parameters — is how a second edit clobbers the first: two fields edited in
+  /// the same second and the later write carries the earlier field's stale
+  /// value back over the top of it.
+  ///
+  /// The shared helper is the transaction and the instant, which is the part
+  /// that must not vary. What each verb writes is the part that must.
+  Future<WriteOutcome> _setOneColumn(
+    LambingId id,
+    LambingsCompanion Function(Instant now) build,
+  ) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+      final int rows = await (_db.update(
+        _db.lambings,
+      )..where(($LambingsTable t) => t.id.equals(id.value))).write(build(now));
+      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  /// An empty field is **not recorded**, which is a different fact from an empty
+  /// string and stores as NULL (R45 again, one tier down). A shepherd who clears
+  /// a note has unrecorded it; they have not recorded a blank one.
+  ///
+  /// Trimmed, because trailing whitespace from a keyboard is not content — and
+  /// this is the one transformation permitted here. It removes nothing the
+  /// shepherd meant.
+  static String? _blankToNull(String? v) {
+    final String? trimmed = v?.trim();
+    return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
+  }
+
   /// Corrects the time the lambing happened.
   ///
   /// **THE FIRST CODE IN THE APP THAT WRITES AN `edited` ROW.** `Lambings` has

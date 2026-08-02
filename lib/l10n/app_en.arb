@@ -241,5 +241,31 @@
   "vocabFmOther": "Other",
   "@vocabFmOther": {
     "description": "Default label for vocab_terms(list='foster_method', key='fm_other'). Authored for this app — spec §11 ships no licensed vocabulary and no product, breed or medicine database. It is a DEFAULT, not a constant: the shepherd may rename or hide the term, and vocab_terms.label is NULL until they do. Never a dose, a course or an instruction."
+  },
+  "keypadTagEntry": "Tag entry",
+  "@keypadTagEntry": {
+    "description": "Container label for the keypad, announced when a VoiceOver user lands inside it so they know what they have arrived in rather than hearing ten unrelated buttons. Not a heading and never rendered visually — the pad's job is obvious to a sighted shepherd at a glance."
+  },
+  "keypadBackspace": "Backspace",
+  "@keypadBackspace": {
+    "description": "Semantic label for the backspace key, whose glyph is the erase-left character. It carries no role word: the platform already announces 'button' and the user would hear it twice (10 §3.2 rule 1)."
+  },
+  "hintDeleteLastDigit": "delete the last digit",
+  "@hintDeleteLastDigit": {
+    "description": "onTapHint for backspace, so an assistive technology announces 'double tap to delete the last digit' rather than the generic verb. Singular DIGIT, deliberately: there is no key repeat, and a hint saying 'clear' would promise something the key does not do."
+  },
+  "keypadNewTag": "NEW TAG",
+  "@keypadNewTag": {
+    "description": "The bottom-right key when the pad is entering a tag — create-on-the-fly. Capitals because it is the control voice (indelible.md §3.1, as amended 2026-08-02): capitals and heavy weight mean 'a thing you can press', sentence case means 'it happened'."
+  },
+  "keypadEnteredTag": "Entered tag {tag}",
+  "@keypadEnteredTag": {
+    "description": "Live region carrying the digits typed so far, announced as they change. The digits are spelled out rather than read as a number, because 412 is a name and not a quantity — a screen reader saying 'four hundred and twelve' has translated it into something the shepherd cannot match against the ear tag in their hand.",
+    "placeholders": { "tag": { "type": "String" } }
+  },
+  "matchCountClosest": "{count, plural, =0{No matches} =1{1 match, closest {tag}} other{{count} matches, closest {tag}}}",
+  "@matchCountClosest": {
+    "description": "The second live region. It carries the CLOSEST match as well as the count, because counting alone re-announces nothing when three matches become a different three matches — and the shepherd is listening for whether the animal in front of them is on the list.",
+    "placeholders": { "count": { "type": "int" }, "tag": { "type": "String" } }
   }
 }

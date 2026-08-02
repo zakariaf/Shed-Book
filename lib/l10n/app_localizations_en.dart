@@ -186,4 +186,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vocabFmOther => 'Other';
+
+  @override
+  String get keypadTagEntry => 'Tag entry';
+
+  @override
+  String get keypadBackspace => 'Backspace';
+
+  @override
+  String get hintDeleteLastDigit => 'delete the last digit';
+
+  @override
+  String get keypadNewTag => 'NEW TAG';
+
+  @override
+  String keypadEnteredTag({required String tag}) {
+    return 'Entered tag $tag';
+  }
+
+  @override
+  String matchCountClosest({required int count, required String tag}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count matches, closest $tag',
+      one: '1 match, closest $tag',
+      zero: 'No matches',
+    );
+    return '$_temp0';
+  }
 }

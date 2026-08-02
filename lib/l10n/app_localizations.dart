@@ -427,6 +427,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get vocabFmOther;
+
+  /// Container label for the keypad, announced when a VoiceOver user lands inside it so they know what they have arrived in rather than hearing ten unrelated buttons. Not a heading and never rendered visually — the pad's job is obvious to a sighted shepherd at a glance.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag entry'**
+  String get keypadTagEntry;
+
+  /// Semantic label for the backspace key, whose glyph is the erase-left character. It carries no role word: the platform already announces 'button' and the user would hear it twice (10 §3.2 rule 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Backspace'**
+  String get keypadBackspace;
+
+  /// onTapHint for backspace, so an assistive technology announces 'double tap to delete the last digit' rather than the generic verb. Singular DIGIT, deliberately: there is no key repeat, and a hint saying 'clear' would promise something the key does not do.
+  ///
+  /// In en, this message translates to:
+  /// **'delete the last digit'**
+  String get hintDeleteLastDigit;
+
+  /// The bottom-right key when the pad is entering a tag — create-on-the-fly. Capitals because it is the control voice (indelible.md §3.1, as amended 2026-08-02): capitals and heavy weight mean 'a thing you can press', sentence case means 'it happened'.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW TAG'**
+  String get keypadNewTag;
+
+  /// Live region carrying the digits typed so far, announced as they change. The digits are spelled out rather than read as a number, because 412 is a name and not a quantity — a screen reader saying 'four hundred and twelve' has translated it into something the shepherd cannot match against the ear tag in their hand.
+  ///
+  /// In en, this message translates to:
+  /// **'Entered tag {tag}'**
+  String keypadEnteredTag({required String tag});
+
+  /// The second live region. It carries the CLOSEST match as well as the count, because counting alone re-announces nothing when three matches become a different three matches — and the shepherd is listening for whether the animal in front of them is on the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No matches} =1{1 match, closest {tag}} other{{count} matches, closest {tag}}}'**
+  String matchCountClosest({required int count, required String tag});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

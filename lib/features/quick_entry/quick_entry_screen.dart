@@ -55,6 +55,7 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
@@ -310,12 +311,28 @@ class _QuickEntryPage extends ConsumerWidget {
                   //
                   // N16 pushes LambingEntryScreen from the outcome's id. There
                   // is no route helper for a screen that does not exist yet.
+                  // THE CONFIRM BAR AND THE EVENT BUTTON ARE TWO CONTROLS, and
+                  // T06's budget is what says so: tap 4 confirms WHICH animal,
+                  // tap 5 commits WHAT happened. Merging them would read as four
+                  // taps and would mean the shepherd cannot see which ewe they
+                  // are about to file a lambing against before they file it.
+                  //
+                  // Labelled with the OUTCOME — "Use 412" / "Create 412" — never
+                  // a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to
+                  // remember what they were confirming.
                   SizedBox(
                     key: const Key('quick_entry.confirm'),
                     height: t.tapHero,
                     width: double.infinity,
+                    child: _ConfirmBar(),
+                  ),
+
+                  SizedBox(
+                    key: const Key('quick_entry.event'),
+                    height: t.tapHero,
+                    width: double.infinity,
                     child: ShedTapTarget(
-                      key: const Key('quick_entry.lambing'),
+                      key: const Key('quick_entry.event.lambing'),
                       semanticLabel: l10n.quickEntryLambing,
                       minSize: t.tapHero,
                       onTap: () {
@@ -438,6 +455,45 @@ class _StrikeAffordanceState extends State<_StrikeAffordance> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Tap 4 of the five-tap path: **which animal**.
+///
+/// It reads the controller's top match and commits the selection. When the tag
+/// matches no active animal it reads "Create 412" and creates one through
+/// `EntryContext.liveEntry`, which is the parameter that makes a refusal
+/// unreachable here (decision #91).
+class _ConfirmBar extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final QuickEntryState state = ref.watch(quickEntryControllerProvider);
+
+    if (state.query.isEmpty) {
+      return const SizedBox.expand();
+    }
+
+    final TagIndexEntry? top = state.matches.isEmpty ? null : state.matches.first;
+    final bool exact = top != null && top.tag == state.query;
+    final String label = exact
+        ? l10n.quickEntryConfirmUse(tag: top.tag)
+        : l10n.quickEntryConfirmCreate(tag: state.query);
+
+    return ShedTapTarget(
+      semanticLabel: label,
+      minSize: context.tokens.tapHero,
+      onTap: () {
+        if (exact) {
+          ref.read(quickEntryControllerProvider.notifier).select(top.eweId);
+        } else {
+          ref.read(quickEntryWriteControllerProvider.notifier).createEwe(state.query).ignore();
+        }
+      },
+      child: ExcludeSemantics(
+        child: Center(child: Text(label, style: Theme.of(context).textTheme.labelLarge)),
       ),
     );
   }

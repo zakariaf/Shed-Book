@@ -298,12 +298,26 @@ void _shellTests() {
     // and there is no `ref.watch` in this file at all. The two strips watch one
     // level down, inside boxes whose height is fixed — so a rebuild there moves
     // nothing above it.
+    // AMENDED AGAIN AT N14-T06. The confirm bar is a ConsumerWidget that WATCHES
+    // the typed query — it has to, because its label is "Use 412" or "Create
+    // 412" depending on what has been typed. So `no ref.watch in the file` is no
+    // longer the property.
+    //
+    // What still holds, and is what the boxes actually rest on: QuickEntryScreen
+    // is a StatelessWidget, and every watch in this file is inside a widget whose
+    // box is FIXED — the confirm bar's height is tapHero whatever it renders, so
+    // a rebuild there cannot move anything above or below it.
     expect(source, contains('class QuickEntryScreen extends StatelessWidget'));
     expect(source, isNot(contains('ConsumerStatefulWidget')));
+
+    // Every watcher sits inside a SizedBox with a literal height from _Grid or
+    // the tap scale. Asserted structurally: the page's own build has no watch.
+    final int pageBuildStart = source.indexOf('class _QuickEntryPage');
+    final int pageBuildEnd = source.indexOf('class _StrikeAffordance');
     expect(
-      source,
+      source.substring(pageBuildStart, pageBuildEnd),
       isNot(contains('ref.watch')),
-      reason: 'a watch here would rebuild the whole page on every emission',
+      reason: 'a watch in the PAGE would rebuild every box on every emission',
     );
   });
 
@@ -527,7 +541,7 @@ void _writePathTests() {
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    final Finder lambing = find.byKey(const Key('quick_entry.lambing'));
+    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
     await tester.tap(lambing);
     await tester.tap(lambing);
     await tester.pumpAndSettle();
@@ -556,7 +570,7 @@ void _writePathTests() {
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    final Finder lambing = find.byKey(const Key('quick_entry.lambing'));
+    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
     await tester.tap(lambing);
     await tester.pumpAndSettle();
     await tester.tap(lambing);
@@ -577,7 +591,7 @@ void _writePathTests() {
     await tester.pumpApp(const QuickEntryScreen(), db: db);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('quick_entry.lambing')));
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
     await tester.pumpAndSettle();
 
     expect(await countLambings(db), 0);
@@ -633,7 +647,7 @@ void _writePathTests() {
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('quick_entry.lambing')));
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
     await tester.pumpAndSettle();
 
     // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
@@ -682,7 +696,7 @@ void _writePathTests() {
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('quick_entry.lambing')));
+    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('quick_entry.strike')));
     await tester.pumpAndSettle();

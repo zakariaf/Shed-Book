@@ -74,11 +74,26 @@ final AutoDisposeStreamProvider<Instant> minuteTickProvider = StreamProvider.aut
   ref,
 ) async* {
   Timer? wake;
-  ref.onDispose(() => wake?.cancel());
 
-  while (true) {
+  // THE FLAG IS NOT BELT AND BRACES — IT CLOSES A RACE THE CANCEL ALONE CANNOT.
+  // MEASURED: an `async*` generator is suspended AT THE YIELD, not at the await,
+  // so when disposal arrives the loop has not yet reached the line that creates
+  // its timer. Cancelling `wake` there cancels the PREVIOUS iteration's timer;
+  // the generator then resumes, runs on, and creates a FRESH one after
+  // `onDispose` has already been and gone. The guard after the yield is what
+  // stops that.
+  bool cancelled = false;
+  ref.onDispose(() {
+    cancelled = true;
+    wake?.cancel();
+  });
+
+  while (!cancelled) {
     final Instant now = appNow(); // the ONE wall-clock reader (R23)
     yield now;
+    if (cancelled) {
+      break;
+    }
     final int msToNextMinute = 60000 - (now.epochMillis % 60000);
 
     final Completer<void> boundary = Completer<void>();

@@ -236,6 +236,50 @@ extension PumpApp on WidgetTester {
     // fails opaquely — which is worth knowing if you are reading this file
     // because a test hung.
     await pumpAndSettle();
+
+    // ONE MILLISECOND, AND IT IS NOT A ROUNDING NICETY — IT IS RIVERPOD'S
+    // DISPOSAL QUEUE. MEASURED by reading the binding's own pending-timer
+    // dump: dropping a listener makes `ProviderScheduler.scheduleProviderDispose`
+    // post a ZERO-DURATION timer to do the autoDispose cleanup, and
+    // `_verifyInvariants` fails the test if one is still queued. A bare `pump()`
+    // elapses nothing and does not fire it; elapsing a millisecond does.
+    //
+    // WHAT THIS COST TO FIND IS WORTH RECORDING: the failure reads "A Timer is
+    // still pending even after the widget tree was disposed", which points at
+    // the widget tree, and the only screen carrying a timer was the one watching
+    // minuteTickProvider — so the ticker looked guilty and was not. The timer
+    // belongs to Riverpod, not to us, and no amount of draining the ticker's
+    // tail would ever have cleared it. The binding prints the creation stack via
+    // debugPrint; reading it took a minute and three turns of guessing did not.
+    await pump(const Duration(milliseconds: 1));
+  }
+
+  /// Unmounts the app and lets every provider dispose.
+  ///
+  /// **A TEST THAT PUMPS A SCREEN WATCHING `minuteTickProvider` MUST END WITH
+  /// THIS**, and the reason is a property of `flutter_test` rather than a defect
+  /// in the ticker: `_verifyInvariants` runs at the END OF THE TEST BODY, before
+  /// any tear-down, and a mounted screen carrying a live ticker inherently has a
+  /// live timer at that moment. No tear-down can help, because none has run yet.
+  ///
+  /// MEASURED, by reading the binding's own pending-timer dump rather than
+  /// guessing — which cost three rounds of guessing first. Two distinct timers
+  /// are involved and they need different things:
+  ///
+  ///   * the TICKER's `Timer`, cancelled by `ref.onDispose` once the provider is
+  ///     disposed — which needs the last listener gone, i.e. the unmount below;
+  ///   * RIVERPOD's own zero-duration disposal timer, posted by
+  ///     `ProviderScheduler.scheduleProviderDispose` when a listener drops. A
+  ///     bare `pump()` elapses nothing and does not fire it; elapsing a
+  ///     millisecond does.
+  ///
+  /// The failure message says *"even after the widget tree was disposed"*, which
+  /// points at the widget tree and at whatever screen is on it. It is not the
+  /// screen's fault, and the ticker only looked guilty because it was the one
+  /// thing on screen holding a timer.
+  Future<void> closeApp() async {
+    await pumpWidget(const SizedBox.shrink());
+    await pump(const Duration(milliseconds: 1));
   }
 }
 

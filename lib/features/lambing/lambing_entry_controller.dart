@@ -82,6 +82,39 @@ final class LambingWriteController extends WriteController {
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
 
+  /// Records a death, **and this is where the validator runs** (R53).
+  ///
+  /// The repository is structurally incapable of producing a warning; the
+  /// controller is the only thing that can. So the outcome's `warnings` are
+  /// populated HERE, from `checkLambDeath`, after the write has committed —
+  /// **after**, because `05 §7.5` guarantee 3 is absolute: a warning never gates
+  /// a write. A blocked write produces a lost record, which is worse than a
+  /// queried one.
+  Future<void> recordDeath(
+    LambId lamb, {
+    required LambStatus status,
+    required LocalDate? deathDate,
+    required LocalDate bornOn,
+    String? causeKey,
+  }) => guard(() async {
+    final WriteOutcome outcome = await ref
+        .read(lambingRepositoryProvider)
+        .recordDeath(lamb, status: status, deathDate: deathDate, causeKey: causeKey);
+
+    return switch (outcome) {
+      WriteCommitted() => WriteCommitted(
+        insertedId: lamb.value,
+        warnings: checkLambDeath(deathDate: deathDate, bornOn: bornOn),
+      ),
+      // A failure keeps its failure. Attaching warnings to it would suggest the
+      // shepherd could act on something, when the write did not happen at all.
+      WriteFailed() || WriteRefused() => outcome,
+    };
+  });
+
+  Future<void> clearDeath(LambId lamb) =>
+      guard(() => ref.read(lambingRepositoryProvider).clearDeath(lamb));
+
   /// **NO NEW WRITE CONTROLLER.** `CONVENTIONS §3.4` has no
   /// `lambCardWriteControllerProvider`, and adding one would give the Lamb Card
   /// a second place for a write to live — the two screens write to the same

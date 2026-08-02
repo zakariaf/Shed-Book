@@ -241,6 +241,73 @@ final class LambingRepository {
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
+  /// Records a lamb's death — **status, date and cause in one transaction**.
+  ///
+  /// One `_db.transaction()` and not three writes, because the schema's `CHECK`s
+  /// make the three a single atomic move: a row that is `dead` with no date, or
+  /// carries a date while `alive`, is a state the database refuses. Three
+  /// separate writes would each have to pass through an invalid intermediate.
+  ///
+  /// **THE CAUSE MAY BE NULL AND THAT IS *UNATTRIBUTED*** — not `dc_unknown`,
+  /// which is a term the shepherd can pick. The vocabulary keeps those two apart
+  /// and so does this parameter: a lamb died and nobody wrote down why is a
+  /// different fact from a lamb died and the shepherd recorded that the cause was
+  /// unknown.
+  ///
+  /// **NO WARNING IS PRODUCED HERE** (R53). `deathBeforeBirth` is the
+  /// controller's to raise; this layer cannot reach a validator at all, and the
+  /// `WriteCommitted` it returns carries the default empty list.
+  Future<WriteOutcome> recordDeath(
+    LambId lamb, {
+    required LambStatus status,
+    required LocalDate? deathDate,
+    String? causeKey,
+  }) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+
+      return await _db.transaction(() async {
+        await (_db.update(_db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+          LambsCompanion(
+            status: Value<String>(status.key),
+            deathDate: Value<LocalDate?>(deathDate),
+            deathCause: Value<String?>(causeKey),
+            updatedAt: Value<Instant>(now),
+          ),
+        );
+        return WriteCommitted(insertedId: lamb.value);
+      });
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
+  /// Back to alive, **and the date and cause go with it**.
+  ///
+  /// Leaving a death date on a living lamb is the state the `CHECK` refuses, and
+  /// it is also the state a shepherd would never mean: undoing a death that was
+  /// recorded by mistake means the lamb is alive, not that it is alive and died
+  /// on Tuesday.
+  Future<WriteOutcome> clearDeath(LambId lamb) async {
+    try {
+      final Instant now = appNow();
+
+      return await _db.transaction(() async {
+        await (_db.update(_db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+          LambsCompanion(
+            status: Value<String>(LambStatus.alive.key),
+            deathDate: const Value<LocalDate?>(null),
+            deathCause: const Value<String?>(null),
+            updatedAt: Value<Instant>(now),
+          ),
+        );
+        return WriteCommitted(insertedId: lamb.value);
+      });
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// **`null` IS *NOT RECORDED*; `Sex.unknown` IS *THE SHEPHERD LOOKED AND
   /// COULD NOT TELL*.** R45: two different facts, and neither is the other's
   /// default. The parameter is nullable so the second is expressible and the

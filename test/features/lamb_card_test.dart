@@ -243,6 +243,160 @@ void main() {
 
     await tester.closeApp();
   });
+  // ---------------------------------------------------------------------------
+  // T03 — death date, cause, stillborn, and deathBeforeBirth
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a death date before the birth prints deathBeforeBirth and stores both dates '
+      'unchanged', (WidgetTester tester) async {
+    // THE ANCHOR, AND THE SECOND CLAUSE IS WHAT SEPARATES A WARNING FROM A
+    // CORRECTION. A case that only asserted the badge appeared would pass just
+    // as happily against an app that quietly moved the death date forward to the
+    // birth — which is exactly §12.4's failure, and it would be invisible: the
+    // screen would look right and the record would be a lie.
+    //
+    // So BOTH dates are read back out of the database AFTER the badge renders.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    // Born on the 14th, dead on the 10th — impossible, and the shepherd's to
+    // resolve rather than the app's.
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      LambingsCompanion(localDate: Value<LocalDate>(LocalDate(2026, 3, 14))),
+    );
+    await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+      LambsCompanion(
+        status: const Value<String>('dead'),
+        deathDate: Value<LocalDate?>(LocalDate(2026, 3, 10)),
+      ),
+    );
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lamb_card.warning.death_before_birth')), findsOneWidget);
+
+    final Lamb lambAfter = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+    final Lambing lambingAfter = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(lambAfter.deathDate, LocalDate(2026, 3, 10), reason: 'not moved forward');
+    expect(lambingAfter.localDate, LocalDate(2026, 3, 14), reason: 'and not moved back either');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a same-day death is ordinary and prints no mark', (WidgetTester tester) async {
+    // EQUAL DATES ARE NOT A CONTRADICTION. A stillborn lamb and a same-day loss
+    // both die on the day they were born, and a mark there would land on the
+    // saddest ordinary record in the book. Only STRICTLY BEFORE is impossible.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      LambingsCompanion(localDate: Value<LocalDate>(LocalDate(2026, 3, 14))),
+    );
+    await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+      LambsCompanion(
+        status: const Value<String>('stillborn'),
+        deathDate: Value<LocalDate?>(LocalDate(2026, 3, 14)),
+      ),
+    );
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lamb_card.warning.death_before_birth')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('recording a death moves status, date and cause together', (
+    WidgetTester tester,
+  ) async {
+    // ONE TRANSACTION, BECAUSE THE CHECKS MAKE IT ONE MOVE. A row that is `dead`
+    // with no date, or carries a date while `alive`, is a state the database
+    // refuses — so three separate writes would each have to pass through an
+    // invalid intermediate.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    Future<void> tap(String key) async {
+      final Finder f = find.byKey(Key(key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    await tap('lamb_card.status.dead');
+
+    Lamb row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+    expect(row.status, 'dead');
+    expect(
+      row.deathDate,
+      isNull,
+      reason:
+          'THE DATE IS NOT INVENTED — defaulting to today would answer a question '
+          'the shepherd has not been asked yet',
+    );
+
+    await tap('lamb_card.death_date.minus_0');
+
+    row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+    expect(row.deathDate, isNotNull, reason: 'now they have said which day');
+
+    // AND BACK TO ALIVE CLEARS BOTH.
+    await tap('lamb_card.status.alive');
+
+    row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+    expect(row.status, 'alive');
+    expect(row.deathDate, isNull, reason: 'a living lamb did not die on Tuesday');
+    expect(row.deathCause, isNull);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the death detail is absent while the lamb is alive', (WidgetTester tester) async {
+    // NOT TIDINESS. A date field on a living lamb is a field that can be filled
+    // in, and the CHECK would then refuse the write at 03:20 — which is the
+    // worst possible moment to discover a control that should not have been on
+    // screen.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lamb_card.status')), findsOneWidget);
+    expect(find.byKey(const Key('lamb_card.death_date')), findsNothing);
+
+    await tester.closeApp();
+  });
 }
 
 String _read(String path) => File(path).readAsStringSync();

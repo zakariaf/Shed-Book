@@ -852,5 +852,37 @@
   "warningImplausibleBirthWeight": "That is outside the usual birthweight range.",
   "@warningImplausibleBirthWeight": {
     "description": "The implausible-birthweight observation. It says WHAT WE OBSERVED and never what to do - a warning that instructs is advice (12.2) and a warning that changes a value is a correction (12.4). It NEVER blocks the write: a blocked write produces a lost record, which is worse than a queried one. Never 'too heavy', never 'please check', never a suggested figure. It also carries NO ANIMAL NOUN: 10 8.5 keeps domain nouns out of sentences because they vary by county, and l10n_bootstrap_test.dart caught the first draft of this message for saying 'for a lamb'. There is no placeholder to use here either, because the string is a Warning.message from lib/domain/, which cannot reach terminologyProvider."
+  },
+  "lambCardStatusLabel": "STATUS",
+  "@lambCardStatusLabel": {
+    "description": "The status group's label. Three targets - alive, dead, stillborn - because those are the three the shepherd records at the shed. SOLD is set elsewhere, from the flock list, and putting it here would offer a sale as a thing that happens in a lambing pen."
+  },
+  "lambCardDeathDateLabel": "WHEN",
+  "@lambCardDeathDateLabel": {
+    "description": "The death date's label. One word, because the three quick answers under it carry the meaning."
+  },
+  "lambCardDeathDateToday": "TODAY",
+  "@lambCardDeathDateToday": {
+    "description": "The commonest answer, first. A death recorded at the shed is almost always today's, and 07 7.3 puts the three quick answers ahead of the stepper so the usual case is one tap."
+  },
+  "lambCardDeathDateYesterday": "YESTERDAY",
+  "@lambCardDeathDateYesterday": {
+    "description": "The second quick answer. It exists because a shepherd who finds a dead lamb at 06:00 often means the night before."
+  },
+  "lambCardDeathDateTwoDaysAgo": "2 DAYS AGO",
+  "@lambCardDeathDateTwoDaysAgo": {
+    "description": "The third quick answer, and the last: beyond this the stepper is more honest than another word, because 'THREE DAYS AGO' and 'FOUR DAYS AGO' are guesses dressed as buttons."
+  },
+  "lambCardDeathCauseLabel": "CAUSE",
+  "@lambCardDeathCauseLabel": {
+    "description": "The death cause's label. The list is user-editable vocabulary (vocab_terms, list='death_cause'), never a fixed enum: causes vary by farm and by county."
+  },
+  "lambCardDeathCauseUnattributed": "NOT RECORDED",
+  "@lambCardDeathCauseUnattributed": {
+    "description": "No cause recorded. This is UNATTRIBUTED, and it is NOT the same as the dc_unknown term the shepherd can pick - a lamb died and nobody wrote down why is a different fact from a lamb died and the shepherd recorded that the cause was unknown. The vocabulary keeps them apart and so does this label."
+  },
+  "warningDeathBeforeBirth": "The death date is before the lambing.",
+  "@warningDeathBeforeBirth": {
+    "description": "The deathBeforeBirth observation, and it is the ARB copy of a string the domain also holds - lib/domain/ ships English because v1 is en-only (#108). It says what we observed and never what to do: it does not say 'check the date' and it does not offer to swap them. It never blocks the write, because a blocked write produces a lost record and this one is about a lamb that died."
   }
 }

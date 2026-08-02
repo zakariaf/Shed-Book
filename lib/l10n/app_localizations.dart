@@ -1071,6 +1071,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That is outside the usual birthweight range.'**
   String get warningImplausibleBirthWeight;
+
+  /// The status group's label. Three targets - alive, dead, stillborn - because those are the three the shepherd records at the shed. SOLD is set elsewhere, from the flock list, and putting it here would offer a sale as a thing that happens in a lambing pen.
+  ///
+  /// In en, this message translates to:
+  /// **'STATUS'**
+  String get lambCardStatusLabel;
+
+  /// The death date's label. One word, because the three quick answers under it carry the meaning.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN'**
+  String get lambCardDeathDateLabel;
+
+  /// The commonest answer, first. A death recorded at the shed is almost always today's, and 07 7.3 puts the three quick answers ahead of the stepper so the usual case is one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'TODAY'**
+  String get lambCardDeathDateToday;
+
+  /// The second quick answer. It exists because a shepherd who finds a dead lamb at 06:00 often means the night before.
+  ///
+  /// In en, this message translates to:
+  /// **'YESTERDAY'**
+  String get lambCardDeathDateYesterday;
+
+  /// The third quick answer, and the last: beyond this the stepper is more honest than another word, because 'THREE DAYS AGO' and 'FOUR DAYS AGO' are guesses dressed as buttons.
+  ///
+  /// In en, this message translates to:
+  /// **'2 DAYS AGO'**
+  String get lambCardDeathDateTwoDaysAgo;
+
+  /// The death cause's label. The list is user-editable vocabulary (vocab_terms, list='death_cause'), never a fixed enum: causes vary by farm and by county.
+  ///
+  /// In en, this message translates to:
+  /// **'CAUSE'**
+  String get lambCardDeathCauseLabel;
+
+  /// No cause recorded. This is UNATTRIBUTED, and it is NOT the same as the dc_unknown term the shepherd can pick - a lamb died and nobody wrote down why is a different fact from a lamb died and the shepherd recorded that the cause was unknown. The vocabulary keeps them apart and so does this label.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get lambCardDeathCauseUnattributed;
+
+  /// The deathBeforeBirth observation, and it is the ARB copy of a string the domain also holds - lib/domain/ ships English because v1 is en-only (#108). It says what we observed and never what to do: it does not say 'check the date' and it does not offer to swap them. It never blocks the write, because a blocked write produces a lost record and this one is about a lamb that died.
+  ///
+  /// In en, this message translates to:
+  /// **'The death date is before the lambing.'**
+  String get warningDeathBeforeBirth;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

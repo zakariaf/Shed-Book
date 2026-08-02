@@ -18,6 +18,11 @@ import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_sex_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_weight_cell.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/validation/lambing_checks.dart';
+import 'package:shed_book/features/lambing/widgets/death_date_cell.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_status_row.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/formatters.dart';
@@ -184,6 +189,86 @@ class _Card extends ConsumerWidget {
               ),
             ),
           ),
+          // STATUS AND, WHEN IT IS NOT ALIVE, THE DEATH DETAIL (T03).
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+            child: Text(l10n.lambCardStatusLabel, style: text.labelMedium),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: LambStatusRow(
+              key: const Key('lamb_card.status'),
+              status: data.status,
+              words: (
+                alive: l10n.lambStatusAlive,
+                dead: l10n.lambStatusDead,
+                stillborn: l10n.lambStatusStillborn,
+              ),
+              onSelected: (LambStatus s) {
+                if (s == LambStatus.alive) {
+                  // BACK TO ALIVE CLEARS THE DATE AND THE CAUSE WITH IT. A lamb
+                  // that is alive is not a lamb that is alive and died on
+                  // Tuesday, and the CHECK refuses that row anyway.
+                  write.clearDeath(data.lambId);
+                } else {
+                  write.recordDeath(
+                    data.lambId,
+                    status: s,
+                    // THE DATE IS NOT INVENTED. Choosing *dead* records the
+                    // status and leaves the date unrecorded until the shepherd
+                    // says which day — defaulting it to today would be the app
+                    // answering a question they have not been asked yet.
+                    deathDate: data.deathDate,
+                    bornOn: data.bornLocalDate,
+                    causeKey: data.deathCauseKey,
+                  );
+                }
+              },
+            ),
+          ),
+          // THE DEATH DETAIL APPEARS ONLY WHEN THERE IS A DEATH. It is not
+          // hidden-when-alive as a tidiness measure: a date field on a living
+          // lamb is a field that can be filled in, and the CHECK would then
+          // refuse the write at 03:20.
+          if (data.status != LambStatus.alive) ...<Widget>[
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+              child: Text(l10n.lambCardDeathDateLabel, style: text.labelMedium),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+              child: DeathDateCell(
+                key: const Key('lamb_card.death_date'),
+                today: LocalDate.of(appNow()),
+                selected: data.deathDate,
+                labels: (
+                  today: l10n.lambCardDeathDateToday,
+                  yesterday: l10n.lambCardDeathDateYesterday,
+                  twoDaysAgo: l10n.lambCardDeathDateTwoDaysAgo,
+                  formatted: (LocalDate d) => formatShedDate(d, locale),
+                ),
+                onPicked: (LocalDate picked) => write.recordDeath(
+                  data.lambId,
+                  status: data.status,
+                  deathDate: picked,
+                  bornOn: data.bornLocalDate,
+                  causeKey: data.deathCauseKey,
+                ),
+              ),
+            ),
+            // THE WARNING RENDERS BENEATH THE FIELD THAT OWNS IT, and it never
+            // gates anything: the date above is already committed.
+            if (data.deathDate != null &&
+                checkLambDeath(deathDate: data.deathDate, bornOn: data.bornLocalDate).isNotEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+                child: Text(
+                  l10n.warningDeathBeforeBirth,
+                  key: const Key('lamb_card.warning.death_before_birth'),
+                  style: text.bodySmall?.copyWith(color: t.statusAttention),
+                ),
+              ),
+          ],
           SizedBox(height: t.gapMin),
           // THE HISTORY. Never empty — the `born` arm always yields one row —
           // so the "nothing else" line is about everything AFTER the birth.

@@ -584,4 +584,28 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get warningImplausibleBirthWeight => 'That is outside the usual birthweight range.';
+
+  @override
+  String get lambCardStatusLabel => 'STATUS';
+
+  @override
+  String get lambCardDeathDateLabel => 'WHEN';
+
+  @override
+  String get lambCardDeathDateToday => 'TODAY';
+
+  @override
+  String get lambCardDeathDateYesterday => 'YESTERDAY';
+
+  @override
+  String get lambCardDeathDateTwoDaysAgo => '2 DAYS AGO';
+
+  @override
+  String get lambCardDeathCauseLabel => 'CAUSE';
+
+  @override
+  String get lambCardDeathCauseUnattributed => 'NOT RECORDED';
+
+  @override
+  String get warningDeathBeforeBirth => 'The death date is before the lambing.';
 }

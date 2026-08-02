@@ -1,0 +1,201 @@
+// test/data/treatment_repository_test.dart
+//
+// SAFETY RULE §12.1: never default a medicine withdrawal period. This file is
+// where that stops being a sentence.
+library;
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+
+import '../support/harness.dart';
+import '../support/seeds.dart';
+
+void main() {
+  late AppDatabase db;
+  late TreatmentRepository repo;
+
+  setUp(() async {
+    db = testDatabase();
+    repo = TreatmentRepository(db);
+    await seedSeason(db);
+  });
+
+  test('recordTreatment writes no withdrawal row when the user entered none', () async {
+    // THE ANCHOR, AND THE LAST ASSERTION IS THE ONE THAT MATTERS.
+    //
+    // Counting rows says the app did not write one. Reading the period back says
+    // ABSENCE IS THE STATE — which is the claim §12.1 actually makes, and the
+    // one a caller depends on. A nullable `withdrawal_days` column could not
+    // carry it: `0` is a real label value, so "the label says zero days" and
+    // "nobody wrote a number down" would be the same value.
+    //
+    // Called with an EMPTY LIST — not with a `WithdrawalNotRecorded` in it and
+    // not with a null. Not recorded is the absence of an entry.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: const <WithdrawalPeriod>[],
+    );
+
+    expect(outcome, isA<WriteCommitted>());
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    expect(await db.select(db.treatments).get(), hasLength(1));
+    expect(
+      await db.select(db.treatmentWithdrawals).get(),
+      isEmpty,
+      reason: 'no row, because nobody typed a number off a bottle',
+    );
+
+    expect(
+      await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.meat),
+      isA<WithdrawalNotRecorded>(),
+      reason: 'absence IS the state — a caller cannot read a zero that is not there',
+    );
+    expect(
+      await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.milk),
+      isA<WithdrawalNotRecorded>(),
+    );
+  });
+
+  test('a WithdrawalNotRecorded in the list writes nothing', () async {
+    // THE DEFENSIVE BRANCH, AND IT NEEDED ITS OWN CASE. The anchor passes an
+    // EMPTY list, so the `continue` that skips a not-recorded entry was never
+    // executed — drilled, and turning that skip into a zero-day insert passed
+    // every other case in this file.
+    //
+    // The branch exists because a caller assembling the list from two optional
+    // fields should not have to filter, and the skip is the same statement the
+    // absence of a row makes. It must stay a skip.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: const <WithdrawalPeriod>[
+        WithdrawalNotRecorded(),
+        WithdrawalNotApplicable(WithdrawalTarget.milk),
+      ],
+    );
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    expect(
+      await db.select(db.treatmentWithdrawals).get(),
+      hasLength(1),
+      reason: 'the not-applicable one, and nothing for the not-recorded one',
+    );
+    expect(
+      await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.meat),
+      isA<WithdrawalNotRecorded>(),
+    );
+  });
+
+  test('zero days is a recorded period and not the same as none', () async {
+    // "THE LABEL SAYS ZERO DAYS" AND "NOBODY WROTE A NUMBER DOWN" ARE DIFFERENT
+    // FACTS. This is the case a nullable int cannot pass, and the reason the
+    // child table exists at all.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 0, target: WithdrawalTarget.meat),
+      ],
+    );
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    final WithdrawalPeriod meat = await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.meat);
+    expect(meat, isA<WithdrawalDays>());
+    expect((meat as WithdrawalDays).days, 0);
+
+    // AND THE OTHER TARGET IS STILL NOT RECORDED. One entered period does not
+    // imply anything about the other.
+    expect(
+      await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.milk),
+      isA<WithdrawalNotRecorded>(),
+    );
+  });
+
+  test('not applicable is a recorded fact, stored with a null days', () async {
+    // THE LABEL SAYS NONE APPLIES — which is something the shepherd read and
+    // recorded, not something nobody said. It stores a row, and the CHECK
+    // permits a null `days` only for this kind.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: const <WithdrawalPeriod>[WithdrawalNotApplicable(WithdrawalTarget.milk)],
+    );
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    final TreatmentWithdrawal row = await db.select(db.treatmentWithdrawals).getSingle();
+    expect(row.kind, 'not_applicable');
+    expect(row.days, isNull);
+    expect(row.clearDate, isNull, reason: 'nothing to clear');
+
+    expect(
+      await repo.withdrawalFor(TreatmentId(id), WithdrawalTarget.milk),
+      isA<WithdrawalNotApplicable>(),
+    );
+  });
+
+  test('the clear date is stored, not recomputed on read', () async {
+    // IT IS WHAT THE SHEPHERD WAS TOLD ON THE DAY. Recomputing it later against
+    // a changed clock or a changed device zone would silently move a date they
+    // may have written in a book and handed to a vet.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+    final int id = (outcome as WriteCommitted).insertedId!;
+
+    final TreatmentWithdrawal row = await db.select(db.treatmentWithdrawals).getSingle();
+    expect(row.days, 28);
+    expect(row.clearDate, isNotNull, reason: 'computed once, at the moment it was recorded');
+
+    final Treatment treatment = await (db.select(
+      db.treatments,
+    )..where(($TreatmentsTable t) => t.id.equals(id))).getSingle();
+    expect(
+      row.clearDate!.compareTo(LocalDate.of(treatment.administeredAt)),
+      greaterThan(0),
+      reason: '28 days after, not the day of',
+    );
+  });
+
+  test('a treatment names exactly one animal', () async {
+    // `CHECK ((ewe IS NOT NULL) + (lamb IS NOT NULL) = 1)`, and `TreatmentSubject`
+    // is sealed for the same reason `CareSubject` is: two nullable ids make both
+    // unstorable combinations constructible, and the CHECK then fires at 03:20
+    // instead of at compile time.
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await repo.recordTreatment(TreatEwe(ewe), productName: 'Alamycin');
+    await repo.recordTreatment(TreatLamb(lamb), productName: 'Spectam');
+
+    final List<Treatment> rows = await db.select(db.treatments).get();
+    final Treatment forEwe = rows.firstWhere((Treatment t) => t.productName == 'Alamycin');
+    final Treatment forLamb = rows.firstWhere((Treatment t) => t.productName == 'Spectam');
+
+    expect(forEwe.ewe, ewe.value);
+    expect(forEwe.lamb, isNull);
+    expect(forLamb.lamb, lamb.value);
+    expect(forLamb.ewe, isNull);
+  });
+}

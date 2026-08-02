@@ -64,7 +64,7 @@ final class ShedReceiptBar extends StatelessWidget {
                 ShedTapTarget(
                   onTap: onUndo,
                   semanticLabel: undoSemanticLabel,
-                  minSize: t.tapIndelibleFloor,
+                  minSize: t.tapIndelible,
                   child: Center(child: Text(undoLabel, style: text.labelLarge)),
                 ),
               ],
@@ -74,8 +74,4 @@ final class ShedReceiptBar extends StatelessWidget {
       ),
     );
   }
-}
-
-extension on ShedTokens {
-  double get tapIndelibleFloor => tapMin + gapMin / 4;
 }

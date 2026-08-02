@@ -299,4 +299,226 @@ class AppLocalizationsEn extends AppLocalizations {
   }) {
     return 'Photo taken $date $time, $provenance';
   }
+
+  @override
+  String get lambingEntryTitle => 'Lambing';
+
+  @override
+  String get lambingEntryLambs => 'Lambs';
+
+  @override
+  String get lambingEntryCare => 'Care';
+
+  @override
+  String lambingTypeCounted({required String type}) {
+    return '$type (COUNTED)';
+  }
+
+  @override
+  String lambingTypeCountedMany({required int count, required String animals}) {
+    return '$count $animals (COUNTED)';
+  }
+
+  @override
+  String get lambingTypeNotRecorded => 'NOT RECORDED';
+
+  @override
+  String lambingAddLamb({required String animal}) {
+    return '+ $animal';
+  }
+
+  @override
+  String lambingTallySemantics({
+    required int count,
+    required String animal,
+    required String animals,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count $animals',
+      one: '1 $animal',
+      zero: 'No $animals yet',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String lambingLambOrdinal({required String animal, required int n}) {
+    return '$animal $n';
+  }
+
+  @override
+  String get lambStatusAlive => 'ALIVE';
+
+  @override
+  String get lambStatusDead => 'DEAD';
+
+  @override
+  String get lambStatusStillborn => 'STILLBORN';
+
+  @override
+  String get lambStatusSold => 'SOLD';
+
+  @override
+  String lambRowSemantics({required String parts}) {
+    return '$parts';
+  }
+
+  @override
+  String get lambingEaseHeading => 'EASE';
+
+  @override
+  String get lambingEaseUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambingEaseGroupSemantics => 'Ease, 1 to 5, not required';
+
+  @override
+  String lambingEaseValueSemantics({required int ordinal, required String description}) {
+    return 'Ease $ordinal, $description';
+  }
+
+  @override
+  String get careColostrum => 'Colostrum';
+
+  @override
+  String get careNavelDip => 'Navel dip';
+
+  @override
+  String get careStomachTube => 'Stomach tube';
+
+  @override
+  String get careWarmed => 'Warmed';
+
+  @override
+  String careDoneAt({required String time}) {
+    return 'DONE $time';
+  }
+
+  @override
+  String careUndoneAt({required String time}) {
+    return 'UNDONE $time';
+  }
+
+  @override
+  String get careNotRecorded => 'NOT RECORDED';
+
+  @override
+  String careLineSemantics({required String label, required String state}) {
+    return '$label, $state';
+  }
+
+  @override
+  String get colostrumVolumeLabel => 'VOLUME';
+
+  @override
+  String get colostrumVolumeUnit => 'ml';
+
+  @override
+  String get colostrumMethodLabel => 'METHOD';
+
+  @override
+  String get colostrumMethodTeat => 'Teat';
+
+  @override
+  String get colostrumMethodTube => 'Tube';
+
+  @override
+  String get colostrumMethodBottle => 'Bottle';
+
+  @override
+  String colostrumMethodSemantics({required String word}) {
+    return '$word';
+  }
+
+  @override
+  String get colostrumRecord => 'RECORD';
+
+  @override
+  String get colostrumRecordSemantics => 'Record the colostrum detail';
+
+  @override
+  String get colostrumSheetClose => 'CLOSE';
+
+  @override
+  String get colostrumSheetCloseSemantics => 'Close without adding a volume or a method';
+
+  @override
+  String get colostrumSheetBarrier => 'Colostrum detail';
+
+  @override
+  String queryMarkSemantics({required String finding}) {
+    return 'Queried: $finding';
+  }
+
+  @override
+  String get declareTypeHeading => 'WHAT WE FOUND';
+
+  @override
+  String get declareTypeChange => 'CHANGE THE BIRTH TYPE';
+
+  @override
+  String get declareTypeLeave => 'LEAVE IT';
+
+  @override
+  String declareTypeAcknowledged({required String time}) {
+    return 'QUERIED · LEFT AS ENTERED $time';
+  }
+
+  @override
+  String get birthTypeSingle => 'SINGLE';
+
+  @override
+  String get birthTypeTwin => 'TWIN';
+
+  @override
+  String get birthTypeTriplet => 'TRIPLET';
+
+  @override
+  String get birthTypeQuad => 'QUAD';
+
+  @override
+  String get birthTypeQuintPlus => 'QUAD OR MORE';
+
+  @override
+  String get provenanceWasPrefix => 'was';
+
+  @override
+  String provenanceHeaderSemantics({required String time, required String provenance}) {
+    return 'Lambing time $time, $provenance';
+  }
+
+  @override
+  String get provenanceEditHint => 'correct the time this lambing happened';
+
+  @override
+  String get timeEditorHeading => 'WHEN DID IT HAPPEN';
+
+  @override
+  String get timeEditorHint => '24-hour, four digits';
+
+  @override
+  String get timeEditorConfirm => 'CORRECT IT';
+
+  @override
+  String get timeEditorConfirmSemantics => 'Correct the lambing time to what you typed';
+
+  @override
+  String get detailAssistedBy => 'WHO ELSE WAS THERE';
+
+  @override
+  String get detailPresentation => 'HOW IT WAS LYING';
+
+  @override
+  String get detailPresentationNote => 'ROPES, LUBRICANT, VET';
+
+  @override
+  String get detailNote => 'ANYTHING ELSE';
+
+  @override
+  String get detailUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get detailPresentationSemantics => 'How it was lying, not required';
 }

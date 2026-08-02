@@ -61,7 +61,7 @@ final class ShedFieldRow extends StatelessWidget {
     return ShedTapTarget(
       onTap: onTap,
       semanticLabel: semanticLabel,
-      minSize: t.tapIndelibleFloor,
+      minSize: t.tapIndelible,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -134,11 +134,4 @@ class _DottedRulePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DottedRulePainter old) => old.colour != colour || old.width != width;
-}
-
-extension on ShedTokens {
-  /// indelible.md §4.5 builds to 64 while `tapMin` is the 60 pt contract. A
-  /// field row is the smallest thing on an entry screen, so it takes the design
-  /// figure rather than the floor.
-  double get tapIndelibleFloor => tapMin + gapMin / 4;
 }

@@ -73,7 +73,7 @@ Every brief lists the same states. If a brief omits one, the state is impossible
 | 1 Flock | — | — | — | ✓ row badge |
 | 2 Ewe Card | ✓ on any withdrawal in the timeline | ✓ every timeline row | — | ✓ row badge |
 | 3 Quick Entry | — | ✓ in the commit SnackBar | — | — |
-| 4 Lambing Entry | — | ✓ header, always visible | — | ✓ 60 pt amber strip |
+| 4 Lambing Entry | — | ✓ header, always visible | — | ✓ ~~60 pt amber strip~~ query mark + underline (N16-T06) |
 | 5 Lamb Card | — | ✓ birth time and death date | — | ✓ |
 | 6 Foster | — | ✓ on the foster event | — | ✓ `fosterToSelf` |
 | 7 Pen Board | — | ✓ edited-entry marker **on the tile** | — | ✓ tile badge |
@@ -205,7 +205,7 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
 | Add a ewe | 1 to open + digits + 1 confirm | `EntryContext.calm`. Over the cap this returns `BlockedByCap` and navigates to Unlock — the only self-navigation to Unlock in the app, and it is a response to the user's own tap. Between 22:00 and 06:00 it degrades to `Allow(overFreeCap: true)` and creates the row (§19.3) |
 | Search notes (FTS5) | 1 to open the search screen | 200 ms debounce lives there, never here |
 
-**Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as a 60 pt amber strip under the field. It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
+**Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as ~~a 60 pt amber strip under the field~~ **the query mark and underline ruled at N16-T06** (see §6.3's amendment: Indelible has no status palette, so there is no amber to build a strip from). It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
 
 ### 3.4 §12 on this screen
 
@@ -416,7 +416,9 @@ The `412 →` window lasts from frame 1 until the tag index resolves. **The dura
 | Pen the ewe | ewe + 1 + 1 (pen) | |
 | Add a note | ewe + 1 | |
 
-**The 6-tap budget:** `4` (digits + confirm) `+ 1` (Lambing) `+ 1` (birth type) = a committed, valid lambing record. Asserted in `test/features/tap_budget_test.dart` with keyed finders (`quick_entry.keypad.digit_4`, `quick_entry.confirm`, `quick_entry.event.lambing`, `lambing_entry.birth_type.twin`).
+**The 6-tap budget:** `4` (digits + confirm) `+ 1` (Lambing) `+ 1` (~~birth type~~ **the first tally stroke**) = a committed, valid lambing record. Asserted in `test/features/tap_budget_test.dart` with keyed finders (`quick_entry.keypad.digit_4`, `quick_entry.confirm`, `quick_entry.event.lambing`, `lambing_entry.tally.stroke`).
+
+> **AMENDED 2026-08-02 (N16-T02a), ruling P8.** The budget stays at **6** and the fifteen-second promise is unchanged; only the sixth tap's composition changes. Birth type is DERIVED from the strokes and labelled `(COUNTED)` — see decision-record §7.0b for why that is a safety rule rather than a simplification: a declared type and a counted one can disagree, and every way of resolving that disagreement is worse than not having it.
 
 ### 5.5 Commit, confirmation and double taps
 
@@ -565,7 +567,19 @@ Two of those are worth naming for why: `ProviderScope.retry` is a **compile erro
 | Loaded, lambs attached | One 88 pt row per lamb |
 | Birth type undeclared | The five buttons are unselected. **Birth type is never defaulted to "single"** — an undeclared type is `NULL` in `lambings.declared_birth_type` and reads as "not declared" |
 | Filtered-empty | Impossible — this screen has no filter |
-| Contradiction | 60 pt amber strip under the offending field. Never a dialog, never blocking, never twice for one field |
+| Contradiction | ~~60 pt amber strip~~ **a query mark in the margin + a 2 px madder underline under the offending cell**. Never a dialog, never blocking, never twice for one field |
+
+> **AMENDED 2026-08-02 (N16-T06), by the authority order.** ~~60 pt amber strip~~ → **a query mark
+> `?` in the margin plus a 2 px madder underline under the offending cell.** `indelible.md §2.2` and
+> `§6.2` call for that mark, and Indelible has **no status palette at all** — *"a colour-coded death
+> reads wrong at 4am through a wet freezer bag."* `CLAUDE.md`'s authority order puts
+> `docs/design/indelible.md` above the thirteen engineering documents, so an amber strip is
+> unbuildable: there is no amber token to build it from, and inventing one would be adding a status
+> colour to a system that deliberately has none.
+>
+> **Everything else in the row survives verbatim** — never a dialog, never blocking, never twice for
+> one field — and `05 §7.5` guarantee 3 stays absolute: warnings never gate the write.
+
 | Error | Standard panel |
 | Over-cap | **Nothing** |
 
@@ -710,7 +724,7 @@ The 1-tap reassignment is the budget CI holds (§1.3). Everything else on this s
 ### 8.6 §12 on this screen
 
 - **§12.5** on the foster event, in the commit SnackBar and on both animals' timelines: `412 → 128 · 03:31 · recorded automatically`. This is one of the four tables that does not yet carry the provenance quad — see §1.5 and §22 item 3.
-- **§12.4**: `fosterToSelf` as a 60 pt amber strip. Shown, never blocking.
+- **§12.4**: `fosterToSelf` as ~~a 60 pt amber strip~~ **the query mark and underline** (N16-T06). Shown, never blocking.
 - **§12.2** binds hardest here: no screen in the app is more tempting to make helpful. No "this ewe has capacity", no "she has milk", no ordering of targets by anything except the two neutral facts the deck already has — longest penned, most recently touched.
 - §12.1 and §12.3 do not appear: no withdrawal figure, no exportable record view.
 
@@ -1218,13 +1232,21 @@ There is **no generic `repo.undo(id)`** (decision #69). Undo is defined per verb
 >
 > **This amendment is load-bearing for two later epics.** A document that still prescribes a hard
 > delete will be followed by N16 for `addLamb` and by N18 for foster.
+>
+> **AMENDED AGAIN 2026-08-02 (N16-T05), for `removeCare`.** The row above said the undo of
+> `removeCare` is *"re-insert with the original `RecordedTime`"*, which implies the row was deleted.
+> That is **unrenderable**: `indelible.md §7.10`'s **Undone** state prints `D̶O̶N̶E̶ ̶0̶3̶:̶2̶4̶ · UNDONE 03:31`
+> — a struck stamp beside a new one — and a deleted row has no stamp to strike. `care_events` carries
+> `Struckable` (P1, N00-T05), so `removeCare` sets `struck` / `struck_at`, both times stay on the
+> page, and the line does **not** revert to unset. The SnackBar column dies with P2 as everywhere
+> else: the confirmation is the line itself.
 
 | Verb | Repository method | Undo does | Window | Visible afterwards |
 |---|---|---|---|---|
 | Begin a lambing | `beginLambing` | ~~**Hard delete**, allowed only while it has zero child rows~~ → **strike** (`strikeLambing`): `struck = 1`, `struck_at` set | `kStrikeWindow` | the row, struck, in position and legible |
 | Add a lamb | `addLamb` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
 | Add a care event | `addCare` | ~~**Hard delete**~~ → **strike** — N16 | `kStrikeWindow` | the row, struck |
-| Remove a care event | `removeCare` | re-insert with the original `RecordedTime` | SnackBar | nothing |
+| Remove a care event | `removeCare` | ~~re-insert with the original `RecordedTime`~~ **STRIKES** — see the N16-T05 note below | ~~SnackBar~~ the line's own Undone state | nothing |
 | **Foster** | `recordFoster` | a **compensating `FosterEvent`** whose `corrects` FK names the event it reverses | SnackBar | *both* events, forever, on both cards |
 | **Treatment** | `recordTreatment` | **soft-void** — sets `voided_at` | SnackBar | the row, struck through, in the medicine book |
 | Pen a ewe | `enterPen` | **Hard delete** of the occupancy row | SnackBar | nothing |
@@ -1489,7 +1511,7 @@ Tick every line before calling the screen layer finished.
 - [ ] Every screen brief has a "§12 on this screen" section, including the four that state which disclosures do *not* appear and why.
 - [ ] The withdrawal control has no pre-filled number and no pre-selected option; the schema JSON shows null `defaultValue` and null `clientDefault` for `days`.
 - [ ] `Disclaimers.exportFooter` appears as a literal exactly once in the codebase and is referenced by the Export screen, the medicine-book segment, Settings ▸ About and every export writer.
-- [ ] Every warning surfaces as a 60 pt amber strip or a row badge; no `warnings` column exists and no code path fixes a contradiction.
+- [ ] Every warning surfaces as ~~a 60 pt amber strip~~ **a query mark plus a madder underline** (N16-T06) or a row badge; no `warnings` column exists and no code path fixes a contradiction.
 - [ ] Undo is implemented per verb per §15.1; no `undo(id)` method exists; no undo affordance is ever rebuilt after process death. The label reads "Undo" only where the row disappears — "Correct this" on foster, "Void this" on treatment.
 - [ ] `reconcile()` is called from exactly four places, debounced 500 ms, never from inside a drift transaction, and writes `last_reconcile_scheduled` in the same transaction that records what it projected.
 - [ ] The Reminders screen renders all three reconciliation lines with numbers read from data, and the box height is identical in each. Muted reminders appear in the list and are excluded from `schedulable_total`, and no copy conflates the two counts.

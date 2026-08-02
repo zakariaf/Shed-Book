@@ -6,6 +6,8 @@
 // lib/routing/. That asymmetry is the trade the file buys: ONE file knows all
 // twelve destinations, so no screen has to know a second one.
 import 'package:flutter/material.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 
 /// Every route name that can appear in the diagnostics log. Route name is one of
 /// the few fields decision #124 permits to be logged, so every route sets one.
@@ -130,4 +132,15 @@ abstract final class Routes {
         builder: builder,
         settings: RouteSettings(name: name),
       );
+
+  /// **THE FIRST PUSH HELPER IN THE PROJECT** (N16-T01). N13-T01 landed the
+  /// thirteen names and only the Quick Entry POP, with a comment saying each
+  /// screen epic adds its own — this is that epic.
+  ///
+  /// The argument is an extension-type id, never a bare `int` (R33): a helper
+  /// taking an `int` would accept a `LambId` by mistake and open the wrong
+  /// record, silently, with a right-looking number on it.
+  static Future<void> lambingEntry(BuildContext context, LambingId id) => Navigator.of(
+    context,
+  ).push(route(RouteNames.lambingEntry, (BuildContext _) => LambingEntryScreen(lambingId: id)));
 }

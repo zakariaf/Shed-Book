@@ -34,6 +34,32 @@ final class SettingsRepository {
     _db.appSettings,
   )..where(($AppSettingsTable t) => t.id.equals(rowId))).watchSingle();
 
+  /// All forty vocabulary rows, in `sort_order`, as [VocabEntry] records.
+  ///
+  /// **NOT `Stream<List<VocabTerm>>`, AND THE GATE IS WHY.** N16-T04's file
+  /// table prescribes `StreamProvider<List<VocabTerm>>`, but `VocabTerm` is a
+  /// drift row class and `layer.features` forbids `lib/features/` from importing
+  /// `lib/core/db/` at all — so a provider carrying that type is unbuildable at
+  /// its only call site. Caught by the gate on the first run, and recorded here
+  /// rather than worked around: the shape is the same one `LambingEntryData`
+  /// already uses, where the data layer declares the type the feature reads.
+  ///
+  /// Two fields and not the whole row, because two is what the presentation edge
+  /// can use: `key` is the frozen foreign key and `label` is the user's
+  /// override, where **NULL means render the shipped default** (`03 §3`). The
+  /// other five columns — id, uid, list, sort_order, origin, hidden_at — are
+  /// either device-local or belong to the Settings screen that edits them.
+  Stream<List<VocabEntry>> watchVocab() =>
+      (_db.select(_db.vocabTerms)..orderBy(<OrderClauseGenerator<$VocabTermsTable>>[
+            ($VocabTermsTable t) => OrderingTerm(expression: t.sortOrder),
+          ]))
+          .watch()
+          .map(
+            (List<VocabTerm> rows) => <VocabEntry>[
+              for (final VocabTerm r in rows) (key: r.key, label: r.label),
+            ],
+          );
+
   Future<AppSetting> read() =>
       (_db.select(_db.appSettings)..where(($AppSettingsTable t) => t.id.equals(rowId))).getSingle();
 
@@ -144,3 +170,10 @@ final class SettingsRepository {
         },
       );
 }
+
+/// One vocabulary row, as far as a screen is concerned.
+///
+/// `label` is the shepherd's override and **`null` means *render the shipped
+/// default*** — which is not the same as an empty label. A user who renames ease
+/// 3 writes `vocab_terms.label`; no locale change and no app update touches it.
+typedef VocabEntry = ({String key, String? label});

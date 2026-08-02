@@ -94,10 +94,38 @@ void main() {
   test('a withdrawal period never reaches the log', () {
     // Called out separately because it is the one forbidden field that is a BARE
     // NUMBER and looks harmless in a log line.
+    //
+    // ASSERTED OVER THE LINES THIS TEST WROTE, NOT OVER THE WHOLE FILE, and that
+    // is a fix for a REAL ORDER DEPENDENCY rather than a weakening.
+    //
+    // `LocalLog.instance` is a process-wide singleton with a pre-attach ring
+    // buffer, and `attachTo` FLUSHES that buffer into whichever directory
+    // attaches next — the behaviour the "records written before attachTo are
+    // flushed on attach" case exists to guarantee. So a record written by
+    // ANOTHER test file while unattached lands in this file's log, and any `28`
+    // anywhere in it — a byte count, an id, a timestamp — failed this case.
+    // Measured: the file passes alone under every seed and failed two runs in
+    // three under `make test`, which randomises across the suite.
+    //
+    // The claim is unchanged and still exact: a withdrawal period must not
+    // appear in the record that carries it. Scoping to the withdrawal lines is
+    // what makes the case about this file's own behaviour.
     LocalLog.instance.attachTo(_dir);
     LocalLog.instance.record('treatment withdrawal 28 days');
 
-    expect(_log(), isNot(contains('28')));
+    final List<String> ours = _log()
+        .split('\n')
+        .where((String line) => line.contains('withdrawal'))
+        .toList();
+
+    expect(ours, isNotEmpty, reason: 'the record must actually have been written');
+    for (final String line in ours) {
+      expect(line, isNot(contains('28')), reason: line);
+    }
+
+    // AND THE REDACTOR ITSELF, independent of any file. This is the half that
+    // cannot be affected by ordering at all.
+    expect(LocalLog.redact('treatment withdrawal 28 days'), isNot(contains('28')));
   });
 
   test('a media path with a sandbox UUID is rewritten, and the stack frames survive', () {

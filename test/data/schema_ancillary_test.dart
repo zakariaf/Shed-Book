@@ -271,4 +271,46 @@ void main() {
     await expectLater(foster('to_bottle'), completes);
     await expectLater(foster('to_ewe', dam: ewe), completes);
   });
+
+  test('no table anywhere carries a boolean care column', () async {
+    // N16-T05's SECOND ANCHOR, and it is about a migration rather than about a
+    // widget. Decision #43 makes a care event a ROW, so that "colostrum given at
+    // 03:22" stays recoverable; a boolean column would delete both facts at once
+    // — the time it happened AND the difference between "did not" and "did not
+    // say".
+    //
+    // Scanned over the WHOLE schema rather than over care_events, because the
+    // way this comes back is not an edit to the table that forbids it — it is a
+    // `colostrum_given` boolean appearing on `lambs` in a later migration,
+    // where nothing is looking.
+    final AppDatabase db = testDatabase();
+
+    final List<QueryRow> columns = await db
+        .customSelect(
+          "SELECT m.name AS table_name, p.name AS column_name "
+          'FROM sqlite_master m '
+          'JOIN pragma_table_info(m.name) p '
+          "WHERE m.type = 'table'",
+        )
+        .get();
+
+    expect(columns, isNotEmpty, reason: 'the scan must actually see the schema');
+
+    for (final QueryRow row in columns) {
+      final String table = row.read<String>('table_name');
+      final String column = row.read<String>('column_name');
+
+      // `care_events.kind` holds these words as VALUES, which is correct and is
+      // the whole point; what is forbidden is a COLUMN named after one.
+      for (final String noun in <String>['colostrum', 'navel', 'tube', 'warmed']) {
+        expect(
+          column.contains(noun),
+          isFalse,
+          reason:
+              '$table.$column looks like a boolean care column. '
+              'Care is an event (decision #43), so that a time stays recoverable',
+        );
+      }
+    }
+  });
 }

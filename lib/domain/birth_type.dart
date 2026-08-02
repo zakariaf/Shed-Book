@@ -44,3 +44,24 @@ int? expectedLambCount(BirthType t) => switch (t) {
   BirthType.quad => 4,
   BirthType.quintPlus => null,
 };
+
+/// The **COUNTED** type: what *n* un-struck strokes make.
+///
+/// **Returns null at five and above, and that is deliberate.**
+/// [BirthType.quintPlus] means *"more than four, count NOT declared"* — an
+/// open-ended DECLARATION. A counted five is not open-ended: the app knows
+/// there are exactly five rows. Mapping the count onto `quintPlus` would throw
+/// away the number the tally exists to hold, so the presentation edge prints
+/// the count itself instead.
+///
+/// Zero returns null too, and for the same reason from the other side: no
+/// strokes is NOT RECORDED, never `single`. P8's whole point is that the type
+/// is derived rather than declared, and a derivation that invented `single`
+/// from an empty tally would be the app answering for the shepherd.
+BirthType? countedBirthType(int strokes) => switch (strokes) {
+  1 => BirthType.single,
+  2 => BirthType.twin,
+  3 => BirthType.triplet,
+  4 => BirthType.quad,
+  _ => null,
+};

@@ -347,12 +347,17 @@ void main() {
     ]);
   });
 
-  test('the pumpable-variant map exists with exactly one entry', () {
+  test('the pumpable-variant map holds one row per screen that exists', () {
     // FLIPPED AT N13-T07, which is the task that created it. The case used to
     // assert the map was ABSENT and that the header named N13 as its author —
     // and N13 is now here, so the assertion inverts rather than being deleted:
     // what it guards is that the table grows one screen at a time, in the commit
     // that adds the screen.
+    //
+    // GREW TO TWO AT N16-T09, and the assertion grew with it rather than being
+    // loosened to `isNotEmpty`. The point is not the number — it is that adding
+    // a screen and adding its matrix row are the same commit, which a length
+    // assertion enforces and an emptiness check does not.
     //
     // The literal is still split, because this file is scanned by the same case
     // it is asserting and a whole needle would match itself.
@@ -362,12 +367,11 @@ void main() {
     final String source = File('test/support/harness.dart').readAsStringSync();
 
     expect(source, contains(needle));
-    expect(kPumpableVariants, hasLength(1));
-    expect(
-      kPumpableVariants.keys.single,
+    expect(kPumpableVariants, hasLength(2));
+    expect(kPumpableVariants.keys.toSet(), <String>{
       'quick_entry',
-      reason: 'one screen exists; each screen epic adds its own row',
-    );
+      'lambing_entry',
+    }, reason: 'two screens exist; each screen epic adds its own row');
     expect(
       source,
       contains('N33-T01'),

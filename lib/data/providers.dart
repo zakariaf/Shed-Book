@@ -18,6 +18,7 @@
 //   cameraServiceProvider       N15-T02  Provider<CameraService>              keepAlive
 //   voiceRecorderProvider       N15-T03  Provider<VoiceRecorder>              keepAlive
 //   noteRepositoryProvider      N15-T04  FutureProvider<NoteRepository>       keepAlive
+//   vocabProvider               N16-T04  StreamProvider<List<VocabEntry>>     keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
@@ -161,6 +162,36 @@ final StreamProvider<List<TagIndexEntry>> tagIndexProvider = StreamProvider<List
   // ahead of that would throw rather than wait.
   await ref.watch(databaseProvider.future);
   yield* ref.watch(flockRepositoryProvider).watchTagIndex();
+});
+
+/// **ALL FORTY VOCABULARY ROWS, ONCE, FOR THE WHOLE APP.**
+///
+/// Forty rows is nothing and four screens need them: lambing ease here,
+/// malpresentation in N16-T08, death cause in N17-T03 and treatment route in
+/// N20. `07 §1.2` is precise about what a screen may watch — exactly one content
+/// statement, plus single-row lookups and APP-LEVEL SINGLETONS — and this is the
+/// third kind. Fanning the vocabulary into `lambingEntryQuery` instead would
+/// join forty rows onto every lamb row for no gain.
+///
+/// **keepAlive.** The list changes only when the shepherd renames a term in
+/// Settings, and re-querying it on every screen push is the wrong trade for a
+/// table that fits in a cache line. Nothing invalidates it: drift's `watch()`
+/// rebuilds it on a rename, and a manual invalidate on a drift-backed provider
+/// is a defect (`02 §4.1`).
+///
+/// **`VocabEntry`, NOT the drift row class, and the gate ruled it.** This task's
+/// file table prescribes `List<VocabTerm>`; `layer.features` forbids
+/// `lib/features/` from importing `lib/core/db/`, so that type cannot cross into
+/// the widget that reads it. `SettingsRepository.watchVocab` carries the reason
+/// in full. `settingsProvider` still carries `AppSetting` because its only
+/// readers are in `lib/data/` and `lib/core/`.
+final StreamProvider<List<VocabEntry>> vocabProvider = StreamProvider<List<VocabEntry>>((
+  ref,
+) async* {
+  // Awaited FIRST, for the same reason as `tagIndexProvider`: the first frame
+  // paints before the database opens.
+  await ref.watch(databaseProvider.future);
+  yield* ref.watch(settingsRepositoryProvider).watchVocab();
 });
 
 /// The one settings row, watched. **Carries the ROW class**, not a hand-rolled

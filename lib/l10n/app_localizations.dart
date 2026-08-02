@@ -587,6 +587,376 @@ abstract class AppLocalizations {
     required String time,
     required String provenance,
   });
+
+  /// The screen's headingLevel: 1 title. Lambing Entry deliberately has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any. The title still emits a level-1 node, because 12 §7.3's gate asserts at least one heading on every variant.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambing'**
+  String get lambingEntryTitle;
+
+  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambs'**
+  String get lambingEntryLambs;
+
+  /// The care region's label. 'Care' rather than 'Treatments': a treatment is a medicine with a withdrawal period (§12.1) and care is colostrum, warming and drying. Merging the two words would put a withdrawal question on a screen that has none.
+  ///
+  /// In en, this message translates to:
+  /// **'Care'**
+  String get lambingEntryCare;
+
+  /// The DERIVED birth type. P8 abolished the chooser: the type is counted from the tally strokes and labelled so, which is what makes §12.4 structural rather than procedural — the app never declares a type the shepherd did not. The stamp is unboxed and all-caps; it is never the sole carrier of its meaning, because the strokes are on screen beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'{type} (COUNTED)'**
+  String lambingTypeCounted({required String type});
+
+  /// Five or more. countedBirthType returns null there deliberately — quintPlus means 'more than four, count NOT declared', and a counted five is not open-ended. So the count itself is printed rather than a word that would throw the number away. The animal noun comes from terminologyProvider, never a literal.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {animals} (COUNTED)'**
+  String lambingTypeCountedMany({required int count, required String animals});
+
+  /// No strokes yet. NOT 'single': zero strokes is not recorded, and defaulting would be the app answering for the shepherd. It replaces 07 §6.3's 'the five buttons are unselected', which described a control P8 removed.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get lambingTypeNotRecorded;
+
+  /// The corner slab. One press is one stroke and one committed lamb row — there is no confirmation step, because the row is the confirmation. The animal noun comes from terminologyProvider (10 §8): a shepherd who renamed 'lamb' sees their own word.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {animal}'**
+  String lambingAddLamb({required String animal});
+
+  /// The tally's semantic label. The marks are painted, so a screen reader has nothing to read without this — and it says the NUMBER rather than describing the marks, because the number is what the shepherd wants.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No {animals} yet} =1{1 {animal}} other{{count} {animals}}}'**
+  String lambingTallySemantics({
+    required int count,
+    required String animal,
+    required String animals,
+  });
+
+  /// The lamb sub-row's leading cell. The ordinal is STROKE ORDER, not a name and not a tag: it is which lamb this was in this lambing, and it stays put when a later lamb is struck. Uppercased by the widget rather than in the string, so a locale whose script has no case is unharmed. The animal noun comes from the shepherd's own word.
+  ///
+  /// In en, this message translates to:
+  /// **'{animal} {n}'**
+  String lambingLambOrdinal({required String animal, required int n});
+
+  /// LambStatus.alive. The schema default, and the only default in the lamb row that encodes nothing veterinary — a lamb that was born is alive until the shepherd says otherwise.
+  ///
+  /// In en, this message translates to:
+  /// **'ALIVE'**
+  String get lambStatusAlive;
+
+  /// LambStatus.dead — died after birth. Distinct from stillborn, which is a different fact and a different line in every count. Never 'died at age 0' and never a cause: the cause is a separate record and may be unattributed.
+  ///
+  /// In en, this message translates to:
+  /// **'DEAD'**
+  String get lambStatusDead;
+
+  /// LambStatus.stillborn — born dead. Never 'died at birth' and never 'dead-born'; stillborn is the word the trade and every count use.
+  ///
+  /// In en, this message translates to:
+  /// **'STILLBORN'**
+  String get lambStatusStillborn;
+
+  /// LambStatus.sold — left the flock alive. It is a status rather than a deletion, because a sold lamb's history is exactly what year two is for.
+  ///
+  /// In en, this message translates to:
+  /// **'SOLD'**
+  String get lambStatusSold;
+
+  /// The whole lamb sub-row as one utterance. The screen joins the cells with a comma and a space before passing them here, because a middot is read aloud as 'middle dot' by at least one screen reader and as nothing at all by another. The visible row keeps the middot; the voice gets punctuation it can pause on.
+  ///
+  /// In en, this message translates to:
+  /// **'{parts}'**
+  String lambRowSemantics({required String parts});
+
+  /// The ease group's heading. One word, because the five buttons under it carry the meaning and a longer heading would push the group below the fold on a small phone.
+  ///
+  /// In en, this message translates to:
+  /// **'EASE'**
+  String get lambingEaseHeading;
+
+  /// The ease group's unset state. NOT '0' and NOT 'unassisted': decision #59 makes an unscored lambing absent from both halves of the assisted rate, and inferring 'no assistance' would deflate that rate invisibly for years. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambingEaseUnset;
+
+  /// The ease group's container label for a screen reader. It says the range and that the group may be skipped. It does NOT say which value is selected — the buttons carry `selected:` and a screen reader announces state itself (10 §3.2 rule 2); a state word in a label is the doubled announcement users report as noise.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease, 1 to 5, not required'**
+  String get lambingEaseGroupSemantics;
+
+  /// One ease button's label. The ordinal and the description, and NO state word: 'Ease 3, selected' is the exact failure 10 §3.2 rule 2 names, because the node's own `selected` flag already says so.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease {ordinal}, {description}'**
+  String lambingEaseValueSemantics({required int ordinal, required String description});
+
+  /// One of the four frozen care kinds (key 'colostrum'). The label is the NOUN, not a claim: 'Colostrum' with a DONE stamp beside it says when the shepherd pressed it, which is a better record than a tick. Never 'Colostrum given?' - the line is not a question.
+  ///
+  /// In en, this message translates to:
+  /// **'Colostrum'**
+  String get careColostrum;
+
+  /// Care kind 'navel_dip'. Two words, the trade term. Never 'Navel dipped' - the past tense would read as a claim on a line that has not been pressed.
+  ///
+  /// In en, this message translates to:
+  /// **'Navel dip'**
+  String get careNavelDip;
+
+  /// Care kind 'stomach_tube'. Never 'Tubed', which is shed shorthand a screen reader cannot render, and never 'Tube fed', which is a different act.
+  ///
+  /// In en, this message translates to:
+  /// **'Stomach tube'**
+  String get careStomachTube;
+
+  /// Care kind 'warmed'. Covers a warming box, a jacket or a hot box; the app records that it happened and never how, because how is not a field and inventing one would be the app asking a question at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'Warmed'**
+  String get careWarmed;
+
+  /// The done stamp. UNBOXED (indelible.md 7.10): DONE in the chrome voice, the time tabular beside it. The time is when the shepherd PRESSED IT, which is the fact being recorded - not when the care was planned and not when the lambing was.
+  ///
+  /// In en, this message translates to:
+  /// **'DONE {time}'**
+  String careDoneAt({required String time});
+
+  /// The undone stamp, printed BESIDE the struck DONE stamp rather than replacing it (indelible.md 7.10, rule 1). Both times stay on the page: the shepherd pressed it at 03:24 and unpressed it at 03:31, and both are true.
+  ///
+  /// In en, this message translates to:
+  /// **'UNDONE {time}'**
+  String careUndoneAt({required String time});
+
+  /// A care line that has not been pressed. NEVER 'No', NEVER 'Not given', NEVER '0' - decision #43 and 07 6.2: a shepherd who did not dip a navel has recorded NOTHING, and the app must not turn that into a claim. There is no way to record 'no' anywhere in this product, on purpose.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get careNotRecorded;
+
+  /// One care line as one utterance for a screen reader. The state is the not-recorded label or the done stamp - the same words the eye gets, so a support call about 'the third line' is about the same thing for both users.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {state}'**
+  String careLineSemantics({required String label, required String state});
+
+  /// The volume field's label, ABOVE the line in the control voice (indelible.md 7.12). It is never placeholder text inside the field: in the dark a grey placeholder is indistinguishable from an entered value. The field is empty until the shepherd types - no default, no suggested figure, no last-value autofill (05 7.3).
+  ///
+  /// In en, this message translates to:
+  /// **'VOLUME'**
+  String get colostrumVolumeLabel;
+
+  /// The unit beside the volume field. Millilitres are the stored unit and the only one: volume_ml is canonical, and unlike weight there is no imperial alternative a UK shepherd would want for colostrum.
+  ///
+  /// In en, this message translates to:
+  /// **'ml'**
+  String get colostrumVolumeUnit;
+
+  /// The method group's label. Skippable, like the volume: a shepherd who fed colostrum without saying how has recorded the feed, which is the fact that matters at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'METHOD'**
+  String get colostrumMethodLabel;
+
+  /// ColostrumMethod.teat - the lamb sucked. The stored key is 'teat'.
+  ///
+  /// In en, this message translates to:
+  /// **'Teat'**
+  String get colostrumMethodTeat;
+
+  /// ColostrumMethod.tube - stomach tube. The stored key is 'tube'. Distinct from the 'stomach_tube' CARE KIND, which records that tubing happened at all; this records how the colostrum went in.
+  ///
+  /// In en, this message translates to:
+  /// **'Tube'**
+  String get colostrumMethodTube;
+
+  /// ColostrumMethod.bottle. The stored key is 'bottle'.
+  ///
+  /// In en, this message translates to:
+  /// **'Bottle'**
+  String get colostrumMethodBottle;
+
+  /// One method button's label. The word and nothing else: the node carries `selected` and a screen reader announces state itself, so a state word here would be the doubled announcement 10 3.2 rule 2 names.
+  ///
+  /// In en, this message translates to:
+  /// **'{word}'**
+  String colostrumMethodSemantics({required String word});
+
+  /// The sheet's commit button. NOT 'Save' and NOT 'Done': indelible.md 11 test 7 bans Save, and the word names the act - the care event itself was already committed by the line that opened this sheet, so this adds the detail rather than saving a draft.
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD'**
+  String get colostrumRecord;
+
+  /// The commit button for a screen reader. It says what is recorded, because RECORD alone does not say record what.
+  ///
+  /// In en, this message translates to:
+  /// **'Record the colostrum detail'**
+  String get colostrumRecordSemantics;
+
+  /// The sheet's dismiss word (indelible.md 7.14). Never 'Cancel' - 07 15.5: Cancel is not a verb here, and nothing is lost by closing, because the care event is already recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get colostrumSheetClose;
+
+  /// The dismiss word for a screen reader. It says explicitly that closing loses nothing, because a shepherd who cannot see the page above needs to know the colostrum event is already recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Close without adding a volume or a method'**
+  String get colostrumSheetCloseSemantics;
+
+  /// The modal barrier's label, required by showModalBottomSheet for accessibility.
+  ///
+  /// In en, this message translates to:
+  /// **'Colostrum detail'**
+  String get colostrumSheetBarrier;
+
+  /// The margin query mark for a screen reader. It says WHAT was observed, because a bare '?' is unreadable aloud. Never 'Error' and never 'Warning' as a role word - the app observed something and is showing it, which is not the same as the app objecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Queried: {finding}'**
+  String queryMarkSemantics({required String finding});
+
+  /// The heading of the sheet a query mark opens. The observation voice: we found this, here it is. Never 'Problem', never 'Error', never 'Fix this' - 07 6.3 forbids a dialog and 12.2 forbids advice.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT WE FOUND'**
+  String get declareTypeHeading;
+
+  /// The first of exactly two options. It writes a new declaration and LEAVES THE LAMBS ALONE - no lamb is added, none is struck, nothing is reconciled. The label names the act rather than the outcome, so it cannot be read as 'make this right'.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE THE BIRTH TYPE'**
+  String get declareTypeChange;
+
+  /// The second of exactly two options. It writes nothing to either value. It exists so that leaving it is an act the shepherd performs rather than something that happens when they walk away.
+  ///
+  /// In en, this message translates to:
+  /// **'LEAVE IT'**
+  String get declareTypeLeave;
+
+  /// The line recorded when the shepherd chooses LEAVE IT. It is written as a NOTE against the lambing (decision #54: there is no warnings column and there never will be), so the answer survives the next open - an ephemeral line vanishes while the mark stays, which reads as the app forgetting what they said.
+  ///
+  /// In en, this message translates to:
+  /// **'QUERIED · LEFT AS ENTERED {time}'**
+  String declareTypeAcknowledged({required String time});
+
+  /// BirthType.single, stored code 1. Used ONLY in the deliberate declaration sheet - the five-tap path derives birth type from the strokes and prints (COUNTED), and P8 abolished the chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'SINGLE'**
+  String get birthTypeSingle;
+
+  /// BirthType.twin, stored code 2. Declaration sheet only - see birthTypeSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'TWIN'**
+  String get birthTypeTwin;
+
+  /// BirthType.triplet, stored code 3. Declaration sheet only.
+  ///
+  /// In en, this message translates to:
+  /// **'TRIPLET'**
+  String get birthTypeTriplet;
+
+  /// BirthType.quad, stored code 4. Declaration sheet only.
+  ///
+  /// In en, this message translates to:
+  /// **'QUAD'**
+  String get birthTypeQuad;
+
+  /// BirthType.quintPlus, stored code 5, and the word is OPEN-ENDED on purpose. expectedLambCount returns null for it, so six lambs on a declared quintPlus is undefined rather than contradictory and prints NO query mark. Encoding it as exactly 5 would put a false mark on every set of sextuplets - the litters a shepherd is most likely to be looking at.
+  ///
+  /// In en, this message translates to:
+  /// **'QUAD OR MORE'**
+  String get birthTypeQuintPlus;
+
+  /// Prefixes the ORIGINAL time on the header's second line - 'was 03:20'. It is the FIRST value, never the previous one: an unbounded chain of edits keeps what we first thought, because recording THAT a time was edited while losing WHAT IT WAS EDITED FROM makes the 12.5 label true and useless.
+  ///
+  /// In en, this message translates to:
+  /// **'was'**
+  String get provenanceWasPrefix;
+
+  /// The header for a screen reader. The provenance travels with the time here exactly as it does on screen - a spoken time without its source would be the one place 12.5's claim goes silent. The provenance string is RecordedTime.provenanceLabel itself, never a second spelling of it.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambing time {time}, {provenance}'**
+  String provenanceHeaderSemantics({required String time, required String provenance});
+
+  /// onTapHint for the header. 07 6.4 gives this screen exactly one time-editing action and this is it. The verb is CORRECT rather than EDIT or CHANGE: the record is not wrong, the clock reading was.
+  ///
+  /// In en, this message translates to:
+  /// **'correct the time this lambing happened'**
+  String get provenanceEditHint;
+
+  /// The time editor's heading. A question without a question mark, in the sheet's own voice. Never 'Set time' - the app is not setting anything, the shepherd is saying what they remember.
+  ///
+  /// In en, this message translates to:
+  /// **'WHEN DID IT HAPPEN'**
+  String get timeEditorHeading;
+
+  /// How to type it. 24-hour because the whole app is (en_GB, HH:mm) and because 03:20 and 15:20 are a lambing apart. Four digits because the keypad has no colon key - the colon is punctuation the field adds, never something to type.
+  ///
+  /// In en, this message translates to:
+  /// **'24-hour, four digits'**
+  String get timeEditorHint;
+
+  /// The commit button. Never 'Save' (indelible.md 11 test 7) and never 'OK'. An impossible time leaves this inert rather than clamping - silently turning 25:99 into 23:59 is 12.4.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT IT'**
+  String get timeEditorConfirm;
+
+  /// The commit button for a screen reader. It names what changes, because CORRECT IT alone does not say what.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct the lambing time to what you typed'**
+  String get timeEditorConfirmSemantics;
+
+  /// The assisted_by field's label, above the line. Free text, never a picker: the app has no people table, and inventing one would ask a shepherd to maintain a contacts list at 03:20. Never 'Assisted by' as a heading - the trade phrasing is who was with you.
+  ///
+  /// In en, this message translates to:
+  /// **'WHO ELSE WAS THERE'**
+  String get detailAssistedBy;
+
+  /// The malpresentation picker's label. Plain words rather than the clinical noun, because the picker's own entries are the vocabulary and a heading that repeats it teaches nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'HOW IT WAS LYING'**
+  String get detailPresentation;
+
+  /// The presentation_note field's label, and it is DELIBERATELY SPECIFIC. Spec 7.2 lists lubricant/ropes/vet under assistance detail; 03 5.4 ships no column for it and the schema froze at N07-T08, so it lands here as free text. The label names the three so the next reader does not go looking for a column or propose one. A structured version is a v2 migration, not a widget.
+  ///
+  /// In en, this message translates to:
+  /// **'ROPES, LUBRICANT, VET'**
+  String get detailPresentationNote;
+
+  /// The lambing's own note column. Distinct from a notes ROW, which is the attachment-bearing kind NoteRepository owns.
+  ///
+  /// In en, this message translates to:
+  /// **'ANYTHING ELSE'**
+  String get detailNote;
+
+  /// Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get detailUnset;
+
+  /// The presentation group's container label. It says the field may be skipped and does NOT say which word is selected - the buttons carry `selected` and a screen reader announces state itself (10 3.2 rule 2).
+  ///
+  /// In en, this message translates to:
+  /// **'How it was lying, not required'**
+  String get detailPresentationSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

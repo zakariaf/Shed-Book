@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -176,6 +178,43 @@ void main() {
     expect(find.byType(TextField), findsNothing);
     expect(find.byType(TextFormField), findsNothing);
     expect(find.byType(EditableText), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('unlock to a lambing with one lamb costs 6 taps', (WidgetTester tester) async {
+    // T02a's ANCHOR, and the claim is not "six taps happened" but "six taps
+    // produced a lambing WITH A LAMB ON IT" — so both counts are asserted.
+    //
+    // The sixth tap is the first TALLY STROKE. It used to be a birth-type
+    // button; P8 abolished the chooser and decision-record §7.0b records why
+    // that is a SAFETY rule rather than a simplification — a declared type and a
+    // counted one can disagree, and every way of resolving that disagreement is
+    // worse than not having it.
+    final AppDatabase db = testDatabase();
+    await _seedCurrentSeason(db);
+    await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final TapCounter c = TapCounter();
+    await _selectEwe(tester, '412', c);
+    await tester.countedTap(find.byKey(const Key('quick_entry.event.lambing')), c);
+
+    expect(await countLambings(db), 1, reason: 'five taps commit the lambing');
+
+    // The sixth lands on Lambing Entry, which N16-T01's push helper opens.
+    final LambingId lambing = LambingId((await db.select(db.lambings).get()).single.id);
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    await tester.countedTap(find.byKey(const Key('lambing_entry.tally.stroke')), c);
+
+    expect(c.taps, 6);
+    expect(c.textEntries, 0);
+    expect(await countLambings(db), 1);
+    expect((await db.select(db.lambs).get()).length, 1);
 
     await tester.closeApp();
   });

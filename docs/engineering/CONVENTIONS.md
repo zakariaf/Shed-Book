@@ -74,6 +74,7 @@ shed_book/
 │   │   ├── ids.dart                  # the extension-type ids ONLY (R5). No package:uuid here.
 │   │   ├── birth_type.dart           # enum BirthType + int code 1..5 + expectedLambCount()
 │   │   ├── lambing_ease.dart         # extension type LambingEase(int) 1..5. NO descriptions (R44).
+│   │   ├── care_kind.dart            # CareKind · ColostrumMethod · sealed CareSubject (R82)
 │   │   ├── sex.dart                  # enum Sex { female('f'), male('m'), unknown('unknown') }
 │   │   ├── foster_outcome.dart       # sealed FosterOutcome (R64)
 │   │   ├── penning.dart              # timeSincePenned(entered, now), isReadyToTurnOut(...)  (R24)
@@ -149,6 +150,7 @@ shed_book/
 │   │       ├── motion.dart           # prefersReducedMotion
 │   │       ├── formatters.dart       # the ONLY package:intl call site in lib/ outside lib/data/
 │   │       ├── feedback.dart         # confirmSaved · showFailure · showCapRow  (R30)
+│   │       ├── vocab_label.dart      # vocabLabel(userLabel, shipped) — primitives only (R66, R81)
 │   │       ├── night_error_panel.dart# ErrorWidget.builder. Hard-coded hexes, own Directionality.
 │   │       └── components/           # ShedTapTarget, ShedKeypad, ShedPenTile, ShedReceiptBar,
 │   │                                 # ShedBanner, ShedEmptyState, ShedPhoto, ShedCountdown, …
@@ -485,6 +487,9 @@ for the type.
 | Type | File | Members → stored key |
 |---|---|---|
 | `BirthType` | `lib/domain/birth_type.dart` | `single`→1, `twin`→2, `triplet`→3, `quad`→4, `quintPlus`→5, on `int code`. `int? expectedLambCount(BirthType)` lives in this file and returns **null** for `quintPlus` (R46). |
+| `CareKind` | `lib/domain/care_kind.dart` | `enum CareKind { colostrum('colostrum'), navelDip('navel_dip'), stomachTube('stomach_tube'), warmed('warmed') }` — a closed `CHECK` and a frozen notification channel id, never a `vocab_terms` FK (R82, R49). |
+| `ColostrumMethod` | `lib/domain/care_kind.dart` | `enum ColostrumMethod { teat('teat'), tube('tube'), bottle('bottle') }`. Skippable, never defaulted (R82). |
+| `CareSubject` | `lib/domain/care_kind.dart` | `sealed class CareSubject` with `CareForLamb` / `CareForLambing` — exactly one, made unconstructible rather than checked at 03:20 (R82). |
 | `LambingEase` | `lib/domain/lambing_ease.dart` | `extension type const LambingEase(int code)` 1..5, validated. **No descriptions in the domain** — the five labels are `vocab_terms` keys `ease_1`…`ease_5` with ARB defaults (R44). |
 | `Sex` | `lib/domain/sex.dart` | `female('f')`, `male('m')`, `unknown('unknown')` (R45). `NULL` ≠ `unknown`. |
 | `LambStatus` | `lib/domain/stats/season_counts.dart` | `alive`, `dead`, `stillborn`, `sold` |
@@ -689,6 +694,7 @@ spellings only. Production has zero overrides.
 | Provider | Type | File | Auto-dispose |
 |---|---|---|---|
 | `tagIndexProvider` | `StreamProvider<List<TagIndexEntry>>` | `lib/data/providers.dart` | keepAlive — active animals only (R26) |
+| `vocabProvider` | `StreamProvider<List<VocabEntry>>` | `lib/data/providers.dart` | keepAlive — forty rows, four screens; **not** the drift row class (R81) |
 | `quickEntryDeckProvider` | `StreamProvider<QuickEntryDeck>` | `lib/features/quick_entry/quick_entry_controller.dart` | keepAlive — **one** statement, two buckets; the strips read it with `.select` (R28) |
 | `penBoardProvider` | `StreamProvider<List<PenTile>>` | `lib/features/pens/pen_board_controller.dart` | keepAlive |
 | `flockListProvider` | `StreamProvider<List<FlockRow>>` | `lib/features/flock/flock_controller.dart` | keepAlive |
@@ -821,7 +827,7 @@ Five documented exceptions, because two documents already agree on them and rena
 ```
 quick_entry.keypad.digit_4
 quick_entry.confirm
-lambing_entry.birth_type.twin
+lambing_entry.tally.stroke        # amended 2026-08-02 (P8) — see R80a
 pen_board.turn_out.3
 treatment.withdrawal.enter_days
 ```
@@ -1540,8 +1546,14 @@ the decision record's 216 is superseded with the reason stated.
 01 writes `Key('birthType.twin')`; 02, 05 and 07 write `pen_board.turn_out.3`, `treatment.save`,
 `quick_entry.keypad.digit_4`.
 
-**Ruling.** `<screen>.<element>[.<qualifier>]`, every segment `lower_snake`. `birthType.twin` becomes
-`lambing_entry.birth_type.twin`.
+**Ruling.** `<screen>.<element>[.<qualifier>]`, every segment `lower_snake`. `birthType.twin` was the
+defect the format exists to prevent.
+
+> **AMENDED 2026-08-02 (N16-T02a), ruling P8.** The worked example was
+> ~~`lambing_entry.birth_type.twin`~~ and is now **`lambing_entry.tally.stroke`**. The FORMAT is
+> unchanged and the original defect is still the reason for it; what changed is that the control the
+> old example named does not exist. A naming authority that publishes a key for a control the product
+> does not have is worse than a missing example, because a fixer applies it mechanically.
 **Files:** 01 (§4.5 test snippet).
 
 ### R60 — No human-facing date is all-numeric
@@ -1974,3 +1986,75 @@ is the rule working, and it is why the fix here is narrow rather than a blanket 
 `lib/domain/` and `lib/data/` are unchanged and must stay that way: a domain function that reads a
 localised string has taken a rendering decision, and `ShedFailure.userMessage` and `Disclaimers.*` are
 the two documented places where copy lives outside the ARB precisely so those layers never reach it.
+
+### R80a — no widget key contains `birth_type`
+
+**Ruled 2026-08-02 (N16-T02a), applying P8** (decision-record §7.0b). Birth type is derived from the
+tally strokes and labelled `(COUNTED)`; there is no control that declares one on the five-tap path.
+
+The rule is held by a **tree-walking canary** in `test/features/lambing_entry_test.dart` rather than by
+review: it asserts over every `ValueKey` in the pumped tree, because a `birth_type` key anywhere is the
+chooser coming back somewhere nobody is looking.
+
+`lambings.declared_birth_type` keeps its column and its writer — the deferred CHANGE TYPE path — and
+NULL still means *not declared* (R6), never `single`. See R59 for the key format itself; this ruling
+changed its worked example, not its shape.
+
+### R81 — `vocabProvider` carries `VocabEntry`, not the drift row class
+
+**Ruled 2026-08-02 (N16-T04).** N16-T04's file table prescribes
+`vocabProvider — StreamProvider<List<VocabTerm>>`. That type cannot exist at its only call site:
+`VocabTerm` is a generated drift row class in `lib/core/db/`, and the gate's `layer.features` row
+forbids `lib/features/` from importing `lib/core/db/` at all. The gate caught it on the first run of
+the task.
+
+**The ruling is the shape `LambingEntryData` already uses** — the data layer declares the type the
+feature reads:
+
+```dart
+// lib/data/settings_repository.dart
+typedef VocabEntry = ({String key, String? label});
+Stream<List<VocabEntry>> watchVocab();
+```
+
+Two fields and not the whole row, because two is what the presentation edge can use: `key` is the
+frozen foreign key, and `label` is the shepherd's override where **NULL means *render the shipped
+default*** (`03 §3`) — which is not the same as an empty label, and `vocabLabel` is
+`userLabel ?? shipped` for exactly that reason. The other columns are device-local or belong to the
+Settings screen that edits them.
+
+`settingsProvider` still carries `AppSetting` and is not affected: its readers are all in `lib/data/`
+and `lib/core/`, so no layer boundary is crossed.
+
+The task document is **not** silently corrected — its instruction stands on disk with this ruling
+against it, which is the amendment rule working rather than being worked around.
+
+### R82 — `CareKind`, `ColostrumMethod` and the sealed `CareSubject`
+
+**Ruled 2026-08-02 (N16-T05).** Three closed sets in `lib/domain/care_kind.dart`, each member carrying
+the string the schema stores (§2.9), plus one sealed subject.
+
+| Dart | Stored key | Where the key is frozen |
+|---|---|---|
+| `CareKind.colostrum` · `.navelDip` · `.stomachTube` · `.warmed` | `colostrum` · `navel_dip` · `stomach_tube` · `warmed` | `care_events`' `CHECK (kind IN (…))`, **and** the Android notification channel id, which is byte-identical to the key and frozen at release (decision #65, R49) |
+| `ColostrumMethod.teat` · `.tube` · `.bottle` | `teat` · `tube` · `bottle` | `CHECK (method IS NULL OR method IN (…))` |
+| `CareForLamb` · `CareForLambing` | the `lamb` / `lambing` column | `CHECK ((lambing IS NOT NULL) + (lamb IS NOT NULL) = 1)` |
+
+`kind` is a **closed `CHECK`, not a vocabulary foreign key**: `vocab_terms` holds the lists the
+shepherd may rename, and these four are not among them. A fifth care kind is a schema migration **and**
+a channel decision — the correct amount of friction.
+
+`CareSubject` is **sealed rather than two nullable id parameters**, and that is the safety-rule
+hierarchy applied to an ordinary column: two nullables make the two unstorable combinations — both set,
+neither set — *constructible*, and the `CHECK` then fires as a `WriteFailed` at 03:20 instead of as a
+compile error at 09:00. Unstorable becomes unconstructible.
+
+**`removeCare` strikes.** `07 §15.1`'s row is amended in the same commit; see R79 for the mixin and
+`indelible.md §7.10` for the rendering that requires the row to survive.
+
+**The colostrum detail is written with the event, not after it.** `addCare` takes `volumeMl` and
+`method` as arguments, so the sheet's RECORD button is what commits — one row, one transaction, one
+provenance quad. Writing on open and updating on close would make the second write the losable one,
+which is the shape this project exists to avoid. Dismissing the sheet still writes the event with both
+fields null: the shepherd pressed COLOSTRUM, so they gave colostrum, and the sheet asks for detail
+rather than for permission.

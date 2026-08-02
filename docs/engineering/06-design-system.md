@@ -1621,6 +1621,7 @@ Everything the 12 screens need. Every one of them lives in `lib/core/ui/componen
 | `ShedPrimaryButton` | ≥ `tapHero` tall, ≥ 2 × `tapPrimary` wide | default, pressed, disabled | `labelLarge`, `surfaceFill` on `surfaceBase`. |
 | `ShedSecondaryButton` | ≥ `tapPrimary` tall | default, pressed, disabled | Outlined at `outlineWidth`. |
 | `ShedDestructiveButton` | ≥ `tapPrimary` tall | default, pressed, disabled, **confirming** | Never within `gapDestructive` of a frequent action; two-step. |
+| `ShedTally` | marks 8 × 30, 3 pt gap; the **fifth** mark of any group is a diagonal across the previous four | default; struck marks keep their rect and take a rule through it | §12, added 2026-08-02 (N16-T02). Shared: the pen tile (N19) and the withdrawal day tally (N20-T03) print the same mark, so it is in `lib/core/ui/components/` (R70) and not under a feature |
 | `ShedKeypad` | 3 cols × 4 rows, cells ≥ `tapPrimary` and ≤ `(width − 2 × gapMin) / 3`, gutters `gapMin` | key default/pressed. **No disabled state, ever** — the third key is a constructor parameter (amended 2026-08-02) | §8. Fixed geometry; mirrors on `leftHanded`. Glyph is `displaySmall`. |
 | `ShedConfirmBar` | full width × `tapHero` | default, pressed, disabled | Labelled with the outcome ("Create 412"). |
 | `ShedRecentsStrip` | 6 chips × `tapPrimary` | chip default/pressed/selected, **placeholder** | Fixed height at frame 1 so nothing shifts. |

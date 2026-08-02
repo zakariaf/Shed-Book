@@ -58,6 +58,12 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/core/db/uid.dart';
+import 'seeds.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/routing/routes.dart';
 
 /// Runs [body] with the ambient clock pinned to [instant].
@@ -119,11 +125,89 @@ T atFixed<T>(DateTime instant, T Function() body) => withClock(Clock.fixed(insta
 /// The builders take no arguments and seed nothing: a cell pumps the screen and
 /// looks for overflow, and the data it needs comes from `seeds.dart` until
 /// **N23-T05** switches the matrix to the committed fixtures.
-const Map<String, Widget Function()> kPumpableVariants = <String, Widget Function()>{
-  RouteNames.quickEntry: _quickEntry,
+///
+/// **THE ENTRY GAINED A SEEDER AT N16-T09, AND THAT IS A CHANGE TO THE TABLE'S
+/// SHAPE.** Quick Entry pumps against an empty database and proves something;
+/// Lambing Entry pumped against an empty database would render its loading arm
+/// at every one of eighteen cells and prove nothing at all. So a variant is now
+/// a builder AND a seeder, the seeder returns the arguments the builder needs,
+/// and the table stays the single declaration four files read (`12 §6.2`).
+const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>{
+  RouteNames.quickEntry: (seed: _seedNothing, build: _quickEntry),
+  RouteNames.lambingEntry: (seed: _seedHardLambing, build: _lambingEntry),
 };
 
-Widget _quickEntry() => const QuickEntryScreen();
+/// A matrix cell: what to put in the database, then what to pump.
+///
+/// `seed` returns the ids `build` needs. A record rather than two parallel maps,
+/// because two maps are two things that stop agreeing the first time a screen is
+/// added — which is the same argument that put this table in one file.
+typedef PumpableVariant = ({
+  Future<Map<String, int>> Function(AppDatabase db) seed,
+  Widget Function(Map<String, int> ids) build,
+});
+
+Future<Map<String, int>> _seedNothing(AppDatabase db) async => <String, int>{};
+
+Widget _quickEntry(Map<String, int> _) => const QuickEntryScreen();
+
+/// **THE HARD STATE, NOT THE EASY ONE**, and N16-T09 is explicit about why: a
+/// lambing with FIVE lambs exercises the five-bar tally gate, five lamb
+/// sub-rows, the ease description printed beside a selected button, a query mark
+/// in the margin and a two-line provenance header — all at once. An empty
+/// lambing passes eighteen cells while proving almost nothing.
+Future<Map<String, int>> _seedHardLambing(AppDatabase db) async {
+  final Instant now = Instant.fromDateTime(DateTime.utc(2026, 3, 14, 3, 20));
+  final int season = await db
+      .into(db.seasons)
+      .insert(
+        SeasonsCompanion.insert(
+          year: 2026,
+          label: '2026',
+          startDate: LocalDate(2026, 1, 1),
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+    AppSettingsCompanion(currentSeason: Value<int?>(season)),
+  );
+
+  final EweId ewe = await seedEwe(db, tag: '412');
+  final LambingId lambing = await seedLambing(db, ewe);
+
+  // A DECLARED TRIPLET WITH FIVE LAMBS — so the query mark renders too, and the
+  // longest ease description sits beside a selected button. Every wide thing on
+  // the screen is wide at once, which is the only arrangement that can overflow.
+  await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+    LambingsCompanion(
+      declaredBirthType: const Value<int?>(3),
+      ease: const Value<int?>(4),
+      presentation: const Value<String?>('mp_twins_together'),
+      assistedBy: const Value<String?>('the vet and my daughter'),
+      presentationNote: const Value<String?>('ropes, plenty of lubricant, vet out at 04:10'),
+      note: const Value<String?>('big single-looking triplet, watched her all night'),
+      originalEffective: Value<Instant?>(now),
+      timeSource: const Value<String>('edited'),
+    ),
+  );
+  for (int i = 0; i < 5; i++) {
+    await seedLamb(
+      db,
+      lambing,
+      ewe,
+      sex: i.isEven ? 'f' : 'm',
+      birthWeightG: 4100 + i,
+      tag: 'A1$i',
+    );
+  }
+
+  return <String, int>{'lambing': lambing.value};
+}
+
+Widget _lambingEntry(Map<String, int> ids) =>
+    LambingEntryScreen(lambingId: LambingId(ids['lambing']!));
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

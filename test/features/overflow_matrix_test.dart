@@ -9,7 +9,6 @@
 // lists the loops iterate, so the assertion and the loops can never disagree.
 library;
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/routing/routes.dart';
@@ -27,9 +26,10 @@ void main() {
 
     expect(
       cells,
-      18,
+      36,
       reason:
-          'one variant x 3 devices x 3 scales x 2 bold states. It becomes 252 over '
+          'TWO variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
+          'joined at N16-T09. It becomes 252 over '
           'fourteen variants at N33-T01, which is also where '
           "12 §6.2's length assertion belongs — writing it here would assert a future",
     );
@@ -40,7 +40,10 @@ void main() {
     // what makes the table impossible to silently stop covering a screen
     // somebody added. Today one screen exists: Quick Entry, which is
     // MaterialApp.home.
-    expect(kPumpableVariants.keys.toSet(), <String>{RouteNames.quickEntry});
+    expect(kPumpableVariants.keys.toSet(), <String>{
+      RouteNames.quickEntry,
+      RouteNames.lambingEntry,
+    });
 
     // Every key is a real route name — a variant keyed on a string that is not
     // in RouteNames is a cell that pumps something the diagnostics log cannot
@@ -63,16 +66,20 @@ void main() {
     expect(names.containsAll(kPumpableVariants.keys), isTrue);
   });
 
-  for (final MapEntry<String, Widget Function()> variant in kPumpableVariants.entries) {
+  for (final MapEntry<String, PumpableVariant> variant in kPumpableVariants.entries) {
     for (final Device device in Device.all) {
       for (final double scale in kTextScales) {
         for (final bool bold in kBoldStates) {
           testWidgets('${variant.key} · ${device.name} · scale $scale · bold $bold does not '
               'overflow', (WidgetTester tester) async {
             final AppDatabase db = testDatabase();
+            // SEEDED FIRST. A cell that pumps against an empty database renders
+            // the screen's loading arm and proves nothing — see the seeder's own
+            // comment in harness.dart.
+            final Map<String, int> ids = await variant.value.seed(db);
 
             await tester.pumpApp(
-              variant.value(),
+              variant.value.build(ids),
               db: db,
               device: device,
               textScale: scale,

@@ -185,6 +185,8 @@ void main() {
       'voiceRecorderProvider',
       // N15-T04
       'noteRepositoryProvider',
+      // N16-T04 — forty vocabulary rows, four screens, one watch (R81)
+      'vocabProvider',
     });
   });
 

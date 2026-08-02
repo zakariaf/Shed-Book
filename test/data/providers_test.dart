@@ -183,6 +183,8 @@ void main() {
       'cameraServiceProvider',
       // N15-T03
       'voiceRecorderProvider',
+      // N15-T04
+      'noteRepositoryProvider',
     });
   });
 

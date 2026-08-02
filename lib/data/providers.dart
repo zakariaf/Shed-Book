@@ -17,10 +17,10 @@
 //   mediaStoreProvider          N15-T01  Provider<MediaStore>                 keepAlive
 //   cameraServiceProvider       N15-T02  Provider<CameraService>              keepAlive
 //   voiceRecorderProvider       N15-T03  Provider<VoiceRecorder>              keepAlive
+//   noteRepositoryProvider      N15-T04  FutureProvider<NoteRepository>       keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   noteRepositoryProvider                                           N15
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
@@ -45,6 +45,7 @@ import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
@@ -112,6 +113,13 @@ final Provider<CameraService> cameraServiceProvider = Provider<CameraService>(
 
 final Provider<VoiceRecorder> voiceRecorderProvider = Provider<VoiceRecorder>(
   (ref) => VoiceRecorder(),
+);
+
+/// **A `FutureProvider`, unlike the gateways beside it.** The gateways are
+/// synchronous to construct; a repository needs the database, and the first
+/// frame paints before the database opens.
+final FutureProvider<NoteRepository> noteRepositoryProvider = FutureProvider<NoteRepository>(
+  (ref) async => NoteRepository(await ref.watch(databaseProvider.future)),
 );
 
 final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());

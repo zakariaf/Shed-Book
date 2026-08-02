@@ -21,6 +21,8 @@
 //   vocabProvider               N16-T04  StreamProvider<List<VocabEntry>>     keepAlive
 //   quickEntryDeckProvider      N18-T02  StreamProvider<QuickEntryDeck>       keepAlive  (moved, R83)
 //   fosterRepositoryProvider    N18-T02  Provider<FosterRepository>
+//   penRepositoryProvider       N19-T02  Provider<PenRepository>
+//   settleThresholdHoursProvider N19-T02 Provider<int>
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
@@ -50,6 +52,7 @@ import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/note_repository.dart';
+import 'package:shed_book/data/pen_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
@@ -134,6 +137,22 @@ final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRe
 
 /// N18-T01's repository. It takes the database positionally and no clock, ever
 /// (R19).
+/// N19-T01's repository. The board's writes and its one statement.
+final Provider<PenRepository> penRepositoryProvider = Provider<PenRepository>(
+  (ref) => PenRepository(ref.watch(databaseProvider).requireValue),
+);
+
+/// How long a ewe should settle before turn-out, in hours.
+///
+/// **THE USER'S NUMBER, and a provider rather than a constant**, because it is a
+/// judgement that varies by flock and by weather — a constant here would be the
+/// app making it for them. `03 §5.13` calls it a DISPLAY threshold: it decides
+/// when a tile shows its badge and nothing else, it is in no export, and no
+/// other column is derived from it.
+final Provider<int> settleThresholdHoursProvider = Provider<int>(
+  (ref) => ref.watch(settingsProvider).value?.turnOutThresholdHours ?? 24,
+);
+
 final Provider<FosterRepository> fosterRepositoryProvider = Provider<FosterRepository>(
   (ref) => FosterRepository(ref.watch(databaseProvider).requireValue),
 );

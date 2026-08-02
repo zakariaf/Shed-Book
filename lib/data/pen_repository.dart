@@ -122,6 +122,51 @@ final class PenRepository {
     }
   }
 
+  /// Every ACTIVE pen and what is in it, watched.
+  ///
+  /// **A LEFT JOIN, so an EMPTY PEN IS A ROW.** The board draws the shed, not
+  /// the occupancies — a pen with nothing in it is the pen the shepherd is
+  /// about to use, and an inner join would hide exactly the tiles they are
+  /// looking for at 03:20.
+  ///
+  /// **`readsFrom:` IS EXPLICIT**, because a `customSelect` cannot infer it. A
+  /// missing table here means the board goes stale silently: the shepherd pens a
+  /// ewe and the tile keeps saying empty.
+  Stream<List<PenBoardRow>> watchBoard() => _db
+      .customSelect(
+        _penBoardSql,
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+          _db.pens,
+          _db.penOccupancies,
+          _db.penOccupancyLambs,
+          _db.ewes,
+          _db.lambs,
+        },
+      )
+      .watch()
+      .map(
+        (List<QueryRow> rows) => <PenBoardRow>[
+          for (final QueryRow r in rows)
+            PenBoardRow(
+              pen: PenId(r.read<int>('pen_id')),
+              label: r.read<String>('label'),
+              occupancy: r.readNullable<int>('occupancy_id') == null
+                  ? null
+                  : PenOccupancyId(r.read<int>('occupancy_id')),
+              // NULL IS TWO DIFFERENT THINGS AND THE BOARD MUST TELL THEM APART:
+              // no occupancy at all (an empty pen) versus an occupancy with no
+              // ewe (an orphan pen). `occupancy` is what distinguishes them.
+              eweTag: r.readNullable<String>('ewe_tag'),
+              enteredAt: r.readNullable<int>('entered_at') == null
+                  ? null
+                  : Instant(r.read<int>('entered_at')),
+              timeSourceKey: r.readNullable<String>('time_source'),
+              lambCount: r.read<int>('lamb_count'),
+              hasLoss: r.read<int>('has_loss') != 0,
+            ),
+        ],
+      );
+
   /// The open occupancy for a pen, or `null`.
   ///
   /// `null` is *the pen is free* — a real answer, and the commonest one before
@@ -142,3 +187,57 @@ final class PenRepository {
     return SeasonId(current);
   }
 }
+
+/// One row of the pen board. **Declared in `lib/data/` because
+/// `lib/features/` may not import the persistence layer at all** (layer rule 5)
+/// — the same shape `LambingEntryData` and `LambCardData` already use.
+final class PenBoardRow {
+  const PenBoardRow({
+    required this.pen,
+    required this.label,
+    required this.occupancy,
+    required this.eweTag,
+    required this.enteredAt,
+    required this.timeSourceKey,
+    required this.lambCount,
+    required this.hasLoss,
+  });
+
+  final PenId pen;
+  final String label;
+
+  /// `null` is an EMPTY pen. An occupancy with a null [eweTag] is an ORPHAN pen
+  /// — lambs with no ewe — and the two are different tiles.
+  final PenOccupancyId? occupancy;
+
+  final String? eweTag;
+  final Instant? enteredAt;
+
+  /// `'edited'` is what the board marks (T06). Null on an empty pen.
+  final String? timeSourceKey;
+
+  /// Tally strokes on the tile, never a digit (`indelible.md §8` screen 7).
+  final int lambCount;
+
+  final bool hasLoss;
+}
+
+/// `07 §9.1`'s statement.
+///
+/// **A LEFT JOIN FROM `pens`**, so every active pen is a row whether or not
+/// anything is in it. The board is a picture of the shed.
+const String _penBoardSql = '''
+SELECT p.id AS pen_id, p.label AS label,
+       o.id AS occupancy_id, o.entered_at AS entered_at, o.time_source AS time_source,
+       e.tag AS ewe_tag,
+       (SELECT COUNT(*) FROM pen_occupancy_lambs pol WHERE pol.occupancy = o.id) AS lamb_count,
+       (SELECT COUNT(*) FROM pen_occupancy_lambs pol2
+          JOIN lambs l ON l.id = pol2.lamb
+         WHERE pol2.occupancy = o.id
+           AND l.status IN ('dead', 'stillborn')) > 0 AS has_loss
+  FROM pens p
+  LEFT JOIN pen_occupancies o ON o.pen = p.id AND o.exited_at IS NULL
+  LEFT JOIN ewes e            ON e.id = o.ewe
+ WHERE p.is_active = 1 AND p.struck = 0
+ ORDER BY p.sort_order ASC, p.id ASC
+''';

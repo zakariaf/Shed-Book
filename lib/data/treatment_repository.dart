@@ -171,6 +171,46 @@ final class TreatmentRepository {
     }
   }
 
+  /// The most recent treatment for the current season, or `null`.
+  ///
+  /// What *repeat last* offers. It carries the product, the dose, the route and
+  /// the batch — **and never the withdrawal period**, which is `withdrawalFor`'s
+  /// to answer separately and deliberately.
+  Future<Treatment?> lastTreatment() =>
+      (_db.select(_db.treatments)
+            ..where(($TreatmentsTable t) => t.voidedAt.isNull())
+            ..orderBy(<OrderClauseGenerator<$TreatmentsTable>>[
+              ($TreatmentsTable t) =>
+                  OrderingTerm(expression: t.administeredAt, mode: OrderingMode.desc),
+              ($TreatmentsTable t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+            ])
+            ..limit(1))
+          .getSingleOrNull();
+
+  /// Repeats [previous] onto another animal.
+  ///
+  /// **THE WITHDRAWAL PERIOD IS NOT COPIED, AND THAT IS THE WHOLE TASK.** It is
+  /// tempting: the shepherd is holding the same bottle, so the same number
+  /// applies. But copying it would make the app the SOURCE of a clinical figure
+  /// for a treatment nobody read a label for — §12.1's exact prohibition — and
+  /// the copy would be indistinguishable, on disk and on screen, from a number
+  /// they typed.
+  ///
+  /// So the new treatment carries the product, the dose, the route and the
+  /// batch, and its withdrawal is **not recorded** until the shepherd says
+  /// otherwise. The previous entry is SHOWN with `Disclaimers.withdrawalProvenance`
+  /// beside it, so they can read what they entered last time and decide.
+  Future<WriteOutcome> repeatTreatment(Treatment previous, TreatmentSubject onto) =>
+      recordTreatment(
+        onto,
+        productName: previous.productName,
+        doseText: previous.doseText,
+        routeKey: previous.route,
+        batchNo: previous.batchNo,
+        // EMPTY, EXPLICITLY. Not `previous`'s periods, and not a default.
+        withdrawals: const <WithdrawalPeriod>[],
+      );
+
   /// Every withdrawal on a treatment, **with the clear date exactly as stored**.
   ///
   /// **NOTHING RECOMPUTES IT.** The stored date is what the shepherd was told on

@@ -9,6 +9,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
@@ -258,5 +260,78 @@ void main() {
     expect(read.single.target, WithdrawalTarget.milk);
     expect(read.single.days, isNull);
     expect(read.single.clearDate, isNull);
+  });
+
+  test('repeating a treatment copies the product but never the withdrawal days', () async {
+    // THE WHOLE TASK IS THE SECOND HALF OF THAT SENTENCE, and it is tempting to
+    // get wrong: the shepherd is holding the same bottle, so surely the same
+    // number applies.
+    //
+    // Copying it would make the APP the source of a clinical figure for a
+    // treatment nobody read a label for — §12.1's exact prohibition — and the
+    // copy would be indistinguishable, on disk and on screen, from a number they
+    // typed. The previous entry is SHOWN so they can read it and decide; it is
+    // not written for them.
+    final EweId first = await seedEwe(db, tag: '412');
+    final EweId second = await seedEwe(db, tag: '128');
+
+    await repo.recordTreatment(
+      TreatEwe(first),
+      productName: 'Alamycin LA',
+      doseText: '3 ml',
+      batchNo: 'B7734',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    final Treatment? previous = await repo.lastTreatment();
+    expect(previous, isNotNull);
+
+    final WriteOutcome outcome = await repo.repeatTreatment(previous!, TreatEwe(second));
+    expect(outcome, isA<WriteCommitted>());
+    final TreatmentId repeated = TreatmentId((outcome as WriteCommitted).insertedId!);
+
+    // THE PRODUCT, THE DOSE AND THE BATCH COME ACROSS. Those are facts about the
+    // bottle in their hand, not clinical decisions.
+    final Treatment row = await (db.select(
+      db.treatments,
+    )..where(($TreatmentsTable t) => t.id.equals(repeated.value))).getSingle();
+    expect(row.productName, 'Alamycin LA');
+    expect(row.doseText, '3 ml');
+    expect(row.batchNo, 'B7734');
+    expect(row.ewe, second.value);
+
+    // AND THE WITHDRAWAL DOES NOT. Still one row in the whole table — the
+    // original's.
+    expect(
+      await db.select(db.treatmentWithdrawals).get(),
+      hasLength(1),
+      reason: 'the repeat wrote none',
+    );
+    expect(
+      await repo.withdrawalFor(repeated, WithdrawalTarget.meat),
+      isA<WithdrawalNotRecorded>(),
+      reason: 'not recorded until the shepherd says otherwise',
+    );
+  });
+
+  test('lastTreatment skips voided rows', () async {
+    // A VOIDED TREATMENT IS NOT WHAT THEY DID LAST. The row stays — it may
+    // already have been printed into a medicine book — but offering it as the
+    // one to repeat would be offering to repeat a mistake.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await repo.recordTreatment(TreatEwe(ewe), productName: 'Alamycin');
+    await repo.recordTreatment(TreatEwe(ewe), productName: 'Spectam');
+
+    final Treatment latest = (await repo.lastTreatment())!;
+    expect(latest.productName, 'Spectam');
+
+    await (db.update(db.treatments)..where(($TreatmentsTable t) => t.id.equals(latest.id))).write(
+      TreatmentsCompanion(voidedAt: Value<Instant?>(appNow())),
+    );
+
+    expect((await repo.lastTreatment())!.productName, 'Alamycin');
   });
 }

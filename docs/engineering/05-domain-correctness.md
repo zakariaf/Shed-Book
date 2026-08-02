@@ -1645,7 +1645,12 @@ List<Warning> checkLocalWallTimeExists(int y, int mo, int d, int h, int mi) {
 
 The **ambiguous** hour is deliberately not warned about: the displayed time still matches what the user typed, so nothing is silently corrected from their point of view, and the 60 minutes of ambiguity are unambiguous in the exported UTC column anyway.
 
-**How it surfaces at 3am.** A persistent, tappable **60 pt amber strip under the field** — not a modal, not a red border alone. Tapping it scrolls to the field. It reappears every time the record is opened, because the record is still contradictory. It never blocks, never auto-dismisses, and never appears twice for one field. On the ewe card and the flock list, a small persistent badge, so a contradiction found at 3am is still findable at 9am. In the CSV, a `has_warnings` boolean and a `warnings` column of joined **codes** — codes, not localised messages — so the export tells the truth about the data's condition without claiming to have fixed anything.
+**How it surfaces at 3am.** ~~A persistent, tappable **60 pt amber strip under the field**~~ — **AMENDED
+2026-08-02 (N16-T06): a persistent, tappable query mark `?` in the margin plus a 2 px madder underline
+under the offending cell.** `indelible.md §2.2`/`§6.2` own the mark and the system has no status
+palette; `CLAUDE.md`'s authority order puts the design system above this document. The rest of this
+paragraph is unchanged and still binding. The struck original read: a **60 pt amber strip under the
+field** — not a modal, not a red border alone. Tapping it scrolls to the field. It reappears every time the record is opened, because the record is still contradictory. It never blocks, never auto-dismisses, and never appears twice for one field. On the ewe card and the flock list, a small persistent badge, so a contradiction found at 3am is still findable at 9am. In the CSV, a `has_warnings` boolean and a `warnings` column of joined **codes** — codes, not localised messages — so the export tells the truth about the data's condition without claiming to have fixed anything.
 
 **The `normalize*` scope (decision #55).** The ban is on functions that **return a corrected domain value**. Projections are fine: `tag_digits` stored alongside `tag` is not a violation, because the typed value is preserved verbatim and the projection is only ever used to drive the keypad filter. Never show `tag_digits` to a user.
 

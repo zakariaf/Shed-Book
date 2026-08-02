@@ -73,7 +73,7 @@ Every brief lists the same states. If a brief omits one, the state is impossible
 | 1 Flock | — | — | — | ✓ row badge |
 | 2 Ewe Card | ✓ on any withdrawal in the timeline | ✓ every timeline row | — | ✓ row badge |
 | 3 Quick Entry | — | ✓ in the commit SnackBar | — | — |
-| 4 Lambing Entry | — | ✓ header, always visible | — | ✓ 60 pt amber strip |
+| 4 Lambing Entry | — | ✓ header, always visible | — | ✓ ~~60 pt amber strip~~ query mark + underline (N16-T06) |
 | 5 Lamb Card | — | ✓ birth time and death date | — | ✓ |
 | 6 Foster | — | ✓ on the foster event | — | ✓ `fosterToSelf` |
 | 7 Pen Board | — | ✓ edited-entry marker **on the tile** | — | ✓ tile badge |
@@ -205,7 +205,7 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
 | Add a ewe | 1 to open + digits + 1 confirm | `EntryContext.calm`. Over the cap this returns `BlockedByCap` and navigates to Unlock — the only self-navigation to Unlock in the app, and it is a response to the user's own tap. Between 22:00 and 06:00 it degrades to `Allow(overFreeCap: true)` and creates the row (§19.3) |
 | Search notes (FTS5) | 1 to open the search screen | 200 ms debounce lives there, never here |
 
-**Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as a 60 pt amber strip under the field. It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
+**Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as ~~a 60 pt amber strip under the field~~ **the query mark and underline ruled at N16-T06** (see §6.3's amendment: Indelible has no status palette, so there is no amber to build a strip from). It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
 
 ### 3.4 §12 on this screen
 
@@ -567,7 +567,19 @@ Two of those are worth naming for why: `ProviderScope.retry` is a **compile erro
 | Loaded, lambs attached | One 88 pt row per lamb |
 | Birth type undeclared | The five buttons are unselected. **Birth type is never defaulted to "single"** — an undeclared type is `NULL` in `lambings.declared_birth_type` and reads as "not declared" |
 | Filtered-empty | Impossible — this screen has no filter |
-| Contradiction | 60 pt amber strip under the offending field. Never a dialog, never blocking, never twice for one field |
+| Contradiction | ~~60 pt amber strip~~ **a query mark in the margin + a 2 px madder underline under the offending cell**. Never a dialog, never blocking, never twice for one field |
+
+> **AMENDED 2026-08-02 (N16-T06), by the authority order.** ~~60 pt amber strip~~ → **a query mark
+> `?` in the margin plus a 2 px madder underline under the offending cell.** `indelible.md §2.2` and
+> `§6.2` call for that mark, and Indelible has **no status palette at all** — *"a colour-coded death
+> reads wrong at 4am through a wet freezer bag."* `CLAUDE.md`'s authority order puts
+> `docs/design/indelible.md` above the thirteen engineering documents, so an amber strip is
+> unbuildable: there is no amber token to build it from, and inventing one would be adding a status
+> colour to a system that deliberately has none.
+>
+> **Everything else in the row survives verbatim** — never a dialog, never blocking, never twice for
+> one field — and `05 §7.5` guarantee 3 stays absolute: warnings never gate the write.
+
 | Error | Standard panel |
 | Over-cap | **Nothing** |
 
@@ -712,7 +724,7 @@ The 1-tap reassignment is the budget CI holds (§1.3). Everything else on this s
 ### 8.6 §12 on this screen
 
 - **§12.5** on the foster event, in the commit SnackBar and on both animals' timelines: `412 → 128 · 03:31 · recorded automatically`. This is one of the four tables that does not yet carry the provenance quad — see §1.5 and §22 item 3.
-- **§12.4**: `fosterToSelf` as a 60 pt amber strip. Shown, never blocking.
+- **§12.4**: `fosterToSelf` as ~~a 60 pt amber strip~~ **the query mark and underline** (N16-T06). Shown, never blocking.
 - **§12.2** binds hardest here: no screen in the app is more tempting to make helpful. No "this ewe has capacity", no "she has milk", no ordering of targets by anything except the two neutral facts the deck already has — longest penned, most recently touched.
 - §12.1 and §12.3 do not appear: no withdrawal figure, no exportable record view.
 
@@ -1499,7 +1511,7 @@ Tick every line before calling the screen layer finished.
 - [ ] Every screen brief has a "§12 on this screen" section, including the four that state which disclosures do *not* appear and why.
 - [ ] The withdrawal control has no pre-filled number and no pre-selected option; the schema JSON shows null `defaultValue` and null `clientDefault` for `days`.
 - [ ] `Disclaimers.exportFooter` appears as a literal exactly once in the codebase and is referenced by the Export screen, the medicine-book segment, Settings ▸ About and every export writer.
-- [ ] Every warning surfaces as a 60 pt amber strip or a row badge; no `warnings` column exists and no code path fixes a contradiction.
+- [ ] Every warning surfaces as ~~a 60 pt amber strip~~ **a query mark plus a madder underline** (N16-T06) or a row badge; no `warnings` column exists and no code path fixes a contradiction.
 - [ ] Undo is implemented per verb per §15.1; no `undo(id)` method exists; no undo affordance is ever rebuilt after process death. The label reads "Undo" only where the row disappears — "Correct this" on foster, "Void this" on treatment.
 - [ ] `reconcile()` is called from exactly four places, debounced 500 ms, never from inside a drift transaction, and writes `last_reconcile_scheduled` in the same transaction that records what it projected.
 - [ ] The Reminders screen renders all three reconciliation lines with numbers read from data, and the box height is identical in each. Muted reminders appear in the list and are excluded from `schedulable_total`, and no copy conflates the two counts.

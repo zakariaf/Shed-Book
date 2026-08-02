@@ -819,6 +819,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Colostrum detail'**
   String get colostrumSheetBarrier;
+
+  /// The margin query mark for a screen reader. It says WHAT was observed, because a bare '?' is unreadable aloud. Never 'Error' and never 'Warning' as a role word - the app observed something and is showing it, which is not the same as the app objecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Queried: {finding}'**
+  String queryMarkSemantics({required String finding});
+
+  /// The heading of the sheet a query mark opens. The observation voice: we found this, here it is. Never 'Problem', never 'Error', never 'Fix this' - 07 6.3 forbids a dialog and 12.2 forbids advice.
+  ///
+  /// In en, this message translates to:
+  /// **'WHAT WE FOUND'**
+  String get declareTypeHeading;
+
+  /// The first of exactly two options. It writes a new declaration and LEAVES THE LAMBS ALONE - no lamb is added, none is struck, nothing is reconciled. The label names the act rather than the outcome, so it cannot be read as 'make this right'.
+  ///
+  /// In en, this message translates to:
+  /// **'CHANGE THE BIRTH TYPE'**
+  String get declareTypeChange;
+
+  /// The second of exactly two options. It writes nothing to either value. It exists so that leaving it is an act the shepherd performs rather than something that happens when they walk away.
+  ///
+  /// In en, this message translates to:
+  /// **'LEAVE IT'**
+  String get declareTypeLeave;
+
+  /// The line recorded when the shepherd chooses LEAVE IT. It is written as a NOTE against the lambing (decision #54: there is no warnings column and there never will be), so the answer survives the next open - an ephemeral line vanishes while the mark stays, which reads as the app forgetting what they said.
+  ///
+  /// In en, this message translates to:
+  /// **'QUERIED · LEFT AS ENTERED {time}'**
+  String declareTypeAcknowledged({required String time});
+
+  /// BirthType.single, stored code 1. Used ONLY in the deliberate declaration sheet - the five-tap path derives birth type from the strokes and prints (COUNTED), and P8 abolished the chooser.
+  ///
+  /// In en, this message translates to:
+  /// **'SINGLE'**
+  String get birthTypeSingle;
+
+  /// BirthType.twin, stored code 2. Declaration sheet only - see birthTypeSingle.
+  ///
+  /// In en, this message translates to:
+  /// **'TWIN'**
+  String get birthTypeTwin;
+
+  /// BirthType.triplet, stored code 3. Declaration sheet only.
+  ///
+  /// In en, this message translates to:
+  /// **'TRIPLET'**
+  String get birthTypeTriplet;
+
+  /// BirthType.quad, stored code 4. Declaration sheet only.
+  ///
+  /// In en, this message translates to:
+  /// **'QUAD'**
+  String get birthTypeQuad;
+
+  /// BirthType.quintPlus, stored code 5, and the word is OPEN-ENDED on purpose. expectedLambCount returns null for it, so six lambs on a declared quintPlus is undefined rather than contradictory and prints NO query mark. Encoding it as exactly 5 would put a false mark on every set of sextuplets - the litters a shepherd is most likely to be looking at.
+  ///
+  /// In en, this message translates to:
+  /// **'QUAD OR MORE'**
+  String get birthTypeQuintPlus;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -10,9 +10,16 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/birth_type.dart';
 import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/lambing_ease.dart';
+import 'package:shed_book/domain/stats/season_counts.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/units/grams.dart';
+import 'package:shed_book/domain/validation/lambing_checks.dart';
+import 'package:shed_book/domain/validation/warning.dart';
 
 /// The screen's one read.
 ///
@@ -72,7 +79,68 @@ final class LambingWriteController extends WriteController {
   /// Strikes rather than deletes — see `LambingRepository.removeCare`.
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
+
+  /// The deliberate declaration. **Writes the type and leaves the lambs alone.**
+  Future<void> setBirthType(LambingId lambing, BirthType type) =>
+      guard(() => ref.read(lambingRepositoryProvider).setBirthType(lambing, type));
 }
+
+/// The warnings for one lambing, recomputed on every emission.
+///
+/// **THE CONTROLLER RUNS THE VALIDATOR; THE REPOSITORY STRUCTURALLY CANNOT**
+/// (R53, `05 §7.5` guarantee 4). There is no `warnings` column and there never
+/// will be — decision #54 closes that door permanently — so this is derived, not
+/// stored, and it is derived from the SAME statement the screen already watches
+/// rather than from a second read.
+///
+/// **`checkLambing` IS NOT REIMPLEMENTED HERE.** It was written at N06-T03 and
+/// this provider only feeds it. If a comparison appears in this file, a
+/// validator is being reinvented at the screen.
+///
+/// Two mechanisms exist and neither is the other's cache: `lambing_consistency`
+/// (the view) drives the persistent badge on the flock list and the ewe card —
+/// *"a contradiction found at 3am is still findable at 9am"* — and this drives
+/// the mark on this screen. Neither may write.
+final AutoDisposeProviderFamily<List<Warning>, LambingId> lambingWarningsProvider = Provider
+    .autoDispose
+    .family<List<Warning>, LambingId>((ref, LambingId id) {
+      final LambingEntryData? data = ref.watch(lambingEntryProvider(id)).value;
+      if (data == null) {
+        return const <Warning>[];
+      }
+
+      return checkLambing(
+        // NULL IS NOT A CONTRADICTION (R6, `03 §5.4`). No declaration, no query
+        // mark — the view guards this explicitly because `COUNT(…) <> NULL` is
+        // NULL, which would make `is_mismatched` three-valued for every
+        // in-progress lambing, and the Dart side needs the same guard.
+        declaredBirthType: data.lambing.declaredBirthType,
+        // STRUCK LAMBS ARE EXCLUDED, and the label already says so: a
+        // `TWIN (COUNTED, 1 STRUCK)` row has three `lambs` rows and two strokes.
+        // Comparing against the raw row count puts a mark on a record the
+        // shepherd has already corrected.
+        lambCount: data.lambs.where((LambEntryRow l) => !l.struck).length,
+        time: data.lambing.time,
+        storedLocalDate: LocalDate.of(data.lambing.time.effective),
+        // FROM THE HEADER, WHICH THE ONE STATEMENT ALREADY CARRIES. A second
+        // read for the season start would be a second content statement, and
+        // `07 §1.2` allows one.
+        seasonStart: data.lambing.seasonStart,
+        now: appNow(),
+        birthWeights: <Grams?>[
+          for (final LambEntryRow l in data.lambs)
+            if (!l.struck) l.birthWeight,
+        ],
+        lambOutcomes: <({LocalDate? deathDate, bool isDead})>[
+          for (final LambEntryRow l in data.lambs)
+            if (!l.struck)
+              (
+                deathDate: null,
+                isDead: l.status == LambStatus.dead || l.status == LambStatus.stillborn,
+              ),
+        ],
+      );
+    });
 
 /// **Always `.autoDispose`** for a write controller (`CONVENTIONS §3.4`).
 final AutoDisposeNotifierProvider<LambingWriteController, WriteState>

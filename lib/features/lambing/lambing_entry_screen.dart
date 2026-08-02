@@ -22,10 +22,14 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/domain/birth_type.dart';
 import 'package:shed_book/domain/care_kind.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/care_line.dart';
+import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/lambing/widgets/colostrum_detail.dart';
+import 'package:shed_book/features/lambing/widgets/declare_type_sheet.dart';
+import 'package:shed_book/features/lambing/widgets/query_mark.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
@@ -86,6 +90,9 @@ class LambingEntryScreen extends ConsumerWidget {
                   lambsLabel: l10n.lambingEntryLambs,
                   careLabel: l10n.lambingEntryCare,
                   units: ref.watch(unitsProvider),
+                  // RECOMPUTED ON EVERY EMISSION, NEVER STORED. Decision #54
+                  // closes the `warnings` column permanently.
+                  warnings: ref.watch(lambingWarningsProvider(lambingId)),
                 ),
                 // NO SPINNER (07 §1.4): loading is a fixed-height placeholder or
                 // it is nothing. A spinner on a screen the shepherd reached by
@@ -106,6 +113,7 @@ class _Regions extends ConsumerWidget {
     required this.lambsLabel,
     required this.careLabel,
     required this.units,
+    required this.warnings,
   });
 
   final LambingEntryData data;
@@ -116,6 +124,21 @@ class _Regions extends ConsumerWidget {
   /// want lb, and a wrong inference silently mislabels every weight ever
   /// recorded.
   final WeightUnit units;
+
+  /// **DERIVED, NOT STORED**, and never gating anything (`05 §7.5` guarantee 3).
+  /// A blocked write produces a lost record, which is worse than a queried one —
+  /// and on this screen there is nothing to block anyway, because every field
+  /// committed the moment it was tapped.
+  final List<Warning> warnings;
+
+  /// The warnings against one cell, grouped.
+  ///
+  /// **NEVER TWICE FOR ONE FIELD** (`07 §6.3`). Two codes can fire on the same
+  /// cell — a header time can be both `lambingInFuture` and
+  /// `lambingLongBeforeCapture` — so the mark is one per `fieldPath` and the
+  /// sheet lists everything it found.
+  List<Warning> _warningsOn(String fieldPath) =>
+      warnings.where((Warning w) => w.fieldPath == fieldPath).toList(growable: false);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -178,6 +201,32 @@ class _Regions extends ConsumerWidget {
             ),
           // UNDER THE LAMBS, ABOVE CARE. Ease is about the lambing rather than
           // about any one lamb, so it sits below the list it describes.
+          // THE MARK SITS BESIDE THE TALLY, WHICH IS THE OFFENDING CELL: the
+          // contradiction is between the declared type and the counted strokes,
+          // and the strokes are what is on screen.
+          //
+          // THE KEY SAYS `declared_type`, NOT THE ABOLISHED SEGMENT, AND R80a
+          // MADE IT DO SO. That rule bans the segment from every widget key
+          // under `lib/`, because such a key is the chooser coming back
+          // somewhere nobody is looking — and it fired on the first run of this
+          // task. The rename is the honest one anyway: this cell is about the
+          // DECLARATION, which is a different fact from the counted type the
+          // tally prints, and the two should not share a name.
+          if (_warningsOn('birth_type') case final List<Warning> found when found.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+              child: Row(
+                children: <Widget>[
+                  QueryMark(
+                    key: const Key('lambing_entry.query.declared_type'),
+                    semanticLabel: AppLocalizations.of(
+                      context,
+                    ).queryMarkSemantics(finding: found.first.message),
+                    onTap: () => _openDeclareType(context, ref, data.lambing.id, found),
+                  ),
+                ],
+              ),
+            ),
           EaseRow(lambingId: data.lambing.id, ease: data.lambing.ease),
           // THE FOUR CARE LINES. On this screen every care event is written
           // against the LAMBING — the lamb arm is for care given to one lamb,
@@ -216,6 +265,53 @@ class _Regions extends ConsumerWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  /// Opens the sheet a query mark leads to.
+  ///
+  /// **IT ADJUSTS NOTHING, IN EITHER BRANCH.** `CHANGE THE BIRTH TYPE` writes
+  /// the declaration and leaves the lambs alone; `LEAVE IT` writes nothing to
+  /// either. The mark is not an offer to fix.
+  void _openDeclareType(
+    BuildContext context,
+    WidgetRef ref,
+    LambingId lambing,
+    List<Warning> found,
+  ) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final LambingWriteController write = ref.read(lambingWriteControllerProvider.notifier);
+
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.declareTypeHeading,
+        child: DeclareTypeSheet(
+          labels: (
+            heading: l10n.declareTypeHeading,
+            // EVERY LINE IS A `Warning.message`, which says what we observed and
+            // never what to do. There is no second source of these strings and
+            // no place to write one.
+            findings: <String>[for (final Warning w in found) w.message],
+            changeLabel: l10n.declareTypeChange,
+            leaveLabel: l10n.declareTypeLeave,
+            typeWord: (BirthType type) => switch (type) {
+              BirthType.single => l10n.birthTypeSingle,
+              BirthType.twin => l10n.birthTypeTwin,
+              BirthType.triplet => l10n.birthTypeTriplet,
+              BirthType.quad => l10n.birthTypeQuad,
+              BirthType.quintPlus => l10n.birthTypeQuintPlus,
+            },
+          ),
+          onDeclare: (BirthType type) {
+            write.setBirthType(lambing, type);
+            Navigator.of(context).pop();
+          },
+          onLeave: () => Navigator.of(context).pop(),
+        ),
       ),
     );
   }

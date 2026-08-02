@@ -651,5 +651,55 @@
   "colostrumSheetBarrier": "Colostrum detail",
   "@colostrumSheetBarrier": {
     "description": "The modal barrier's label, required by showModalBottomSheet for accessibility."
+  },
+  "queryMarkSemantics": "Queried: {finding}",
+  "@queryMarkSemantics": {
+    "description": "The margin query mark for a screen reader. It says WHAT was observed, because a bare '?' is unreadable aloud. Never 'Error' and never 'Warning' as a role word - the app observed something and is showing it, which is not the same as the app objecting.",
+    "placeholders": {
+      "finding": {
+        "type": "String"
+      }
+    }
+  },
+  "declareTypeHeading": "WHAT WE FOUND",
+  "@declareTypeHeading": {
+    "description": "The heading of the sheet a query mark opens. The observation voice: we found this, here it is. Never 'Problem', never 'Error', never 'Fix this' - 07 6.3 forbids a dialog and 12.2 forbids advice."
+  },
+  "declareTypeChange": "CHANGE THE BIRTH TYPE",
+  "@declareTypeChange": {
+    "description": "The first of exactly two options. It writes a new declaration and LEAVES THE LAMBS ALONE - no lamb is added, none is struck, nothing is reconciled. The label names the act rather than the outcome, so it cannot be read as 'make this right'."
+  },
+  "declareTypeLeave": "LEAVE IT",
+  "@declareTypeLeave": {
+    "description": "The second of exactly two options. It writes nothing to either value. It exists so that leaving it is an act the shepherd performs rather than something that happens when they walk away."
+  },
+  "declareTypeAcknowledged": "QUERIED · LEFT AS ENTERED {time}",
+  "@declareTypeAcknowledged": {
+    "description": "The line recorded when the shepherd chooses LEAVE IT. It is written as a NOTE against the lambing (decision #54: there is no warnings column and there never will be), so the answer survives the next open - an ephemeral line vanishes while the mark stays, which reads as the app forgetting what they said.",
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "birthTypeSingle": "SINGLE",
+  "@birthTypeSingle": {
+    "description": "BirthType.single, stored code 1. Used ONLY in the deliberate declaration sheet - the five-tap path derives birth type from the strokes and prints (COUNTED), and P8 abolished the chooser."
+  },
+  "birthTypeTwin": "TWIN",
+  "@birthTypeTwin": {
+    "description": "BirthType.twin, stored code 2. Declaration sheet only - see birthTypeSingle."
+  },
+  "birthTypeTriplet": "TRIPLET",
+  "@birthTypeTriplet": {
+    "description": "BirthType.triplet, stored code 3. Declaration sheet only."
+  },
+  "birthTypeQuad": "QUAD",
+  "@birthTypeQuad": {
+    "description": "BirthType.quad, stored code 4. Declaration sheet only."
+  },
+  "birthTypeQuintPlus": "QUAD OR MORE",
+  "@birthTypeQuintPlus": {
+    "description": "BirthType.quintPlus, stored code 5, and the word is OPEN-ENDED on purpose. expectedLambCount returns null for it, so six lambs on a declared quintPlus is undefined rather than contradictory and prints NO query mark. Encoding it as exactly 5 would put a false mark on every set of sextuplets - the litters a shepherd is most likely to be looking at."
   }
 }

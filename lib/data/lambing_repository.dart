@@ -152,6 +152,45 @@ final class LambingRepository {
     }
   }
 
+  /// **THE ONLY WRITER OF `declared_birth_type` IN THE APP**, and it is reached
+  /// only from the deliberate declaration path — the type cell or a query mark,
+  /// never the five-tap path.
+  ///
+  /// P8 (`CLAUDE.md`, decision-record §7.0b) abolished the birth-type CHOOSER:
+  /// birth type is DERIVED from the tally strokes and printed `(COUNTED)`. That
+  /// is what makes §12.4 structural rather than procedural — the shepherd
+  /// cannot be asked to declare a number the app is about to contradict.
+  /// `setBirthType` is the deliberate exception, and it does exactly one thing:
+  /// **it writes the declaration and LEAVES THE LAMBS ALONE.** There is no
+  /// reconciliation, no lamb is added, none is struck.
+  ///
+  /// Returns `WriteCommitted()` with the default **empty** `warnings` (R53). A
+  /// repository is structurally incapable of producing one: this whole directory
+  /// has no import path to the validators, held both by a gate row and by a
+  /// policy test that scans these files for the import.
+  ///
+  /// **That test scans for the PATH as a literal**, so this comment describes it
+  /// rather than spelling it — the first version of this doc comment failed the
+  /// suite by naming the thing it was explaining. If a warning ever appears to
+  /// come from here, an import was added; check the gate before the logic.
+  Future<WriteOutcome> setBirthType(LambingId id, BirthType type) async {
+    try {
+      final Instant now = appNow();
+      final int rows =
+          await (_db.update(
+            _db.lambings,
+          )..where(($LambingsTable t) => t.id.equals(id.value))).write(
+            LambingsCompanion(
+              declaredBirthType: Value<int?>(type.code),
+              updatedAt: Value<Instant>(now),
+            ),
+          );
+      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// Records one care event against exactly one subject.
   ///
   /// **THERE IS NO WAY TO RECORD "NO", AND THAT IS THE DESIGN** (decision #43,
@@ -419,6 +458,7 @@ final class LambingRepository {
         id: LambingId(first.read<int>('lambing_id')),
         ewe: EweId(first.read<int>('ewe')),
         season: SeasonId(first.read<int>('season')),
+        seasonStart: LocalDate.parse(first.read<String>('season_start')),
         declaredBirthType: first.readNullable<int>('declared_birth_type') == null
             ? null
             : BirthType.fromCode(first.read<int>('declared_birth_type')),
@@ -497,6 +537,7 @@ final class LambingHeaderRow {
     required this.id,
     required this.ewe,
     required this.season,
+    required this.seasonStart,
     required this.declaredBirthType,
     required this.ease,
     required this.time,
@@ -510,6 +551,12 @@ final class LambingHeaderRow {
   final LambingId id;
   final EweId ewe;
   final SeasonId season;
+
+  /// **CARRIED ON THE HEADER, NOT FETCHED SEPARATELY.** `checkLambing` needs the
+  /// season's start date to fire `lambingBeforeSeasonStart`, and reading it with
+  /// a second query would be a second content statement — `07 §1.2` allows one.
+  /// The join costs one row.
+  final LocalDate seasonStart;
 
   /// **NULL means NOT DECLARED (R6), never `single`.** P8 abolished the chooser,
   /// so on the five-tap path this is always null and the birth type is derived
@@ -591,6 +638,7 @@ final class CareEntryRow {
 /// column list.
 const String _lambingEntrySql = '''
 SELECT lg.id AS lambing_id, lg.ewe, lg.season, lg.declared_birth_type, lg.ease,
+       s.start_date AS season_start,
        lg.occurred_at, lg.captured_at, lg.original_effective, lg.time_source,
        lg.assisted_by, lg.presentation, lg.presentation_note, lg.note,
        lg.struck AS lambing_struck,
@@ -600,6 +648,7 @@ SELECT lg.id AS lambing_id, lg.ewe, lg.season, lg.declared_birth_type, lg.ease,
        c.occurred_at AS care_occurred_at, c.time_source AS care_time_source,
        c.struck AS care_struck
   FROM lambings lg
+  JOIN seasons s          ON s.id = lg.season
   LEFT JOIN lambs l       ON l.lambing = lg.id
   LEFT JOIN care_events c ON c.lamb = l.id
                           OR (l.id IS NULL AND c.lambing = lg.id)

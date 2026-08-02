@@ -1071,4 +1071,281 @@ void main() {
 
     await tester.closeApp();
   });
+
+  // ---------------------------------------------------------------------------
+  // T06 — the query mark, which adjusts nothing
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a declared type contradicting the strokes prints a query mark and leaves '
+      'both values unchanged in the database', (WidgetTester tester) async {
+    // THE ANCHOR, AND THE SECOND CLAUSE IS THE ONE THAT MATTERS. A case that
+    // only asserted the mark appeared would still pass if the app quietly
+    // wrote a third lamb — and that is precisely the failure §12.4 exists to
+    // prevent. So `declared_birth_type` AND the lamb ids are captured BEFORE
+    // the mark renders, and both are re-read afterwards and compared.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    // Declared TRIPLET, two lambs on the ground. The contradiction is real
+    // and the shepherd is the only one allowed to resolve it.
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(3)),
+    );
+    await seedLamb(db, lambing, ewe);
+    await seedLamb(db, lambing, ewe);
+
+    final Lambing typeBefore = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    final List<int> lambsBefore = (await db.select(db.lambs).get()).map((Lamb l) => l.id).toList();
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsOneWidget);
+
+    final Lambing typeAfter = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    final List<int> lambsAfter = (await db.select(db.lambs).get()).map((Lamb l) => l.id).toList();
+
+    expect(typeAfter.declaredBirthType, typeBefore.declaredBirthType, reason: 'not adjusted');
+    expect(lambsAfter, lambsBefore, reason: 'no third lamb was quietly written');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no declaration is not a contradiction and prints no mark', (
+    WidgetTester tester,
+  ) async {
+    // R6 AND `03 §5.4`. The view guards NULL explicitly because `COUNT(…) <>
+    // NULL` is NULL, which would make `is_mismatched` three-valued for every
+    // in-progress lambing; the Dart side needs the same guard. Every lambing on
+    // this screen starts undeclared, so getting this wrong would put a query
+    // mark on the whole product.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('six lambs on a declared quad-or-more print no mark', (WidgetTester tester) async {
+    // THE WHOLE LARGE-LITTER STORY, IN ONE CASE. `expectedLambCount` returns
+    // null for `quintPlus` because a declared "quad or more" is OPEN-ENDED, so
+    // a contradiction is UNDEFINED rather than false. Encoding it as exactly 5
+    // would put a false query mark on every set of sextuplets — the litters a
+    // shepherd is most likely to be looking at.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(5)),
+    );
+    for (int i = 0; i < 6; i++) {
+      await seedLamb(db, lambing, ewe);
+    }
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a struck lamb is not counted against the declaration', (WidgetTester tester) async {
+    // THE LABEL ALREADY SAYS SO. A `TWIN (COUNTED, 1 STRUCK)` row has three
+    // `lambs` rows and two strokes; comparing against the raw row count puts a
+    // mark on a record the shepherd has already corrected — which is the app
+    // arguing with a correction it was told about.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(2)),
+    );
+    await seedLamb(db, lambing, ewe);
+    await seedLamb(db, lambing, ewe);
+    final LambId struck = await seedLamb(db, lambing, ewe);
+    await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(struck.value))).write(
+      LambsCompanion(
+        struck: const Value<bool>(true),
+        struckAt: Value<Instant?>(Instant.fromDateTime(DateTime.utc(2026, 3, 14, 4))),
+      ),
+    );
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('lambing_entry.query.declared_type')),
+      findsNothing,
+      reason: 'two live lambs against a declared twin is not a contradiction',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('changing the birth type writes the declaration and leaves the lambs alone', (
+    WidgetTester tester,
+  ) async {
+    // BOTH HALVES. The sheet offers exactly two ways out and NEITHER adjusts
+    // anything: CHANGE writes the declaration and leaves the lambs; LEAVE IT
+    // writes nothing to either. There is no third button, because a third button
+    // would be the app proposing a fix.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(3)),
+    );
+    await seedLamb(db, lambing, ewe);
+    await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder mark = find.byKey(const Key('lambing_entry.query.declared_type'));
+    await tester.ensureVisible(mark);
+    await tester.pumpAndSettle();
+    await tester.tap(mark);
+    await tester.pumpAndSettle();
+
+    // THE FIVE VALUES ARE A SECOND STEP, deliberately: putting them on the first
+    // screen would make declaring the easy path and leaving it the awkward one,
+    // which is backwards.
+    expect(find.byKey(const Key('lambing_entry.declare.type_2')), findsNothing);
+    await tester.tap(find.byKey(const Key('lambing_entry.declare.change')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('lambing_entry.declare.type_2')));
+    await tester.pumpAndSettle();
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(after.declaredBirthType, 2, reason: 'the shepherd declared it');
+    expect(await db.select(db.lambs).get(), hasLength(2), reason: 'the lambs were left alone');
+
+    // AND THE MARK IS GONE, because the contradiction is gone — not because
+    // anything was suppressed.
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('leaving it writes nothing to either value', (WidgetTester tester) async {
+    // THE OTHER BRANCH, and without it the case above passes against a sheet
+    // whose second button is wired to the first.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(3)),
+    );
+    await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder mark = find.byKey(const Key('lambing_entry.query.declared_type'));
+    await tester.ensureVisible(mark);
+    await tester.pumpAndSettle();
+    await tester.tap(mark);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('lambing_entry.declare.leave')));
+    await tester.pumpAndSettle();
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(after.declaredBirthType, 3, reason: 'unchanged');
+    expect(await db.select(db.lambs).get(), hasLength(1), reason: 'unchanged');
+
+    // THE MARK STAYS, because the contradiction is still true. A mark that
+    // vanished on acknowledgement would be the app forgetting a fact the
+    // shepherd looked at and accepted.
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('one mark per field, however many codes fire on it', (WidgetTester tester) async {
+    // NEVER TWICE FOR ONE FIELD (`07 §6.3`). Two codes can fire on the same cell
+    // — a header time can be both `lambingInFuture` and
+    // `lambingLongBeforeCapture` — and the shepherd gets one mark with both
+    // findings behind it, not two marks in a column.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      const LambingsCompanion(declaredBirthType: Value<int?>(4)),
+    );
+    await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsOneWidget);
+    expect(find.text('?'), findsOneWidget, reason: 'one glyph, not one per code');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a warning on another field does not leak into the birth type mark', (
+    WidgetTester tester,
+  ) async {
+    // THE GROUPING IS BY `fieldPath`, AND THIS IS THE CASE THAT MAKES THAT
+    // CLAIM. Drilled: `_warningsOn` returning EVERY warning regardless of field
+    // passed every other case in this file, because no other case has two
+    // warnings on two different cells at once. Here the header time is in the
+    // future AND the declaration contradicts the strokes, so a mark that
+    // ignored `fieldPath` would list the time finding under the birth type.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      LambingsCompanion(
+        declaredBirthType: const Value<int?>(3),
+        occurredAt: Value<Instant>(Instant.fromDateTime(DateTime.utc(2030, 3, 14, 3, 20))),
+      ),
+    );
+    await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder mark = find.byKey(const Key('lambing_entry.query.declared_type'));
+    await tester.ensureVisible(mark);
+    await tester.pumpAndSettle();
+    await tester.tap(mark);
+    await tester.pumpAndSettle();
+
+    // The sheet lists what was found ON THIS CELL and nothing else.
+    expect(find.textContaining('future'), findsNothing, reason: 'that is the time cell\'s finding');
+
+    await tester.closeApp();
+  });
 }

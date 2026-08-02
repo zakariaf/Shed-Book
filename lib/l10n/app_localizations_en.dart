@@ -446,4 +446,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get colostrumSheetBarrier => 'Colostrum detail';
+
+  @override
+  String queryMarkSemantics({required String finding}) {
+    return 'Queried: $finding';
+  }
+
+  @override
+  String get declareTypeHeading => 'WHAT WE FOUND';
+
+  @override
+  String get declareTypeChange => 'CHANGE THE BIRTH TYPE';
+
+  @override
+  String get declareTypeLeave => 'LEAVE IT';
+
+  @override
+  String declareTypeAcknowledged({required String time}) {
+    return 'QUERIED · LEFT AS ENTERED $time';
+  }
+
+  @override
+  String get birthTypeSingle => 'SINGLE';
+
+  @override
+  String get birthTypeTwin => 'TWIN';
+
+  @override
+  String get birthTypeTriplet => 'TRIPLET';
+
+  @override
+  String get birthTypeQuad => 'QUAD';
+
+  @override
+  String get birthTypeQuintPlus => 'QUAD OR MORE';
 }

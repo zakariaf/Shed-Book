@@ -31,6 +31,7 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/data/media_limits.dart';
 
 /// The Dart transcription of `media_assets`' three CHECKs (`03 §5.11`, R62):
 ///
@@ -114,5 +115,69 @@ final class MediaStore {
     }
 
     return part.rename(target.path);
+  }
+
+  /// The second hop: downscale, re-encode, strip EXIF, land the bytes.
+  ///
+  /// **A NEW MEMBER.** Neither `04 §4.4` nor `08 §3.3` names it — both print the
+  /// compress call inline at the call site — and it is flagged in the pull
+  /// request rather than added silently, on `08 §1.3`'s precedent for
+  /// `RestoreService.restoreFrom`. Inlining it would put the one
+  /// `flutter_image_compress` import in a feature file, which the layer rules
+  /// forbid and `layer.plugin_flutter_image_compress` catches.
+  ///
+  /// [compressor] exists because `compressAndGetFile` is a NATIVE call with no
+  /// Dart fallback: it throws under `flutter_test`. The test drives this seam
+  /// and asserts the ARGUMENTS; the output's real dimensions and byte count are
+  /// a DEVICE measurement, and pretending otherwise in a unit test would be
+  /// asserting a claim the test cannot see.
+  Future<File> writePhoto({
+    required String sourcePath,
+    required String relativePath,
+    required int sourceWidth,
+    required int sourceHeight,
+    required Future<List<int>?> Function({
+      required String source,
+      required String target,
+      required int minWidth,
+      required int minHeight,
+      required int quality,
+      required bool keepExif,
+    })
+    compressor,
+  }) async {
+    final File target = await resolve(relativePath);
+    await target.parent.create(recursive: true);
+
+    // THE LONGEST EDGE, DERIVED FROM THE ASPECT RATIO. The plugin's minWidth and
+    // minHeight are a bounding box rather than a target, and passing
+    // kPhotoLongestEdgePx to both would cap the SHORTEST edge at 2048 — which
+    // for a 4032 x 3024 frame leaves the longest at 2731 and quietly breaks
+    // decision #40. The derivation is safe under either reading of the
+    // parameters, which is why it is written now rather than after the open
+    // verification item in 04 §4.4 closes.
+    final bool landscape = sourceWidth >= sourceHeight;
+    final int minWidth = landscape
+        ? kPhotoLongestEdgePx
+        : (kPhotoLongestEdgePx * sourceWidth / sourceHeight).round();
+    final int minHeight = landscape
+        ? (kPhotoLongestEdgePx * sourceHeight / sourceWidth).round()
+        : kPhotoLongestEdgePx;
+
+    final List<int>? bytes = await compressor(
+      source: sourcePath,
+      target: '${target.path}.part',
+      minWidth: minWidth,
+      minHeight: minHeight,
+      quality: kPhotoJpegQuality,
+      // THE DEFAULT, WRITTEN ANYWAY so the intent is visible. EXIF carries GPS,
+      // and a photo of a lambing is a photo of where the shepherd lives.
+      keepExif: false,
+    );
+
+    if (bytes == null) {
+      throw const FileSystemException('the photo could not be re-encoded');
+    }
+    return writeAtomically(relativePath, bytes);
   }
 }

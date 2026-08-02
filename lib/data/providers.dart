@@ -15,11 +15,11 @@
 //   tagIndexProvider            N13-T02  StreamProvider<List<TagIndexEntry>>  keepAlive
 //   lambingRepositoryProvider   N14-T02  Provider<LambingRepository>
 //   mediaStoreProvider          N15-T01  Provider<MediaStore>                 keepAlive
+//   cameraServiceProvider       N15-T02  Provider<CameraService>              keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   noteRepositoryProvider · cameraServiceProvider ·
-//     voiceRecorderProvider                                          N15
+//   noteRepositoryProvider · voiceRecorderProvider                   N15
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
@@ -41,6 +41,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/settings_repository.dart';
@@ -103,6 +104,10 @@ final Provider<SettingsRepository> settingsRepositoryProvider = Provider<Setting
 /// async.** The gateway itself is cheap to construct and resolves its directory
 /// per call; making the PROVIDER async would put an `AsyncValue` in front of
 /// every caller for a value that is never awaited at construction.
+final Provider<CameraService> cameraServiceProvider = Provider<CameraService>(
+  (ref) => CameraService(),
+);
+
 final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());
 
 final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRepository>(

@@ -178,8 +178,9 @@ void main() {
       'tagIndexProvider',
       // N14-T02
       'lambingRepositoryProvider',
-      // N15-T01
+      // N15-T01, N15-T02
       'mediaStoreProvider',
+      'cameraServiceProvider',
     });
   });
 

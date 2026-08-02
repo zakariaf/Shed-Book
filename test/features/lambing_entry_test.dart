@@ -9,6 +9,7 @@ import 'dart:io';
 
 import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
@@ -295,6 +296,117 @@ void main() {
 
     final Text label = tester.widget<Text>(find.byKey(const Key('lambing_entry.counted_type')));
     expect(label.data, 'single (COUNTED)', reason: 'one live lamb');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('one row per lamb, in stroke order, and the ordinal is the position', (
+    WidgetTester tester,
+  ) async {
+    // THE LIST'S ANCHOR (T03). The ordinal is STROKE ORDER — which lamb this was
+    // in this lambing — and it must agree with the tally beside it. 10 §5.2
+    // groups by status on the lists that are ABOUT lambs; here re-sorting the
+    // dead to the bottom would print LAMB 3 second, and the marks and the words
+    // would disagree on one screen.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    // THE MIDDLE ONE IS DEAD ON PURPOSE. With three live lambs the case passes
+    // against a widget that sorts by status, because the sort is a no-op.
+    final LambId first = await seedLamb(db, lambing, ewe, sex: 'f');
+    final LambId second = await seedLamb(db, lambing, ewe, status: 'dead', sex: 'm');
+    final LambId third = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    for (final LambId id in <LambId>[first, second, third]) {
+      expect(find.byKey(Key('lambing_entry.lamb.${id.value}')), findsOneWidget, reason: '$id');
+    }
+
+    // ORDER ASSERTED GEOMETRICALLY, not by index into a widget list: a Column
+    // that built its children in one order and laid them out in another would
+    // satisfy any find-based assertion.
+    double yOf(LambId id) =>
+        tester.getTopLeft(find.byKey(Key('lambing_entry.lamb.${id.value}'))).dy;
+
+    expect(yOf(first), lessThan(yOf(second)));
+    expect(yOf(second), lessThan(yOf(third)), reason: 'the dead lamb stays second');
+
+    expect(find.text('LAMB 1'), findsOneWidget);
+    expect(find.text('LAMB 2'), findsOneWidget);
+    expect(find.text('LAMB 3'), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('an absent sex reads NOT RECORDED and a recorded unknown does not', (
+    WidgetTester tester,
+  ) async {
+    // R45, ON SCREEN. Not recorded and recorded-as-unknown are different facts,
+    // and this is the last place the difference can be lost — a widget that
+    // rendered `sex ?? Sex.unknown` would look correct to a reviewer and would
+    // be the app answering a question the shepherd did not.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await seedLamb(db, lambing, ewe); // sex absent
+    await seedLamb(db, lambing, ewe, sex: 'unknown'); // sex recorded as unknown
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    // THE SEX CELL IS THE ANIMAL CLASS, and `AnimalClass.lamb`'s own doc
+    // comment is "sex unknown, or not yet sexed" — so a recorded unknown reads
+    // as the plain noun. It is NOT the word "unknown": 10 §8.5 keeps domain
+    // nouns out of sentences, and l10n_bootstrap_test.dart catches the version
+    // of this case that hard-coded "EWE LAMB" into the ARB.
+    expect(find.text('LAMB'), findsOneWidget, reason: 'the one the shepherd entered');
+    expect(
+      find.textContaining('NOT RECORDED'),
+      findsWidgets,
+      reason: 'the one they have not got to yet',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a lamb row is 64 pt tall and carries the whole row as one utterance', (
+    WidgetTester tester,
+  ) async {
+    // 64, NOT THE 60 pt FLOOR. ShedTapTarget falls back to tapMin when minSize
+    // goes away, so a case written against 60 passes against a row that has
+    // forgotten it is a row — the same trap keypad_test.dart documents.
+    //
+    // The single utterance is the other half: five cells announced separately is
+    // five stops in the screen reader's rotor for one lamb.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe, sex: 'f', birthWeightG: 4100, tag: 'A12');
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder row = find.byKey(Key('lambing_entry.lamb.${lamb.value}'));
+    expect(tester.getSize(row).height, greaterThanOrEqualTo(64.0));
+
+    final SemanticsNode node = tester.getSemantics(row);
+    expect(node.label, contains('LAMB 1'));
+    expect(node.label, contains('EWE LAMB'), reason: 'termEweLambSingular, not a literal');
+    expect(node.label, contains('ALIVE'));
+    expect(node.label, contains('4.1 kg'), reason: 'the weight the shepherd recorded');
+    expect(node.label, contains('A12'));
+    // THE VOICE GETS PUNCTUATION IT CAN PAUSE ON. A middot is read aloud as
+    // "middle dot" by at least one screen reader and as nothing at all by
+    // another; neither is what the row means.
+    expect(node.label, contains(', '));
+    expect(node.label, isNot(contains('·')));
 
     await tester.closeApp();
   });

@@ -11,10 +11,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
+import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/sex.dart';
+import 'package:shed_book/domain/stats/season_counts.dart';
+import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -72,6 +77,7 @@ class LambingEntryScreen extends ConsumerWidget {
                   data: d,
                   lambsLabel: l10n.lambingEntryLambs,
                   careLabel: l10n.lambingEntryCare,
+                  units: ref.watch(unitsProvider),
                 ),
                 // NO SPINNER (07 §1.4): loading is a fixed-height placeholder or
                 // it is nothing. A spinner on a screen the shepherd reached by
@@ -87,11 +93,21 @@ class LambingEntryScreen extends ConsumerWidget {
 }
 
 class _Regions extends StatelessWidget {
-  const _Regions({required this.data, required this.lambsLabel, required this.careLabel});
+  const _Regions({
+    required this.data,
+    required this.lambsLabel,
+    required this.careLabel,
+    required this.units,
+  });
 
   final LambingEntryData data;
   final String lambsLabel;
   final String careLabel;
+
+  /// **Never inferred from the locale** (R68). A UK smallholder may genuinely
+  /// want lb, and a wrong inference silently mislabels every weight ever
+  /// recorded.
+  final WeightUnit units;
 
   @override
   Widget build(BuildContext context) {
@@ -123,6 +139,22 @@ class _Regions extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: t.gapMin),
           child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
         ),
+        // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the
+        // repository already returns and the order the tally beside it counts
+        // in. 10 §5.2 groups by status on the lists that are ABOUT lambs; here
+        // the ordinal must agree with the marks, and re-sorting the dead to the
+        // bottom would print LAMB 3 second. If that is disputed it is a screens
+        // question for N17/N27, not a local choice.
+        //
+        // A Column and not a ListView: a lambing is single, twins or triplets
+        // in almost every case, and quintPlus is the tail. A scrollable here
+        // would add a scroll gesture to a screen whose whole point is that a
+        // cold thumb hits big fixed things.
+        for (int i = 0; i < data.lambs.length; i++)
+          LambRow(
+            key: Key('lambing_entry.lamb.${data.lambs[i].id.value}'),
+            labels: _labelsFor(context, data.lambs[i], i + 1),
+          ),
         Padding(
           padding: EdgeInsets.symmetric(horizontal: t.gapMin),
           child: Text(
@@ -133,6 +165,63 @@ class _Regions extends StatelessWidget {
         ),
         const Expanded(child: SizedBox.expand()),
       ],
+    );
+  }
+
+  /// The screen resolves the copy; [LambRow] renders it. See `LambRowLabels`.
+  ///
+  /// **THE NOUNS COME FROM THE ARB'S `term*Singular` MESSAGES, NOT FROM A
+  /// LITERAL AND NOT YET FROM `terminologyProvider`.** Three things forced this,
+  /// and the middle one is a gate:
+  ///
+  /// 1. `10 §8.5` — a domain noun varies by county, so it is never typed into a
+  ///    sentence. `l10n_bootstrap_test.dart` scans every ARB value for one and
+  ///    caught `"EWE {animal}"` on the first run of this task.
+  /// 2. The `term<Class>Singular` / `term<Class>Plural` pair IS the sanctioned
+  ///    source — the fourteen messages the placeholder is fed FROM — and reading
+  ///    them here is what `05 §8`'s bootstrap will do when it lands.
+  /// 3. `terminologyProvider` is `const Terminology({}, {})` until N29, and
+  ///    `labelFor` ends in `_defaults[c]!`. **Routing through it today would
+  ///    throw**, which is why `LambTallyRow` types `'lamb'` instead. This is the
+  ///    better half of that trade: no literal, no crash, and one grep — the
+  ///    `term…Singular` reads below — when N29 wires the overrides through.
+  ///
+  /// The SEX CELL IS THE ANIMAL CLASS. `AnimalClass.eweLamb`, `ramLamb` and
+  /// `lamb` are exactly the three states a lamb's sex can be in, and the last
+  /// one's own doc comment reads *"sex unknown, or not yet sexed"* — so a
+  /// recorded `Sex.unknown` renders as the plain animal noun while an ABSENT sex
+  /// renders as *not recorded* (R45). The two stay different words.
+  LambRowLabels _labelsFor(BuildContext context, LambEntryRow lamb, int ordinal) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    return lambRowLabels(
+      ordinal: ordinal,
+      sex: lamb.sex,
+      status: lamb.status,
+      weight: lamb.birthWeight,
+      tag: lamb.tag,
+      units: units,
+      localeName: Localizations.localeOf(context).toLanguageTag(),
+      ordinalLabel: (int n) =>
+          l10n.lambingLambOrdinal(animal: l10n.termLambSingular, n: n).toUpperCase(),
+      sexLabel: (Sex s) => switch (s) {
+        // EXHAUSTIVE, NO `default:`. The day a fourth member lands on Sex this
+        // must fail to compile rather than render one of the three.
+        Sex.female => l10n.termEweLambSingular.toUpperCase(),
+        Sex.male => l10n.termRamLambSingular.toUpperCase(),
+        Sex.unknown => l10n.termLambSingular.toUpperCase(),
+      },
+      statusLabel: (LambStatus s) => switch (s) {
+        LambStatus.alive => l10n.lambStatusAlive,
+        LambStatus.dead => l10n.lambStatusDead,
+        LambStatus.stillborn => l10n.lambStatusStillborn,
+        LambStatus.sold => l10n.lambStatusSold,
+      },
+      notRecorded: l10n.lambingTypeNotRecorded,
+      // A COMMA AND A SPACE, not the middot the eye gets: at least one screen
+      // reader says "middle dot" and another says nothing at all, and neither
+      // is what the row means.
+      sentence: (List<String> parts) => l10n.lambRowSemantics(parts: parts.join(', ')),
     );
   }
 }

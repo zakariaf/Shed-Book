@@ -15,6 +15,7 @@ import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:sqlite3/sqlite3.dart' show SqliteException;
@@ -208,5 +209,132 @@ void main() {
 
     expect((await readLambing(db, id)).struck, isTrue);
     expect(await countLambings(db), 1);
+  });
+
+  test(
+    'addLamb returns a LambId, throws on failure, and commits before the widget rebuilds',
+    () async {
+      // THE ANCHOR, ALL THREE CLAUSES.
+      await _seedSeason(db);
+      final EweId ewe = await seedEwe(db, tag: '412');
+      final LambingId lambing = await repo.beginLambing(ewe);
+
+      // RETURNS — the static type is Future<LambId>, asserted by USING the value
+      // as one without a cast. A test that only checked `isA<LambId>()` would
+      // pass against a dynamic.
+      final LambId lamb = await repo.addLamb(lambing);
+      final int raw = lamb.value;
+      expect(raw, greaterThan(0));
+
+      // COMMITS BEFORE THE REBUILD — read back with a second select on the same
+      // database, BEFORE any pump, so the assertion is about the TRANSACTION and
+      // not about the frame.
+      final Lamb row = await (db.select(
+        db.lambs,
+      )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+      expect(row.lambing, lambing.value);
+
+      // THROWS — not a WriteFailed. R32 fixes the set of throwing verbs at
+      // two, and this is one of them: there is no id to hand back on failure.
+      //
+      // MEASURED, AND IT IS A StateError RATHER THAN THE SqliteException THE
+      // TASK PREDICTS. The task expects `foreign_keys = ON` (#28) to refuse the
+      // insert. The verb never gets that far: it reads birth_dam FROM THE
+      // LAMBING FIRST, inside the same transaction — which is the design the
+      // task itself specifies — and `getSingle()` on a missing parent throws
+      // before any insert is attempted.
+      //
+      // The earlier failure is the better one. It names the missing lambing
+      // rather than a constraint on a column the caller never mentioned, and it
+      // cannot be reached by a half-written row. `throwsA(anything)` would have
+      // hidden which of the two fired, so the type is named.
+      await expectLater(
+        () => repo.addLamb(const LambingId(999999)),
+        throwsA(isA<StateError>()),
+        reason: 'the parent read fails before the foreign key can',
+      );
+    },
+  );
+
+  test('birth_dam is read from the lambing inside the same transaction', () async {
+    // NOT REDUNDANCY. A lamb's birth dam never changes, while a FOSTER moves
+    // the rearing dam — so reading the birth dam through the lambing would make
+    // a foster look like a rewrite of history.
+    //
+    // THE DECOYS ARE LOAD-BEARING. With one ewe and one lambing both rows are
+    // id 1, and `birthDam: lambing.value` — a real confusion between the two
+    // ids, and the exact defect this case exists to catch — passes against it.
+    // Drilled, and it did.
+    //
+    // THREE DECOY EWES AND ONE DECOY LAMBING, not two and two: seeding a
+    // lambing per ewe keeps the two counters in LOCKSTEP, so ewe 3 still lambs
+    // as lambing 3 and the decoys buy nothing. Drilled that too. The counts
+    // have to differ, and the guard below is what says they did.
+    await _seedSeason(db);
+    for (final String decoy in <String>['001', '002', '003']) {
+      final EweId other = await seedEwe(db, tag: decoy);
+      if (decoy == '001') await repo.beginLambing(other);
+    }
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+    expect(ewe.value, isNot(lambing.value), reason: 'the decoys must have worked');
+
+    final LambId lamb = await repo.addLamb(lambing);
+    final Lamb row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+
+    expect(row.birthDam, ewe.value);
+  });
+
+  test('sex is absent unless given, and absent is not unknown', () async {
+    // R45. Not recorded and recorded-as-unknown are different facts, and a verb
+    // that defaulted would answer a question the shepherd did not.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final LambId blank = await repo.addLamb(lambing);
+    final LambId known = await repo.addLamb(lambing, sex: Sex.female);
+
+    final List<Lamb> rows = await db.select(db.lambs).get();
+    expect(rows.firstWhere((Lamb l) => l.id == blank.value).sex, isNull);
+    expect(rows.firstWhere((Lamb l) => l.id == known.value).sex, 'f');
+  });
+
+  test('a lamb starts alive, and that default is the schema saying so', () async {
+    // `status` has withDefault('alive') at the table. It is the one default in
+    // the lamb row that encodes nothing veterinary: a lamb that was born is
+    // alive until the shepherd says otherwise, and stillborn is a thing they
+    // record rather than a thing the app guesses.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final LambId lamb = await repo.addLamb(lambing);
+    final Lamb row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+
+    expect(row.status, 'alive');
+    expect(row.birthWeightG, isNull, reason: 'a weight is recorded, never assumed');
+    expect(row.tag, isNull, reason: 'a lamb is tagged later, in daylight');
+  });
+
+  test('each lamb gets its own uid, and the ids ascend in stroke order', () async {
+    // Insertion order IS stroke order, and the uid is the identity that
+    // survives export and re-import (#32). Two lambs sharing one uid would
+    // collapse into a single row on restore.
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await repo.beginLambing(ewe);
+
+    final List<LambId> added = <LambId>[for (int i = 0; i < 3; i++) await repo.addLamb(lambing)];
+
+    expect(added[0].value, lessThan(added[1].value));
+    expect(added[1].value, lessThan(added[2].value));
+
+    final List<Lamb> rows = await db.select(db.lambs).get();
+    expect(rows.map((Lamb l) => l.uid).toSet(), hasLength(3));
   });
 }

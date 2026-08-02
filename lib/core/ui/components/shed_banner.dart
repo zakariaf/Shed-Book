@@ -47,7 +47,7 @@ final class ShedBanner extends StatelessWidget {
     Widget action(({String label, String semanticLabel, VoidCallback onTap}) a) => ShedTapTarget(
       onTap: a.onTap,
       semanticLabel: a.semanticLabel,
-      minSize: t.tapIndelibleFloor,
+      minSize: t.tapIndelible,
       child: Center(child: Text(a.label, style: text.labelLarge)),
     );
 
@@ -85,9 +85,4 @@ final class ShedBanner extends StatelessWidget {
       ),
     );
   }
-}
-
-extension on ShedTokens {
-  /// indelible.md §4.5 builds to 64 where `tapMin` is the 60 pt contract.
-  double get tapIndelibleFloor => tapMin + gapMin / 4;
 }

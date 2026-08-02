@@ -226,3 +226,24 @@ final class ShedTokens extends ThemeExtension<ShedTokens> {
 extension ShedTokensX on BuildContext {
   ShedTokens get tokens => Theme.of(this).extension<ShedTokens>()!;
 }
+
+/// The **64 pt component floor**, in one place.
+///
+/// `indelible.md §4.5`'s minimum-target audit puts the smallest interactive
+/// thing in the whole app at 64 × 64; `06 §6.1`'s spec floor — the number the
+/// gate asserts — is 60. Four points is the entire margin between the design and
+/// the contract, and `CLAUDE.md` says so in as many words.
+///
+/// **Derived rather than imported.** `primitives.dart` already holds a
+/// `tapIndelible` constant, but `token.primitives_import` makes it private to
+/// its own file and this file's own header forbids the import a second time. So
+/// the number is reconstructed from the two fields that are here, and the
+/// reconstruction lives ONCE.
+///
+/// It was written three times before this — `ShedBanner`, `ShedFieldRow` and
+/// `ShedReceipt` each carried a private copy — which is how a floor drifts: the
+/// fourth widget rounds it, and nothing notices because there was never one
+/// definition to disagree with.
+extension ShedIndelibleFloor on ShedTokens {
+  double get tapIndelible => tapMin + gapMin / 4;
+}

@@ -639,6 +639,42 @@ abstract class AppLocalizations {
     required String animal,
     required String animals,
   });
+
+  /// The lamb sub-row's leading cell. The ordinal is STROKE ORDER, not a name and not a tag: it is which lamb this was in this lambing, and it stays put when a later lamb is struck. Uppercased by the widget rather than in the string, so a locale whose script has no case is unharmed. The animal noun comes from the shepherd's own word.
+  ///
+  /// In en, this message translates to:
+  /// **'{animal} {n}'**
+  String lambingLambOrdinal({required String animal, required int n});
+
+  /// LambStatus.alive. The schema default, and the only default in the lamb row that encodes nothing veterinary — a lamb that was born is alive until the shepherd says otherwise.
+  ///
+  /// In en, this message translates to:
+  /// **'ALIVE'**
+  String get lambStatusAlive;
+
+  /// LambStatus.dead — died after birth. Distinct from stillborn, which is a different fact and a different line in every count. Never 'died at age 0' and never a cause: the cause is a separate record and may be unattributed.
+  ///
+  /// In en, this message translates to:
+  /// **'DEAD'**
+  String get lambStatusDead;
+
+  /// LambStatus.stillborn — born dead. Never 'died at birth' and never 'dead-born'; stillborn is the word the trade and every count use.
+  ///
+  /// In en, this message translates to:
+  /// **'STILLBORN'**
+  String get lambStatusStillborn;
+
+  /// LambStatus.sold — left the flock alive. It is a status rather than a deletion, because a sold lamb's history is exactly what year two is for.
+  ///
+  /// In en, this message translates to:
+  /// **'SOLD'**
+  String get lambStatusSold;
+
+  /// The whole lamb sub-row as one utterance. The screen joins the cells with a comma and a space before passing them here, because a middot is read aloud as 'middle dot' by at least one screen reader and as nothing at all by another. The visible row keeps the middot; the voice gets punctuation it can pause on.
+  ///
+  /// In en, this message translates to:
+  /// **'{parts}'**
+  String lambRowSemantics({required String parts});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

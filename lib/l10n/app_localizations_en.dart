@@ -342,4 +342,26 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return '$_temp0';
   }
+
+  @override
+  String lambingLambOrdinal({required String animal, required int n}) {
+    return '$animal $n';
+  }
+
+  @override
+  String get lambStatusAlive => 'ALIVE';
+
+  @override
+  String get lambStatusDead => 'DEAD';
+
+  @override
+  String get lambStatusStillborn => 'STILLBORN';
+
+  @override
+  String get lambStatusSold => 'SOLD';
+
+  @override
+  String lambRowSemantics({required String parts}) {
+    return '$parts';
+  }
 }

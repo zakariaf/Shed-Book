@@ -263,6 +263,9 @@ Future<LambId> seedLamb(
   LambingId lambing,
   EweId birthDam, {
   String status = 'alive',
+  String? sex,
+  int? birthWeightG,
+  String? tag,
 }) async {
   final Instant now = appNow();
   final int id = await db
@@ -272,6 +275,14 @@ Future<LambId> seedLamb(
           lambing: lambing.value,
           birthDam: birthDam.value,
           status: Value<String>(status),
+          // ABSENT BY DEFAULT, ALL THREE. A seed that filled these in would
+          // make every rendering test agree that a lamb has a sex, a weight and
+          // a tag — which is the state a lamb is in for about ten seconds of its
+          // life. `null` is what the shed produces (R45), so `null` is what the
+          // helper produces unless a case says otherwise.
+          sex: Value<String?>(sex),
+          birthWeightG: Value<int?>(birthWeightG),
+          tag: Value<String?>(tag),
           uid: newUid(),
           createdAt: now,
           updatedAt: now,

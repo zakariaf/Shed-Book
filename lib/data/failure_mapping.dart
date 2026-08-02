@@ -5,6 +5,8 @@
 // DriftRemoteException has no non-experimental home, 01 §5.3 requires unwrapping
 // it, and drift_flutter produces it on every real device. Widening the analyzer
 // config would hide the next experimental API too.
+import 'dart:io' show FileSystemException, OSError;
+
 // ignore: experimental_member_use
 import 'package:drift/remote.dart' show DriftRemoteException;
 import 'package:shed_book/core/failure.dart';
@@ -50,6 +52,20 @@ ShedFailure shedFailureFrom(Object error) {
       // have checked, and telling a shepherd to free space would be a lie.
       _ => UnexpectedFailure(e, s),
     },
+
+    // THE FILESYSTEM, WHICH IS A DIFFERENT SURFACE FROM THE DATABASE. A photo
+    // is bytes on disk written outside any transaction, so it fails on its own
+    // terms and has its own two outcomes.
+    //
+    // ENOSPC is 28 on both Linux and macOS/iOS; Android is Linux. The code is
+    // matched rather than the message, because the message is localised by the
+    // OS and a shepherd's phone may not be in English.
+    FileSystemException(:final OSError? osError) =>
+      osError?.errorCode == _enospc ? const DiskFull() : const MediaWriteFailed(),
+
     _ => UnexpectedFailure(e, s),
   };
 }
+
+/// `ENOSPC`. 28 on Linux and on Darwin, and Android is Linux.
+const int _enospc = 28;

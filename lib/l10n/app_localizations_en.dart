@@ -282,4 +282,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String quickEntryStruckAt({required String at}) {
     return 'STRUCK $at';
   }
+
+  @override
+  String photoMissingOnThisPhone({required String date, required String time}) {
+    return 'Photo taken $date $time — file no longer on this phone';
+  }
+
+  @override
+  String get photoShowInFullColour => 'Show in full colour';
+
+  @override
+  String photoSemanticLabel({
+    required String date,
+    required String time,
+    required String provenance,
+  }) {
+    return 'Photo taken $date $time, $provenance';
+  }
 }

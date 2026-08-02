@@ -565,6 +565,28 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'STRUCK {at}'**
   String quickEntryStruckAt({required String at});
+
+  /// 04 §5.2. The media_assets row SURVIVES when its file does not; deleting the row would make the app lie by omission (spec §12.4) — the shepherd remembers taking the photo. {date} and {time} arrive PRE-FORMATTED from formatShedDate and formatShedTime; never format a date inside a message (10 §8.4 rule 4).
+  ///
+  /// In en, this message translates to:
+  /// **'Photo taken {date} {time} — file no longer on this phone'**
+  String photoMissingOnThisPhone({required String date, required String time});
+
+  /// 06 §4.7. PERMANENT, not conditional. A shepherd looking at a photo of a prolapse needs the colour information, and a tinted view of tissue is useless. It is also what keeps the app on the right side of §12.2: it shows what was photographed and never interprets it.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in full colour'**
+  String get photoShowInFullColour;
+
+  /// The cell's semantic label. It carries the PROVENANCE as well as the time, because a screen-reader user has no margin stamp to read — the label is the only place §12.5's claim reaches them.
+  ///
+  /// In en, this message translates to:
+  /// **'Photo taken {date} {time}, {provenance}'**
+  String photoSemanticLabel({
+    required String date,
+    required String time,
+    required String provenance,
+  });
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

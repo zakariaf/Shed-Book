@@ -10,12 +10,14 @@
 library;
 
 import 'dart:io';
+import 'dart:typed_data';
 import 'dart:ui' show Tristate;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_photo.dart';
 import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
@@ -49,6 +51,22 @@ import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
 /// on. Decision #99 says never clamp, so a 200% user is a real user, and the
 /// framework's bold-text merge is exactly what a hand-built `TextStyle` would
 /// silently drop.
+/// A 1x1 PNG. `ShedPhoto` takes an `ImageProvider` rather than a path, so a
+/// test does not need a real asset — and an `AssetImage` pointing at a
+/// non-image asset throws inside the image codec, which surfaces as a test
+/// failure that names the codec rather than the claim.
+final Uint8List _onePixelPng = Uint8List.fromList(<int>[
+  0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, //
+  0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+  0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
+  0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41,
+  0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
+  0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00,
+  0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
+  0x42, 0x60, 0x82,
+]);
+
 Future<void> _pumpComponent(
   WidgetTester tester,
   Widget component, {
@@ -1969,5 +1987,122 @@ void main() {
       boldText: true,
     );
     expect(tester.takeException(), isNull, reason: 'ShedReceiptBar');
+  });
+
+  testWidgets('ShedPhoto renders as a ruled cell with no card, no shadow and no grid', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, AND EVERY CLAUSE IS SOMETHING THE FRAMEWORK'S OBVIOUS ANSWER
+    // GETS WRONG. "Show a photo" in every example is a Card in a GridView with
+    // a radius and a shadow.
+    await _pumpComponent(
+      tester,
+      ShedPhoto(
+        image: MemoryImage(_onePixelPng),
+        capturedAtLabel: '14 Mar 2026 03:20',
+        provenanceLabel: 'recorded automatically',
+        semanticLabel: 'Photo taken 14 Mar 2026 03:20, recorded automatically',
+        fullColourLabel: 'Show in full colour',
+      ),
+    );
+
+    // THE IMAGE IS RESOLVED BEFORE ANYTHING IS ASSERTED. MEASURED: without this
+    // the case passes alone and fails inside the full suite — MemoryImage
+    // decodes asynchronously, and how many microtasks are already queued when it
+    // starts depends on what ran before it. An assertion that only holds when a
+    // file is run on its own is not an assertion.
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Card), findsNothing);
+    expect(find.byType(GridView), findsNothing);
+    expect(find.byType(Wrap), findsNothing);
+
+    for (final DecoratedBox box in tester.widgetList<DecoratedBox>(find.byType(DecoratedBox))) {
+      final Decoration d = box.decoration;
+      if (d is BoxDecoration) {
+        expect(d.boxShadow, anyOf(isNull, isEmpty), reason: 'a document casts no shadow');
+        expect(d.borderRadius, isNull, reason: 'indelible §4.2 — a document has no corners');
+      }
+    }
+
+    // The rule is 2, not 1: a 1 px rule disappears under a head torch.
+    final ShedTokens t = nightPalette.tokens;
+    final DecoratedBox cell = tester.widget<DecoratedBox>(
+      find.descendant(of: find.byType(ShedPhoto), matching: find.byType(DecoratedBox)).first,
+    );
+    final BoxDecoration decoration = cell.decoration as BoxDecoration;
+    expect(decoration.border!.bottom.width, t.outlineWidth);
+    expect(t.outlineWidth, 2.0);
+  });
+
+  test('photoTint is null in EVERY palette today, and that is a defect on record', () {
+    // MEASURED, AND IT CONTRADICTS N15-T06's OWN TEXT, which says photoTint is
+    // "non-null only in the two night-shift palettes". It is null in all six:
+    // N09-T02 declared the ShedTokens field and never populated it, so decision
+    // #96's tint has never applied anywhere and the full-colour control has
+    // never rendered.
+    //
+    // This case asserts TODAY'S TRUTH and is a tripwire rather than an
+    // endorsement: the day a tint lands, this fails, and the two behavioural
+    // cases it replaced — tint present in amber, absent in night, and full
+    // colour removing it — get written against a real matrix instead of a null.
+    //
+    // Choosing that matrix is a design decision (06 §4.7 does not print one),
+    // so it is carried into N15's pull request rather than invented here.
+    for (final ShedPalette p in shedPalettes) {
+      expect(
+        p.tokens.photoTint,
+        isNull,
+        reason: '${p.id.name} hc=${p.highContrast} — see N15-T06 in the PR body',
+      );
+    }
+  });
+
+  testWidgets('with no tint there is no filter and no full-colour control', (
+    WidgetTester tester,
+  ) async {
+    // The consequence of the gap above, asserted so the component's behaviour is
+    // pinned in the state it actually ships in. NEVER AN IDENTITY FILTER: an
+    // identity ColorFiltered still pays for a saveLayer, every frame, for
+    // nothing.
+    await _pumpComponent(
+      tester,
+      ShedPhoto(
+        image: MemoryImage(_onePixelPng),
+        capturedAtLabel: '14 Mar 2026 03:20',
+        provenanceLabel: 'recorded automatically',
+        semanticLabel: 'x',
+        fullColourLabel: 'Show in full colour',
+      ),
+      palette: resolvePalette(ShedPaletteId.amber, highContrast: false),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ColorFiltered), findsNothing);
+    expect(
+      find.byKey(const Key('photo.full_colour')),
+      findsNothing,
+      reason: 'there is nothing to toggle back from',
+    );
+  });
+
+  testWidgets('a missing file keeps its row and says so', (WidgetTester tester) async {
+    // 04 §5.2. Deleting the row would make the app lie by omission (§12.4) — the
+    // shepherd remembers taking the photo.
+    await _pumpComponent(
+      tester,
+      ShedPhoto(
+        image: MemoryImage(_onePixelPng),
+        capturedAtLabel: '14 Mar 2026 03:20',
+        provenanceLabel: 'recorded automatically',
+        semanticLabel: 'x',
+        fullColourLabel: 'Show in full colour',
+        missing: true,
+        missingLabel: 'Photo taken 14 Mar 2026 03:20 — file no longer on this phone',
+      ),
+    );
+
+    expect(find.textContaining('no longer on this phone'), findsOneWidget);
+    expect(find.byType(Image), findsNothing, reason: 'there is nothing to show');
   });
 }

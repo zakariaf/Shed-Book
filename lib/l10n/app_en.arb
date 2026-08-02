@@ -524,5 +524,29 @@
         "type": "String"
       }
     }
+  },
+  "lambingEaseHeading": "EASE",
+  "@lambingEaseHeading": {
+    "description": "The ease group's heading. One word, because the five buttons under it carry the meaning and a longer heading would push the group below the fold on a small phone."
+  },
+  "lambingEaseUnset": "NOT RECORDED · SKIPPABLE",
+  "@lambingEaseUnset": {
+    "description": "The ease group's unset state. NOT '0' and NOT 'unassisted': decision #59 makes an unscored lambing absent from both halves of the assisted rate, and inferring 'no assistance' would deflate that rate invisibly for years. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering."
+  },
+  "lambingEaseGroupSemantics": "Ease, 1 to 5, not required",
+  "@lambingEaseGroupSemantics": {
+    "description": "The ease group's container label for a screen reader. It says the range and that the group may be skipped. It does NOT say which value is selected — the buttons carry `selected:` and a screen reader announces state itself (10 §3.2 rule 2); a state word in a label is the doubled announcement users report as noise."
+  },
+  "lambingEaseValueSemantics": "Ease {ordinal}, {description}",
+  "@lambingEaseValueSemantics": {
+    "description": "One ease button's label. The ordinal and the description, and NO state word: 'Ease 3, selected' is the exact failure 10 §3.2 rule 2 names, because the node's own `selected` flag already says so.",
+    "placeholders": {
+      "ordinal": {
+        "type": "int"
+      },
+      "description": {
+        "type": "String"
+      }
+    }
   }
 }

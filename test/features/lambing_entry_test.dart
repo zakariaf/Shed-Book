@@ -17,6 +17,8 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/ui/components/shed_tally.dart';
+import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -408,6 +410,331 @@ void main() {
     expect(node.label, contains(', '));
     expect(node.label, isNot(contains('·')));
 
+    await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // T04 — lambing ease 1–5
+  // ---------------------------------------------------------------------------
+
+  testWidgets('selecting ease 3 commits immediately and renders its authored description', (
+    WidgetTester tester,
+  ) async {
+    // THE ANCHOR, AND BOTH CLAUSES ARE SHARPENED.
+    //
+    // COMMITS IMMEDIATELY — `lambings.ease` is read back out of the SAME
+    // database in this test, with no Save button pressed and no route popped.
+    // There is no Save button to press: the tap is the write.
+    //
+    // ITS AUTHORED DESCRIPTION — the string comes from the seeded vocabulary
+    // through the ARB, not from a Dart literal. The next case is what makes
+    // that binding, by renaming the term and watching the screen follow.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Considerable assistance needed'));
+    await tester.pumpAndSettle();
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(row.ease, 3, reason: 'in the database, with nothing saved');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a user label on ease_3 overrides the shipped default and survives', (
+    WidgetTester tester,
+  ) async {
+    // `NULL` MEANS RENDER THE SHIPPED DEFAULT, and it is not the same as an
+    // empty label. `vocabLabel` is `userLabel ?? shipped` and nothing cleverer:
+    // a `label?.isEmpty ?? true` check would let an accidental blank fall
+    // silently back to the shipped word, hiding an edit the shepherd made —
+    // §12.4 in its smallest possible form.
+    //
+    // THIS CASE IS WHAT MAKES THE ANCHOR BINDING. A test that only matched the
+    // English sentence would pass just as happily against a Dart literal, which
+    // is the one implementation this task must refuse.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await (db.update(db.vocabTerms)..where(($VocabTermsTable t) => t.key.equals('ease_3'))).write(
+      const VocabTermsCompanion(label: Value<String?>('Had to get the ropes')),
+    );
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Had to get the ropes'), findsOneWidget);
+    expect(find.text('Considerable assistance needed'), findsNothing);
+
+    // AND BACK. Clearing the override returns the shipped word — no app update
+    // and no locale change was involved in either direction.
+    await (db.update(db.vocabTerms)..where(($VocabTermsTable t) => t.key.equals('ease_3'))).write(
+      const VocabTermsCompanion(label: Value<String?>(null)),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Considerable assistance needed'), findsOneWidget);
+    expect(find.text('Had to get the ropes'), findsNothing);
+
+    // AN EMPTY LABEL IS THE SHEPHERD'S EDIT, NOT AN ABSENT ONE, and this is the
+    // clause that distinguishes `userLabel ?? shipped` from
+    // `(userLabel?.isEmpty ?? true) ? shipped : userLabel`.
+    //
+    // DRILLED, AND THE isEmpty VERSION PASSED EVERY OTHER CASE IN THIS FILE —
+    // which is exactly how a §12.4 violation ships: an accidental blank falls
+    // silently back to the shipped word, the screen looks right, and the
+    // shepherd's own edit has been overruled by the app without a word.
+    await (db.update(db.vocabTerms)..where(($VocabTermsTable t) => t.key.equals('ease_3'))).write(
+      const VocabTermsCompanion(label: Value<String?>('')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Considerable assistance needed'),
+      findsNothing,
+      reason: 'blank is what they typed; the app does not overrule it',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the row offers exactly five values and no sixth', (WidgetTester tester) async {
+    // The N00-T04 ruling, held as a widget property. `lambings.ease` carries
+    // CHECK (ease IS NULL OR ease BETWEEN 1 AND 5) in a FROZEN schema, so a
+    // sixth button is a migration on somebody else's phone.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    for (final String shipped in <String>[
+      'No assistance',
+      'Slight assistance by hand',
+      'Considerable assistance needed',
+      'Veterinary assistance needed',
+      'Caesarean section',
+    ]) {
+      expect(find.text(shipped), findsOneWidget, reason: shipped);
+    }
+    expect(kEaseKeys, hasLength(5));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('an unscored ease prints NOT RECORDED and never 1', (WidgetTester tester) async {
+    // DECISION #59. `05 §6.7`'s assisted rate excludes an unscored lambing from
+    // BOTH the numerator and the denominator; inferring "1 — unassisted" would
+    // inflate the unassisted count and deflate the rate, invisibly, for years.
+    // There is nothing to render as zero either.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    // SCOPED TO THE EASE GROUP, and the drill is why. A bare
+    // `find.textContaining('NOT RECORDED')` passed against `selected: 1`,
+    // because the TALLY ROW prints its own NOT RECORDED for an underived birth
+    // type one region above — so the case was asserting that some other widget
+    // was on screen. `find.descendant` pins it to the group under test.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('lambing_entry.ease')),
+        matching: find.textContaining('NOT RECORDED'),
+      ),
+      findsOneWidget,
+    );
+
+    // AND THE DATABASE AGREES. A widget that printed the unset label while the
+    // column held 1 would pass a screen-only assertion.
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(row.ease, isNull, reason: 'unscored, not 1 and not 0');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('selecting ease writes only ease and updated_at', (WidgetTester tester) async {
+    // A `copyWith` that rewrote the provenance quad on an unrelated edit is the
+    // kind of defect that only surfaces in an export months later, and §12.5 is
+    // what it would break. Asserted column by column rather than by eye.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    final Lambing before = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Caesarean section'));
+    await tester.pumpAndSettle();
+
+    final Lambing after = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+
+    expect(after.ease, 5);
+    expect(after.occurredAt, before.occurredAt);
+    expect(after.capturedAt, before.capturedAt);
+    expect(after.timeSource, before.timeSource);
+    expect(after.originalEffective, before.originalEffective);
+    expect(after.declaredBirthType, before.declaredBirthType);
+    expect(after.ewe, before.ewe);
+    expect(after.season, before.season);
+    expect(after.uid, before.uid);
+    expect(after.createdAt, before.createdAt);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('re-tapping a different value corrects forward and leaves no second value', (
+    WidgetTester tester,
+  ) async {
+    // THERE IS NO CLEAR AFFORDANCE AND NO UNDO VERB (`07 §15.1`). A mis-tap is
+    // corrected forward by tapping the right value; one UPDATE replaces the
+    // other, so the two are never both present. A sixth "not scored" button
+    // would put a chooser on screen for the ABSENCE of a value, when NULL is
+    // already how absence is stored.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('No assistance'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Veterinary assistance needed'));
+    await tester.pumpAndSettle();
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(row.ease, 4, reason: 'the correction, not the mis-tap');
+
+    // ONE ROW, ONE COLUMN — there is no second value anywhere to hold the first.
+    expect(await db.select(db.lambings).get(), hasLength(1));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a double-fired ease tap commits one value', (WidgetTester tester) async {
+    // DECISION #22, and the shape of the case is the assertion: `guard()`
+    // refuses to run concurrently, so there is NO PUMP BETWEEN THE TWO TAPS.
+    // Pumping between them would make this a test of two separate taps, which
+    // is a different and much weaker claim.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder ease2 = find.text('Slight assistance by hand');
+    await tester.tap(ease2);
+    await tester.tap(ease2, warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    final Lambing row = await (db.select(
+      db.lambings,
+    )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+    expect(row.ease, 2);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the ease group wraps at 150% text scale and every button clears 64 by 64', (
+    WidgetTester tester,
+  ) async {
+    // indelible.md §3.6's ONE DOCUMENTED COMPONENT WRAP: at ≥150% the five
+    // buttons re-lay as 3 + 2. The page structure does not change; one
+    // component re-lays.
+    //
+    // The text is NOT clamped to avoid it — `textScaleFactor`, `TextScaler.clamp`
+    // and `withClampedTextScaling` are banned outright (decision #99) and defeat
+    // Android 14+'s own non-linear curve. The layout is what gives way.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(
+      LambingEntryScreen(lambingId: lambing),
+      db: db,
+      textScale: 1.5,
+      device: Device.small,
+    );
+    await tester.pumpAndSettle();
+
+    final Finder group = find.byKey(const Key('lambing_entry.ease'));
+    expect(group, findsOneWidget);
+
+    // THE FLOOR SURVIVES THE WRAP. This is the half a wrap usually breaks: the
+    // buttons get narrower to fit, and the narrowest one falls under the target
+    // size on the smallest phone.
+    for (final String shipped in <String>['No assistance', 'Caesarean section']) {
+      final Size size = tester.getSize(
+        find.ancestor(of: find.text(shipped), matching: find.byType(ShedTapTarget)).first,
+      );
+      expect(size.height, greaterThanOrEqualTo(64.0), reason: shipped);
+      expect(size.width, greaterThanOrEqualTo(64.0), reason: shipped);
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the ease semantics node carries no state word in its label', (
+    WidgetTester tester,
+  ) async {
+    // `10 §3.2` RULE 2: a screen reader announces state itself, so "Ease 3,
+    // selected" is the doubled announcement users report as noise. The label
+    // says the ordinal and the description and stops.
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Considerable assistance needed'));
+    await tester.pumpAndSettle();
+
+    final SemanticsNode node = tester.getSemantics(
+      find
+          .ancestor(
+            of: find.text('Considerable assistance needed'),
+            matching: find.byType(ShedTapTarget),
+          )
+          .first,
+    );
+
+    expect(node.label, contains('Ease 3'));
+    for (final String stateWord in <String>['selected', 'Selected', 'chosen', 'active']) {
+      expect(node.label, isNot(contains(stateWord)), reason: stateWord);
+    }
+
+    handle.dispose();
     await tester.closeApp();
   });
 }

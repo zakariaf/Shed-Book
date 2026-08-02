@@ -149,6 +149,7 @@ shed_book/
 │   │       ├── motion.dart           # prefersReducedMotion
 │   │       ├── formatters.dart       # the ONLY package:intl call site in lib/ outside lib/data/
 │   │       ├── feedback.dart         # confirmSaved · showFailure · showCapRow  (R30)
+│   │       ├── vocab_label.dart      # vocabLabel(userLabel, shipped) — primitives only (R66, R81)
 │   │       ├── night_error_panel.dart# ErrorWidget.builder. Hard-coded hexes, own Directionality.
 │   │       └── components/           # ShedTapTarget, ShedKeypad, ShedPenTile, ShedReceiptBar,
 │   │                                 # ShedBanner, ShedEmptyState, ShedPhoto, ShedCountdown, …
@@ -689,6 +690,7 @@ spellings only. Production has zero overrides.
 | Provider | Type | File | Auto-dispose |
 |---|---|---|---|
 | `tagIndexProvider` | `StreamProvider<List<TagIndexEntry>>` | `lib/data/providers.dart` | keepAlive — active animals only (R26) |
+| `vocabProvider` | `StreamProvider<List<VocabEntry>>` | `lib/data/providers.dart` | keepAlive — forty rows, four screens; **not** the drift row class (R81) |
 | `quickEntryDeckProvider` | `StreamProvider<QuickEntryDeck>` | `lib/features/quick_entry/quick_entry_controller.dart` | keepAlive — **one** statement, two buckets; the strips read it with `.select` (R28) |
 | `penBoardProvider` | `StreamProvider<List<PenTile>>` | `lib/features/pens/pen_board_controller.dart` | keepAlive |
 | `flockListProvider` | `StreamProvider<List<FlockRow>>` | `lib/features/flock/flock_controller.dart` | keepAlive |
@@ -1993,3 +1995,32 @@ chooser coming back somewhere nobody is looking.
 `lambings.declared_birth_type` keeps its column and its writer — the deferred CHANGE TYPE path — and
 NULL still means *not declared* (R6), never `single`. See R59 for the key format itself; this ruling
 changed its worked example, not its shape.
+
+### R81 — `vocabProvider` carries `VocabEntry`, not the drift row class
+
+**Ruled 2026-08-02 (N16-T04).** N16-T04's file table prescribes
+`vocabProvider — StreamProvider<List<VocabTerm>>`. That type cannot exist at its only call site:
+`VocabTerm` is a generated drift row class in `lib/core/db/`, and the gate's `layer.features` row
+forbids `lib/features/` from importing `lib/core/db/` at all. The gate caught it on the first run of
+the task.
+
+**The ruling is the shape `LambingEntryData` already uses** — the data layer declares the type the
+feature reads:
+
+```dart
+// lib/data/settings_repository.dart
+typedef VocabEntry = ({String key, String? label});
+Stream<List<VocabEntry>> watchVocab();
+```
+
+Two fields and not the whole row, because two is what the presentation edge can use: `key` is the
+frozen foreign key, and `label` is the shepherd's override where **NULL means *render the shipped
+default*** (`03 §3`) — which is not the same as an empty label, and `vocabLabel` is
+`userLabel ?? shipped` for exactly that reason. The other columns are device-local or belong to the
+Settings screen that edits them.
+
+`settingsProvider` still carries `AppSetting` and is not affected: its readers are all in `lib/data/`
+and `lib/core/`, so no layer boundary is crossed.
+
+The task document is **not** silently corrected — its instruction stands on disk with this ruling
+against it, which is the amendment rule working rather than being worked around.

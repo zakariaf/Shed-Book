@@ -114,6 +114,43 @@ final class LambingRepository {
   /// is not redundancy: a lamb's birth dam never changes, while a FOSTER moves
   /// the rearing dam — and reading the birth dam through the lambing would make
   /// a foster look like a rewrite of history.
+  /// Scores the assistance the shepherd gave, 1–5.
+  ///
+  /// **NON-NULLABLE, AND THERE IS NO CLEAR AFFORDANCE.** A mis-tap is corrected
+  /// FORWARD by tapping the right value — `07 §15.1` gives this verb no undo,
+  /// and the two values are never both present because one `UPDATE` replaces the
+  /// other. A sixth "not scored" button would put a chooser on the screen for
+  /// the ABSENCE of a value, when `NULL` is already how absence is stored. If
+  /// clearing turns out to be needed it is a screens decision, not a local one.
+  ///
+  /// **A blank ease is NOT `1`** (decision #59). `lambings.ease` is nullable
+  /// with no default; `05 §6.7`'s assisted rate excludes an unscored lambing
+  /// from BOTH the numerator and the denominator, so inferring "1 —
+  /// unassisted" would inflate the unassisted count and deflate the rate,
+  /// invisibly, for years.
+  ///
+  /// **`updated_at` MOVES AND NOTHING ELSE DOES.** The companion names two
+  /// columns on purpose: a `copyWith` that rewrote the provenance quad on an
+  /// unrelated edit is the kind of defect that only surfaces in an export months
+  /// later, and §12.5 is what it would break.
+  Future<WriteOutcome> setEase(LambingId id, LambingEase ease) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+      final int rows =
+          await (_db.update(
+            _db.lambings,
+          )..where(($LambingsTable t) => t.id.equals(id.value))).write(
+            LambingsCompanion(ease: Value<int?>(ease.code), updatedAt: Value<Instant>(now)),
+          );
+      // R53 — the default empty `warnings`. There is nothing to warn about: the
+      // ordinal was validated into existence by `LambingEase` and the row either
+      // exists or it does not.
+      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   Future<LambId> addLamb(LambingId lambing, {Sex? sex}) {
     final Instant now = appNow(); // ONE instant per mutation
 

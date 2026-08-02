@@ -19,6 +19,7 @@ import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -114,57 +115,73 @@ class _Regions extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
     final ShedTokens t = context.tokens;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          child: Text(
-            // The provenance travels with the time, always — it is the only
-            // place §12.5's claim reaches the shepherd.
-            data.lambing.time.provenanceLabel,
-            key: const Key('lambing_entry.provenance'),
-            style: text.bodySmall,
+    // SCROLLABLE FROM T04, AND VERTICAL SCROLLING IS THE ONE TRACKED GESTURE
+    // (06 §7 — the gate's own words, and every swipe ACTION stays banned).
+    //
+    // It was a plain Column until the ease group landed, and the ease group is
+    // what made it overflow: five 72 pt buttons with their descriptions do not
+    // fit under the tally on a small phone, and at 150% text scale they re-lay
+    // as 3 + 2 and take another row. The measured overflow was 148 px.
+    //
+    // A ListView would be the reflex and it is wrong here: the regions are a
+    // fixed handful, not a list, and a ListView would add lazy building and a
+    // scroll controller for nothing. The trailing Expanded filler goes with the
+    // change — nothing may be Expanded inside an unbounded scrollable.
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: Text(
+              // The provenance travels with the time, always — it is the only
+              // place §12.5's claim reaches the shepherd.
+              data.lambing.time.provenanceLabel,
+              key: const Key('lambing_entry.provenance'),
+              style: text.bodySmall,
+            ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(t.gapMin),
-          child: Text(
-            '$lambsLabel ${data.lambs.length}',
-            key: const Key('lambing_entry.lambs'),
-            style: text.bodyMedium,
+          Padding(
+            padding: EdgeInsets.all(t.gapMin),
+            child: Text(
+              '$lambsLabel ${data.lambs.length}',
+              key: const Key('lambing_entry.lambs'),
+              style: text.bodyMedium,
+            ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
-        ),
-        // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the
-        // repository already returns and the order the tally beside it counts
-        // in. 10 §5.2 groups by status on the lists that are ABOUT lambs; here
-        // the ordinal must agree with the marks, and re-sorting the dead to the
-        // bottom would print LAMB 3 second. If that is disputed it is a screens
-        // question for N17/N27, not a local choice.
-        //
-        // A Column and not a ListView: a lambing is single, twins or triplets
-        // in almost every case, and quintPlus is the tail. A scrollable here
-        // would add a scroll gesture to a screen whose whole point is that a
-        // cold thumb hits big fixed things.
-        for (int i = 0; i < data.lambs.length; i++)
-          LambRow(
-            key: Key('lambing_entry.lamb.${data.lambs[i].id.value}'),
-            labels: _labelsFor(context, data.lambs[i], i + 1),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
           ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          child: Text(
-            '$careLabel ${data.lambs.fold<int>(0, (int n, LambEntryRow l) => n + l.care.length) + data.lambingCare.length}',
-            key: const Key('lambing_entry.care'),
-            style: text.bodyMedium,
+          // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the
+          // repository already returns and the order the tally beside it counts
+          // in. 10 §5.2 groups by status on the lists that are ABOUT lambs; here
+          // the ordinal must agree with the marks, and re-sorting the dead to the
+          // bottom would print LAMB 3 second. If that is disputed it is a screens
+          // question for N17/N27, not a local choice.
+          //
+          // A Column and not a ListView: a lambing is single, twins or triplets
+          // in almost every case, and quintPlus is the tail. A scrollable here
+          // would add a scroll gesture to a screen whose whole point is that a
+          // cold thumb hits big fixed things.
+          for (int i = 0; i < data.lambs.length; i++)
+            LambRow(
+              key: Key('lambing_entry.lamb.${data.lambs[i].id.value}'),
+              labels: _labelsFor(context, data.lambs[i], i + 1),
+            ),
+          // UNDER THE LAMBS, ABOVE CARE. Ease is about the lambing rather than
+          // about any one lamb, so it sits below the list it describes.
+          EaseRow(lambingId: data.lambing.id, ease: data.lambing.ease),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: Text(
+              '$careLabel ${data.lambs.fold<int>(0, (int n, LambEntryRow l) => n + l.care.length) + data.lambingCare.length}',
+              key: const Key('lambing_entry.care'),
+              style: text.bodyMedium,
+            ),
           ),
-        ),
-        const Expanded(child: SizedBox.expand()),
-      ],
+        ],
+      ),
     );
   }
 

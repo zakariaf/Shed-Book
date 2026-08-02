@@ -675,6 +675,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{parts}'**
   String lambRowSemantics({required String parts});
+
+  /// The ease group's heading. One word, because the five buttons under it carry the meaning and a longer heading would push the group below the fold on a small phone.
+  ///
+  /// In en, this message translates to:
+  /// **'EASE'**
+  String get lambingEaseHeading;
+
+  /// The ease group's unset state. NOT '0' and NOT 'unassisted': decision #59 makes an unscored lambing absent from both halves of the assisted rate, and inferring 'no assistance' would deflate that rate invisibly for years. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambingEaseUnset;
+
+  /// The ease group's container label for a screen reader. It says the range and that the group may be skipped. It does NOT say which value is selected — the buttons carry `selected:` and a screen reader announces state itself (10 §3.2 rule 2); a state word in a label is the doubled announcement users report as noise.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease, 1 to 5, not required'**
+  String get lambingEaseGroupSemantics;
+
+  /// One ease button's label. The ordinal and the description, and NO state word: 'Ease 3, selected' is the exact failure 10 §3.2 rule 2 names, because the node's own `selected` flag already says so.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease {ordinal}, {description}'**
+  String lambingEaseValueSemantics({required int ordinal, required String description});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

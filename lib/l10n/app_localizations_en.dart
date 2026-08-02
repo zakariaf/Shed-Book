@@ -364,4 +364,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String lambRowSemantics({required String parts}) {
     return '$parts';
   }
+
+  @override
+  String get lambingEaseHeading => 'EASE';
+
+  @override
+  String get lambingEaseUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambingEaseGroupSemantics => 'Ease, 1 to 5, not required';
+
+  @override
+  String lambingEaseValueSemantics({required int ordinal, required String description}) {
+    return 'Ease $ordinal, $description';
+  }
 }

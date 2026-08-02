@@ -11,6 +11,7 @@ import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/lambing_ease.dart';
 
 /// The screen's one read.
 ///
@@ -47,6 +48,12 @@ final class LambingWriteController extends WriteController {
     await ref.read(lambingRepositoryProvider).addLamb(lambing);
     return const WriteCommitted();
   });
+
+  /// One tap is one committed score. There is no Save button and no draft, and
+  /// `guard()` refuses to run concurrently — so a double-fired tap (decision
+  /// #22) commits one value rather than two.
+  Future<void> setEase(LambingId lambing, LambingEase ease) =>
+      guard(() => ref.read(lambingRepositoryProvider).setEase(lambing, ease));
 }
 
 /// **Always `.autoDispose`** for a write controller (`CONVENTIONS §3.4`).

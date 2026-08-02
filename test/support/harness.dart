@@ -25,17 +25,14 @@
 //     FakeWakelockController                                      N29
 //     FakePurchaseService (the store seam, R74)                   N30
 //
-//   the pumpable-variant map (12 §6.2) — a Map<String, Widget Function()> over
-//     RouteNames. N13 creates it with ONE entry (quick_entry) and every screen
-//     epic adds one row. Four files iterate it, and none of them exist yet:
-//     the 252-cell overflow matrix, semantics_gate_test, the geometric half of
-//     tap_target_test, and the pixel-sampling group in contrast_test (N33).
-//
+
 //   restoreFixture / flock_400_3seasons.json (12 §5.2, critique defect S3) —
 //     fixtures go through RestoreService, which is N23, and tool/seed.dart
 //     writes them through the restore path in the same epic. Until then every
-//     test seeds with the targeted helpers in seeds.dart. The switch is one
-//     task, N23-T06, and it is the task that proves the fixture is loadable.
+//     test seeds with the targeted helpers in seeds.dart. The switch is
+//     N23-T05, "the two committed fixtures and the matrix switch". (N13-T07's
+//     own text says N23-T06; that is `restoreInto` and `freshSupportDir`, which
+//     is a different task. Corrected here.)
 //
 //   the four fixture id constants (12 §5.3) — they index into the fixture and
 //     are meaningless without it: N23.
@@ -59,7 +56,9 @@ import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
+import 'package:shed_book/routing/routes.dart';
 
 /// Runs [body] with the ambient clock pinned to [instant].
 ///
@@ -90,6 +89,50 @@ import 'package:shed_book/l10n/app_localizations.dart';
 /// `package:clock`'s ambient clock, so `tester.pump(const Duration(hours: 25))`
 /// really moves `appNow()`. `package:fake_async` is not a declared dependency.
 T atFixed<T>(DateTime instant, T Function() body) => withClock(Clock.fixed(instant), body);
+
+/// Every screen the overflow matrix, the semantics gate, the geometric half of
+/// the tap-target gate and the contrast sampler pump (`12 §6.2`).
+///
+/// **THE TABLE LIVES HERE BECAUSE FOUR FILES ITERATE IT.** A table copied four
+/// times is four tables that stop agreeing the first time a screen is added.
+///
+/// **One entry today, and the membership is DERIVED rather than asserted.**
+/// N13-T07 lands `quick_entry` because that is the only screen that exists; each
+/// screen epic adds its own row in the commit that adds the screen:
+///
+///   flock · ewe_card                                      N26, N27
+///   lambing_entry                                         N16
+///   lamb_card                                             N17
+///   foster                                                N18
+///   pen_board                                             N19
+///   treatments                                            N20
+///   reminders                                             N24
+///   season_summary                                        N28
+///   export                                                N21
+///   settings                                              N29
+///   note_search                                           N25
+///
+/// At fourteen the matrix is 252 cells (`12 §6.1`) and `12 §6.2`'s
+/// `expect(kPumpableVariants.length, 14)` becomes true — **in N33-T01, not
+/// here.** Writing that assertion today would be asserting a future.
+///
+/// The builders take no arguments and seed nothing: a cell pumps the screen and
+/// looks for overflow, and the data it needs comes from `seeds.dart` until
+/// **N23-T05** switches the matrix to the committed fixtures.
+const Map<String, Widget Function()> kPumpableVariants = <String, Widget Function()>{
+  RouteNames.quickEntry: _quickEntry,
+};
+
+Widget _quickEntry() => const QuickEntryScreen();
+
+/// The text scales every variant is pumped at. 1.0, the Android 14+ default
+/// ceiling most users reach, and the 200% the platform allows.
+const List<double> kTextScales = <double>[1.0, 1.3, 2.0];
+
+/// Bold Text off and on. It is a separate axis from scale because
+/// flutter#139712 makes w800/w900 render LIGHTER when it is on — the one
+/// combination a scale-only matrix would never reach.
+const List<bool> kBoldStates = <bool>[false, true];
 
 /// The devices we promise to work on. **Smallest first — most bugs live there.**
 final class Device {
@@ -161,6 +204,14 @@ Directory freshSupportDir() {
   return dir;
 }
 
+/// The container [PumpApp.pumpApp] built, so [PumpApp.closeApp] can dispose it
+/// inside the test body.
+///
+/// A top-level field rather than a member because an extension cannot hold
+/// state. One test pumps one app, so one slot is enough — and `closeApp` clears
+/// it, so a second `pumpApp` in the same body starts clean.
+ProviderContainer? _container;
+
 extension PumpApp on WidgetTester {
   /// Pumps [screen] inside the app's real theme, locale and container.
   ///
@@ -180,6 +231,7 @@ extension PumpApp on WidgetTester {
     EdgeInsets padding = const EdgeInsets.only(top: 47, bottom: 34),
   }) async {
     final ProviderContainer container = shedContainer(db, overrides: overrides);
+    _container = container;
 
     view.physicalSize = device.size * device.dpr;
     view.devicePixelRatio = device.dpr;
@@ -236,6 +288,64 @@ extension PumpApp on WidgetTester {
     // fails opaquely — which is worth knowing if you are reading this file
     // because a test hung.
     await pumpAndSettle();
+
+    // ONE MILLISECOND, AND IT IS NOT A ROUNDING NICETY — IT IS RIVERPOD'S
+    // DISPOSAL QUEUE. MEASURED by reading the binding's own pending-timer
+    // dump: dropping a listener makes `ProviderScheduler.scheduleProviderDispose`
+    // post a ZERO-DURATION timer to do the autoDispose cleanup, and
+    // `_verifyInvariants` fails the test if one is still queued. A bare `pump()`
+    // elapses nothing and does not fire it; elapsing a millisecond does.
+    //
+    // WHAT THIS COST TO FIND IS WORTH RECORDING: the failure reads "A Timer is
+    // still pending even after the widget tree was disposed", which points at
+    // the widget tree, and the only screen carrying a timer was the one watching
+    // minuteTickProvider — so the ticker looked guilty and was not. The timer
+    // belongs to Riverpod, not to us, and no amount of draining the ticker's
+    // tail would ever have cleared it. The binding prints the creation stack via
+    // debugPrint; reading it took a minute and three turns of guessing did not.
+    await pump(const Duration(milliseconds: 1));
+  }
+
+  /// Unmounts the app, disposes its container, and lets every provider dispose —
+  /// **inside the test body**, which is the whole point.
+  ///
+  /// **A TEST THAT PUMPS A SCREEN WATCHING `minuteTickProvider` MUST END WITH
+  /// THIS**, and the reason is a property of `flutter_test` rather than a defect
+  /// in the ticker: `_verifyInvariants` runs at the END OF THE TEST BODY, before
+  /// any tear-down, and a mounted screen carrying a live ticker inherently has a
+  /// live timer at that moment. No tear-down can help, because none has run yet.
+  ///
+  /// MEASURED, by reading the binding's own pending-timer dump rather than
+  /// guessing — which cost three rounds of guessing first. Two distinct timers
+  /// are involved and they need different things:
+  ///
+  ///   * the TICKER's `Timer`, cancelled by `ref.onDispose` once the provider is
+  ///     disposed — which needs the last listener gone, i.e. the unmount below;
+  ///   * RIVERPOD's own zero-duration disposal timer, posted by
+  ///     `ProviderScheduler.scheduleProviderDispose` when a listener drops. A
+  ///     bare `pump()` elapses nothing and does not fire it; elapsing a
+  ///     millisecond does.
+  ///
+  /// The failure message says *"even after the widget tree was disposed"*, which
+  /// points at the widget tree and at whatever screen is on it. It is not the
+  /// screen's fault, and the ticker only looked guilty because it was the one
+  /// thing on screen holding a timer.
+  Future<void> closeApp() async {
+    await pumpWidget(const SizedBox.shrink());
+
+    // DISPOSING HERE, NOT LEAVING IT TO THE TEAR-DOWN, IS THE FIX — INSTRUMENTED
+    // AND CONFIRMED. Unmounting alone is not enough: an UncontrolledProviderScope
+    // does not own its container, so the provider survives the tree and
+    // `onDispose` does not run until `shedContainer`'s tear-down — which is
+    // AFTER `_verifyInvariants`. Printing from inside the generator showed the
+    // order plainly: one iteration, then the failure, then onDispose.
+    //
+    // shedContainer still registers its own dispose; Riverpod's is idempotent,
+    // so the tear-down finds nothing left to do when a test has called this.
+    _container?.dispose();
+    _container = null;
+
+    await pump(const Duration(milliseconds: 1));
   }
 }
 

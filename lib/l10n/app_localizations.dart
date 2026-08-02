@@ -427,6 +427,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Other'**
   String get vocabFmOther;
+
+  /// Container label for the keypad, announced when a VoiceOver user lands inside it so they know what they have arrived in rather than hearing ten unrelated buttons. Not a heading and never rendered visually — the pad's job is obvious to a sighted shepherd at a glance.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag entry'**
+  String get keypadTagEntry;
+
+  /// Semantic label for the backspace key, whose glyph is the erase-left character. It carries no role word: the platform already announces 'button' and the user would hear it twice (10 §3.2 rule 1).
+  ///
+  /// In en, this message translates to:
+  /// **'Backspace'**
+  String get keypadBackspace;
+
+  /// onTapHint for backspace, so an assistive technology announces 'double tap to delete the last digit' rather than the generic verb. Singular DIGIT, deliberately: there is no key repeat, and a hint saying 'clear' would promise something the key does not do.
+  ///
+  /// In en, this message translates to:
+  /// **'delete the last digit'**
+  String get hintDeleteLastDigit;
+
+  /// The bottom-right key when the pad is entering a tag — create-on-the-fly. Capitals because it is the control voice (indelible.md §3.1, as amended 2026-08-02): capitals and heavy weight mean 'a thing you can press', sentence case means 'it happened'.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW TAG'**
+  String get keypadNewTag;
+
+  /// Live region carrying the digits typed so far, announced as they change. The digits are spelled out rather than read as a number, because 412 is a name and not a quantity — a screen reader saying 'four hundred and twelve' has translated it into something the shepherd cannot match against the ear tag in their hand.
+  ///
+  /// In en, this message translates to:
+  /// **'Entered tag {tag}'**
+  String keypadEnteredTag({required String tag});
+
+  /// The second live region. It carries the CLOSEST match as well as the count, because counting alone re-announces nothing when three matches become a different three matches — and the shepherd is listening for whether the animal in front of them is on the list.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No matches} =1{1 match, closest {tag}} other{{count} matches, closest {tag}}}'**
+  String matchCountClosest({required int count, required String tag});
+
+  /// The screen's headingLevel: 1 title. Quick Entry has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any.
+  ///
+  /// In en, this message translates to:
+  /// **'Tonight'**
+  String get quickEntryTitle;
+
+  /// indelible.md §7.16 page header. {night} arrives PRE-FORMATTED as `d MMM y` from formatShedDate (10 §8.4 rule 4) — never format a date inside a message, and never render an all-numeric date (R60, decision #108). The widget applies toUpperCase(); do not store shouty caps here, because the caps are a typographic decision owned by the design system and Flutter has no text-transform.
+  ///
+  /// In en, this message translates to:
+  /// **'Night of {night} · page {page}'**
+  String quickEntryPageHeader({required String night, required int page});
+
+  /// indelible.md §3.4's stamp: at most 12 characters, all-caps, and NEVER the sole carrier of its meaning — it sits beside a time that is obviously the current time. Safety rule §12.5: auto-captured time is labelled as such. The moment this stamp is the only thing distinguishing an auto time from an edited one, the sub-18px exemption is void.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTO'**
+  String get quickEntryStampAuto;
+
+  /// The bottom-left navigation anchor, 96x64. It is the ONLY navigation affordance in the app — P3's affordance half went to indelible.md, so there is no back chevron anywhere (decision record §7.0a). Capitals because it is the control voice.
+  ///
+  /// In en, this message translates to:
+  /// **'INDEX'**
+  String get quickEntryIndex;
+
+  /// The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'Tag first'**
+  String get quickEntrySlabTagFirst;
+
+  /// The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing penned yet.'**
+  String get quickEntryPennedEmpty;
+
+  /// The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent animals.'**
+  String get quickEntryRecentsEmpty;
+
+  /// Shown when the deck stream carries a failure. It names no code and no cause, because neither is actionable at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'The deck could not be read.'**
+  String get quickEntryDeckUnavailable;
+
+  /// The penned strip's trailing figure — elapsed PHYSICAL time from timeSincePenned, never two subtracted wall clocks. 03 §8 rule 1: a ewe penned at 22:00 before UK spring-forward and seen at 08:00 has been penned 9 hours, not 10.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h'**
+  String quickEntryHoursPenned({required int hours});
+
+  /// The penned row's semantic label. It spells out 'hours' where the figure abbreviates to h, because a screen reader saying 'nine aitch' is not a duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}, in {pen}, penned {hours} hours'**
+  String quickEntryPennedRowLabel({required String tag, required String pen, required int hours});
+
+  /// The recents row's semantic label. It carries NO time, because the recents strip shows none (07 §5.2).
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}'**
+  String quickEntryRecentRowLabel({required String tag});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

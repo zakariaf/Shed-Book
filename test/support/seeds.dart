@@ -8,7 +8,8 @@
 //
 // 12 §5.3 closes this file at ten writers. Three land here; each of the others
 // lands with the epic that first needs it:
-//   seedOpenOccupancy            N19   (pen board)
+//   seedOpenOccupancy            N19   (pen board — seedPenOccupancy below is
+//                                       the deck's narrower ancestor, not it)
 //   seedAutoLambing              N16   (lambing entry)
 //   seedEditedLambing            N16   (the provenance quad)
 //   seedContradictoryLambing     N06/N16 (the warning path, 12 §10.4)
@@ -157,3 +158,53 @@ Future<TreatmentId> seedTreatment(
 
   return TreatmentId(id);
 }
+
+/// One pen. `label` is what the deck's penned strip prints.
+Future<PenId> seedPen(AppDatabase db, {required String label}) async {
+  final Instant now = appNow();
+  final int id = await db
+      .into(db.pens)
+      .insert(PensCompanion.insert(label: label, uid: newUid(), createdAt: now, updatedAt: now));
+  return PenId(id);
+}
+
+/// [ewe] into [pen], still in it.
+///
+/// `exited_at` stays null, which is what the deck's `penned` CTE filters on. The
+/// provenance quad is the honest one for a row written as it happened.
+Future<PenOccupancyId> seedPenOccupancy(
+  AppDatabase db,
+  PenId pen,
+  EweId ewe, {
+  Instant? enteredAt,
+}) async {
+  final Instant at = enteredAt ?? appNow();
+  final SeasonId season = await _season(db);
+
+  final int id = await db
+      .into(db.penOccupancies)
+      .insert(
+        PenOccupanciesCompanion.insert(
+          pen: pen.value,
+          season: season.value,
+          ewe: Value<int?>(ewe.value),
+          enteredAt: at,
+          capturedAt: at,
+          uid: newUid(),
+          createdAt: at,
+          updatedAt: at,
+        ),
+      );
+  return PenOccupancyId(id);
+}
+
+/// A touch — the row the recents strip is built from.
+///
+/// `ewe_touches` has `ewe` as its PRIMARY KEY, so there is exactly one row per
+/// ewe and a second touch REPLACES rather than appends. It carries no identity
+/// and no provenance: it is a cache, rebuildable, excluded from the backup.
+Future<void> seedTouch(AppDatabase db, EweId ewe, {Instant? touchedAt}) => db
+    .into(db.eweTouches)
+    .insertOnConflictUpdate(
+      EweTouchesCompanion.insert(ewe: Value<int>(ewe.value), touchedAt: touchedAt ?? appNow()),
+    );

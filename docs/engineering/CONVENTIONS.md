@@ -241,9 +241,10 @@ The corresponding `_mayImport` entries:
 'lib/core/ui/':  {'lib/core/ui/', 'lib/domain/'},
 'lib/core/':     {'lib/core/', 'lib/core/ui/', 'lib/core/db/', 'lib/domain/'},
 'lib/data/':     {'lib/data/', 'lib/core/', 'lib/core/db/', 'lib/core/ui/', 'lib/domain/'},
-'lib/features/': {'lib/features/', 'lib/data/', 'lib/domain/', 'lib/core/', 'lib/core/ui/', 'lib/routing/'},
+'lib/features/': {'lib/features/', 'lib/data/', 'lib/domain/', 'lib/core/', 'lib/core/ui/', 'lib/routing/', 'lib/l10n/'},   // R80
 'lib/routing/':  {'lib/routing/', 'lib/features/', 'lib/data/', 'lib/core/', 'lib/domain/'},
-'lib/':          {'lib/', 'lib/core/', 'lib/core/ui/', 'lib/data/', 'lib/domain/', 'lib/features/', 'lib/routing/'},
+'lib/l10n/':     {'lib/l10n/'},                                                                    // R80 — generated; imports flutter and intl, nothing of ours
+'lib/':          {'lib/', 'lib/core/', 'lib/core/ui/', 'lib/data/', 'lib/domain/', 'lib/features/', 'lib/routing/', 'lib/l10n/'},
 ```
 
 `lib/data/** → lib/domain/validation/**` is a *path-pair* ban, not a layer ban; it is its own rule row
@@ -630,6 +631,8 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 |---|---|---|---|
 | `TagIndexEntry` | `lib/domain/tag_match.dart` | `{EweId eweId, String tag, String digits, Instant? lastTouched}` (R26) | 05 |
 | `rankTagMatches` | same | `List<TagIndexEntry> rankTagMatches(List<TagIndexEntry> all, String query)` — pure, synchronous (R27) | 05 |
+| `DeckEntry` | `lib/data/flock_repository.dart` | `@immutable final class`; `{EweId eweId, String tag, String digits, Instant sortAt, String? penLabel}` with hand-written `==`/`hashCode` over **all five** fields. Identity equality makes `.distinct()` and the per-bucket list reuse expensive ways of always returning false (R28, drift#3295) | 07 |
+| `QuickEntryDeck` | same | `typedef QuickEntryDeck = ({List<DeckEntry> penned, List<DeckEntry> recents})` — a **record**, which is what makes `.select((d) => d.penned)` legal. ONE provider for both strips; `recentEwesProvider` and `inPensProvider` are banned spellings (R28) | 07 |
 | `timeSincePenned` | `lib/domain/penning.dart` | `Duration timeSincePenned(Instant enteredAt, Instant now)` — takes `now`, never reads a clock (R24) | 05 |
 | `ReminderBudget` | `lib/domain/reminder_budget.dart` | `abstract final class ReminderBudget { static int forPlatform(); }` → 56 iOS / 200 Android (R50) | 05 → 08 |
 | `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed | 05 |
@@ -638,7 +641,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 | `ResumePolicy` | `lib/app.dart` | `static const staleAfter = Duration(minutes: 2); static bool shouldClearSelection(DateTime, DateTime)` | 02 |
 | `LocalLog` | `lib/core/log/local_log.dart` | singleton `LocalLog.instance`; `write(String, Object, StackTrace)`, `flutterError(FlutterErrorDetails)`, `record(String event)`, `attachTo(Directory)`, `markCleanPause()` (R11, R52) | 01 + 13 |
 | `ShedBookApp` | `lib/app.dart` | `class ShedBookApp extends ConsumerStatefulWidget` (R34) | 01 |
-| `RouteNames`, `Routes` | `lib/routing/routes.dart` | 13 names, 12 push helpers, `Routes.navigatorKey` | 02 |
+| `RouteNames`, `Routes` | `lib/routing/routes.dart` | 13 names, 12 push helpers (**0 today** — each screen epic adds its own; N13-T01), `Routes.navigatorKey`, and `Routes.route(name, builder)` — `@visibleForTesting` rather than private, because nothing pushes until N14 and `unused_element` is a warning the `gate` job fails on | 02 |
 
 ---
 
@@ -1930,3 +1933,25 @@ naming authority. They are listed so nobody mistakes silence for agreement.
 4. ~~**Whether `HapticFeedback.successNotification()` exists on Flutter 3.44.8**~~ — **CLOSED 2026-08-01 (N09-T09): it does**, along with `warningNotification()` and `errorNotification()`, read off the installed SDK (07 §22 item 7). That
    is an SDK fact, not a naming ruling. 06 owns it; if the member does not exist, the *name* in this
    file changes with it and every other ruling stands.
+
+### R80 — `lib/features/` may import `lib/l10n/`, and `lib/core/ui/` may not
+
+**Ruled 2026-08-02 (N13-T05), and it closes a defect that made every screen unbuildable as
+specified.** R67 put `lib/l10n/` in the tree and `10 §8` shows `AppLocalizations.of(context)` at call
+sites inside features — but §1.1's `_mayImport` table omitted `lib/l10n/` from **every** row. The gate
+implements that table faithfully, so the first screen to render a localised string failed
+`layer.features` on its own ARB message. `lib/app.dart` passed only because it matches the `lib/` row,
+whose set contains `lib/` and therefore admits `lib/l10n/` by accident rather than by decision.
+
+**`lib/features/` gains `lib/l10n/`.** A screen knows its locale and resolves its own copy.
+
+**`lib/core/ui/` does NOT, and that omission is deliberate rather than an oversight left standing.** A
+shared component renders what it is handed and never resolves copy — the same shape
+`ShedTapTarget.semanticLabel` already had. `ShedKeypad` (N13-T04) takes `padLabel`, `backspaceLabel`,
+`backspaceHint` and `thirdKeyLabel` as parameters for exactly this reason, and the gate is what found
+it: the first draft read `AppLocalizations` inside the component and `layer.core_ui` refused it. That
+is the rule working, and it is why the fix here is narrow rather than a blanket admission.
+
+`lib/domain/` and `lib/data/` are unchanged and must stay that way: a domain function that reads a
+localised string has taken a rendering decision, and `ShedFailure.userMessage` and `Disclaimers.*` are
+the two documented places where copy lives outside the ARB precisely so those layers never reach it.

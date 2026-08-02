@@ -11,10 +11,11 @@
 //   themeProvider               N12-T02  Provider<ShedThemeSet>       synchronous
 //   unitsProvider               N12-T02  Provider<WeightUnit>
 //   terminologyProvider         N12-T02  Provider<Terminology>
+//   flockRepositoryProvider     N13-T02  Provider<FlockRepository>
+//   tagIndexProvider            N13-T02  StreamProvider<List<TagIndexEntry>>  keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
-//   flockRepositoryProvider · tagIndexProvider                       N13
 //   lambingRepositoryProvider                                        N16
 //   noteRepositoryProvider · mediaStoreProvider ·
 //     cameraServiceProvider · voiceRecorderProvider                  N15
@@ -38,8 +39,10 @@ import 'package:shed_book/core/db/connection.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/terminology/animal_class.dart';
 import 'package:shed_book/domain/terminology/term_label.dart';
 import 'package:shed_book/domain/terminology/terminology.dart';
@@ -92,6 +95,36 @@ final Provider<FreeTierPolicy> freeTierPolicyProvider = Provider<FreeTierPolicy>
 final Provider<SettingsRepository> settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SettingsRepository(ref.watch(databaseProvider).requireValue),
 );
+
+final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(
+  (ref) => FlockRepository(ref.watch(databaseProvider).requireValue),
+);
+
+/// The whole active flock's tags, ranked in Dart by the keypad.
+///
+/// **`tagIndexProvider`, and `flockTagCacheProvider` is a banned spelling**
+/// (R26): `07` used the latter in two places and lost — *"'cache' names the
+/// implementation while 'index' names the value."* It is also one of the five
+/// documented exceptions to the `<typeNameLowerCamel>Provider` rule
+/// (`CONVENTIONS §4.3`), so it is not `tagIndexEntriesProvider` either.
+///
+/// **`keepAlive`, not `autoDispose`, and the reason is 3am** (`02 §4.2`): hub
+/// reads are re-entered constantly through a night, and disposing and
+/// re-querying on every pop is exactly the wrong trade. An autoDispose index
+/// means the `412 →` window re-opens every time the shepherd pops back.
+///
+/// Nothing invalidates it. drift's `watch()` rebuilds it when an animal is
+/// culled or created, and a manual invalidate on a drift-backed provider is a
+/// defect (`02 §4.1`).
+final StreamProvider<List<TagIndexEntry>> tagIndexProvider = StreamProvider<List<TagIndexEntry>>((
+  ref,
+) async* {
+  // Awaited FIRST so `flockRepositoryProvider`'s `requireValue` is safe: the
+  // first frame paints before the database opens, and reading the repository
+  // ahead of that would throw rather than wait.
+  await ref.watch(databaseProvider.future);
+  yield* ref.watch(flockRepositoryProvider).watchTagIndex();
+});
 
 /// The one settings row, watched. **Carries the ROW class**, not a hand-rolled
 /// view model: a second shape is a second place a column can be forgotten.

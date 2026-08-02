@@ -186,4 +186,74 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get vocabFmOther => 'Other';
+
+  @override
+  String get keypadTagEntry => 'Tag entry';
+
+  @override
+  String get keypadBackspace => 'Backspace';
+
+  @override
+  String get hintDeleteLastDigit => 'delete the last digit';
+
+  @override
+  String get keypadNewTag => 'NEW TAG';
+
+  @override
+  String keypadEnteredTag({required String tag}) {
+    return 'Entered tag $tag';
+  }
+
+  @override
+  String matchCountClosest({required int count, required String tag}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count matches, closest $tag',
+      one: '1 match, closest $tag',
+      zero: 'No matches',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get quickEntryTitle => 'Tonight';
+
+  @override
+  String quickEntryPageHeader({required String night, required int page}) {
+    return 'Night of $night · page $page';
+  }
+
+  @override
+  String get quickEntryStampAuto => 'AUTO';
+
+  @override
+  String get quickEntryIndex => 'INDEX';
+
+  @override
+  String get quickEntrySlabTagFirst => 'Tag first';
+
+  @override
+  String get quickEntryPennedEmpty => 'Nothing penned yet.';
+
+  @override
+  String get quickEntryRecentsEmpty => 'No recent animals.';
+
+  @override
+  String get quickEntryDeckUnavailable => 'The deck could not be read.';
+
+  @override
+  String quickEntryHoursPenned({required int hours}) {
+    return '${hours}h';
+  }
+
+  @override
+  String quickEntryPennedRowLabel({required String tag, required String pen, required int hours}) {
+    return 'Tag $tag, in $pen, penned $hours hours';
+  }
+
+  @override
+  String quickEntryRecentRowLabel({required String tag}) {
+    return 'Tag $tag';
+  }
 }

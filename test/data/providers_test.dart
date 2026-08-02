@@ -160,6 +160,11 @@ void main() {
     // provider whose body throws UnimplementedError is not a placeholder, it is
     // a lie that compiles.
     expect(_declaredProviders(), _ledger());
+    // THE LITERAL GROWS ONE LINE PER EPIC, on purpose. The assertion above is
+    // the real contract — declared set equals ledger — and this one is the
+    // tripwire that makes adding a provider a deliberate act in two places
+    // rather than one: a ledger line and a body agree with each other trivially
+    // if the same hand wrote both in the same minute.
     expect(_declaredProviders(), <String>{
       'databaseProvider',
       'freeTierPolicyProvider',
@@ -168,6 +173,9 @@ void main() {
       'themeProvider',
       'unitsProvider',
       'terminologyProvider',
+      // N13-T02
+      'flockRepositoryProvider',
+      'tagIndexProvider',
     });
   });
 

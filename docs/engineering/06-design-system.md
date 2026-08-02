@@ -1230,6 +1230,33 @@ Enforcement is the rule table in §3.5 plus review. Three settings are not defau
 └───────────────────────┘     — never a bare tick.
 ```
 
+> **AMENDED 2026-08-02 (N13-T04). ~~Bottom-right is ALWAYS the decimal key; it renders inert … when
+> the field is integer-only.~~** An **inert key is a disabled key**: `onTap: null` makes
+> `ShedTapTarget` emit `enabled: false` and drop `SemanticsAction.tap` — §6.2 and `10 §3.6` both say
+> so in as many words. `indelible.md §7.2`'s key-state table says of *Disabled*: *"Never. No key is
+> ever disabled — a dead key under a cold thumb is indistinguishable from a missed tap."*
+> `CLAUDE.md`'s authority order puts `indelible.md` above this document, and the anchor test
+> *'no keypad key is ever disabled, including over the free cap'* is written against it.
+>
+> **The third key is a CONSTRUCTOR PARAMETER, `ShedKeypadThirdKey`, not a runtime state.** A tag pad is
+> built with `newTag` (the create-on-the-fly action), a weight pad with `decimal`. **This section's real
+> requirement is preserved exactly** — *"the grid never re-legends"* — because the legend is fixed for
+> as long as the pad is on screen. Nothing is disabled in either configuration.
+>
+> **A second amendment, measured: the box formula gains a width ceiling.**
+> `max(tapPrimary, scaler.scale(glyph) * 1.6)` has no width term, and three keys across is a hard
+> constraint — at text scale 2.0 on a 390 pt viewport it asks for 3 × 128 + 2 × 16 = 416 pt and the row
+> overflows by 26. This section's own sentence, *"after which the pad grows and the match list above it
+> gives up rows"*, describes growth in HEIGHT, which is the axis with somewhere to give. The shipped
+> form is `max(tapMin, min(wanted, (width − 2 × gapMin) / 3))`: available width is a ceiling and
+> `tapMin` is the floor that outranks it, so on a viewport too narrow for three 60 pt keys the row
+> overflows visibly and N33's geometric gate fails — which is correct, because the alternative is a
+> target under the floor.
+>
+> The word legend is the only key whose label is wider than its glyph, so it is constrained to the key
+> and **wraps**. `FittedBox` stays banned: shrinking a legend to fit is how an 18 pt floor becomes a
+> 9 pt legend on the one device whose owner turned the text up.
+
 The component is `lib/core/ui/components/shed_keypad.dart` — **not** `features/quick_entry/widgets/`. Lambing Entry, Treatments and Settings all use it and layer rule 6 forbids a sibling import (§3.1).
 
 Rules the component owns:
@@ -1589,7 +1616,7 @@ Everything the 12 screens need. Every one of them lives in `lib/core/ui/componen
 | `ShedPrimaryButton` | ≥ `tapHero` tall, ≥ 2 × `tapPrimary` wide | default, pressed, disabled | `labelLarge`, `surfaceFill` on `surfaceBase`. |
 | `ShedSecondaryButton` | ≥ `tapPrimary` tall | default, pressed, disabled | Outlined at `outlineWidth`. |
 | `ShedDestructiveButton` | ≥ `tapPrimary` tall | default, pressed, disabled, **confirming** | Never within `gapDestructive` of a frequent action; two-step. |
-| `ShedKeypad` | 3 cols × 4 rows, cells ≥ `tapPrimary`, gutters `gapMin` | key default/pressed, decimal inert | §8. Fixed geometry; mirrors on `leftHanded`. Glyph is `displaySmall`. |
+| `ShedKeypad` | 3 cols × 4 rows, cells ≥ `tapPrimary` and ≤ `(width − 2 × gapMin) / 3`, gutters `gapMin` | key default/pressed. **No disabled state, ever** — the third key is a constructor parameter (amended 2026-08-02) | §8. Fixed geometry; mirrors on `leftHanded`. Glyph is `displaySmall`. |
 | `ShedConfirmBar` | full width × `tapHero` | default, pressed, disabled | Labelled with the outcome ("Create 412"). |
 | `ShedRecentsStrip` | 6 chips × `tapPrimary` | chip default/pressed/selected, **placeholder** | Fixed height at frame 1 so nothing shifts. |
 | `ShedAnimalRow` | ≥ `tapPrimary` tall, full width | default, pressed, selected | Tag `displaySmall` tabular + one summary line. |

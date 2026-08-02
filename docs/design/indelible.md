@@ -825,7 +825,20 @@ EXPORT           LAST 3 DAYS AGO
 SETTINGS
 ```
 
-Each line is the book under a different filter. There is no tab bar, no rail, no stack, and no back button — pressing `INDEX` and choosing another filter is always one press deeper, never one press *back*.
+Each line is the book under a different filter. There is no tab bar, no rail, and **no back button** — pressing `INDEX` and choosing another filter is always one press deeper, never one press *back*.
+
+> **AMENDED 2026-08-02 (N13-T01), ruling P3.** This sentence read *"no tab bar, no rail, no stack, and
+> no back button"*. ~~**no stack**~~ is **struck**: navigation IS a `Navigator` stack (`02 §8.1`), and
+> the mechanism half of P3 went to `02`. *"One press deeper, never one press back"* is a claim about
+> what the shepherd is told and sees, and a push whose only exit is `Routes.popToQuickEntry` satisfies
+> it — while keeping the route name the diagnostics log may record (#124), `ModalRoute.withName` for
+> the pen-board flow's explicit return, and Android's hardware and predictive back working without
+> being hand-built twelve times.
+>
+> **The rest of the sentence stands, and the affordance half of P3 went to THIS document.** There is no
+> back chevron anywhere in Shed Book: `automaticallyImplyLeading: false` wherever an `AppBar` appears,
+> asserted per screen. `INDEX` is the only navigation affordance. A chevron would teach a shepherd the
+> app has a history to walk backwards through, which is the model this section is refusing.
 
 ---
 
@@ -839,7 +852,16 @@ Every screen below is **the same page under a different filter.** There is one s
 
 *This is the app. Everything else is reading it back.*
 
-**There is no Quick Entry screen, and that is the design.** Opening Shed Book lands you on tonight's page — `NIGHT OF 27 JULY 2026 · PAGE 3` — with tonight's four events already printed above, and **a fresh ruled row already drawn at the bottom, with the auto-captured time already inked in the red margin, stamped `AUTO`.** The pen is already on the page. You are not creating a record; you are filling one in. That single decision is what removes the Save button, removes the empty state, removes the "new entry" modal, and removes the doubt.
+**~~There is no Quick Entry screen~~, and the layout below is the design.**
+
+> **AMENDED 2026-08-02 (N13-T01), ruling P3.** ~~*"There is no Quick Entry screen"*~~ is **struck**:
+> `07 §5` makes Quick Entry the root route, `CONVENTIONS §2.14` gives it `RouteNames.quickEntry`, and
+> N13-T05 builds `QuickEntryScreen` as `MaterialApp.home`. `07-screens.md` outranks this document on
+> which screens exist. **Everything else in this paragraph is a LAYOUT claim and survives untouched** —
+> and it is the more important half: the page opens with tonight's events already printed and a fresh
+> ruled row already drawn, which is what removes the Save button, the empty state and the "new entry"
+> modal. A screen existing in the route table changes none of that; the shepherd never sees a screen
+> boundary, because Quick Entry is route 0 and is never pushed. Opening Shed Book lands you on tonight's page — `NIGHT OF 27 JULY 2026 · PAGE 3` — with tonight's four events already printed above, and **a fresh ruled row already drawn at the bottom, with the auto-captured time already inked in the red margin, stamped `AUTO`.** The pen is already on the page. You are not creating a record; you are filling one in. That single decision is what removes the Save button, removes the empty state, removes the "new entry" modal, and removes the doubt.
 
 The live row sits welded 152px above the bottom edge, directly under the last committed row, which is fully legible one line above it. Below-left: `INDEX`. Below-right: the slab, 160 × 140, currently disabled and reading `TAG FIRST`.
 

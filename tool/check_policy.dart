@@ -64,6 +64,10 @@ const List<String> _layers = <String>[
   'lib/data/',
   'lib/features/',
   'lib/routing/',
+  // A layer of its own since 2026-08-02 (R80). Without this entry a path under
+  // lib/l10n/ resolves to the `lib/` fallback, and the ONLY row admitting `lib/`
+  // is `lib/` itself — so every screen's own ARB message read as a violation.
+  'lib/l10n/',
   'lib/',
 ];
 
@@ -74,6 +78,15 @@ const Map<String, Set<String>> _mayImport = <String, Set<String>>{
   'lib/core/ui/': <String>{'lib/core/ui/', 'lib/domain/'},
   'lib/core/': <String>{'lib/core/', 'lib/core/ui/', 'lib/core/db/', 'lib/domain/'},
   'lib/data/': <String>{'lib/data/', 'lib/core/', 'lib/core/db/', 'lib/core/ui/', 'lib/domain/'},
+  // `lib/l10n/` added 2026-08-02 by CONVENTIONS R80. R67 put the directory in
+  // the tree and 10 §8 shows AppLocalizations.of(context) at call sites inside
+  // features, but §1.1's table admitted it nowhere — so the first screen to
+  // render a localised string failed this rule on its own ARB message.
+  //
+  // `lib/core/ui/` is deliberately NOT given the same edge: a shared component
+  // renders what it is handed and never resolves copy. That is the rule working
+  // rather than an oversight — it is what forced ShedKeypad's four label
+  // parameters at N13-T04.
   'lib/features/': <String>{
     'lib/features/',
     'lib/data/',
@@ -81,7 +94,11 @@ const Map<String, Set<String>> _mayImport = <String, Set<String>>{
     'lib/core/',
     'lib/core/ui/',
     'lib/routing/',
+    'lib/l10n/',
   },
+  // Generated. It imports flutter and intl and nothing of ours, so its own row
+  // is the narrowest true one.
+  'lib/l10n/': <String>{'lib/l10n/'},
   'lib/routing/': <String>{
     'lib/routing/',
     'lib/features/',
@@ -97,6 +114,11 @@ const Map<String, Set<String>> _mayImport = <String, Set<String>>{
     'lib/domain/',
     'lib/features/',
     'lib/routing/',
+    // app.dart passed BEFORE R80 only because lib/l10n/ resolved to the `lib/`
+    // fallback and this row contains `lib/` — i.e. by accident rather than by
+    // decision. Now that lib/l10n/ is a layer of its own the edge has to be
+    // stated, which is the point of making it one.
+    'lib/l10n/',
   },
 };
 

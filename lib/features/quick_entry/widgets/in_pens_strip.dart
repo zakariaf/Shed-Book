@@ -17,13 +17,13 @@
 // exceed six rows. 07 §5.1 is amended in the same commit.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/core/time/ticker.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/domain/penning.dart';
 import 'package:shed_book/domain/time/instant.dart';
-import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class InPensStrip extends ConsumerWidget {

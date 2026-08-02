@@ -5,7 +5,6 @@
 // keystroke is a filter, not a query.
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
@@ -92,17 +91,14 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
 final NotifierProvider<QuickEntryController, QuickEntryState> quickEntryControllerProvider =
     NotifierProvider<QuickEntryController, QuickEntryState>(QuickEntryController.new);
 
-/// **R28: ONE provider for both strips.** `recentEwesProvider` and
-/// `inPensProvider` are banned spellings — two providers means two statements,
-/// and two statements over one transaction can emit at different times
-/// (decision #12).
-///
-/// keepAlive: this is the hub screen (`02 §4.2`). The two strips read it through
-/// `.select`, which is what makes a change to one bucket leave the other alone —
-/// see `FlockRepository._toDeck` for why that needs the repository's help.
-final StreamProvider<QuickEntryDeck> quickEntryDeckProvider = StreamProvider<QuickEntryDeck>((
-  ref,
-) async* {
-  await ref.watch(databaseProvider.future);
-  yield* ref.watch(flockRepositoryProvider).watchQuickEntryDeck();
-});
+// `quickEntryDeckProvider` MOVED TO `lib/data/providers.dart` AT N18-T02 (R83).
+//
+// The Foster screen needs the same deck — the pen strip is where a ewe with a
+// spare teat is found — and `layer.features` forbids one feature importing
+// another. A provider declared in a feature folder is a provider only that
+// feature can ever read, which is a constraint on the ARCHITECTURE dressed up as
+// a file location.
+//
+// Quick Entry's two strips are unchanged: they still read it with
+// `.select((d) => d.penned)` and `.select((d) => d.recents)`, and R28 is
+// untouched. Only the file moved.

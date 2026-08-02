@@ -12,10 +12,10 @@
 // descending. Rendering both newest-first feels tidier and is wrong.
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
-import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class RecentsStrip extends ConsumerWidget {

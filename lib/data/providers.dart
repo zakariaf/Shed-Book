@@ -19,6 +19,7 @@
 //   voiceRecorderProvider       N15-T03  Provider<VoiceRecorder>              keepAlive
 //   noteRepositoryProvider      N15-T04  FutureProvider<NoteRepository>       keepAlive
 //   vocabProvider               N16-T04  StreamProvider<List<VocabEntry>>     keepAlive
+//   quickEntryDeckProvider      N18-T02  StreamProvider<QuickEntryDeck>       keepAlive  (moved, R83)
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
@@ -162,6 +163,26 @@ final StreamProvider<List<TagIndexEntry>> tagIndexProvider = StreamProvider<List
   // ahead of that would throw rather than wait.
   await ref.watch(databaseProvider.future);
   yield* ref.watch(flockRepositoryProvider).watchTagIndex();
+});
+
+/// **MOVED HERE FROM `lib/features/quick_entry/` AT N18-T02 (R83).** The Foster
+/// screen needs the same deck, and `layer.features` forbids one feature
+/// importing another — so a provider declared in a feature folder is a provider
+/// only that feature can ever read.
+///
+/// **R28: ONE provider for both strips.** `recentEwesProvider` and
+/// `inPensProvider` are banned spellings — two providers means two statements,
+/// and two statements over one transaction can emit at different times
+/// (decision #12).
+///
+/// keepAlive: this is the hub screen (`02 §4.2`). The two strips read it through
+/// `.select`, which is what makes a change to one bucket leave the other alone —
+/// see `FlockRepository._toDeck` for why that needs the repository's help.
+final StreamProvider<QuickEntryDeck> quickEntryDeckProvider = StreamProvider<QuickEntryDeck>((
+  ref,
+) async* {
+  await ref.watch(databaseProvider.future);
+  yield* ref.watch(flockRepositoryProvider).watchQuickEntryDeck();
 });
 
 /// **ALL FORTY VOCABULARY ROWS, ONCE, FOR THE WHOLE APP.**

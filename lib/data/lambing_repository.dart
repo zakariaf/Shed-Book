@@ -241,6 +241,60 @@ final class LambingRepository {
     return (trimmed == null || trimmed.isEmpty) ? null : trimmed;
   }
 
+  /// Whether the lamb is on the bottle.
+  ///
+  /// **CLEARING IT DOES NOT ZERO THE COUNT**, and that is a choice rather than a
+  /// constraint — unlike the death columns there is no `CHECK` forcing them to
+  /// move together. The instinct is to tidy: if she is no longer a pet lamb the
+  /// feeds are meaningless. They are not. *Which lambs cost them six weeks of
+  /// bottles* is exactly the April question, and a lamb weaned off the bottle is
+  /// still a lamb that was on it.
+  Future<WriteOutcome> setPetLamb(LambId lamb, {required bool petLamb}) => _setOneLambColumn(
+    lamb,
+    (Instant now) => LambsCompanion(petLamb: Value<bool>(petLamb), updatedAt: Value<Instant>(now)),
+  );
+
+  /// One more bottle feed.
+  ///
+  /// **`bottle_feeds = bottle_feeds + 1` IN SQL, NOT READ-MODIFY-WRITE IN
+  /// DART.** Two taps a frame apart both reading 3 and both writing 4 loses a
+  /// feed silently — and silently is the whole problem, because a lost feed
+  /// looks exactly like a feed that was never given.
+  ///
+  /// `guard()` refuses a CONCURRENT call, which is the double-tap defence, but it
+  /// does not serialise two deliberate taps two seconds apart and it is not the
+  /// mechanism for this. The increment has to be atomic in the statement.
+  ///
+  /// **NO PER-FEED ROW IS WRITTEN, AND THE DIVERGENCE IS DELIBERATE.**
+  /// `indelible.md §8` screen 5 asks for a timestamped `FEED 4 — 06:40` line in
+  /// the stream; there is no table that can hold one. `care_events.kind` is a
+  /// CLOSED `CHECK` and a fifth value is a schema migration AND a notification
+  /// channel decision (#65) — the schema froze at N07-T08. Printing that line
+  /// from a counter would invent a timestamp the record does not have, which is
+  /// precision inflation: the same §12.4 failure as claiming an hour for a civil
+  /// death date.
+  /// **THROUGH `update(...).write(...)`, NOT A RAW STATEMENT**, and the gate
+  /// ruled that too. A raw statement bypasses drift's stream tracking, so the
+  /// card would keep showing the old count until the shepherd navigated away and
+  /// back — the increment would be correct in the database and invisible on
+  /// screen, which is the worst of both. `RawValuesInsertable` carries the
+  /// EXPRESSION through the typed update, so the table is still tracked.
+  Future<WriteOutcome> addBottleFeed(LambId lamb) async {
+    try {
+      final Instant now = appNow();
+      final int rows =
+          await (_db.update(_db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+            RawValuesInsertable<Lamb>(<String, Expression<Object>>{
+              'bottle_feeds': _db.lambs.bottleFeeds + const Constant<int>(1),
+              'updated_at': Variable<int>(now.epochMillis),
+            }),
+          );
+      return WriteCommitted(insertedId: rows > 0 ? lamb.value : null);
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// Records a lamb's death — **status, date and cause in one transaction**.
   ///
   /// One `_db.transaction()` and not three writes, because the schema's `CHECK`s

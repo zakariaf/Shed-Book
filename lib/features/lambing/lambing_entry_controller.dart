@@ -82,6 +82,12 @@ final class LambingWriteController extends WriteController {
   Future<void> removeCare(CareEventId id) =>
       guard(() => ref.read(lambingRepositoryProvider).removeCare(id));
 
+  Future<void> setPetLamb(LambId lamb, {required bool petLamb}) =>
+      guard(() => ref.read(lambingRepositoryProvider).setPetLamb(lamb, petLamb: petLamb));
+
+  Future<void> addBottleFeed(LambId lamb) =>
+      guard(() => ref.read(lambingRepositoryProvider).addBottleFeed(lamb));
+
   /// Records a death, **and this is where the validator runs** (R53).
   ///
   /// The repository is structurally incapable of producing a warning; the

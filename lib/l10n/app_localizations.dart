@@ -1119,6 +1119,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The death date is before the lambing.'**
   String get warningDeathBeforeBirth;
+
+  /// The pet-lamb toggle's label. The trade phrase, not 'Pet lamb status': a shepherd says a lamb is on the bottle. Clearing it does NOT zero the feed count - which lambs cost six weeks of bottles is exactly the April question, and a lamb weaned off the bottle is still a lamb that was on it.
+  ///
+  /// In en, this message translates to:
+  /// **'ON THE BOTTLE'**
+  String get lambCardPetLambLabel;
+
+  /// The bottle-feed counter's label. It counts feeds, and the total is the stored fact: indelible.md 8 asks for a timestamped FEED 4 - 06:40 line per feed, and no table can hold one (care_events.kind is a closed CHECK wired to frozen notification channel ids). Printing that line from a counter would invent a timestamp the record does not have.
+  ///
+  /// In en, this message translates to:
+  /// **'FEEDS'**
+  String get lambCardFeedsLabel;
+
+  /// The feed count before the lamb is marked as on the bottle. It is NOT a zero: bottle_feeds has DEFAULT 0 and that column's 0 means 'no feeds recorded', while pet_lamb is what says whether the count is meaningful at all. A confident 0 on a lamb nobody bottle-fed would be the app originating a number the shepherd never pressed.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED · SKIPPABLE'**
+  String get lambCardFeedsUnset;
+
+  /// The increment target's glyph. There is no minus: a feed that happened cannot un-happen, and a decrement would be an undo for an event rather than a correction of a value. If a mis-tap needs undoing that is a screens decision, not a local one.
+  ///
+  /// In en, this message translates to:
+  /// **'+'**
+  String get lambCardFeedsAdd;
+
+  /// The increment target for a screen reader. A bare '+' is unreadable aloud, and the label says what is counted.
+  ///
+  /// In en, this message translates to:
+  /// **'Record one more bottle feed'**
+  String get lambCardFeedsAddSemantics;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

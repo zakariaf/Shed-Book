@@ -269,6 +269,89 @@ class _Card extends ConsumerWidget {
                 ),
               ),
           ],
+          // ON THE BOTTLE, AND THE FEEDS (T04).
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+            child: Text(l10n.lambCardPetLambLabel, style: text.labelMedium),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: Row(
+              children: <Widget>[
+                // FLEXIBLE, AND MEASURED — the toggle, the count and the `+`
+                // came to 32 px over on a 375 pt phone. The toggle's own word is
+                // the one that can give: the section label above it already says
+                // what this row is, so an ellipsis here costs nothing that is
+                // not already on screen.
+                Flexible(
+                  child: Semantics(
+                    selected: data.petLamb,
+                    child: ShedTapTarget(
+                      key: const Key('lamb_card.pet_lamb'),
+                      semanticLabel: l10n.lambCardPetLambLabel,
+                      minSize: t.tapIndelible,
+                      onTap: () => write.setPetLamb(data.lambId, petLamb: !data.petLamb),
+                      child: ExcludeSemantics(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: data.petLamb ? t.textPrimary : t.outline,
+                                width: data.petLamb ? t.outlineWidth * 2 : t.outlineWidth,
+                              ),
+                            ),
+                          ),
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                            child: Center(
+                              child: Text(
+                                l10n.lambCardPetLambLabel,
+                                style: data.petLamb ? text.titleMedium : text.bodyMedium,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: t.gapMin),
+                // THE COUNT IS ONLY MEANINGFUL ONCE SHE IS ON THE BOTTLE.
+                // `bottle_feeds` has DEFAULT 0, and that 0 means *no feeds
+                // recorded* — `pet_lamb` is what says whether the number means
+                // anything. A confident `0` on a lamb nobody bottle-fed would be
+                // the app originating a number the shepherd never pressed.
+                Flexible(
+                  child: Text(
+                    data.petLamb ? '${data.bottleFeeds}' : l10n.lambCardFeedsUnset,
+                    key: const Key('lamb_card.feeds'),
+                    style: data.petLamb
+                        ? text.bodyMedium
+                        : text.bodySmall?.copyWith(color: t.textSecondary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (data.petLamb) ...<Widget>[
+                  SizedBox(width: t.gapMin),
+                  ShedTapTarget(
+                    key: const Key('lamb_card.feeds.add'),
+                    semanticLabel: l10n.lambCardFeedsAddSemantics,
+                    minSize: t.tapIndelible,
+                    // NO MINUS. A feed that happened cannot un-happen, and a
+                    // decrement would be an undo for an event rather than a
+                    // correction of a value.
+                    onTap: () => write.addBottleFeed(data.lambId),
+                    child: ExcludeSemantics(
+                      child: Center(child: Text(l10n.lambCardFeedsAdd, style: text.displaySmall)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
           SizedBox(height: t.gapMin),
           // THE HISTORY. Never empty — the `born` arm always yields one row —
           // so the "nothing else" line is about everything AFTER the birth.

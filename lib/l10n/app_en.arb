@@ -884,5 +884,25 @@
   "warningDeathBeforeBirth": "The death date is before the lambing.",
   "@warningDeathBeforeBirth": {
     "description": "The deathBeforeBirth observation, and it is the ARB copy of a string the domain also holds - lib/domain/ ships English because v1 is en-only (#108). It says what we observed and never what to do: it does not say 'check the date' and it does not offer to swap them. It never blocks the write, because a blocked write produces a lost record and this one is about a lamb that died."
+  },
+  "lambCardPetLambLabel": "ON THE BOTTLE",
+  "@lambCardPetLambLabel": {
+    "description": "The pet-lamb toggle's label. The trade phrase, not 'Pet lamb status': a shepherd says a lamb is on the bottle. Clearing it does NOT zero the feed count - which lambs cost six weeks of bottles is exactly the April question, and a lamb weaned off the bottle is still a lamb that was on it."
+  },
+  "lambCardFeedsLabel": "FEEDS",
+  "@lambCardFeedsLabel": {
+    "description": "The bottle-feed counter's label. It counts feeds, and the total is the stored fact: indelible.md 8 asks for a timestamped FEED 4 - 06:40 line per feed, and no table can hold one (care_events.kind is a closed CHECK wired to frozen notification channel ids). Printing that line from a counter would invent a timestamp the record does not have."
+  },
+  "lambCardFeedsUnset": "NOT RECORDED · SKIPPABLE",
+  "@lambCardFeedsUnset": {
+    "description": "The feed count before the lamb is marked as on the bottle. It is NOT a zero: bottle_feeds has DEFAULT 0 and that column's 0 means 'no feeds recorded', while pet_lamb is what says whether the count is meaningful at all. A confident 0 on a lamb nobody bottle-fed would be the app originating a number the shepherd never pressed."
+  },
+  "lambCardFeedsAdd": "+",
+  "@lambCardFeedsAdd": {
+    "description": "The increment target's glyph. There is no minus: a feed that happened cannot un-happen, and a decrement would be an undo for an event rather than a correction of a value. If a mis-tap needs undoing that is a screens decision, not a local one."
+  },
+  "lambCardFeedsAddSemantics": "Record one more bottle feed",
+  "@lambCardFeedsAddSemantics": {
+    "description": "The increment target for a screen reader. A bare '+' is unreadable aloud, and the label says what is counted."
   }
 }

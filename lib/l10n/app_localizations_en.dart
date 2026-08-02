@@ -608,4 +608,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get warningDeathBeforeBirth => 'The death date is before the lambing.';
+
+  @override
+  String get lambCardPetLambLabel => 'ON THE BOTTLE';
+
+  @override
+  String get lambCardFeedsLabel => 'FEEDS';
+
+  @override
+  String get lambCardFeedsUnset => 'NOT RECORDED · SKIPPABLE';
+
+  @override
+  String get lambCardFeedsAdd => '+';
+
+  @override
+  String get lambCardFeedsAddSemantics => 'Record one more bottle feed';
 }

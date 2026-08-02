@@ -397,6 +397,96 @@ void main() {
 
     await tester.closeApp();
   });
+  // ---------------------------------------------------------------------------
+  // T04 — pet lamb status and the feeding count
+  // ---------------------------------------------------------------------------
+
+  testWidgets('incrementing the feeding count commits immediately and the control is at least '
+      '64 by 64', (WidgetTester tester) async {
+    // THE ANCHOR, WITH BOTH SHARPENINGS THE TASK ASKS FOR.
+    //
+    // COMMITS IMMEDIATELY — `lambs.bottle_feeds` is read back out of the
+    // database with no Save button pressed and no route popped.
+    //
+    // 64 BY 64 — MEASURED WITH `getSize`, never asserted against the constant
+    // that was passed in. A size assertion that reads its own input proves
+    // nothing: it passes against a widget whose parent has squeezed it flat.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    Future<void> tap(String key) async {
+      final Finder f = find.byKey(Key(key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    Future<Lamb> row() async =>
+        (db.select(db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+
+    // THE COUNT IS ABSENT UNTIL SHE IS ON THE BOTTLE, and it is not a zero.
+    expect(find.byKey(const Key('lamb_card.feeds.add')), findsNothing);
+    expect(find.textContaining('SKIPPABLE'), findsWidgets);
+
+    await tap('lamb_card.pet_lamb');
+    expect((await row()).petLamb, isTrue);
+
+    final Size add = tester.getSize(find.byKey(const Key('lamb_card.feeds.add')));
+    expect(add.width, greaterThanOrEqualTo(64.0));
+    expect(add.height, greaterThanOrEqualTo(64.0));
+
+    await tap('lamb_card.feeds.add');
+    expect((await row()).bottleFeeds, 1);
+
+    await tap('lamb_card.feeds.add');
+    await tap('lamb_card.feeds.add');
+    expect((await row()).bottleFeeds, 3, reason: 'each tap is one feed');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('coming off the bottle keeps the feeds that were given', (WidgetTester tester) async {
+    // THE INSTINCT IS TO TIDY, AND IT IS WRONG. If she is no longer a pet lamb
+    // the feeds look meaningless — but *which lambs cost them six weeks of
+    // bottles* is exactly the April question, and a lamb weaned off the bottle is
+    // still a lamb that was on it. Unlike the death columns there is no CHECK
+    // forcing these two to move together, so this is a choice, and this case is
+    // where the choice is recorded.
+    final AppDatabase db = testDatabase();
+    await _seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe);
+
+    await (db.update(db.lambs)..where(($LambsTable t) => t.id.equals(lamb.value))).write(
+      const LambsCompanion(petLamb: Value<bool>(true), bottleFeeds: Value<int>(42)),
+    );
+
+    await tester.pumpApp(LambCardScreen(lambId: lamb), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder toggle = find.byKey(const Key('lamb_card.pet_lamb'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(toggle);
+    await tester.pumpAndSettle();
+
+    final Lamb row = await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle();
+
+    expect(row.petLamb, isFalse);
+    expect(row.bottleFeeds, 42, reason: 'six weeks of bottles is a fact, not a status');
+
+    await tester.closeApp();
+  });
 }
 
 String _read(String path) => File(path).readAsStringSync();

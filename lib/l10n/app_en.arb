@@ -1150,6 +1150,48 @@
   "@exportBannerDismiss": {
     "description": "Writes export_prompt_dismissed_for_season and the banner never appears again this season. There is NO third 'later' action and no close X: not answering is already free, and a dismiss-for-now button would be a third decision at the one moment the app promised not to ask for any."
   },
+  "restoreRefusedNewerApp": "This backup was made by a newer version of Shed Book. Update the app and try again.",
+  "@restoreRefusedNewerApp": {
+    "description": "Shown when formatVersion or schema in the file is higher than this build can read. DO NOT soften this to 'may not be compatible': guessing at a newer schema is spec 12.4 applied to restore, and a partial import would destroy records rather than decline to touch them. 09 5.5."
+  },
+  "restoreRefusedNewerAppDetail": "This file: format {foundFormat}, records {foundSchema}. This app reads format {readsFormat}, records {readsSchema}.",
+  "@restoreRefusedNewerAppDetail": {
+    "description": "The second line under restoreRefusedNewerApp. Named numbers, so a shepherd on the phone to a friend can say which build wrote the file. It NEVER replaces the sentence above it - a pair of version numbers with no sentence is a screen that has told somebody their records are unreachable without telling them what to do.",
+    "placeholders": {
+      "foundFormat": { "type": "int" },
+      "foundSchema": { "type": "int" },
+      "readsFormat": { "type": "int" },
+      "readsSchema": { "type": "int" }
+    }
+  },
+  "restoreRefusedNotOurs": "This is not a Shed Book backup file.",
+  "@restoreRefusedNotOurs": {
+    "description": "A different sentence from restoreRefusedDamaged on purpose: 'this is not ours' and 'this is ours and it is damaged' send a shepherd to two different next steps - find the right file, versus find an older copy."
+  },
+  "restoreRefusedDamaged": "This Shed Book backup is damaged and cannot be read.",
+  "@restoreRefusedDamaged": {
+    "description": "Ours, and a required header key is missing or the wrong type. It does not say 'try again' - re-picking the same file will not help, and a shepherd who has just been told their backup is damaged should not be sent in a circle."
+  },
+  "backupIntegrityLine": "Each backup carries a check that finds a truncated or damaged file. It does not protect the file from being changed.",
+  "@backupIntegrityLine": {
+    "description": "On the backup row of the Export screen. FNV-1a is a CORRUPTION check: it finds a truncated download, a half-written file and a bad card, and it finds nothing an author intended. Six words are banned from this message and from every file near it - see offline_wording_test.dart - because a shepherd who reads one of them has been told their backup is proof against something it is not proof against at all. The second sentence exists so the first cannot be read as more than it is."
+  },
+  "backupRefusedIncomplete": "This backup file is incomplete and has not been restored. Nothing on this phone has changed.",
+  "@backupRefusedIncomplete": {
+    "description": "Shown when the checksum or a per-table count disagrees. The second sentence is the load-bearing one: a shepherd who has just been told a restore failed needs to know whether their current records survived it, and the answer is always yes because the restore builds a new file beside the live one. It does NOT say 'try again' - re-picking the same damaged file will not help."
+  },
+  "restoreRefusedZip": "This looks like a photo archive. Shed Book restores the records file (.json).",
+  "@restoreRefusedZip": {
+    "description": "Shown when the picked file starts with the ZIP magic bytes. Media is not part of a v1 backup (decision 85), so a photo archive is never restorable. It names what was picked AND what was expected; never 'invalid file', which at 2am is not an instruction."
+  },
+  "restoreRefusedDatabaseCopy": "This is a diagnostics copy of a database, not a backup. It cannot be restored in the app.",
+  "@restoreRefusedDatabaseCopy": {
+    "description": "Shown for a file starting 'SQLite format 3'. That is the VACUUM INTO snapshot from Settings, Diagnostics - deliberately not an in-app restore path (04 2.8). tool/snapshot_to_backup.dart converts it, and that is a developer tool rather than a code path on a phone."
+  },
+  "restoreRefusedNotABackup": "This file is not a Shed Book backup. Choose the .json file the app shared when you exported.",
+  "@restoreRefusedNotABackup": {
+    "description": "The catch-all for an unrecognised first byte - most often a photo the shepherd renamed. It says what to pick INSTEAD, because a refusal that names no next step leaves somebody holding a phone at 2am with nothing to try."
+  },
   "treatmentsTitle": "TREATMENTS",
   "@treatmentsTitle": {
     "description": "The screen's heading, headingLevel 1."

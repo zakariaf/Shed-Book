@@ -22,13 +22,16 @@
 // first draft of this one.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/data/backup_format.dart';
 import 'package:shed_book/data/csv_writer.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
+import 'package:shed_book/domain/policy/export_envelope.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
@@ -82,6 +85,99 @@ final class ExportRepository {
       out.add((path: file.path, shareName: name, byteSize: bytes.length));
     }
     return out;
+  }
+
+  /// The JSON backup — **the file the product's whole recovery story rests on.**
+  ///
+  /// It writes nothing to the database (`CONVENTIONS §2.13`), and this verb does
+  /// not change that: it reads 21 tables and assembles one file.
+  ///
+  /// **ALL 21 TABLES, INCLUDING THE EMPTY ONES** (P15). T03's contract carries an
+  /// unknown *column* forward through `unknown_json`; it does not carry an
+  /// unknown *table*, so a `v1.0.0` file written short is a `v1.1.0` restore that
+  /// has to invent one — on the one code path where a bug loses five seasons.
+  Future<ExportArtifact> writeBackup({
+    required ExportEnvelope envelope,
+    required Directory outputDir,
+  }) async {
+    final List<String> names = backupTableNames(_db);
+
+    final Map<String, Object?> tables = <String, Object?>{};
+    final Map<String, int> counts = <String, int>{};
+    for (final String name in names) {
+      final List<Map<String, Object?>> rows = await _backupRows(name);
+      tables[name] = rows;
+      // ONE ENTRY PER TABLE, ZEROS INCLUDED. `09 §5.2`: the check *"is per table
+      // and cannot be partial: a table absent from `counts` is a table nothing
+      // verifies."* A map built by iterating rows silently omits every empty one.
+      counts[name] = rows.length;
+    }
+
+    final Uint8List body = canonicalJsonBytes(tables);
+    final DateTime local = envelope.generatedAt.local;
+    final BackupHeader header = BackupHeader(
+      schema: _db.schemaVersion,
+      appVersion: envelope.appVersion,
+      exportedAtUtc: DateTime.fromMillisecondsSinceEpoch(
+        envelope.generatedAt.epochMillis,
+        isUtc: true,
+      ).toIso8601String(),
+      // THE OFFSET AT THE EXPORT INSTANT, never the offset now. Inside the
+      // ambiguous 01:00–01:59 hour the two answers differ by sixty minutes, and
+      // this field is the only record of which side of the boundary it happened
+      // on.
+      exportedAtOffsetMinutes: local.timeZoneOffset.inMinutes,
+      exportedAtZoneAbbreviation: local.timeZoneName,
+      counts: counts,
+      // v1 IS RECORDS-ONLY (#85), and `false` is the honest statement rather than
+      // a placeholder: a restore that found `true` would expect bytes nobody
+      // wrote.
+      media: const BackupMedia(included: false, count: 0, bytes: 0),
+    );
+
+    // THE ONE ALL-NUMERIC DATE THIS APP WRITES, and it carries the TIME as well
+    // (`09 §8.1`): a shepherd who exports before and after a night would
+    // otherwise overwrite the morning's file. ISO-ordered, so it is unambiguous
+    // — and a file name rather than a sentence a human reads, so R60 stands.
+    final String name =
+        'shed-book-backup-${local.year}-${_two(local.month)}-${_two(local.day)}'
+        '-${_two(local.hour)}${_two(local.minute)}.json';
+
+    final File file = File('${outputDir.path}/$name');
+    final IOSink sink = file.openWrite();
+    sink.add(utf8.encode(headerPrefixJson(header, fnv1a64Hex(body), envelope)));
+    sink.add(body);
+    sink.add(utf8.encode('}\n'));
+    await sink.close();
+
+    return (path: file.path, shareName: name, byteSize: await file.length());
+  }
+
+  static String _two(int v) => v.toString().padLeft(2, '0');
+
+  /// One table's rows, as the file carries them.
+  ///
+  /// **NO `id` AND NO RAW INTEGER FOREIGN KEY.** `SELECT *` gives you both; `id`
+  /// is re-issued on import and a raw foreign key is a pointer that stops
+  /// pointing. Each row-pointing column is replaced by `<column>_uid` resolved
+  /// through a join.
+  Future<List<Map<String, Object?>>> _backupRows(String table) async {
+    final Map<String, String> fks = kBackupForeignKeys[table] ?? const <String, String>{};
+    final List<QueryRow> rows = await _db.customSelect(_backupSql(table, fks)).get();
+
+    return <Map<String, Object?>>[
+      for (final QueryRow r in rows)
+        // THE SPLAT HAPPENS HERE, BEFORE `canonicalJsonBytes` SORTS. Merging
+        // after the sort produces a file that decodes correctly and whose key
+        // order is wrong — and only byte equality catches that.
+        //
+        // `splatUnknownJson` also drops the container itself, so a preserved
+        // field is written once rather than twice.
+        splatUnknownJson(<String, Object?>{
+          for (final MapEntry<String, Object?> e in r.data.entries)
+            if (e.key != kRowIdColumn && !fks.containsKey(e.key)) e.key: e.value,
+        }),
+    ];
   }
 
   /// What the screen states before anything is tapped.
@@ -166,6 +262,46 @@ final class ExportRepository {
         )
         .getSingle();
     return row.read<int>('n');
+  }
+
+  /// The 21 restorable tables, derived from the schema rather than written down.
+  ///
+  /// **DERIVED, so a table added in season two fails a test rather than being
+  /// silently dropped from every backup.** A hand-typed list of twenty-one names
+  /// is a list that goes stale in the one file nobody re-reads.
+  static List<String> backupTableNames(AppDatabase db) =>
+      db.allTables
+          .map((TableInfo<Table, dynamic> t) => t.actualTableName)
+          .where((String n) => !kBackupExcludedTables.contains(n))
+          .toList()
+        ..sort();
+
+  /// `SELECT`, with each row-pointing foreign key resolved to the parent's uid.
+  ///
+  /// **CODE-UNIT ORDER IS NOT THE ALPHABETICAL ORDER YOU WOULD WRITE BY HAND** —
+  /// `_` is 0x5F and `s` is 0x73, so `ewe_touches` sorts before `ewes`,
+  /// `pen_occupancies` before `pens`, and `treatment_withdrawals` before
+  /// `treatments`. The table list is sorted by `String.compareTo`, which is that
+  /// order; a hand-typed "sensible" order is one byte-comparison from correct and
+  /// fails only once both tables are non-empty.
+  static String _backupSql(String table, Map<String, String> fks) {
+    final List<String> selects = <String>['t.*'];
+    final List<String> joins = <String>[];
+    int i = 0;
+    for (final MapEntry<String, String> fk in fks.entries) {
+      final String alias = 'f${i++}';
+      selects.add('$alias.uid AS ${fk.key}_uid');
+      // LEFT, because most of these are nullable — a lamb with no `became_ewe`
+      // is the common case, and an INNER join would drop the row.
+      joins.add('LEFT JOIN ${fk.value} $alias ON $alias.id = t.${fk.key}');
+    }
+
+    final List<String> order = kBackupOrderKeys[table] ?? const <String>['uid'];
+    final String orderBy = order.isEmpty
+        ? ''
+        : ' ORDER BY ${order.map((String k) => k == 'uid' ? 't.uid' : k).join(', ')}';
+
+    return 'SELECT ${selects.join(', ')} FROM $table t ${joins.join(' ')}$orderBy';
   }
 
   static final int _countsSeasonPlaceholders = '?'.allMatches(_countsSql).length;

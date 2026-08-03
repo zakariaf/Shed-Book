@@ -14,6 +14,7 @@
 @Tags(<String>['policy'])
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -32,6 +33,32 @@ const List<String> _publicCopy = <String>['docs/store/', 'README.md'];
 const List<String> _bannedEverywhereInPublicCopy = <String>[
   'your data never leaves your phone',
   'offline-first',
+];
+
+/// The six words the backup checksum's copy may never use, anywhere near it.
+///
+/// **FNV-1a IS A CORRUPTION CHECK, NOT A SECURITY FUNCTION.** It detects a
+/// truncated download, a half-written file and a bad card. It detects nothing an
+/// author intended, and a shepherd who reads *verified* has been told their
+/// backup is proof against something it is not proof against at all.
+///
+/// Added to **this** file rather than to a second one, per the note above: a
+/// list that moves to `test/support/` acquires a second allowlist.
+const List<String> _bannedNearTheChecksum = <String>[
+  'verified',
+  'verify',
+  'secure',
+  'security',
+  'authentic',
+  'tamper',
+];
+
+/// Where that copy lives.
+const List<String> _checksumCopy = <String>[
+  'lib/data/backup_format.dart',
+  'lib/features/export/',
+  'lib/features/settings/',
+  'lib/l10n/app_en.arb',
 ];
 
 /// Banned **unqualified** only. The qualified form — the one that names the
@@ -167,4 +194,83 @@ void main() {
       );
     }
   });
+
+  test('the words verified and secure appear nowhere near the backup checksum', () {
+    // `09 §5.7`'s wording rule, made mechanical. The check is honest about what
+    // it does — *this file is complete* — and silent about what it does not do,
+    // because there is no phrasing of *secure* that is true of a 64-bit
+    // non-cryptographic hash and also useful to a shepherd.
+    //
+    // Scanned over JOINED string literals and ARB message values, never over the
+    // raw file: Dart wraps long strings across adjacent literals, and a naive
+    // `contains` misses exactly the sentence you are trying to police
+    // (`09 §6.4`). The doc comments in `backup_format.dart` that NAME these
+    // words to forbid them are outside the scan for the same reason — they are
+    // comments, not copy.
+    for (final String path in _checksumCopy) {
+      for (final String text in _copyIn(path)) {
+        for (final String word in _bannedNearTheChecksum) {
+          expect(
+            text.toLowerCase(),
+            isNot(contains(word)),
+            reason: '$path over-claims with "$word" — FNV-1a finds corruption, not tampering',
+          );
+        }
+      }
+    }
+  });
+
+  test('the checksum copy that does exist says what the check does not do', () {
+    // The negative above is only half a rule: a screen that says nothing at all
+    // also passes it. `09 §5.7` wants the file to be honest, so the message has
+    // to exist and has to be the qualified sentence.
+    final String arb = _read('lib/l10n/app_en.arb');
+    expect(arb, contains('backupIntegrityLine'));
+    expect(arb, contains('backupRefusedIncomplete'));
+  });
+}
+
+/// Every authored string in one path — Dart string literals joined across
+/// adjacent parts, or ARB message values.
+///
+/// **Comments are excluded.** A file that names a banned word in order to forbid
+/// it is doing the opposite of over-claiming, and scanning raw text would make
+/// this rule unwritable in the one file that most needs it.
+List<String> _copyIn(String path) {
+  final List<String> files = path.endsWith('/')
+      ? Directory(path)
+            .listSync(recursive: true)
+            .whereType<File>()
+            .map((File f) => f.path)
+            .where((String p) => p.endsWith('.dart') && !p.endsWith('.g.dart'))
+            .toList()
+      : <String>[path];
+
+  final List<String> out = <String>[];
+  for (final String file in files) {
+    if (!File(file).existsSync()) {
+      continue;
+    }
+    if (file.endsWith('.arb')) {
+      final Map<String, Object?> arb =
+          jsonDecode(File(file).readAsStringSync()) as Map<String, Object?>;
+      for (final MapEntry<String, Object?> e in arb.entries) {
+        // MESSAGE VALUES ONLY. An `@key` block is a description written for a
+        // developer, and several of them name these words precisely to forbid
+        // them.
+        if (!e.key.startsWith('@') && e.value is String) {
+          out.add(e.value! as String);
+        }
+      }
+      continue;
+    }
+    final String source = File(file)
+        .readAsLinesSync()
+        .where((String l) => !l.trimLeft().startsWith('//') && !l.trimLeft().startsWith('///'))
+        .join('\n');
+    for (final RegExpMatch m in RegExp("'([^'\\n]*)'").allMatches(source)) {
+      out.add(m.group(1)!);
+    }
+  }
+  return out;
 }

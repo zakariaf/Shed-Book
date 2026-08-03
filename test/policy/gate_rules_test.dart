@@ -437,6 +437,12 @@ final Map<String, Planted> firesOn = <String, Planted>{
         "your phone';",
   ),
 
+  // -- restore, N22-T05 ----------------------------------------------------
+  'layer.plugin_file_selector': _at(
+    'lib/features/export/export_screen.dart',
+    "import 'package:file_selector/file_selector.dart';",
+  ),
+
   // -- share, N21-T06 ------------------------------------------------------
   'layer.plugin_share_plus': _at(
     'lib/features/export/export_screen.dart',

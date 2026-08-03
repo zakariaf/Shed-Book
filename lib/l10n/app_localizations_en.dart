@@ -793,6 +793,46 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportBannerDismiss => 'NOT THIS SEASON';
 
   @override
+  String get restoreRefusedNewerApp =>
+      'This backup was made by a newer version of Shed Book. Update the app and try again.';
+
+  @override
+  String restoreRefusedNewerAppDetail({
+    required int foundFormat,
+    required int foundSchema,
+    required int readsFormat,
+    required int readsSchema,
+  }) {
+    return 'This file: format $foundFormat, records $foundSchema. This app reads format $readsFormat, records $readsSchema.';
+  }
+
+  @override
+  String get restoreRefusedNotOurs => 'This is not a Shed Book backup file.';
+
+  @override
+  String get restoreRefusedDamaged => 'This Shed Book backup is damaged and cannot be read.';
+
+  @override
+  String get backupIntegrityLine =>
+      'Each backup carries a check that finds a truncated or damaged file. It does not protect the file from being changed.';
+
+  @override
+  String get backupRefusedIncomplete =>
+      'This backup file is incomplete and has not been restored. Nothing on this phone has changed.';
+
+  @override
+  String get restoreRefusedZip =>
+      'This looks like a photo archive. Shed Book restores the records file (.json).';
+
+  @override
+  String get restoreRefusedDatabaseCopy =>
+      'This is a diagnostics copy of a database, not a backup. It cannot be restored in the app.';
+
+  @override
+  String get restoreRefusedNotABackup =>
+      'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.';
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

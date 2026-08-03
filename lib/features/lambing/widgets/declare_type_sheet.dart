@@ -19,7 +19,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/birth_type.dart';
 
@@ -88,54 +88,31 @@ class _DeclareTypeSheetState extends State<DeclareTypeSheet> {
             ),
           SizedBox(height: t.gapMin),
           if (!_choosing) ...<Widget>[
-            _SheetButton(
-              id: 'lambing_entry.declare.change',
+            ShedPrimaryButton(
+              key: const Key('lambing_entry.declare.change'),
               label: l.changeLabel,
+              semanticLabel: l.changeLabel,
               onTap: () => setState(() => _choosing = true),
             ),
             // gapDestructive between the two, because they are opposites and a
             // mis-tap here is the one that changes a record.
             SizedBox(height: t.gapDestructive),
-            _SheetButton(
-              id: 'lambing_entry.declare.leave',
+            ShedPrimaryButton(
+              key: const Key('lambing_entry.declare.leave'),
               label: l.leaveLabel,
+              semanticLabel: l.leaveLabel,
               onTap: widget.onLeave,
             ),
           ] else
             for (final BirthType type in BirthType.values)
-              _SheetButton(
-                id: 'lambing_entry.declare.type_${type.code}',
+              ShedPrimaryButton(
+                key: Key('lambing_entry.declare.type_${type.code}'),
                 label: l.typeWord(type),
+                semanticLabel: l.typeWord(type),
                 onTap: () => widget.onDeclare(type),
               ),
           SizedBox(height: t.gapMin),
         ],
-      ),
-    );
-  }
-}
-
-class _SheetButton extends StatelessWidget {
-  const _SheetButton({required this.id, required this.label, required this.onTap});
-
-  final String id;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: label,
-        minSize: t.tapHero,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: Center(child: Text(label, style: Theme.of(context).textTheme.titleMedium)),
-        ),
       ),
     );
   }

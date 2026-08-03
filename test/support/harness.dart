@@ -338,11 +338,26 @@ Future<Map<String, int>> _seedHardPenBoard(AppDatabase db) async {
 
 Widget _penBoard(Map<String, int> _) => const PenBoardScreen();
 
-/// **THE HARD TREATMENTS LIST.** Ten rows, and they are not all the same: one is
-/// voided (struck, with its own stamp), one has a five-digit tag, one is on an
-/// untagged lamb, one has no withdrawal at all and the rest carry clear dates.
-/// The row is one ellipsised line, so the widest combination is the only thing
-/// that can overflow — a list of ten identical rows proves nothing about it.
+/// **THE HARD TREATMENTS LIST.** Eleven rows, and they are not all the same: one
+/// is voided (struck, with its own stamp), one has a five-digit tag, one is on an
+/// untagged lamb, one has no withdrawal at all, one says NONE APPLIES and the
+/// rest carry clear dates. The widest combination is the only thing that can
+/// overflow — a list of eleven identical rows proves nothing about it.
+///
+/// **EVERY WIDE ROW CARRIES A RUNNING PERIOD, AND THAT IS NOT DECORATION.** The
+/// matrix pumps the screen's DEFAULT segment, which is the countdown, and
+/// `07 §10.1`'s countdown arm holds only `kind = 'days'` rows. The long tag and
+/// the untagged lamb had no period, so when the countdown started filtering they
+/// silently left all eighteen cells — the widest two rows in the seed, covered by
+/// nothing, with the matrix still green. They are given periods here so the cells
+/// pump what the comment above claims they pump.
+///
+/// **What is still uncovered, and it is worth saying plainly:** the voided stamp
+/// and the two absence words are BOOK rows, and the matrix has no way to pump a
+/// screen in its non-default mode — `PumpableVariant.build` returns a widget and
+/// the segment lives in a provider. Widening the record to carry overrides is the
+/// fix; it is a harness change rather than a screen change, so it is recorded
+/// here rather than done in passing.
 Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
   await seedSeason(db);
   final TreatmentRepository repo = TreatmentRepository(db);
@@ -362,8 +377,39 @@ Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
   );
   await repo.voidTreatment(TreatmentId((voided as WriteCommitted).insertedId!));
 
-  // ONE WITH NO WITHDRAWAL AT ALL — the row that prints the absence out loud.
+  // THE FIVE-DIGIT TAG, RUNNING — the widest tag in the seed, on the widest
+  // product name, counting down.
+  await repo.recordTreatment(
+    TreatEwe(longTag),
+    productName: 'Alamycin LA 300 mg/ml',
+    doseText: '3 ml',
+    batchNo: 'B7734-2026',
+    withdrawals: <WithdrawalPeriod>[
+      WithdrawalDays.asEnteredByUser(days: 40, target: WithdrawalTarget.meat),
+      // BOTH TARGETS, so the fan-out renders as two countdown rows and the
+      // per-target line is exercised at every scale.
+      WithdrawalDays.asEnteredByUser(days: 7, target: WithdrawalTarget.milk),
+    ],
+  );
+
+  // THE UNTAGGED LAMB, RUNNING — its tag cell falls back to a word rather than a
+  // number, which is a different width at every scale.
+  await repo.recordTreatment(
+    TreatLamb(untagged),
+    productName: 'Spectam Scour Halt',
+    withdrawals: <WithdrawalPeriod>[
+      WithdrawalDays.asEnteredByUser(days: 35, target: WithdrawalTarget.meat),
+    ],
+  );
+
+  // ONE WITH NO WITHDRAWAL AT ALL — the row that prints the absence out loud —
+  // and one that says NONE APPLIES. Both are book rows; see the note above.
   await repo.recordTreatment(TreatLamb(untagged), productName: 'Spectam Scour Halt');
+  await repo.recordTreatment(
+    TreatEwe(longTag),
+    productName: 'Footbath',
+    withdrawals: const <WithdrawalPeriod>[WithdrawalNotApplicable(WithdrawalTarget.meat)],
+  );
 
   for (int i = 0; i < 8; i++) {
     final EweId ewe = await seedEwe(db, tag: '${500 + i}');

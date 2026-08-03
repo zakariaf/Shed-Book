@@ -13,11 +13,20 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_countdown.dart';
+import 'package:shed_book/core/ui/components/shed_empty_state.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/time/ticker.dart';
+import 'package:shed_book/domain/withdrawal/clear_date.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_status.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -44,17 +53,43 @@ class TreatmentsScreen extends ConsumerWidget {
     final List<TreatmentRow> rows =
         ref.watch(treatmentsProvider(mode)).value ?? const <TreatmentRow>[];
 
-    // THE PREVIOUS TREATMENT IS ALREADY IN THE LIST. The countdown excludes
-    // voided rows, which is exactly the filter *repeat last* wants — so there is
-    // nothing to look up beyond its stored periods.
-    final List<TreatmentRow> live =
-        ref.watch(treatmentsProvider(TreatmentMode.countdown)).value ?? const <TreatmentRow>[];
-    final TreatmentRow? previous = live.isEmpty ? null : live.first;
+    // THE TICK, WATCHED HERE AND NOT INSIDE A PROVIDER. A countdown's remaining
+    // days is a function of `now`, so nothing stores it; and a keepAlive
+    // listener on the `.autoDispose` ticker is a listener that never goes away,
+    // waking the process every sixty seconds all night with no screen up
+    // (`02 §4.2`, decision #66). The pen board watches it the same way and for
+    // the same reason.
+    final Instant now = ref.watch(minuteTickProvider).value ?? appNow();
+    final LocalDate today = LocalDate.of(now);
+
+    // THE PREVIOUS TREATMENT COMES FROM THE **BOOK**, NOT FROM THE COUNTDOWN.
+    // It used to come from the countdown, on the reasoning that the countdown
+    // excludes voided rows — but the countdown is now ordered by clear date and
+    // filtered to `kind = 'days'` (`07 §10.1`), so its first row is the one
+    // clearing soonest and a treatment with no recorded period is not in it at
+    // all. *Repeat last* means the most recent, so it reads the book's order and
+    // skips voided rows itself.
+    final List<TreatmentRow> everything =
+        ref.watch(treatmentsProvider(TreatmentMode.book)).value ?? const <TreatmentRow>[];
+    final TreatmentRow? previous = everything
+        .where((TreatmentRow r) => r.voidedAt == null)
+        .firstOrNull;
     final List<StoredWithdrawal> stored = previous == null
         ? const <StoredWithdrawal>[]
         : ref.watch(storedWithdrawalsProvider(previous.id)).value ?? const <StoredWithdrawal>[];
     final QuickEntryDeck? deck = ref.watch(quickEntryDeckProvider).value;
     final List<DeckEntry> candidates = <DeckEntry>[...?deck?.penned, ...?deck?.recents];
+
+    // BUILT BEFORE THE TREE, so *"is there anything to show"* is asked of what
+    // actually renders. In the countdown a treatment can be in `rows` and yet
+    // contribute no line — every one of its periods has cleared — and asking
+    // `rows.isEmpty` there would paint a scroll view with nothing in it instead
+    // of the empty state.
+    final List<Widget> lines = mode == TreatmentMode.countdown
+        ? _countdownLines(rows, now: now, today: today, locale: locale, l10n: l10n)
+        : <Widget>[
+            for (final TreatmentRow row in rows) _BookLine(row: row, locale: locale, l10n: l10n),
+          ];
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
@@ -64,13 +99,10 @@ class TreatmentsScreen extends ConsumerWidget {
           children: <Widget>[
             Padding(
               padding: EdgeInsets.all(t.gapMin),
-              child: Semantics(
-                headingLevel: 1,
-                child: Text(
-                  l10n.treatmentsTitle,
-                  key: const Key('treatments.title'),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+              child: ShedSectionHeading(
+                key: const Key('treatments.title'),
+                label: l10n.treatmentsTitle,
+                level: 1,
               ),
             ),
             // THE TWO SEGMENTS. Word buttons, not a segmented control —
@@ -103,48 +135,52 @@ class TreatmentsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    if (rows.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.all(t.gapMin),
-                        child: Text(
-                          l10n.treatmentsEmpty,
-                          key: const Key('treatments.empty'),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: t.textSecondary),
-                        ),
-                      )
-                    else
-                      for (final TreatmentRow row in rows)
-                        _TreatmentLine(row: row, locale: locale, l10n: l10n),
-                    // THE FOOTER IS ON THE FIRST PAINTED FRAME OF BOOK MODE, not
-                    // behind an affordance. A disclosure the shepherd has to go
-                    // looking for is a disclosure that has not been made.
-                    if (mode == TreatmentMode.book) const TreatmentBookFooter(),
-                  ],
+            // AN EMPTY LIST HAS NOTHING TO SCROLL, so the empty state replaces
+            // the scroll view rather than sitting in it — which is also the only
+            // place `ShedEmptyState`'s infinite sizing is valid. Measured:
+            // inside, every treatments case threw `BoxConstraints forces an
+            // infinite height`.
+            if (lines.isEmpty)
+              Flexible(
+                child: ShedEmptyState(
+                  key: const Key('treatments.empty'),
+                  copy: l10n.treatmentsEmpty,
                 ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(t.gapMin),
-              child: ShedTapTarget(
-                key: const Key('treatments.repeat_last'),
-                semanticLabel: l10n.treatmentsRepeatLast,
-                minSize: t.tapHero,
-                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
-                child: ExcludeSemantics(
-                  child: Center(
-                    child: Text(
-                      l10n.treatmentsRepeatLast,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+              )
+            else
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    // THE EMPTY STATE IS *OUTSIDE* THIS SCROLL VIEW — see the
+                    // `if (lines.isEmpty)` arm above. `ShedEmptyState` is
+                    // `double.infinity` in both axes, and a scroll view gives
+                    // its child an UNBOUNDED height where infinity is an error
+                    // rather than a maximum.
+                    children: lines,
                   ),
                 ),
+              ),
+            // THE FOOTER BELONGS TO THE MODE, NOT TO THE LIST — which is what
+            // moving the empty state out of the scroll view exposed: it had been
+            // sitting inside the list's Column, so an EMPTY book rendered no
+            // disclosure at all. The one view somebody might print or hand to a
+            // vet was the one that could lose its §12.3 footer.
+            //
+            // Still on the first painted frame of book mode, never behind an
+            // affordance.
+            if (mode == TreatmentMode.book) const TreatmentBookFooter(),
+            Padding(
+              padding: EdgeInsets.all(t.gapMin),
+              // `indelible.md:973` names this control: "REPEAT LAST TREATMENT
+              // is a prominent word button", and §7.13 puts a primary at
+              // `--t-ctl-lg` 22px. The hand-rolled version used `titleMedium`,
+              // which is not that role.
+              child: ShedPrimaryButton(
+                key: const Key('treatments.repeat_last'),
+                label: l10n.treatmentsRepeatLast,
+                semanticLabel: l10n.treatmentsRepeatLast,
+                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
               ),
             ),
           ],
@@ -152,6 +188,42 @@ class TreatmentsScreen extends ConsumerWidget {
       ),
     );
   }
+
+  /// **ONE LINE PER TARGET** (`07 §10.1`) — *"a meat clear date and a milk clear
+  /// date are two different countdowns and are listed as two rows, each labelled
+  /// with its target"*. The statement fans out, the repository folds it by
+  /// treatment, and this is the one place the fan-out is wanted back.
+  ///
+  /// **CLEARED PERIODS LEAVE THE RUNNING LIST**, at the tick that crosses
+  /// midnight rather than at the next query. `07 §10.1` bounds this in SQL with
+  /// `clear_date >= :today`; binding a date into the statement would re-key the
+  /// provider family every day and re-subscribe, for a filter the screen already
+  /// holds `now` to apply. **Nothing is deleted** — the treatment stays in the
+  /// book for ever, which is where `indelible.md §7.6`'s *cleared* state lives.
+  ///
+  /// Deliberately NOT a filter on `days == null`: a `not_applicable` row has no
+  /// clear date and so cannot appear here, and a `days` row always has one under
+  /// `CHECK ((kind = 'days') = (clear_date IS NOT NULL))`. Filtering on the date
+  /// is filtering on the thing being counted down.
+  static List<Widget> _countdownLines(
+    List<TreatmentRow> rows, {
+    required Instant now,
+    required LocalDate today,
+    required String locale,
+    required AppLocalizations l10n,
+  }) => <Widget>[
+    for (final TreatmentRow row in rows)
+      for (final StoredWithdrawal w in row.withdrawals)
+        if (w.clearDate case final LocalDate d when today.daysUntil(d) > 0)
+          _CountdownLine(
+            row: row,
+            withdrawal: w,
+            clearDate: d,
+            now: now,
+            locale: locale,
+            l10n: l10n,
+          ),
+  ];
 
   /// Tap one of two: this opens the sheet, and a tag in it commits.
   ///
@@ -290,8 +362,106 @@ class _RepeatSheet extends StatelessWidget {
   }
 }
 
-class _TreatmentLine extends StatelessWidget {
-  const _TreatmentLine({required this.row, required this.locale, required this.l10n});
+/// One running withdrawal, as `indelible.md §7.6` draws it.
+///
+/// ```
+///  77   ALAMYCIN LA · CLEARS 12 AUG 2026        │ │ │ │ │ │ │ │ │      9d
+/// ```
+///
+/// **THE COUNTDOWN IS `ShedCountdown` AND ITS ARGUMENT IS A `ClearsOn`.** That
+/// is `10 §5.2`'s one place where the compiler is the gate: the component takes
+/// the sealed *outcome* and never a `WithdrawalStatus`, so a countdown for a
+/// period nobody recorded is unconstructible rather than merely forbidden.
+/// `NOT APPLICABLE` and `NOT RECORDED` are painted by [_BookLine], in words,
+/// with no countdown widget anywhere in the tree.
+class _CountdownLine extends StatelessWidget {
+  const _CountdownLine({
+    required this.row,
+    required this.withdrawal,
+    required this.clearDate,
+    required this.now,
+    required this.locale,
+    required this.l10n,
+  });
+
+  final TreatmentRow row;
+  final StoredWithdrawal withdrawal;
+
+  /// **THE STORED DATE, PASSED IN.** Never recomputed here — that is decision
+  /// #50's whole point, and a recomputation would answer differently after the
+  /// device moved timezone, on the one number that matters.
+  final LocalDate clearDate;
+
+  final Instant now;
+  final String locale;
+  final AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    final String tag = row.animalTag ?? l10n.treatmentsUntagged;
+    final String target = switch (withdrawal.target) {
+      WithdrawalTarget.meat => l10n.withdrawalTargetMeat,
+      WithdrawalTarget.milk => l10n.withdrawalTargetMilk,
+    };
+    final String date = formatShedDate(clearDate, locale);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // WHO, AND WHICH TARGET. The target is spelled on every countdown
+          // because one product routinely prints two figures, and a number with
+          // no target named is a number that can be applied to the wrong one.
+          Text(
+            l10n.treatmentsCountdown(tag: tag, target: target),
+            key: Key('treatments.countdown.${row.id.value}.${withdrawal.target.key}'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.textSecondary),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          ShedCountdown(
+            key: Key('treatments.clears.${row.id.value}.${withdrawal.target.key}'),
+            // `elapsesAt` IS DERIVED FROM THE STORED INPUTS, NOT FROM THE STORED
+            // DATE. `clearDateFor` is the one place that arithmetic lives
+            // (`05 §3.5`), and calling it here for its instant while keeping the
+            // stored `date` is the honest split: the date is what the shepherd
+            // was told, the instant is what it was computed from, and both came
+            // off the same two columns that live beside each other for ever.
+            clearsOn: ClearsOn(
+              clearDate,
+              clearDateFor(administeredAt: row.administeredAt, days: withdrawal.days!).elapsesAt,
+              withdrawal.target,
+            ),
+            now: now,
+            productName: row.productName,
+            clearsOnLabel: l10n.treatmentsClears(date: date),
+            semanticLabel: l10n.treatmentsCountdownSemantics(
+              tag: tag,
+              target: target,
+              product: row.productName,
+              date: date,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One line of the medicine book — **and the only place the three withdrawal
+/// states are told apart in words.**
+///
+/// The line under the row used to read `earliestClearDate == null ? NO
+/// WITHDRAWAL RECORDED : CLEARS (the date)`, which printed one sentence for two
+/// different facts. A shepherd who read the bottle and chose NONE APPLIES saw
+/// the words for a gap nobody had filled. `10 §5.2` splits them and names both
+/// words, and the split is exactly §12.1's: *nothing applies* is something
+/// somebody read, *not recorded* is nobody having looked.
+class _BookLine extends StatelessWidget {
+  const _BookLine({required this.row, required this.locale, required this.l10n});
 
   final TreatmentRow row;
   final String locale;
@@ -332,16 +502,28 @@ class _TreatmentLine extends StatelessWidget {
               key: Key('treatments.voided.${row.id.value}'),
               style: text.bodySmall?.copyWith(color: t.statusAttention),
             )
-          else
+          // NO ROW AT ALL IS THE `WithdrawalUnknown` CASE, and it says so. There
+          // is no third line anywhere saying she is clear: leaving a countdown
+          // is not the same as claiming a negative.
+          else if (row.withdrawals.isEmpty)
             Text(
-              // THE STORED CLEAR DATE, OR THE ABSENCE SAID OUT LOUD. There is no
-              // third line saying she is clear.
-              row.earliestClearDate == null
-                  ? l10n.treatmentsNoWithdrawal
-                  : l10n.treatmentsClears(date: formatShedDate(row.earliestClearDate!, locale)),
+              l10n.treatmentsNoWithdrawal,
               key: Key('treatments.clears.${row.id.value}'),
               style: text.bodySmall?.copyWith(color: t.textSecondary),
-            ),
+            )
+          else
+            for (final StoredWithdrawal w in row.withdrawals)
+              Text(
+                // `days == null` IS `not_applicable` UNDER THE SCHEMA'S OWN
+                // CHECK — `CHECK ((kind = 'days') = (days IS NOT NULL))` — so no
+                // fourth field is needed to tell the two apart, and there is no
+                // way to construct a `StoredWithdrawal` that means both.
+                w.clearDate == null
+                    ? l10n.treatmentsNotApplicable
+                    : l10n.treatmentsClears(date: formatShedDate(w.clearDate!, locale)),
+                key: Key('treatments.clears.${row.id.value}.${w.target.key}'),
+                style: text.bodySmall?.copyWith(color: t.textSecondary),
+              ),
         ],
       ),
     );

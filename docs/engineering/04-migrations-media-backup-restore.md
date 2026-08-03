@@ -1060,7 +1060,7 @@ That is not convenience. It makes the seed script a continuous test of the one c
 | 7 | **Validate the staging database, still before any destruction:** per-table `COUNT(*)` equals `counts`; `PRAGMA foreign_key_check` returns zero rows; `PRAGMA quick_check` returns `ok`; `app_settings` has exactly one row; `current_season` resolves to an existing season; rebuild the FTS index (`INSERT INTO search_fts(search_fts) VALUES('rebuild')`) and assert a probe query returns the expected count. | No | Abort; delete staging; live database untouched |
 | 8 | `PRAGMA wal_checkpoint(TRUNCATE)` on staging, `close()`, then assert no `-wal`/`-shm` remains beside it. A stale `-wal` next to a swapped-in main file is corruption. | No | Abort; delete staging |
 | 9 | Cancel every scheduled OS notification (`cancelAll()`), then close the live database. | Reversible | Abort; reminders are rebuilt by `reconcile()` (#63) |
-| 10 | Write the sentinel `<appSupport>/restore.pending` with `writeAsStringSync(..., flush: true)`. **This is the last non-destructive step.** | No | Abort |
+| 10 | Write the sentinel `<appSupport>/restore.inflight` with `writeAsStringSync(..., flush: true)`. **This is the last non-destructive step.** | No | Abort |
 | 11 | Rename live `shed_book.sqlite`, `-wal`, `-shm` into `<appSupport>/restore_rollback/`. | **Yes** | Recovered at next launch from the sentinel (§7.5) |
 | 12 | Rename `restore_staging/shed_book.sqlite` → `<appSupport>/shed_book.sqlite`. | **Yes** | Recovered at next launch from the sentinel |
 | 13 | Delete the sentinel. Delete `restore_staging/`. | No | Harmless residue; swept at next launch |
@@ -1108,7 +1108,7 @@ The recovery routine runs on every launch, before the database is opened, and is
 // LocalLog.instance is the app's one diagnostics sink (R52); `_diagnostics`
 // is a banned identifier, and `\.instance\b` matches exactly one symbol in lib/.
 Future<RestoreOutcome> completeInterruptedRestore(Directory support) async {
-  final sentinel = File(p.join(support.path, 'restore.pending'));
+  final sentinel = File(p.join(support.path, 'restore.inflight'));
   if (!sentinel.existsSync()) return RestoreOutcome.nothingToDo;
 
   final live = File(p.join(support.path, 'shed_book.sqlite'));
@@ -1174,7 +1174,7 @@ After any restore — completed, rolled back or aborted — none of the followin
 2. A `-wal` or `-shm` from the previous database sitting beside the new main file. *(Prevented by: step 8's checkpoint, and step 11 moving all three files.)*
 3. Media rows pointing at files that are gone, without `missing_since` set. *(Prevented by: step 15's sweep.)*
 4. Files in `media/` that no row references, silently deleted. *(Prevented by: the sweep trashes, never deletes.)*
-5. The `restore.pending` sentinel. *(Prevented by: the routine above.)*
+5. The `restore.inflight` sentinel. *(Prevented by: the routine above.)*
 6. `restore_staging/`. *(Prevented by: step 13, and a launch-time sweep of the directory as a belt.)*
 7. OS notifications scheduled from the pre-restore data. *(Prevented by: `cancelAll()` at step 9 and `reconcile()` at step 15 — #63.)*
 8. Any in-memory cache of pre-restore rows. *(Prevented by: invalidating `databaseProvider`; every repository and every screen depends on it — #20.)*

@@ -1954,6 +1954,36 @@ pair), `09 §3.1`–`§3.3` and `§7` (the CSV and backup shapes),
 
 ---
 
+
+### R84 — The restore sentinel is `restore.inflight`
+
+`04 §7.5` printed **`restore.pending`** in three places and `copy.banned_word` refuses `pending`
+anywhere under `lib/`, because `CONVENTIONS §5` bans it as a state word. Writing the constant failed
+the gate on the first build of N23-T01.
+
+**Both rules were right about their own subject.** §5's ban is aimed at a status field claiming a
+record is *pending*; this is a filename on disk, prescribed by the owning document. The gate scans
+source text and cannot tell one from the other, and it should not have to guess.
+
+**The ruling: rename the file, keep the gate.** `restore.inflight` says the same thing and collides
+with nothing.
+
+**Why this direction rather than narrowing the rule.** The sentinel is on-disk state written by one
+build and read by the next, so the rename is free *only* until the first release: the day after
+`v1.0.0` ships, changing it means a build that cannot resume a swap the previous build started —
+which is precisely the failure the sentinel exists to prevent. Narrowing `copy.banned_word` to skip a
+quoted filename would have been permanent, would have applied everywhere, and would have weakened a
+vocabulary rule to accommodate one string.
+
+Neither `tool/check_policy.dart` nor `tool/policy_allowlist.txt` was touched. `CLAUDE.md` forbids
+both as a way to make a build pass, and this is the amendment path it leaves open instead.
+
+| Files that must change |
+|---|
+| `04-migrations-media-backup-restore.md` §7.2 step 10, §7.5's printed routine, §8.3's prevention list — three occurrences |
+| `lib/data/restore_service.dart` — `kRestoreSentinelName` |
+| `test/features/restore_test.dart` — reads the constant, never the literal |
+
 ## §7 What this file deliberately does not settle
 
 Four things surfaced during this review that are **not** naming questions and must not be closed by a

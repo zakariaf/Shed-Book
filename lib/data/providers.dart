@@ -54,6 +54,8 @@ import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/export_repository.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
@@ -93,6 +95,18 @@ import 'package:shed_book/domain/units/weight_unit.dart';
 // type is inferred, no deprecated member is used, and no Riverpod 3 idiom
 // appears.
 final FutureProvider<AppDatabase> databaseProvider = FutureProvider<AppDatabase>((ref) async {
+  // **BEFORE THE DATABASE OPENS, ON EVERY LAUNCH** (`04 §7.5`, #20, #21). An
+  // interrupted swap has to be resolved while nothing holds the file — after
+  // `openAppDatabase()` the live database is open and renaming it is no longer
+  // an option.
+  //
+  // The common answer is one `existsSync` on a path that is not there, so the
+  // cold start pays almost nothing for it. Failing to resolve is not a reason to
+  // refuse to open: a shepherd whose restore was interrupted still needs their
+  // records, and `04 §8.4`'s corruption screen is reached from the outcome
+  // rather than from an exception here.
+  await completeInterruptedRestore(await getApplicationSupportDirectory());
+
   final AppDatabase db = await openAppDatabase();
   ref.onDispose(db.close);
   return db;

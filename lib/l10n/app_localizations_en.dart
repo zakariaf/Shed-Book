@@ -743,7 +743,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get treatmentsNoWithdrawal => 'NO WITHDRAWAL RECORDED';
+  String get treatmentsNoWithdrawal => 'NOT RECORDED';
+
+  @override
+  String treatmentsCountdown({required String tag, required String target}) {
+    return '$tag · $target';
+  }
+
+  @override
+  String treatmentsCountdownSemantics({
+    required String tag,
+    required String target,
+    required String product,
+    required String date,
+  }) {
+    return '$tag, $target, $product, clears $date';
+  }
+
+  @override
+  String get treatmentsNotApplicable => 'NOT APPLICABLE';
 
   @override
   String get treatmentsRepeatLast => 'REPEAT LAST';

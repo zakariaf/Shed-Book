@@ -190,7 +190,15 @@ final class TreatmentRepository {
   Stream<List<TreatmentRow>> watchTreatments(TreatmentMode mode) => _db
       .customSelect(
         _treatmentsSql,
-        variables: <Variable<Object>>[Variable<String>(mode.key)],
+        // BOUND THREE TIMES, ONCE PER `?`. The statement is still one statement
+        // with the mode bound rather than branched; SQLite has no named
+        // parameters through `customSelect`, so the same value is supplied for
+        // each occurrence.
+        variables: <Variable<Object>>[
+          Variable<String>(mode.key),
+          Variable<String>(mode.key),
+          Variable<String>(mode.key),
+        ],
         readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
           _db.treatments,
           _db.treatmentWithdrawals,
@@ -199,25 +207,63 @@ final class TreatmentRepository {
         },
       )
       .watch()
-      .map(
-        (List<QueryRow> rows) => <TreatmentRow>[
-          for (final QueryRow r in rows)
-            TreatmentRow(
-              id: TreatmentId(r.read<int>('id')),
-              productName: r.read<String>('product_name'),
-              doseText: r.readNullable<String>('dose_text'),
-              batchNo: r.readNullable<String>('batch_no'),
-              animalTag: r.readNullable<String>('animal_tag'),
-              administeredAt: Instant(r.read<int>('administered_at')),
-              voidedAt: r.readNullable<int>('voided_at') == null
-                  ? null
-                  : Instant(r.read<int>('voided_at')),
-              earliestClearDate: r.readNullable<String>('earliest_clear') == null
-                  ? null
-                  : LocalDate.parse(r.read<String>('earliest_clear')),
-            ),
-        ],
-      );
+      .map(_foldByTreatment);
+
+  /// The fan-out, folded — **in first-seen order, never re-sorted**.
+  ///
+  /// A `LinkedHashMap` and not a `groupBy` into a fresh list: the statement has
+  /// already ordered the rows (by clear date in the countdown, by time in the
+  /// book) and re-sorting in Dart would be a second ordering to keep in step
+  /// with the first.
+  static List<TreatmentRow> _foldByTreatment(List<QueryRow> rows) {
+    final Map<int, QueryRow> firstSeen = <int, QueryRow>{};
+    final Map<int, List<StoredWithdrawal>> periods = <int, List<StoredWithdrawal>>{};
+
+    for (final QueryRow r in rows) {
+      final int id = r.read<int>('id');
+      firstSeen[id] ??= r;
+      final List<StoredWithdrawal> list = periods[id] ??= <StoredWithdrawal>[];
+
+      // A LEFT JOIN, so a treatment with no withdrawal at all still arrives —
+      // with a null target. **That is `WithdrawalNotRecorded` and it is a fact**,
+      // so the row is kept and its list stays empty. Skipping it here is how the
+      // book would lose the one treatment an inspector is looking for.
+      if (r.readNullable<String>('withdrawal_target') case final String target) {
+        list.add(
+          StoredWithdrawal(
+            target: WithdrawalTarget.fromKey(target),
+            days: r.readNullable<int>('withdrawal_days'),
+            // READ, NEVER DERIVED — the whole point of the column. A
+            // recomputation here would answer differently after the device
+            // moved timezone, silently, on the one number that matters.
+            clearDate: r.readNullable<String>('clear_date') == null
+                ? null
+                : LocalDate.parse(r.read<String>('clear_date')),
+          ),
+        );
+      }
+    }
+
+    return <TreatmentRow>[
+      for (final MapEntry<int, QueryRow> e in firstSeen.entries)
+        TreatmentRow(
+          id: TreatmentId(e.key),
+          productName: e.value.read<String>('product_name'),
+          doseText: e.value.readNullable<String>('dose_text'),
+          batchNo: e.value.readNullable<String>('batch_no'),
+          animalTag: e.value.readNullable<String>('animal_tag'),
+          administeredAt: Instant(e.value.read<int>('administered_at')),
+          voidedAt: e.value.readNullable<int>('voided_at') == null
+              ? null
+              : Instant(e.value.read<int>('voided_at')),
+          // UNMODIFIABLE, because the fold is the only writer and a caller who
+          // could append to it would be adding a withdrawal to a treatment
+          // without going through the repository — the one path §12.1's
+          // mechanisms all sit on.
+          withdrawals: List<StoredWithdrawal>.unmodifiable(periods[e.key]!),
+        ),
+    ];
+  }
 
   /// Voids a treatment. **A SOFT VOID: the row stays, and so does its
   /// withdrawal.**
@@ -277,9 +323,41 @@ final class TreatmentRepository {
       animalTag: null,
       administeredAt: row.administeredAt,
       voidedAt: row.voidedAt,
-      earliestClearDate: null,
+      // **READ, NOT LEFT EMPTY**, and that is not a convenience. An empty list
+      // is `WithdrawalNotRecorded` on this type — it is the whole reason the
+      // field is a list — so a constructor that passed `const []` because it had
+      // not looked would be stating a §12.1 fact it never checked. The verb
+      // costs one indexed select on the foreign key.
+      //
+      // Reading them is not copying them: *repeat last* still writes no period,
+      // which is `withdrawalFor`'s to answer separately and deliberately.
+      withdrawals: await _withdrawalsOf(TreatmentId(row.id)),
     );
   }
+
+  /// The stored withdrawals for one treatment, mapped once.
+  ///
+  /// The map lives here rather than being spelled twice: [watchWithdrawals]
+  /// streams it and [lastTreatment] awaits it, and two copies of the
+  /// `not_applicable`-means-`days == null` reading is two places to get §12.1
+  /// wrong.
+  Future<List<StoredWithdrawal>> _withdrawalsOf(TreatmentId treatment) async =>
+      _mapWithdrawals(
+        await (_db.select(_db.treatmentWithdrawals)
+              ..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value)))
+            .get(),
+      );
+
+  static List<StoredWithdrawal> _mapWithdrawals(List<TreatmentWithdrawal> rows) =>
+      <StoredWithdrawal>[
+        for (final TreatmentWithdrawal r in rows)
+          StoredWithdrawal(
+            target: WithdrawalTarget.fromKey(r.target),
+            days: r.days,
+            // READ, NEVER DERIVED. The whole point of the column.
+            clearDate: r.clearDate,
+          ),
+      ];
 
   Future<Treatment?> _lastTreatmentRow() =>
       (_db.select(_db.treatments)
@@ -336,15 +414,7 @@ final class TreatmentRepository {
       (_db.select(
         _db.treatmentWithdrawals,
       )..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value))).watch().map(
-        (List<TreatmentWithdrawal> rows) => <StoredWithdrawal>[
-          for (final TreatmentWithdrawal r in rows)
-            StoredWithdrawal(
-              target: WithdrawalTarget.values.firstWhere((WithdrawalTarget t) => t.key == r.target),
-              days: r.days,
-              // READ, NEVER DERIVED. The whole point of the column.
-              clearDate: r.clearDate,
-            ),
-        ],
+        _mapWithdrawals,
       );
 
   /// The period recorded for one target, or [WithdrawalNotRecorded].
@@ -431,7 +501,7 @@ final class TreatmentRow {
     required this.animalTag,
     required this.administeredAt,
     required this.voidedAt,
-    required this.earliestClearDate,
+    required this.withdrawals,
   });
 
   final TreatmentId id;
@@ -449,11 +519,23 @@ final class TreatmentRow {
   /// the countdown never sees them at all.
   final Instant? voidedAt;
 
-  /// The EARLIEST open clear date across this treatment's withdrawals, read from
-  /// the stored column and never recomputed. `null` when nothing was recorded or
-  /// nothing applies — which is not the same as *clear*, and no screen may say
-  /// the second.
-  final LocalDate? earliestClearDate;
+  /// This treatment's stored withdrawals, **one entry per row that exists**.
+  ///
+  /// **EMPTY IS `WithdrawalNotRecorded`, AND THAT IS WHY THIS IS A LIST RATHER
+  /// THAN A DATE.** It replaced a `LocalDate? earliestClearDate`, whose own doc
+  /// comment admitted the defect — *"`null` when nothing was recorded or nothing
+  /// applies"* — and the screen then printed one sentence for both. A shepherd
+  /// who read the bottle and chose NONE APPLIES saw the words for a gap nobody
+  /// had filled. That is precisely the merge §12.1 exists to prevent, arriving
+  /// one layer above the schema that prevents it: `treatment_withdrawals` keeps
+  /// the three states apart with `kind` and a missing row, and the read path
+  /// collapsed them again.
+  ///
+  /// [StoredWithdrawal] already carries the distinction the schema does — a
+  /// `not_applicable` row has `days == null` under
+  /// `CHECK ((kind = 'days') = (days IS NOT NULL))` — so no fourth field is
+  /// needed to tell the three apart.
+  final List<StoredWithdrawal> withdrawals;
 }
 
 /// `07 §10.1`'s statement, with the mode bound rather than branched.
@@ -462,15 +544,33 @@ final class TreatmentRow {
 /// would be two lists that can disagree about when the screen is stale, and a
 /// screen that went stale in one mode only is the hardest kind of bug to
 /// believe.
+/// **IT FANS OUT AND THE REPOSITORY FOLDS IT**, which `07 §10.1` says in as many
+/// words. One product routinely prints a meat figure and a milk figure, so a
+/// treatment with both targets returns two rows and the join is the only way to
+/// see them. The previous statement used `MIN(clear_date)` in a scalar subquery,
+/// which is a fold done in SQL — and a fold that throws away the two facts the
+/// screen has to tell apart.
+///
+/// The fold is in Dart, over one stream. That is not stream combination, so the
+/// one-query rule (`§1.2`) still holds.
+///
+/// **`w.kind = 'days'` IS THE COUNTDOWN'S WHOLE FILTER.** A treatment nobody
+/// recorded a period for has no number to count down, so it is not in the
+/// running list; it appears in the book saying so, which is where an inspector
+/// would look for it.
 const String _treatmentsSql = '''
 SELECT t.id, t.product_name, t.dose_text, t.batch_no,
        t.administered_at, t.voided_at,
        COALESCE(e.tag, l.tag) AS animal_tag,
-       (SELECT MIN(tw.clear_date) FROM treatment_withdrawals tw
-         WHERE tw.treatment = t.id AND tw.clear_date IS NOT NULL) AS earliest_clear
+       w.target AS withdrawal_target, w.days AS withdrawal_days,
+       w.clear_date AS clear_date
   FROM treatments t
+  LEFT JOIN treatment_withdrawals w ON w.treatment = t.id
   LEFT JOIN ewes  e ON e.id = t.ewe
   LEFT JOIN lambs l ON l.id = t.lamb
- WHERE (? = 'book' OR t.voided_at IS NULL)
- ORDER BY t.administered_at DESC, t.id DESC
+ WHERE (? = 'book')
+    OR (t.voided_at IS NULL AND w.kind = 'days')
+ ORDER BY CASE WHEN ? = 'book'      THEN t.administered_at END DESC,
+          CASE WHEN ? = 'countdown' THEN w.clear_date      END ASC,
+          t.id, w.target
 ''';

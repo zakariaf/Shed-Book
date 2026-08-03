@@ -7,6 +7,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/ui/components/shed_countdown.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/widgets/withdrawal_control.dart';
@@ -329,12 +330,17 @@ void main() {
     await tester.closeApp();
   });
 
-  testWidgets('a treatment with no withdrawal says so and does not say clear', (
+  testWidgets('a treatment with no withdrawal says so in the book, and is not in the countdown', (
     WidgetTester tester,
   ) async {
     // ABSENCE IS THE STATE (§12.1) AND THE SCREEN SAYS SO. It does NOT say the
     // animal is clear, which would be the app answering a clinical question
     // nobody asked it — and which is exactly what a blank line would imply.
+    //
+    // **THE COUNTDOWN IS NOT WHERE IT SAYS IT.** `07 §10.1`: `w.kind = 'days'`
+    // keeps a NotRecorded treatment out of the running list entirely, because
+    // there is no number to count down. It appears in the book, which is where
+    // an inspector would look for it.
     final AppDatabase db = testDatabase();
     await seedSeason(db);
     final TreatmentRepository repo = TreatmentRepository(db);
@@ -346,8 +352,130 @@ void main() {
     await tester.pumpApp(const TreatmentsScreen(), db: db);
     await tester.pumpAndSettle();
 
+    // NOT `find.byKey('treatments.row.$id')` — that key is the BOOK line's and
+    // is absent from the countdown whatever the query returns, so asserting it
+    // proves nothing. Drilled: dropping `w.kind = 'days'` from the statement
+    // left that version of this test green. The countdown's own two signals are
+    // that no countdown is painted and that the screen says so.
+    expect(
+      find.byType(ShedCountdown),
+      findsNothing,
+      reason: 'nothing to count down, so nothing counts down',
+    );
+    expect(find.byKey(const Key('treatments.empty')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('treatments.mode.book')));
+    await tester.pumpAndSettle();
+
     expect(find.byKey(Key('treatments.clears.$id')), findsOneWidget);
-    expect(find.textContaining('NO WITHDRAWAL RECORDED'), findsOneWidget);
+    expect(find.textContaining('NOT RECORDED'), findsOneWidget);
+    expect(
+      find.textContaining('NOT APPLICABLE'),
+      findsNothing,
+      reason: 'a gap nobody filled is not a label that said none applies',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('NONE APPLIES and nobody looked are different words on the row', (
+    WidgetTester tester,
+  ) async {
+    // THE DEFECT THIS TEST EXISTS FOR. The book line read
+    // `earliestClearDate == null ? NO WITHDRAWAL RECORDED : CLEARS <date>`, so a
+    // shepherd who READ THE BOTTLE and chose NONE APPLIES saw the words for a
+    // gap nobody had filled. `10 §5.2` rows 8 and 9 name both words, and the
+    // split is §12.1's own: one is something somebody read, the other is nobody
+    // having looked.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final TreatmentRepository repo = TreatmentRepository(db);
+    final EweId read = await seedEwe(db, tag: '412');
+    final EweId gap = await seedEwe(db, tag: '128');
+
+    final int readId =
+        ((await repo.recordTreatment(
+                  TreatEwe(read),
+                  productName: 'Footbath',
+                  withdrawals: <WithdrawalPeriod>[const WithdrawalNotApplicable(WithdrawalTarget.meat)],
+                ))
+                as WriteCommitted)
+            .insertedId!;
+    final int gapId =
+        ((await repo.recordTreatment(TreatEwe(gap), productName: 'Alamycin')) as WriteCommitted)
+            .insertedId!;
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('treatments.mode.book')));
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<Text>(find.byKey(Key('treatments.clears.$readId.meat'))).data,
+      'NOT APPLICABLE',
+    );
+    expect(tester.widget<Text>(find.byKey(Key('treatments.clears.$gapId'))).data, 'NOT RECORDED');
+
+    // AND THE TWO KEYS ARE NOT THE SAME SHAPE, which is the mechanism rather
+    // than the wording: a `not_applicable` row is keyed by its TARGET because it
+    // exists, and a gap is keyed by the treatment alone because there is no row
+    // to key it to.
+    expect(find.byKey(Key('treatments.clears.$gapId.meat')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a running withdrawal renders a countdown with its tally and target', (
+    WidgetTester tester,
+  ) async {
+    // `indelible.md §7.6`: not a bar, not a ring, not a progress arc — a ruled
+    // row plus a TALLY OF DAYS, one 2px mark per remaining day.
+    //
+    // **`ShedCountdown` TAKES A `ClearsOn`**, which is `10 §5.2`'s one place
+    // where the compiler is the gate: a countdown for a period nobody recorded
+    // is unconstructible rather than merely forbidden.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final TreatmentRepository repo = TreatmentRepository(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final int id =
+        ((await repo.recordTreatment(
+                  TreatEwe(ewe),
+                  productName: 'Alamycin',
+                  withdrawals: <WithdrawalPeriod>[
+                    WithdrawalDays.asEnteredByUser(days: 9, target: WithdrawalTarget.meat),
+                  ],
+                ))
+                as WriteCommitted)
+            .insertedId!;
+
+    await tester.pumpApp(const TreatmentsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ShedCountdown), findsOneWidget);
+    expect(find.byKey(Key('treatments.clears.$id.meat')), findsOneWidget);
+
+    // WHO AND WHICH TARGET, on every countdown. One product routinely prints a
+    // meat figure and a milk figure, and a number with no target named is a
+    // number that can be applied to the wrong one.
+    expect(
+      tester.widget<Text>(find.byKey(Key('treatments.countdown.$id.meat'))).data,
+      contains('MEAT'),
+    );
+    expect(find.textContaining('412'), findsWidgets);
+
+    // The tally: one mark per remaining day. A nine-day period entered today
+    // clears on day nine or ten depending on the hour, so the count is bounded
+    // rather than pinned — the assertion is that the marks EXIST and track the
+    // figure, which is `06 §12`'s redundancy rule.
+    final int marks = tester
+        .widgetList(
+          find.descendant(of: find.byType(ShedCountdown), matching: find.byType(ColoredBox)),
+        )
+        .length;
+    expect(marks, greaterThan(0));
+    expect(marks, lessThanOrEqualTo(10));
 
     await tester.closeApp();
   });

@@ -18,7 +18,9 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:drift/native.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/backup_format.dart';
 import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/features/settings/widgets/restore_confirmation.dart';
@@ -598,6 +600,123 @@ void main() {
 
     expect((await target.select(target.lambings).getSingle()).presentation, 'mp_head_back');
     await target.close();
+  });
+
+  test('restore builds a new file beside the live one and swaps it in', () async {
+    // THE WHOLE OF STEPS 5 TO 14, end to end. The live file holds ORIGINAL; the
+    // backup holds one ewe. Afterwards the live file is the imported one, the
+    // rollback is cleared, the sentinel is gone and staging is gone.
+    final Directory support = _support();
+    _writeDb(support, kLiveDatabaseName, 'ORIGINAL');
+
+    final WriteOutcome outcome = await RestoreService(support).restore(
+      header: _header(counts: <String, int>{'seasons': 1, 'ewes': 1}),
+      tables: <String, List<Map<String, Object?>>>{
+        'seasons': <Map<String, Object?>>[_season()],
+        'ewes': <Map<String, Object?>>[_ewe()],
+      },
+      // A REAL SQLITE FILE, opened where the service says to put it — which is
+      // what makes the checkpoint assertion at step 9 mean anything.
+      openStaging: (File file) async {
+        file.parent.createSync(recursive: true);
+        return AppDatabase(NativeDatabase(file), seedOnCreate: false);
+      },
+    );
+
+    expect(outcome, isA<WriteCommitted>());
+
+    // THE SWAP HAPPENED, and the file is the imported one rather than ORIGINAL.
+    final AppDatabase reopened = AppDatabase(
+      NativeDatabase(File('${support.path}/$kLiveDatabaseName')),
+      seedOnCreate: false,
+    );
+    expect((await reopened.select(reopened.ewes).getSingle()).tag, '412');
+    await reopened.close();
+
+    // AND NOTHING IS LEFT BEHIND. A sentinel that survives makes the next launch
+    // resolve a state that is over.
+    expect(File('${support.path}/$kRestoreSentinelName').existsSync(), isFalse);
+    expect(File('${support.path}/$kRestoreRollbackName').existsSync(), isFalse);
+    expect(Directory('${support.path}/$kRestoreStagingDir').existsSync(), isFalse);
+  });
+
+  test(
+    'the sentinel is written before the first rename, and a crash there is recoverable',
+    () async {
+      // **THE FAULT IS INJECTED BETWEEN STEP 10 AND STEP 11**, through the seam
+      // the service exposes for exactly this. Not a `try`/`catch` round the whole
+      // flow: that proves the flow can fail and nothing about where.
+      //
+      // Drilled by moving the sentinel to after the first rename — without this
+      // case it passed, because nothing observed the sentinel mid-flight.
+      final Directory support = _support();
+      _writeDb(support, kLiveDatabaseName, 'ORIGINAL');
+
+      bool sentinelExisted = false;
+
+      final WriteOutcome outcome = await RestoreService(support).restore(
+        header: _header(counts: <String, int>{'seasons': 1}),
+        tables: <String, List<Map<String, Object?>>>{
+          'seasons': <Map<String, Object?>>[_season()],
+        },
+        openStaging: (File file) async {
+          file.parent.createSync(recursive: true);
+          return AppDatabase(NativeDatabase(file), seedOnCreate: false);
+        },
+        afterSentinel: () async {
+          sentinelExisted = File('${support.path}/$kRestoreSentinelName').existsSync();
+          throw StateError('the phone died');
+        },
+      );
+
+      expect(outcome, isA<WriteFailed>());
+      expect(
+        sentinelExisted,
+        isTrue,
+        reason: 'the sentinel is step 10 — the LAST non-destructive step',
+      );
+
+      // AND THE LIVE FILE IS UNTOUCHED, because step 11 never ran.
+      for (final String suffix in _sidecars) {
+        expect(_read(support, '$kLiveDatabaseName$suffix'), 'ORIGINAL$suffix');
+      }
+    },
+  );
+
+  test('a failure before the swap leaves the live database untouched', () async {
+    // **EVERYTHING UP TO STEP 9 CAN BE ABANDONED WITH NOTHING LOST**, and this
+    // is the case that holds it. The import throws on an unresolvable foreign
+    // key; the live file must be exactly as it was.
+    final Directory support = _support();
+    _writeDb(support, kLiveDatabaseName, 'ORIGINAL');
+
+    final WriteOutcome outcome = await RestoreService(support).restore(
+      header: _header(counts: <String, int>{'lambings': 1}),
+      tables: <String, List<Map<String, Object?>>>{
+        // A lambing whose ewe and season are not in the file at all.
+        'lambings': <Map<String, Object?>>[_lambing()],
+      },
+      openStaging: (File file) async {
+        file.parent.createSync(recursive: true);
+        return AppDatabase(NativeDatabase(file), seedOnCreate: false);
+      },
+    );
+
+    expect(outcome, isA<WriteFailed>());
+
+    for (final String suffix in _sidecars) {
+      expect(
+        _read(support, '$kLiveDatabaseName$suffix'),
+        'ORIGINAL$suffix',
+        reason: 'the live database is untouched',
+      );
+    }
+    expect(
+      File('${support.path}/$kRestoreSentinelName').existsSync(),
+      isFalse,
+      reason: 'the sentinel is step 10 and the failure was before it',
+    );
+    expect(Directory('${support.path}/$kRestoreStagingDir').existsSync(), isFalse);
   });
 }
 

@@ -22,6 +22,8 @@ import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/seed/first_run.dart';
 import 'package:shed_book/core/log/local_log.dart';
+import 'package:shed_book/data/failure_mapping.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/backup_format.dart';
 
 /// How much of the file the sniff needs. 512 is generous; the longest signature
@@ -272,6 +274,111 @@ final class RestoreService {
 
   // ignore: unused_field
   final Directory _support;
+
+  /// **HALF TWO — the whole of `04 §7.2` steps 5 to 14, including the two
+  /// renames.** This is the only method in the product that renames the live
+  /// database.
+  ///
+  /// Returns `WriteCommitted()` on success and `WriteFailed(ShedFailure)` on an
+  /// abort, so one call site handles one shape (#13).
+  ///
+  /// **THE VERB IS `restore` BECAUSE THE VOCABULARY HAS EXACTLY ONE WORD FOR
+  /// THIS ACT.** `import`, `apply` and `load` are ambiguous or banned
+  /// (`CLAUDE.md`, `CONVENTIONS §5.1`).
+  ///
+  /// **STEPS 11 AND 12 ARE THE ONLY DESTRUCTIVE OPERATIONS AND STEP 10 IS THE
+  /// LAST NON-DESTRUCTIVE ONE.** Everything up to and including step 9 can be
+  /// abandoned with nothing lost — which is why the staging database is built
+  /// beside the live one and validated completely before anything moves.
+  Future<WriteOutcome> restore({
+    required BackupHeader header,
+    required Map<String, List<Map<String, Object?>>> tables,
+    required Future<AppDatabase> Function(File file) openStaging,
+
+    /// **A SEAM, AND IT EXISTS FOR ONE TEST.** Not annotated
+    /// `@visibleForTesting`: `meta` is not a direct dependency and adding one
+    /// for an annotation would be a `pubspec.yaml` change that decision-record
+    /// §5.1 owns. The comment at the call site carries the same instruction and
+    /// costs nothing.
+    Future<void> Function()? afterSentinel,
+  }) async {
+    final Directory staging = Directory('${_support.path}/$kRestoreStagingDir');
+    final File incoming = File('${staging.path}/$kLiveDatabaseName');
+    final File live = File('${_support.path}/$kLiveDatabaseName');
+    final File rollback = File('${_support.path}/$kRestoreRollbackName');
+    final File sentinel = File('${_support.path}/$kRestoreSentinelName');
+
+    try {
+      // 5 — A NEW FILE BESIDE THE LIVE ONE. Nothing that follows touches the
+      // live database until step 11, so every failure up to here costs a temp
+      // directory and nothing else.
+      if (staging.existsSync()) {
+        staging.deleteSync(recursive: true);
+      }
+      staging.createSync(recursive: true);
+
+      // `seedOnCreate: false` at step 5 so `onCreate` builds today's schema with
+      // NO first-run season — `importInto` decides that at the end of its own
+      // transaction, and only when the backup carries none.
+      final AppDatabase target = await openStaging(incoming);
+      try {
+        // 6 and 7 — the import and its validation, in one transaction.
+        await importInto(target, header, tables);
+
+        // 8 — CHECKPOINT AND TRUNCATE, not *close and hope*. A staging file
+        // swapped in with its own `-wal` still beside it is `04 §8.1`'s
+        // corruption from the other direction.
+        await target.walCheckpointTruncate();
+      } finally {
+        await target.close();
+      }
+
+      // 9 — and the assertion the checkpoint exists for.
+      for (final String suffix in const <String>['-wal', '-shm']) {
+        if (File('${incoming.path}$suffix').existsSync()) {
+          throw StateError('restore: $suffix survived the checkpoint — refusing to swap');
+        }
+      }
+
+      // 10 — THE SENTINEL, flushed. **The last non-destructive step**, and the
+      // only reason the four states of an interrupted swap are recoverable.
+      sentinel.writeAsStringSync('', flush: true);
+
+      // **THE SEAM, AND IT EXISTS FOR ONE TEST.** `04 §7.2`'s four recoverable
+      // states are only recoverable because the sentinel is written HERE — after
+      // everything abandonable and before anything destructive. A test that
+      // wraps the whole flow in a `try`/`catch` proves the flow can fail, which
+      // nobody doubted, and proves nothing about where.
+      //
+      // Measured: without this hook, moving the sentinel to after the first
+      // rename passed every case in `restore_test.dart`. Nothing observed it
+      // mid-flight, so nothing could.
+      if (afterSentinel != null) {
+        await afterSentinel();
+      }
+
+      // 11 and 12 — the two renames, each carrying all three files.
+      await _moveInto(live, rollback, RestoreOutcome.completed);
+      await _moveInto(incoming, live, RestoreOutcome.completed);
+
+      // 13 and 14 — clear the old file and the evidence.
+      await _clear(rollback, RestoreOutcome.completed);
+      await _tidy(_support, sentinel);
+
+      LocalLog.instance.record('restore.completed');
+      return const WriteCommitted();
+    } on Object catch (e) {
+      // ABANDONED, NOT HALF-DONE. Anything that throws before step 10 has
+      // touched nothing; anything after it is resolved on the next launch by
+      // `completeInterruptedRestore`, which is why the sentinel is written
+      // before the first rename and not after.
+      LocalLog.instance.record('restore.aborted');
+      if (staging.existsSync()) {
+        staging.deleteSync(recursive: true);
+      }
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
 
   /// Parents before children, and the order is the whole correctness argument.
   ///

@@ -99,6 +99,13 @@ class AppDatabase extends _$AppDatabase {
   /// arriving as a commit error nobody can attribute.
   Future<List<QueryRow>> foreignKeyCheck() => customSelect('PRAGMA foreign_key_check').get();
 
+  /// `PRAGMA wal_checkpoint(TRUNCATE)` — step 8.
+  ///
+  /// **Not *close and hope*.** A staging file swapped in with its own `-wal`
+  /// still beside it is `04 §8.1`'s corruption from the other direction, and it
+  /// looks like a working database until it does not.
+  Future<void> walCheckpointTruncate() => customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
+
   /// One restored row, with its columns supplied at runtime.
   ///
   /// **IT LIVES HERE FOR THE SAME REASON THE PRAGMAS DO.** A 21-table import

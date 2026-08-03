@@ -16,7 +16,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 
@@ -81,14 +81,14 @@ class _WithdrawalControlState extends State<WithdrawalControl> {
           spacing: t.gapMin,
           runSpacing: t.gapMin,
           children: <Widget>[
-            _ChoiceButton(
-              id: 'treatment.withdrawal.enter_days',
+            ShedWordButton(
+              key: const Key('treatment.withdrawal.enter_days'),
               label: l.enterDays,
               selected: _choice == _Choice.days,
               onTap: () => setState(() => _choice = _Choice.days),
             ),
-            _ChoiceButton(
-              id: 'treatment.withdrawal.not_applicable',
+            ShedWordButton(
+              key: const Key('treatment.withdrawal.not_applicable'),
               label: l.notApplicable,
               selected: _choice == _Choice.notApplicable,
               onTap: () {
@@ -96,8 +96,8 @@ class _WithdrawalControlState extends State<WithdrawalControl> {
                 widget.onChanged(WithdrawalNotApplicable(widget.target));
               },
             ),
-            _ChoiceButton(
-              id: 'treatment.withdrawal.not_recorded',
+            ShedWordButton(
+              key: const Key('treatment.withdrawal.not_recorded'),
               label: l.notRecorded,
               selected: _choice == _Choice.notRecorded,
               onTap: () {
@@ -180,56 +180,3 @@ class _WithdrawalControlState extends State<WithdrawalControl> {
 }
 
 enum _Choice { days, notApplicable, notRecorded }
-
-class _ChoiceButton extends StatelessWidget {
-  const _ChoiceButton({
-    required this.id,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String id;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: label,
-        minSize: t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(
-                  label,
-                  style: selected ? text.titleMedium : text.bodyMedium,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

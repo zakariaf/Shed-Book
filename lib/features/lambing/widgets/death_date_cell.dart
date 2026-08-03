@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 
@@ -59,14 +60,14 @@ class DeathDateCell extends StatelessWidget {
           spacing: t.gapMin,
           runSpacing: t.gapMin,
           children: <Widget>[
-            for (final ({int back, String word}) c in <({int back, String word})>[
-              (back: 0, word: labels.today),
-              (back: 1, word: labels.yesterday),
-              (back: 2, word: labels.twoDaysAgo),
+            for (final ({int back, String label}) c in <({int back, String label})>[
+              (back: 0, label: labels.today),
+              (back: 1, label: labels.yesterday),
+              (back: 2, label: labels.twoDaysAgo),
             ])
-              _DayButton(
-                id: 'lamb_card.death_date.minus_${c.back}',
-                word: c.word,
+              ShedWordButton(
+                key: Key('lamb_card.death_date.minus_${c.back}'),
+                label: c.label,
                 selected: selected == _daysBack(c.back),
                 onTap: () => onPicked(_daysBack(c.back)),
               ),
@@ -111,54 +112,6 @@ class DeathDateCell extends StatelessWidget {
   LocalDate _shift(int days) {
     final LocalDate from = selected ?? today;
     return from.plusDays(days);
-  }
-}
-
-class _DayButton extends StatelessWidget {
-  const _DayButton({
-    required this.id,
-    required this.word,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String id;
-  final String word;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: word,
-        minSize: t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(word, style: selected ? text.titleMedium : text.bodyMedium),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

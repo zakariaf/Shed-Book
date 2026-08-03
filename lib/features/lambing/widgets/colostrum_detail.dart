@@ -16,6 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/care_kind.dart';
 
@@ -158,8 +159,13 @@ class _ColostrumDetailSheetState extends State<ColostrumDetailSheet> {
               runSpacing: t.gapMin,
               children: <Widget>[
                 for (int i = 0; i < ColostrumMethod.values.length; i++)
-                  _MethodButton(
-                    word: l.methodWords[i],
+                  ShedWordButton(
+                    // THE KEY WAS BUILT INSIDE `_MethodButton` FROM THE WORD, so
+                    // extracting the class dropped it and only a widget test
+                    // noticed. A key is a test contract (`CONVENTIONS §4.5`);
+                    // it belongs at the call site, where it is visible.
+                    key: Key('lambing_entry.colostrum.method.${l.methodWords[i]}'),
+                    label: l.methodWords[i],
                     semanticLabel: l.methodSemanticLabel(l.methodWords[i]),
                     selected: _method == ColostrumMethod.values[i],
                     onTap: () => setState(() {
@@ -188,63 +194,6 @@ class _ColostrumDetailSheetState extends State<ColostrumDetailSheet> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// One method word. Selected state is the border and the weight — **never
-/// colour alone** (`10 §5.2`), and never disabled.
-class _MethodButton extends StatelessWidget {
-  const _MethodButton({
-    required this.word,
-    required this.semanticLabel,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String word;
-  final String semanticLabel;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    // `selected:` ON THE NODE, AND NO STATE WORD IN THE LABEL (`10 §3.2` rule
-    // 2). A screen reader announces the state itself; "Tube, selected" in the
-    // label is the doubled announcement users report as noise.
-    //
-    // `ShedTapTarget` has no `selected` parameter, so the flag is set by a
-    // Semantics wrapper rather than by adding one — a shared component gains a
-    // parameter when two callers need it, not when one does.
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key('lambing_entry.colostrum.method.$word'),
-        semanticLabel: semanticLabel,
-        minSize: t.tapPrimary,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(word, style: selected ? text.titleMedium : text.bodyMedium),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

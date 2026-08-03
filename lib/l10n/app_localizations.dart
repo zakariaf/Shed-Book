@@ -1449,6 +1449,24 @@ abstract class AppLocalizations {
   /// **'This backup file is incomplete and has not been restored. Nothing on this phone has changed.'**
   String get backupRefusedIncomplete;
 
+  /// Shown when the picked file starts with the ZIP magic bytes. Media is not part of a v1 backup (decision 85), so a photo archive is never restorable. It names what was picked AND what was expected; never 'invalid file', which at 2am is not an instruction.
+  ///
+  /// In en, this message translates to:
+  /// **'This looks like a photo archive. Shed Book restores the records file (.json).'**
+  String get restoreRefusedZip;
+
+  /// Shown for a file starting 'SQLite format 3'. That is the VACUUM INTO snapshot from Settings, Diagnostics - deliberately not an in-app restore path (04 2.8). tool/snapshot_to_backup.dart converts it, and that is a developer tool rather than a code path on a phone.
+  ///
+  /// In en, this message translates to:
+  /// **'This is a diagnostics copy of a database, not a backup. It cannot be restored in the app.'**
+  String get restoreRefusedDatabaseCopy;
+
+  /// The catch-all for an unrecognised first byte - most often a photo the shepherd renamed. It says what to pick INSTEAD, because a refusal that names no next step leaves somebody holding a phone at 2am with nothing to try.
+  ///
+  /// In en, this message translates to:
+  /// **'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.'**
+  String get restoreRefusedNotABackup;
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

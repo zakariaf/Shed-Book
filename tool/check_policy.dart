@@ -506,6 +506,19 @@ typedef ConfinedPattern = (
 );
 
 final List<ConfinedPattern> _confinedPattern = <ConfinedPattern>[
+  // -- restore, N22-T05 ----------------------------------------------------
+  //
+  // One picker, one set of type filters. A second is a second answer to *what
+  // may be picked*, and the one that greys out a shepherd's own backup is always
+  // the one nobody tested on Android.
+  (
+    'layer.plugin_file_selector',
+    RegExp(r'''import\s+['"]package:file_selector'''),
+    <String>['lib/'],
+    <String>['lib/features/settings/restore_flow.dart'],
+    'file_selector lives behind restore_flow.dart — 08 §1.1',
+  ),
+
   // -- share, N21-T06. The gateway rule and the two banned APIs -----------
   //
   // `08 §1.2` catalogues `layer.plugin_share_plus` as one of nine confinement

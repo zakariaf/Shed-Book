@@ -411,9 +411,16 @@ final class BackupHeaderAccepted extends BackupHeaderOutcome {
 }
 
 final class BackupRefused extends BackupHeaderOutcome {
-  const BackupRefused(this.reason, {this.foundFormatVersion, this.foundSchema});
+  const BackupRefused(this.reason, {this.foundFormatVersion, this.foundSchema, this.foundKind});
 
   final BackupRefusalReason reason;
+
+  /// What the first bytes said the file was. **Both kinds are carried** — found
+  /// and expected — because a refusal that names neither is a refusal a shepherd
+  /// cannot act on.
+  final BackupFileKind? foundKind;
+
+  BackupFileKind get expectedKind => BackupFileKind.shedBookBackup;
 
   /// What the file says.
   final int? foundFormatVersion;
@@ -442,6 +449,80 @@ enum BackupRefusalReason {
 
   /// Ours, and a required key is missing or the wrong type.
   malformedHeader,
+
+  // -- the three by-name wrong-kind reasons (`04 §7.2` step 2) ---------------
+  //
+  // Three reasons rather than one, because each sends a shepherd somewhere
+  // different: find the `.json`, use the developer tool, or pick a different
+  // file entirely. *"Invalid file"* at 02:00 is not an instruction.
+  /// A photo archive. Media is not part of a v1 backup (#85), so one is never
+  /// restorable.
+  pickedZipArchive,
+
+  /// The `VACUUM INTO` snapshot from Settings → Diagnostics — deliberately not
+  /// an in-app restore path (`04 §2.8`). `tool/snapshot_to_backup.dart` converts
+  /// it, and that is a developer tool rather than a code path on a phone.
+  pickedDatabaseCopy,
+
+  /// The catch-all for an unrecognised first byte — most often a photo somebody
+  /// renamed.
+  notABackupFile,
+}
+
+/// What the first bytes of a picked file say it is.
+enum BackupFileKind {
+  /// First non-whitespace byte is `{`.
+  shedBookBackup,
+
+  /// `50 4B 03 04`.
+  zipArchive,
+
+  /// `SQLite format 3\0` — sixteen bytes.
+  sqliteDatabase,
+
+  /// Everything else, including a renamed JPEG.
+  unrecognised,
+}
+
+/// **PURE, AND NO `dart:io` ANYWHERE NEAR IT.** The whole magic-byte decision is
+/// testable against a byte list, which is what lets the *ordering* be proved
+/// rather than asserted: the prelude sniffs before it parses, and a test can show
+/// it by handing over a file whose tail would throw if anything read it.
+///
+/// **THE PICKER IS NEVER TRUSTED ON ITS OWN.** Android MIME filtering is
+/// unreliable enough that the type group has to accept `application/octet-stream`
+/// — so the file that arrives may be anything at all, and these bytes are the
+/// only thing that decides.
+BackupFileKind sniffBackupFile(List<int> firstBytes) {
+  if (_startsWith(firstBytes, const <int>[0x50, 0x4B, 0x03, 0x04])) {
+    return BackupFileKind.zipArchive;
+  }
+  if (_startsWith(firstBytes, 'SQLite format 3'.codeUnits)) {
+    return BackupFileKind.sqliteDatabase;
+  }
+
+  // LEADING WHITESPACE IS TOLERATED. The app never writes it, but a shepherd who
+  // has opened the file in an editor and saved it might — and refusing their own
+  // backup over a newline is the worst false negative available on this path.
+  for (final int b in firstBytes) {
+    if (b == 0x20 || b == 0x09 || b == 0x0A || b == 0x0D) {
+      continue;
+    }
+    return b == 0x7B ? BackupFileKind.shedBookBackup : BackupFileKind.unrecognised;
+  }
+  return BackupFileKind.unrecognised;
+}
+
+bool _startsWith(List<int> bytes, List<int> prefix) {
+  if (bytes.length < prefix.length) {
+    return false;
+  }
+  for (int i = 0; i < prefix.length; i++) {
+    if (bytes[i] != prefix[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /// Validates the thirteen header keys and nothing else.

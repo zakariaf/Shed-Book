@@ -1180,6 +1180,18 @@
   "@backupRefusedIncomplete": {
     "description": "Shown when the checksum or a per-table count disagrees. The second sentence is the load-bearing one: a shepherd who has just been told a restore failed needs to know whether their current records survived it, and the answer is always yes because the restore builds a new file beside the live one. It does NOT say 'try again' - re-picking the same damaged file will not help."
   },
+  "restoreRefusedZip": "This looks like a photo archive. Shed Book restores the records file (.json).",
+  "@restoreRefusedZip": {
+    "description": "Shown when the picked file starts with the ZIP magic bytes. Media is not part of a v1 backup (decision 85), so a photo archive is never restorable. It names what was picked AND what was expected; never 'invalid file', which at 2am is not an instruction."
+  },
+  "restoreRefusedDatabaseCopy": "This is a diagnostics copy of a database, not a backup. It cannot be restored in the app.",
+  "@restoreRefusedDatabaseCopy": {
+    "description": "Shown for a file starting 'SQLite format 3'. That is the VACUUM INTO snapshot from Settings, Diagnostics - deliberately not an in-app restore path (04 2.8). tool/snapshot_to_backup.dart converts it, and that is a developer tool rather than a code path on a phone."
+  },
+  "restoreRefusedNotABackup": "This file is not a Shed Book backup. Choose the .json file the app shared when you exported.",
+  "@restoreRefusedNotABackup": {
+    "description": "The catch-all for an unrecognised first byte - most often a photo the shepherd renamed. It says what to pick INSTEAD, because a refusal that names no next step leaves somebody holding a phone at 2am with nothing to try."
+  },
   "treatmentsTitle": "TREATMENTS",
   "@treatmentsTitle": {
     "description": "The screen's heading, headingLevel 1."

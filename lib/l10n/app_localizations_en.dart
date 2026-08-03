@@ -821,6 +821,18 @@ class AppLocalizationsEn extends AppLocalizations {
       'This backup file is incomplete and has not been restored. Nothing on this phone has changed.';
 
   @override
+  String get restoreRefusedZip =>
+      'This looks like a photo archive. Shed Book restores the records file (.json).';
+
+  @override
+  String get restoreRefusedDatabaseCopy =>
+      'This is a diagnostics copy of a database, not a backup. It cannot be restored in the app.';
+
+  @override
+  String get restoreRefusedNotABackup =>
+      'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.';
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

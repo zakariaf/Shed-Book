@@ -813,6 +813,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get restoreRefusedDamaged => 'This Shed Book backup is damaged and cannot be read.';
 
   @override
+  String get backupIntegrityLine =>
+      'Each backup carries a check that finds a truncated or damaged file. It does not protect the file from being changed.';
+
+  @override
+  String get backupRefusedIncomplete =>
+      'This backup file is incomplete and has not been restored. Nothing on this phone has changed.';
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

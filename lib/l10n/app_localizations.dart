@@ -1437,6 +1437,18 @@ abstract class AppLocalizations {
   /// **'This Shed Book backup is damaged and cannot be read.'**
   String get restoreRefusedDamaged;
 
+  /// On the backup row of the Export screen. FNV-1a is a CORRUPTION check: it finds a truncated download, a half-written file and a bad card, and it finds nothing an author intended. Six words are banned from this message and from every file near it - see offline_wording_test.dart - because a shepherd who reads one of them has been told their backup is proof against something it is not proof against at all. The second sentence exists so the first cannot be read as more than it is.
+  ///
+  /// In en, this message translates to:
+  /// **'Each backup carries a check that finds a truncated or damaged file. It does not protect the file from being changed.'**
+  String get backupIntegrityLine;
+
+  /// Shown when the checksum or a per-table count disagrees. The second sentence is the load-bearing one: a shepherd who has just been told a restore failed needs to know whether their current records survived it, and the answer is always yes because the restore builds a new file beside the live one. It does NOT say 'try again' - re-picking the same damaged file will not help.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup file is incomplete and has not been restored. Nothing on this phone has changed.'**
+  String get backupRefusedIncomplete;
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

@@ -100,6 +100,19 @@ class ExportScreen extends ConsumerWidget {
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.textSecondary),
                 ),
               ),
+              // WHAT THE CHECK DOES, AND WHAT IT DOES NOT. It is one line and it
+              // is on the first painted frame, because a shepherd who reads the
+              // word *check* and fills in *secure* for themselves has been told
+              // something nobody said. `offline_wording_test.dart` refuses six
+              // words in this file for exactly that reason.
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                child: Text(
+                  l10n.backupIntegrityLine,
+                  key: const Key('export.integrity'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.textSecondary),
+                ),
+              ),
               SizedBox(height: t.gapMin),
               for (final ({String id, String label, int? count}) row
                   in <({String id, String label, int? count})>[

@@ -174,7 +174,11 @@ String headerPrefixJson(BackupHeader header, String checksumHex, ExportEnvelope 
     'exportedAtUtc': header.exportedAtUtc,
     'exportedAtOffsetMinutes': header.exportedAtOffsetMinutes,
     'exportedAtZoneAbbreviation': header.exportedAtZoneAbbreviation,
-    'checksum': checksumHex,
+    // AN OBJECT, NOT A BARE STRING. The algorithm travels with the value so a
+    // reader knows which arithmetic to run — and so a second algorithm, if one
+    // is ever needed, is a new value rather than a silent reinterpretation of
+    // this one.
+    'checksum': <String, Object?>{'algorithm': kBackupChecksumAlgorithm, 'value': checksumHex},
     'counts': header.counts,
     'media': <String, Object?>{
       'included': header.media.included,
@@ -193,22 +197,84 @@ String headerPrefixJson(BackupHeader header, String checksumHex, ExportEnvelope 
   return '${encoded.substring(0, encoded.length - 1)},"tables":';
 }
 
-/// FNV-1a, 64-bit, lower-case hex. **T04 owns the body**; the signature is here
-/// so this task's writer compiles against the real one rather than against a
-/// placeholder that later changes shape.
+/// The algorithm's name as it appears in the file. Frozen: a restore reads it
+/// to know which arithmetic to run, and a second algorithm would be a second
+/// value this one cannot recompute.
+const String kBackupChecksumAlgorithm = 'fnv1a64';
+
+const int _fnvOffsetBasis = 0xcbf29ce484222325; // 14695981039346656037
+const int _fnvPrime = 0x100000001b3; // 1099511628211
+
+/// FNV-1a, 64-bit, lower-case hex. Fifteen lines, no dependency, deterministic.
+///
+/// **NOT `package:crypto`.** It is in the lockfile because `pdf` declares it,
+/// and decision-record §5.1 does not list it as a direct dependency (`09 §5.7`).
+/// Reaching for it here would add a direct edge for fifteen lines of arithmetic.
+///
+/// **AND IT IS NOT A SECURITY FUNCTION.** FNV-1a detects a truncated download, a
+/// half-written file and a corrupted card. It detects nothing an author intended,
+/// and the copy that describes it says so — `offline_wording_test.dart` refuses
+/// six words in this file and in every message that talks about it.
 String fnv1a64Hex(List<int> bytes) {
-  // 64-bit arithmetic in Dart is exact on the VM and on AOT; `int` is 64-bit
-  // there and wraps on overflow, which is what FNV wants.
-  int hash = 0xcbf29ce484222325;
-  for (final int b in bytes) {
-    hash ^= b & 0xff;
-    hash *= 0x100000001b3;
+  int hash = _fnvOffsetBasis;
+  for (final int byte in bytes) {
+    hash ^= byte;
+    hash *= _fnvPrime; // wraps mod 2^64 on the Dart VM — that IS the algorithm
   }
-  // `toRadixString` on a negative int prints a sign, so the value is read as
-  // unsigned through its two 32-bit halves.
-  final int high = (hash >> 32) & 0xffffffff;
-  final int low = hash & 0xffffffff;
-  return high.toRadixString(16).padLeft(8, '0') + low.toRadixString(16).padLeft(8, '0');
+  return _hex64(hash);
+}
+
+/// A Dart `int` is a **signed** 64-bit value, so `hash.toRadixString(16)` prints
+/// a minus sign for half of all inputs — and `toUnsigned(64)` is a no-op at
+/// width 64, so it does not help. Split it into two 32-bit halves and pad each.
+String _hex64(int v) =>
+    ((v >> 32) & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0') +
+    (v & 0xFFFFFFFF).toRadixString(16).padLeft(8, '0');
+
+/// What checking a file's integrity produced.
+///
+/// **Two independent comparisons, in one place because they are one decision:**
+/// the checksum over the canonical `tables` bytes, and `counts` per table against
+/// the number of rows actually parsed. N23's importer runs the count comparison a
+/// second time, against the rows actually *inserted* — the two catch different
+/// failures, and neither substitutes for the other.
+sealed class BackupIntegrityOutcome {
+  const BackupIntegrityOutcome();
+}
+
+final class BackupIntact extends BackupIntegrityOutcome {
+  const BackupIntact();
+}
+
+final class BackupIncomplete extends BackupIntegrityOutcome {
+  const BackupIncomplete({this.table, this.expected, this.parsed});
+
+  /// `null` when it is the checksum that disagreed rather than a count.
+  final String? table;
+  final int? expected;
+  final int? parsed;
+}
+
+BackupIntegrityOutcome checkBackupIntegrity({
+  required BackupHeader header,
+  required String checksumHex,
+  required Uint8List canonicalTablesBytes,
+  required Map<String, int> parsedCounts,
+}) {
+  if (fnv1a64Hex(canonicalTablesBytes) != checksumHex) {
+    return const BackupIncomplete();
+  }
+
+  // PER TABLE, AND IT CANNOT BE PARTIAL (`09 §5.2`). A table absent from
+  // `counts` is a table nothing verifies, so a missing key is a mismatch rather
+  // than a skip.
+  for (final MapEntry<String, int> e in header.counts.entries) {
+    final int parsed = parsedCounts[e.key] ?? -1;
+    if (parsed != e.value) {
+      return BackupIncomplete(table: e.key, expected: e.value, parsed: parsed);
+    }
+  }
+  return const BackupIntact();
 }
 
 /// The four tables that are **not** in a backup, each with its reason here.

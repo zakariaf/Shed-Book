@@ -486,7 +486,99 @@ void main() {
     final Map<String, Object?> file =
         jsonDecode(utf8.decode(_file(tables))) as Map<String, Object?>;
 
-    expect(file['checksum'], expected);
+    expect((file['checksum']! as Map<String, Object?>)['value'], expected);
+    expect((file['checksum']! as Map<String, Object?>)['algorithm'], 'fnv1a64');
+  });
+
+  test('the checksum is FNV-1a and its hex is never signed', () {
+    // A Dart `int` is a SIGNED 64-bit value, so `toRadixString(16)` prints a
+    // minus sign for half of all inputs — and `toUnsigned(64)` is a no-op at
+    // width 64, so it does not help. The value is split into two 32-bit halves.
+    //
+    // Half of all inputs is not a rare case: it is every second file.
+    for (final String input in <String>['', 'a', 'foo', '{"ewes":[]}', 'x' * 1000]) {
+      final String hex = fnv1a64Hex(utf8.encode(input));
+      expect(hex, hasLength(16), reason: input);
+      expect(RegExp(r'^[0-9a-f]{16}$').hasMatch(hex), isTrue, reason: hex);
+      expect(hex, isNot(startsWith('-')));
+    }
+  });
+
+  test('the checksum is the published FNV-1a value, not something that merely looks like one', () {
+    // Pinned against the algorithm's own published vectors, so an
+    // implementation that is self-consistent and wrong fails here rather than
+    // producing files nothing else can check.
+    expect(fnv1a64Hex(utf8.encode('')), 'cbf29ce484222325');
+    expect(fnv1a64Hex(utf8.encode('a')), 'af63dc4c8601ec8c');
+    expect(fnv1a64Hex(utf8.encode('foobar')), '85944171f73967e8');
+  });
+
+  test('a changed byte changes the checksum', () {
+    expect(fnv1a64Hex(utf8.encode('{"ewes":[]}')), isNot(fnv1a64Hex(utf8.encode('{"ewes":[ ]}'))));
+  });
+
+  test('integrity is two comparisons, and a missing count is a mismatch', () {
+    // The checksum catches a damaged byte; the per-table counts catch a file
+    // that was truncated between tables and happens to still parse. Neither
+    // substitutes for the other, which is why they are one function.
+    final Map<String, Object?> tables = <String, Object?>{
+      'ewes': <Object?>[
+        <String, Object?>{'uid': 'a'},
+      ],
+    };
+    final Uint8List bytes = canonicalJsonBytes(tables);
+    final BackupHeader header = BackupHeader(
+      schema: 1,
+      appVersion: '1.0.0',
+      exportedAtUtc: '2026-07-27T21:04:05.006Z',
+      exportedAtOffsetMinutes: 0,
+      exportedAtZoneAbbreviation: 'GMT',
+      counts: const <String, int>{'ewes': 1},
+      media: const BackupMedia(included: false, count: 0, bytes: 0),
+    );
+
+    expect(
+      checkBackupIntegrity(
+        header: header,
+        checksumHex: fnv1a64Hex(bytes),
+        canonicalTablesBytes: bytes,
+        parsedCounts: const <String, int>{'ewes': 1},
+      ),
+      isA<BackupIntact>(),
+    );
+
+    // A WRONG CHECKSUM NAMES NO TABLE, because it is the file that disagreed
+    // rather than one table in it.
+    final BackupIntegrityOutcome badSum = checkBackupIntegrity(
+      header: header,
+      checksumHex: '0000000000000000',
+      canonicalTablesBytes: bytes,
+      parsedCounts: const <String, int>{'ewes': 1},
+    );
+    expect((badSum as BackupIncomplete).table, isNull);
+
+    // A COUNT THAT DISAGREES NAMES ITS TABLE AND BOTH NUMBERS.
+    final BackupIntegrityOutcome badCount = checkBackupIntegrity(
+      header: header,
+      checksumHex: fnv1a64Hex(bytes),
+      canonicalTablesBytes: bytes,
+      parsedCounts: const <String, int>{'ewes': 0},
+    );
+    expect((badCount as BackupIncomplete).table, 'ewes');
+    expect(badCount.expected, 1);
+    expect(badCount.parsed, 0);
+
+    // AND A MISSING KEY IS A MISMATCH, NOT A SKIP. `09 §5.2`: a table absent
+    // from `counts` is a table nothing verifies.
+    expect(
+      checkBackupIntegrity(
+        header: header,
+        checksumHex: fnv1a64Hex(bytes),
+        canonicalTablesBytes: bytes,
+        parsedCounts: const <String, int>{},
+      ),
+      isA<BackupIncomplete>(),
+    );
   });
 
   test('the size tripwire is a number to measure against, not a limit', () {

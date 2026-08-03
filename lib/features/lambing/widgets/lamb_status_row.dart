@@ -10,7 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
 
@@ -39,14 +39,14 @@ class LambStatusRow extends StatelessWidget {
       spacing: t.gapMin,
       runSpacing: t.gapMin,
       children: <Widget>[
-        for (final ({LambStatus value, String word}) c in <({LambStatus value, String word})>[
-          (value: LambStatus.alive, word: words.alive),
-          (value: LambStatus.dead, word: words.dead),
-          (value: LambStatus.stillborn, word: words.stillborn),
+        for (final ({LambStatus value, String label}) c in <({LambStatus value, String label})>[
+          (value: LambStatus.alive, label: words.alive),
+          (value: LambStatus.dead, label: words.dead),
+          (value: LambStatus.stillborn, label: words.stillborn),
         ])
-          _StatusButton(
-            id: 'lamb_card.status.${c.value.key}',
-            word: c.word,
+          ShedWordButton(
+            key: Key('lamb_card.status.${c.value.key}'),
+            label: c.label,
             selected: status == c.value,
             // NO CLEAR-BY-RETAP HERE, unlike sex and presentation. A lamb always
             // has a status — `alive` is the schema's default and a real answer —
@@ -56,54 +56,6 @@ class LambStatusRow extends StatelessWidget {
             onTap: () => onSelected(c.value),
           ),
       ],
-    );
-  }
-}
-
-class _StatusButton extends StatelessWidget {
-  const _StatusButton({
-    required this.id,
-    required this.word,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String id;
-  final String word;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: word,
-        minSize: t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(word, style: selected ? text.titleMedium : text.bodyMedium),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

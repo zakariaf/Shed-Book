@@ -26,7 +26,7 @@ void main() {
 
     expect(
       cells,
-      108,
+      126,
       reason:
           'SIX variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
           'joined at N16-T09, the Lamb Card at N17-T05 Foster at N18-T05 the pen board at N19-T07 and treatments at N20-T07. '
@@ -48,6 +48,7 @@ void main() {
       RouteNames.foster,
       RouteNames.penBoard,
       RouteNames.treatments,
+      RouteNames.export,
     });
 
     // Every key is a real route name — a variant keyed on a string that is not

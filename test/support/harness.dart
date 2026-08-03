@@ -63,12 +63,14 @@ import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/treatments_screen.dart';
+import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/data/media_store.dart';
 import 'fake_share_service.dart';
 import 'seeds.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -148,6 +150,7 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.foster: (seed: _seedHardFoster, build: _foster),
   RouteNames.penBoard: (seed: _seedHardPenBoard, build: _penBoard),
   RouteNames.treatments: (seed: _seedHardTreatments, build: _treatments),
+  RouteNames.export: (seed: _seedHardTreatments, build: _export),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -428,6 +431,13 @@ Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
 
 Widget _treatments(Map<String, int> _) => const TreatmentsScreen();
 
+/// **THE SAME SEED AS TREATMENTS, DELIBERATELY.** The Export screen renders
+/// counts, and the counts that can overflow a row are the large ones — the
+/// treatments seed is the only one in this file that produces double figures in
+/// every column at once. A screen whose numbers are all `1` proves nothing about
+/// a row at 200% text.
+Widget _export(Map<String, int> _) => const ExportScreen();
+
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.
 const List<double> kTextScales = <double>[1.0, 1.3, 2.0];
@@ -495,11 +505,33 @@ ProviderContainer shedContainer(
       // rather than as an unmocked seam. §17's warning applies in reverse here:
       // a parameter that overrides nothing is worse than no parameter.
       shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
+      // N21-T07. **A REAL `MediaStore` WITH INJECTED RESOLVERS**, not a fake —
+      // `12 §4.1`'s *a fake is a real implementation* taken literally, and the
+      // shape `media_store_test.dart` already uses. The `path_provider` method
+      // channel does not answer under `flutter_test`, so without this every
+      // export tap silently does nothing: the future rejects inside `guard()`
+      // and the test sees an empty share list rather than an error. Measured.
+      //
+      // `FakeMediaStore` is still N15's to write; this override is the seam it
+      // will replace, not a substitute for it.
+      mediaStoreProvider.overrideWithValue(_memoryMediaStore()),
       ...overrides,
     ],
   );
   addTearDown(container.dispose); // 2.6.1: you register this yourself
   return container;
+}
+
+/// A [MediaStore] rooted in one temp directory for the life of the test.
+///
+/// **ONE directory, resolved once.** `freshSupportDir()` creates a new one per
+/// call, and `MediaStore` resolves its root per operation — so passing the
+/// function directly would give a different root to the write and to the read,
+/// which is a bug that only shows up in the tests that do both.
+MediaStore _memoryMediaStore() {
+  final Directory dir = freshSupportDir();
+  Future<Directory> resolve() async => dir;
+  return MediaStore(supportDirectory: resolve, temporaryDirectory: resolve);
 }
 
 /// A temp directory torn down with the test — what `restoreInto` restores into
@@ -541,9 +573,10 @@ extension PumpApp on WidgetTester {
     ShedPaletteId palette = ShedPaletteId.night,
     bool highContrast = false,
     List<Override> overrides = const <Override>[],
+    FakeShareService? share,
     EdgeInsets padding = const EdgeInsets.only(top: 47, bottom: 34),
   }) async {
-    final ProviderContainer container = shedContainer(db, overrides: overrides);
+    final ProviderContainer container = shedContainer(db, overrides: overrides, share: share);
     _container = container;
 
     view.physicalSize = device.size * device.dpr;

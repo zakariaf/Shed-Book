@@ -29,6 +29,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -90,6 +92,42 @@ void main() {
         await tester.closeApp();
       });
     }
+  }
+
+  // N21-T07. THE SCREEN WITH NO OVER-CAP STATE AT ALL — `07 §13.2`'s over-cap
+  // row for Export reads, in full, *"nothing"* (#86).
+  //
+  // It is not on the shed path, so it is not covered by the loop above; it needs
+  // its own case for the opposite reason. Paywalling the only backup mechanism
+  // in an app with no cloud is a data-hostage pattern, and the free tier caps
+  // seasons and ewes — never the way out.
+  for (final ({bool unlocked, int ewes}) e in _entitlements) {
+    testWidgets('Export is never gated — unlocked=\${e.unlocked} ewes=\${e.ewes}', (
+      WidgetTester tester,
+    ) async {
+      final AppDatabase db = testDatabase();
+      await setEntitlement(db, unlocked: e.unlocked);
+      await setEwesInCurrentSeason(db, e.ewes);
+
+      await tester.pumpApp(const ExportScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('flock.upgrade_row')), findsNothing);
+      expect(find.byKey(const Key('settings.upgrade_row')), findsNothing);
+      expect(find.textContaining('Unlock'), findsNothing);
+      for (final String symbol in <String>['£', '€']) {
+        expect(find.textContaining(symbol), findsNothing, reason: symbol);
+      }
+
+      // AND EVERY CONTROL STAYS LIVE. A disabled export button at 99 ewes is
+      // the same defect as a paywall with better manners.
+      expect(
+        tester.widget<ShedPrimaryButton>(find.byKey(const Key('export.all_csv'))).state,
+        ShedPrimaryButtonState.ready,
+      );
+
+      await tester.closeApp();
+    });
   }
 
   testWidgets('the quiet-hours boundary is not what protects Quick Entry', (

@@ -724,6 +724,56 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get exportTitle => 'EXPORT';
+
+  @override
+  String get exportWhatThisIs =>
+      'This is your notebook\'s contents, as you recorded them. Nothing is sent anywhere: the file goes to the share sheet and you choose where it goes.';
+
+  @override
+  String exportCsvRow({required String term}) {
+    return 'CSV - ONE ROW PER $term';
+  }
+
+  @override
+  String get exportCsvTreatments => 'CSV - ONE ROW PER TREATMENT';
+
+  @override
+  String get exportCsvAll => 'EXPORT ALL THREE';
+
+  @override
+  String exportCounts({
+    required int eweCount,
+    required String ewePlural,
+    required int lambCount,
+    required String lambPlural,
+    required int treatments,
+  }) {
+    return '$eweCount $ewePlural, $lambCount $lambPlural, $treatments treatments';
+  }
+
+  @override
+  String get exportNeverExported => 'Nothing has been exported from this phone yet.';
+
+  @override
+  String exportLastExported({required String date}) {
+    return 'Last exported $date.';
+  }
+
+  @override
+  String get exportBuilding => 'Building...';
+
+  @override
+  String exportFailed({required String artefact}) {
+    return '$artefact could not be built. Nothing was sent.';
+  }
+
+  @override
+  String exportSemantics({required String label, required int count}) {
+    return '$label, $count records';
+  }
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

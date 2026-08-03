@@ -22,6 +22,8 @@
 // first draft of this one.
 library;
 
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/csv_writer.dart';
@@ -33,10 +35,106 @@ import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/withdrawal/clear_date.dart';
 
+/// One file, assembled and ready for the share sheet.
+///
+/// [shareName] is what the shepherd sees in the sheet and in their mail app; the
+/// on-disk [path] is a scratch file in the OS temp area and is never shown.
+/// `09 §1.1` builds the name from `seasons.year` and **never from
+/// `seasons.label`**, which the shepherd may have renamed to *"Home flock"*.
+typedef ExportArtifact = ({String path, String shareName, int byteSize});
+
 final class ExportRepository {
   ExportRepository(this._db);
 
   final AppDatabase _db;
+
+  /// The three CSV artefacts, written into [outputDir] and named for sharing.
+  ///
+  /// **[outputDir] IS PASSED IN AND NEVER RESOLVED HERE.** `08 §1.2` confines
+  /// `package:path_provider` to two files and this is neither; `MediaStore`
+  /// owns *where files live* and grew `exportScratch()` for this. Ruled in
+  /// N21-T07 — the alternative was widening the rule to a third file, and
+  /// `04 §7.5`'s *two roots means two answers* is the argument against.
+  Future<List<ExportArtifact>> writeCsvArtifacts({
+    required SeasonId season,
+    required int seasonYear,
+    required CsvWriter writer,
+    required Map<String, String> vocabLabels,
+    required Directory outputDir,
+  }) async {
+    final List<ExportArtifact> out = <ExportArtifact>[];
+    for (final (String shape, Future<Uint8List> Function() build)
+        in <(String, Future<Uint8List> Function())>[
+          ('lambs', () => writeLambsCsv(season: season, writer: writer, vocabLabels: vocabLabels)),
+          ('ewes', () => writeEwesCsv(season: season, writer: writer, vocabLabels: vocabLabels)),
+          (
+            'treatments',
+            () => writeTreatmentsCsv(season: season, writer: writer, vocabLabels: vocabLabels),
+          ),
+        ]) {
+      // NAMED FROM THE YEAR, never from `seasons.label` (`09 §1.1`). A shepherd
+      // who renamed the season to "Home flock" would otherwise get a file called
+      // `shed-book-Home flock-lambs.csv`, with a space in it, on a share sheet.
+      final String name = 'shed-book-$seasonYear-$shape.csv';
+      final File file = File('${outputDir.path}/$name');
+      final Uint8List bytes = await build();
+      await file.writeAsBytes(bytes, flush: true);
+      out.add((path: file.path, shareName: name, byteSize: bytes.length));
+    }
+    return out;
+  }
+
+  /// What the screen states before anything is tapped.
+  ///
+  /// **ONE STATEMENT, NOT FOUR COUNTS FANNED IN FROM DART.** `07 §1.2`'s
+  /// one-query rule, and `00-README` §8 step 14 makes combining drift streams in
+  /// Dart a build-breaking defect: fan-in happens in SQL. drift's open issue
+  /// #3338 — torn state across combined streams — is why.
+  ///
+  /// The banned combinator is not named here, because `stream.combine` scans the
+  /// source text and a comment naming it fails the rule that forbids it.
+  ///
+  /// **The counts are read, never estimated.** No `LIMIT`, no sampling, no
+  /// "about 400" — a count the shepherd can compare against their own flock list
+  /// is a count that has to be right.
+  Stream<ExportCountsRow> watchCounts(SeasonId season) => _db
+      .customSelect(
+        _countsSql,
+        variables: <Variable<Object>>[
+          for (int i = 0; i < _countsSeasonPlaceholders; i++) Variable<int>(season.value),
+        ],
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+          _db.lambs,
+          _db.lambings,
+          _db.ewes,
+          _db.eweSeasons,
+          _db.treatments,
+          _db.appSettings,
+          _db.seasons,
+          // THE FIFTH TABLE, and `07 §13.1` lists four. `09 §1.3` amends it:
+          // the media row needs a count and a size, and without the table here
+          // that row renders a STALE count until an unrelated write happens to
+          // invalidate the stream — the worst kind of wrong, because it is right
+          // most of the time.
+          _db.mediaAssets,
+        },
+      )
+      .watchSingle()
+      .map(
+        (QueryRow r) => (
+          ewes: r.read<int>('ewes'),
+          lambs: r.read<int>('lambs'),
+          treatments: r.read<int>('treatments'),
+          mediaAssets: r.read<int>('media_assets'),
+          mediaBytes: r.read<int>('media_bytes'),
+          lastExportedAt: r.readNullable<int>('last_exported_at') == null
+              ? null
+              : Instant(r.read<int>('last_exported_at')),
+          seasonYear: r.read<int>('season_year'),
+        ),
+      );
+
+  static final int _countsSeasonPlaceholders = '?'.allMatches(_countsSql).length;
 
   /// 37 fields. `09 §3.1`.
   ///
@@ -614,4 +712,39 @@ SELECT t.uid AS treatment_uid, t.product_name, t.dose_text, t.route AS route_key
          ON milk.treatment = t.id AND milk.target = 'milk'
  WHERE t.season = ?
  ORDER BY t.administered_at, t.uid
+''';
+
+/// The counts row, as the repository reads it.
+///
+/// The screen's `ExportCounts` is the same shape and lives in the feature; this
+/// one exists because `lib/data/` may not import `lib/features/`.
+typedef ExportCountsRow = ({
+  int ewes,
+  int lambs,
+  int treatments,
+  int mediaAssets,
+  int mediaBytes,
+  Instant? lastExportedAt,
+  int seasonYear,
+});
+
+/// One statement, and `last_exported_at` rides along rather than being a second
+/// watch: the honest status line and the counts change together or not at all.
+const String _countsSql = '''
+SELECT
+  (SELECT COUNT(*) FROM ewes e
+     LEFT JOIN ewe_seasons es ON es.ewe = e.id AND es.season = ?
+    WHERE es.id IS NOT NULL OR e.status = 'active')            AS ewes,
+  (SELECT COUNT(*) FROM lambs lb JOIN lambings l ON l.id = lb.lambing
+    WHERE l.season = ?)                                        AS lambs,
+  (SELECT COUNT(*) FROM treatments t WHERE t.season = ?)       AS treatments,
+  (SELECT COUNT(*) FROM media_assets)                          AS media_assets,
+  (SELECT COALESCE(SUM(byte_size), 0) FROM media_assets)       AS media_bytes,
+  (SELECT last_exported_at FROM app_settings WHERE id = 1)     AS last_exported_at,
+  -- THE YEAR RIDES ALONG rather than being a second read. `09 §1.1` builds every
+  -- file name from `seasons.year` and NEVER from `seasons.label`, which the
+  -- shepherd may have renamed to "Home flock" — a name with a space in it, on a
+  -- share sheet. Fetching it here keeps the one-statement rule and means the
+  -- name and the counts can never be one frame apart.
+  (SELECT year FROM seasons WHERE id = ?)                      AS season_year
 ''';

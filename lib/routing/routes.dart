@@ -7,6 +7,7 @@
 // twelve destinations, so no screen has to know a second one.
 import 'package:flutter/material.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
@@ -159,4 +160,11 @@ abstract final class Routes {
   static Future<void> foster(BuildContext context, LambId id) => Navigator.of(
     context,
   ).push(route(RouteNames.foster, (BuildContext _) => FosterScreen(lambId: id)));
+
+  /// **No argument.** The Export screen is scoped to the current season, which
+  /// it reads for itself — passing a season id would be a second answer to a
+  /// question `app_settings` already answers, one frame apart.
+  static Future<void> export(BuildContext context) => Navigator.of(
+    context,
+  ).push(route(RouteNames.export, (BuildContext _) => const ExportScreen()));
 }

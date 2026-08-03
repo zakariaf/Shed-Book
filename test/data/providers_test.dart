@@ -198,6 +198,8 @@ void main() {
       'treatmentRepositoryProvider',
       // N21-T06 — the one seam anything leaves the phone by
       'shareServiceProvider',
+      // N21-T07 — reads and assembles; writes nothing (CONVENTIONS §2.13)
+      'exportRepositoryProvider',
     });
   });
 

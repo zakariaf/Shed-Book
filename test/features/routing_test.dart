@@ -96,7 +96,7 @@ void main() {
     // screens that do not exist.
     expect(
       '.push('.allMatches(declarations).length,
-      3,
+      4,
       reason:
           'lambingEntry (N16-T01), lambCard (N17-T01), foster (N18-T02). '
           'Quick Entry is home: and is never pushed',
@@ -108,11 +108,12 @@ void main() {
 
     // The arithmetic 12 §6.2 will assert at N33 — thirteen names minus twelve
     // helpers equals one — is still not written here, because it is still not
-    // true: eleven screens remain.
+    // true: seven screens remain, and P15 moves three of them to v1.1.0 —
+    // Reminders, Season Summary and Note Search (docs/RELEASE-SCOPE.md §5.4).
     expect(
       RegExp(r'static Future<void> \w+\(').allMatches(declarations).length,
-      3,
-      reason: 'three screens exist to push to; N33-T01 asserts the final count',
+      4,
+      reason: 'four screens exist to push to; N33-T01 asserts the final count',
     );
   });
 

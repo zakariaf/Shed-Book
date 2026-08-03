@@ -1306,6 +1306,78 @@ abstract class AppLocalizations {
   /// **'TODAY\'S ARITHMETIC {date}'**
   String withdrawalRecomputed({required Object date});
 
+  /// The screen's heading, headingLevel 1. Spec 7.9 calls export a SAFETY feature rather than a convenience, because there is no cloud: this screen is the only backup the shepherd has.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPORT'**
+  String get exportTitle;
+
+  /// Above the buttons, on the first painted frame. It says what an export IS, in the shepherd's words. It deliberately does NOT say what an export is not - that is Disclaimers.exportFooter's job, referenced beneath it and never re-typed. The first draft said 'it is not a compliance record' and the anchor test refused it: the banned phrases are banned in OUR prose too, including in a sentence that denies them, because a screen that argues with the disclaimer is a second wording somebody will improve.
+  ///
+  /// In en, this message translates to:
+  /// **'This is your notebook\'s contents, as you recorded them. Nothing is sent anywhere: the file goes to the share sheet and you choose where it goes.'**
+  String get exportWhatThisIs;
+
+  /// 07 13.3 rows 1 and 2, as ONE message with the noun as a placeholder. The first draft spelled LAMB and EWE into two separate messages and l10n_bootstrap_test refused both: a domain noun in a message value is a noun a shepherd cannot rename, and these vary by county before they vary by country. The word CSV stays literal because a shepherd who is going to open the file in a spreadsheet needs to know that is what it is.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV - ONE ROW PER {term}'**
+  String exportCsvRow({required String term});
+
+  /// 07 13.3 row 3. It is the medicine record in spreadsheet form; the PDF version ships in v1.1.0 (P15) and this row is what covers it until then.
+  ///
+  /// In en, this message translates to:
+  /// **'CSV - ONE ROW PER TREATMENT'**
+  String get exportCsvTreatments;
+
+  /// One tap for all three CSVs, which is what a shepherd exporting at the end of a day actually wants - three separate share sheets is three chances to send the wrong one.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPORT ALL THREE'**
+  String get exportCsvAll;
+
+  /// The counts, READ and never estimated. No LIMIT, no sampling, no 'about 400' - a count the shepherd can compare against their own flock list is a count that has to be right. The two animal nouns are PLACEHOLDERS fed from Terminology (10 8.5): a shepherd who renamed ewe to gimmer sees gimmers here, and a literal noun in an ARB value is what l10n_bootstrap_test refuses. Treatment is not an animal class and stays a literal.
+  ///
+  /// In en, this message translates to:
+  /// **'{eweCount} {ewePlural}, {lambCount} {lambPlural}, {treatments} treatments'**
+  String exportCounts({
+    required int eweCount,
+    required String ewePlural,
+    required int lambCount,
+    required String lambPlural,
+    required int treatments,
+  });
+
+  /// The honest status line before the first export. It does NOT say 'a lost phone is lost data' - that wording is banned unqualified - and it does not nag; it states a fact the shepherd can act on.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing has been exported from this phone yet.'**
+  String get exportNeverExported;
+
+  /// The honest status line after an export. It is the date the SHARE SHEET reported, not the date the file was written: a file assembled and then dismissed did not leave the phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Last exported {date}.'**
+  String exportLastExported({required String date});
+
+  /// On the row that was tapped, and on no other. 07 13.2: the screen never blocks and never covers itself with a modal, and there is no spinner anywhere under lib/features/.
+  ///
+  /// In en, this message translates to:
+  /// **'Building...'**
+  String get exportBuilding;
+
+  /// The failure line, in the row that failed. It names the artefact, because a shepherd with three rows needs to know which one - and it says nothing was sent, because the alternative is a shepherd who believes a file left the phone when it did not.
+  ///
+  /// In en, this message translates to:
+  /// **'{artefact} could not be built. Nothing was sent.'**
+  String exportFailed({required String artefact});
+
+  /// The spoken form of one export row: what it produces and how much of it. The count is spoken because a screen reader user cannot glance at the number beside the label.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}, {count} records'**
+  String exportSemantics({required String label, required int count});
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

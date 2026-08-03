@@ -25,13 +25,13 @@
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
+//   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
-//   exportRepositoryProvider · shareServiceProvider                  N21
 //   restoreServiceProvider · mediaSweeperProvider                    N23
 //   reminderRepositoryProvider · reminderReconcilerProvider ·
 //     notificationSchedulerProvider                                  N24
@@ -53,6 +53,7 @@ import 'package:shed_book/data/foster_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/export_repository.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
@@ -134,6 +135,13 @@ final FutureProvider<NoteRepository> noteRepositoryProvider = FutureProvider<Not
 );
 
 final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());
+
+/// **A `FutureProvider`, like every repository beside it and unlike the
+/// gateways**: a repository needs the database, and the first frame paints
+/// before the database opens.
+final FutureProvider<ExportRepository> exportRepositoryProvider = FutureProvider<ExportRepository>(
+  (ref) async => ExportRepository(await ref.watch(databaseProvider.future)),
+);
 
 /// The one seam anything leaves the phone by.
 ///

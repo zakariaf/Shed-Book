@@ -35,13 +35,26 @@ class QuickEntryPageHeader extends StatelessWidget {
         alignment: AlignmentDirectional.centerStart,
         child: Padding(
           padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+          // NOT `ShedSectionHeading`, AND THIS IS THE ONE SITE OF FIVE THAT
+          // KEEPS ITS OWN RENDERING.
+          //
+          // The component prescribes `titleLarge` for level 1. Quick Entry is
+          // the 3am screen and has the tightest vertical budget in the app — two
+          // deck strips, a keypad and the entry sheet, none of which may give —
+          // so a taller heading has nowhere to go. Measured: four matrix cells
+          // overflowed the bottom by up to 72 px at textScaler 2.0.
+          //
+          // So the heading role and this screen's budget genuinely conflict, and
+          // that is a design ruling rather than something to settle by shrinking
+          // the component for everyone. The other four headings migrated.
+          //
+          // toUpperCase BELONGS HERE, NOT IN THE ARB. The caps are a typographic
+          // decision owned by the design system and Flutter has no
+          // text-transform; storing "NIGHT OF …" in the copy catalogue loses
+          // that the first time somebody edits the string.
           child: Semantics(
             headingLevel: 1,
             child: Text(
-              // toUpperCase BELONGS HERE, NOT IN THE ARB. The caps are a
-              // typographic decision owned by the design system and Flutter has
-              // no text-transform; storing "NIGHT OF …" in the copy catalogue
-              // loses that the first time somebody edits the string.
               text.toUpperCase(),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

@@ -285,10 +285,10 @@ void main() {
       ],
     );
 
-    final Treatment? previous = await repo.lastTreatment();
+    final TreatmentRow? previous = await repo.lastTreatment();
     expect(previous, isNotNull);
 
-    final WriteOutcome outcome = await repo.repeatTreatment(previous!, TreatEwe(second));
+    final WriteOutcome outcome = await repo.repeatTreatment(previous!.id, TreatEwe(second));
     expect(outcome, isA<WriteCommitted>());
     final TreatmentId repeated = TreatmentId((outcome as WriteCommitted).insertedId!);
 
@@ -325,12 +325,11 @@ void main() {
     await repo.recordTreatment(TreatEwe(ewe), productName: 'Alamycin');
     await repo.recordTreatment(TreatEwe(ewe), productName: 'Spectam');
 
-    final Treatment latest = (await repo.lastTreatment())!;
+    final TreatmentRow latest = (await repo.lastTreatment())!;
     expect(latest.productName, 'Spectam');
 
-    await (db.update(db.treatments)..where(($TreatmentsTable t) => t.id.equals(latest.id))).write(
-      TreatmentsCompanion(voidedAt: Value<Instant?>(appNow())),
-    );
+    await (db.update(db.treatments)..where(($TreatmentsTable t) => t.id.equals(latest.id.value)))
+        .write(TreatmentsCompanion(voidedAt: Value<Instant?>(appNow())));
 
     expect((await repo.lastTreatment())!.productName, 'Alamycin');
   });
@@ -371,5 +370,89 @@ void main() {
 
     // AND THE PERIOD STILL READS BACK. A void does not un-record a number.
     expect(await repo.withdrawalFor(id, WithdrawalTarget.meat), isA<WithdrawalDays>());
+  });
+
+  test('the countdown holds only treatments with a number to count down', () async {
+    // `07 §10.1`: *"The `w.kind = 'days'` predicate in the countdown arm is what
+    // keeps a NotRecorded treatment out of the countdown list entirely, which is
+    // correct: there is no number to count down."*
+    //
+    // **ANCHORED HERE AND NOT IN THE WIDGET TEST**, and that is the finding
+    // rather than a preference. The screen iterates `row.withdrawals`, so a
+    // treatment with none contributes no line whatever the statement returns —
+    // drilled, and the widget-level version of this assertion stayed green with
+    // the predicate deleted. Only the query can be asked what the query does.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await repo.recordTreatment(TreatEwe(ewe), productName: 'Nobody looked');
+    await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'None applies',
+      withdrawals: const <WithdrawalPeriod>[WithdrawalNotApplicable(WithdrawalTarget.meat)],
+    );
+    await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 9, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    expect(
+      (await repo.watchTreatments(TreatmentMode.countdown).first).map(
+        (TreatmentRow r) => r.productName,
+      ),
+      <String>['Alamycin'],
+    );
+
+    // AND ALL THREE ARE IN THE BOOK, which is where an inspector would look for
+    // the one nobody recorded a period for.
+    expect(await repo.watchTreatments(TreatmentMode.book).first, hasLength(3));
+  });
+
+  test('two targets fan out in the statement and fold into one row', () async {
+    // `07 §10.1`: one product routinely prints a meat figure and a milk figure,
+    // so the join returns two rows and the repository folds them by `t.id`.
+    //
+    // **THE FOLD IS WHY `withdrawals` IS A LIST**, and the list is why the three
+    // §12.1 states survive the read: the previous shape was one nullable
+    // `earliestClearDate`, and `MIN(clear_date)` over two targets is a fold done
+    // in SQL that throws away the fact the screen has to tell apart.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 9, target: WithdrawalTarget.meat),
+        WithdrawalDays.asEnteredByUser(days: 3, target: WithdrawalTarget.milk),
+      ],
+    );
+
+    final List<TreatmentRow> countdown = await repo.watchTreatments(TreatmentMode.countdown).first;
+    expect(countdown, hasLength(1), reason: 'one treatment, folded');
+    expect(countdown.single.withdrawals, hasLength(2), reason: 'two targets, kept apart');
+    expect(
+      countdown.single.withdrawals.map((StoredWithdrawal w) => w.days),
+      containsAll(<int>[9, 3]),
+    );
+  });
+
+  test('an empty withdrawals list is a fact, so lastTreatment reads them', () async {
+    // AN EMPTY LIST IS `WithdrawalNotRecorded` ON THIS TYPE. A constructor that
+    // passed `const []` because it had not looked would be stating a §12.1 fact
+    // it never checked — so the verb reads them, at the cost of one indexed
+    // select on the foreign key.
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await repo.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 9, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    expect((await repo.lastTreatment())!.withdrawals, hasLength(1));
   });
 }

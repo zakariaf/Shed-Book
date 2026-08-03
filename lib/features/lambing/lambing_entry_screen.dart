@@ -10,6 +10,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
@@ -82,13 +83,7 @@ class LambingEntryScreen extends ConsumerWidget {
           children: <Widget>[
             Padding(
               padding: EdgeInsets.all(t.gapMin),
-              child: Semantics(
-                headingLevel: 1,
-                child: Text(
-                  l10n.lambingEntryTitle.toUpperCase(),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-              ),
+              child: ShedSectionHeading(label: l10n.lambingEntryTitle.toUpperCase(), level: 1),
             ),
             Expanded(
               child: switch (data) {

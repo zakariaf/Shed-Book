@@ -13,7 +13,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// One word button in the presentation list.
@@ -67,8 +67,8 @@ class PresentationPicker extends StatelessWidget {
             runSpacing: t.gapMin,
             children: <Widget>[
               for (final PresentationChoice c in choices)
-                _WordButton(
-                  id: 'lambing_entry.presentation.${c.key}',
+                ShedWordButton(
+                  key: Key('lambing_entry.presentation.${c.key}'),
                   label: c.label,
                   selected: c.selected,
                   onTap: () => onSelected(c.selected ? null : c.key),
@@ -85,57 +85,6 @@ class PresentationPicker extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-/// A word button — **not a `Chip`**. No radius, no container, no fill: a word
-/// with a rule under it, which is what this system draws.
-class _WordButton extends StatelessWidget {
-  const _WordButton({
-    required this.id,
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String id;
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    // `selected:` on the node and NO STATE WORD in the label (`10 §3.2` rule 2).
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: label,
-        minSize: t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(label, style: selected ? text.titleMedium : text.bodyMedium),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

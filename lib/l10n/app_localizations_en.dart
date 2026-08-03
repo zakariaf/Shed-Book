@@ -722,4 +722,58 @@ class AppLocalizationsEn extends AppLocalizations {
   String withdrawalRecomputed({required Object date}) {
     return 'TODAY\'S ARITHMETIC $date';
   }
+
+  @override
+  String get treatmentsTitle => 'TREATMENTS';
+
+  @override
+  String get treatmentsModeCountdown => 'RUNNING';
+
+  @override
+  String get treatmentsModeBook => 'BOOK';
+
+  @override
+  String treatmentsVoided({required String date}) {
+    return 'VOIDED $date';
+  }
+
+  @override
+  String treatmentsClears({required String date}) {
+    return 'CLEARS $date';
+  }
+
+  @override
+  String get treatmentsNoWithdrawal => 'NOT RECORDED';
+
+  @override
+  String treatmentsCountdown({required String tag, required String target}) {
+    return '$tag · $target';
+  }
+
+  @override
+  String treatmentsCountdownSemantics({
+    required String tag,
+    required String target,
+    required String product,
+    required String date,
+  }) {
+    return '$tag, $target, $product, clears $date';
+  }
+
+  @override
+  String get treatmentsNotApplicable => 'NOT APPLICABLE';
+
+  @override
+  String get treatmentsRepeatLast => 'REPEAT LAST';
+
+  @override
+  String treatmentsRepeatOnto({required String tag}) {
+    return 'ONTO $tag';
+  }
+
+  @override
+  String get treatmentsEmpty => 'NOTHING RECORDED YET';
+
+  @override
+  String get treatmentsUntagged => 'UNTAGGED';
 }

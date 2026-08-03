@@ -1305,6 +1305,89 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'TODAY\'S ARITHMETIC {date}'**
   String withdrawalRecomputed({required Object date});
+
+  /// The screen's heading, headingLevel 1.
+  ///
+  /// In en, this message translates to:
+  /// **'TREATMENTS'**
+  String get treatmentsTitle;
+
+  /// The countdown segment. It shows what is still under withdrawal - the question at the gate, 'can she go?'. It is the segment the screen OPENS on, because the book is what they open in the office. Never 'Active' and never 'Current': running is what a withdrawal does.
+  ///
+  /// In en, this message translates to:
+  /// **'RUNNING'**
+  String get treatmentsModeCountdown;
+
+  /// The medicine-book segment. indelible.md 8 screen 8: the book is not a separate view, it is the book filtered to treatments. It shows voided rows too, struck and marked, because a voided treatment may already be printed in a book handed to a vet.
+  ///
+  /// In en, this message translates to:
+  /// **'BOOK'**
+  String get treatmentsModeBook;
+
+  /// The voided stamp in book mode. The row STAYS and is struck rather than removed - 12.3 and 09 3.2: the export marks voided rows rather than dropping them, because the app must never disagree with a book somebody already has.
+  ///
+  /// In en, this message translates to:
+  /// **'VOIDED {date}'**
+  String treatmentsVoided({required String date});
+
+  /// The countdown line. It prints the STORED clear date and never recomputes one. There is no 'she is clear' copy anywhere: leaving the countdown is not the same as claiming a negative, and only the shepherd and their vet can say the second.
+  ///
+  /// In en, this message translates to:
+  /// **'CLEARS {date}'**
+  String treatmentsClears({required String date});
+
+  /// WithdrawalUnknown on a treatment row - no withdrawal row exists at all. Absence IS the state (12.1) and it says so - it does NOT say the animal is clear, which would be the app answering a clinical question nobody asked it. 10 5.2 names this word: NOT RECORDED, never 0 and never blank. It is NOT the same as treatmentsNotApplicable, and the row that printed one sentence for both was the defect that split them.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT RECORDED'**
+  String get treatmentsNoWithdrawal;
+
+  /// The line above a countdown, naming WHO and WHICH TARGET. The target is spelled on every countdown because one product routinely prints a meat figure and a milk figure, and a countdown with no target named is a number a shepherd could apply to the wrong one.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} · {target}'**
+  String treatmentsCountdown({required String tag, required String target});
+
+  /// The spoken form of one countdown row. It does NOT speak the day tally - the tally and the figure are the same fact in two channels, and a screen reader that read both would say the number twice.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag}, {target}, {product}, clears {date}'**
+  String treatmentsCountdownSemantics({
+    required String tag,
+    required String target,
+    required String product,
+    required String date,
+  });
+
+  /// NoWithdrawal on a treatment row - the shepherd read the label and it said none applies. A RECORDED FACT, and the whole reason it cannot share a word with treatmentsNoWithdrawal: one is something somebody read, the other is a gap nobody filled. 10 5.2 row 8.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT APPLICABLE'**
+  String get treatmentsNotApplicable;
+
+  /// Opens the repeat flow. It shows the previous entry WITH its provenance so the shepherd can read what they entered last time, and the withdrawal days are NOT carried across - copying them would make the app the source of a clinical figure for a treatment nobody read a label for (12.1).
+  ///
+  /// In en, this message translates to:
+  /// **'REPEAT LAST'**
+  String get treatmentsRepeatLast;
+
+  /// One animal target in the repeat flow. One tap commits, which is the second of the two taps 07 10 budgets.
+  ///
+  /// In en, this message translates to:
+  /// **'ONTO {tag}'**
+  String treatmentsRepeatOnto({required String tag});
+
+  /// The empty state. Not an error and not a prompt: a flock that has treated nothing has treated nothing, and the screen says so rather than inviting them to start.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTHING RECORDED YET'**
+  String get treatmentsEmpty;
+
+  /// A treatment on a lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number.
+  ///
+  /// In en, this message translates to:
+  /// **'UNTAGGED'**
+  String get treatmentsUntagged;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

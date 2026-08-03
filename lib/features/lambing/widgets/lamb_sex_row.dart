@@ -11,7 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/sex.dart';
 
@@ -37,67 +37,18 @@ class LambSexRow extends StatelessWidget {
       spacing: t.gapMin,
       runSpacing: t.gapMin,
       children: <Widget>[
-        for (final ({Sex value, String word}) c in <({Sex value, String word})>[
-          (value: Sex.female, word: words.female),
-          (value: Sex.male, word: words.male),
-          (value: Sex.unknown, word: words.unknown),
+        for (final ({Sex value, String label}) c in <({Sex value, String label})>[
+          (value: Sex.female, label: words.female),
+          (value: Sex.male, label: words.male),
+          (value: Sex.unknown, label: words.unknown),
         ])
-          _SexButton(
-            id: 'lamb_card.sex.${c.value.key}',
-            word: c.word,
+          ShedWordButton(
+            key: Key('lamb_card.sex.${c.value.key}'),
+            label: c.label,
             selected: sex == c.value,
             onTap: () => onSelected(sex == c.value ? null : c.value),
           ),
       ],
-    );
-  }
-}
-
-class _SexButton extends StatelessWidget {
-  const _SexButton({
-    required this.id,
-    required this.word,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String id;
-  final String word;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
-    final TextTheme text = Theme.of(context).textTheme;
-
-    // `selected:` on the node, no state word in the label (`10 §3.2` rule 2).
-    return Semantics(
-      selected: selected,
-      child: ShedTapTarget(
-        key: Key(id),
-        semanticLabel: word,
-        minSize: t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: selected ? t.textPrimary : t.outline,
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(word, style: selected ? text.titleMedium : text.bodyMedium),
-              ),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

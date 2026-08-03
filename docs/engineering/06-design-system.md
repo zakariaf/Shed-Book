@@ -920,8 +920,8 @@ M3's `bodyLarge` is 16.0. Spec §5 says 18 pt minimum body, so the whole `TextTh
 |---|---|---|---|---|---|
 | `displayLarge` | 57 / w400 | **64** | w700 | ✓ | the entered tag on the keypad |
 | `displayMedium` | 45 / w400 | **48** | w700 | ✓ | ewe card tag |
-| `displaySmall` | 36 / w400 | **40** (`numeralSize`) | w700 | ✓ | pen tile tag, keypad digits |
-| `headlineLarge` | 32 / w400 | **32** | w700 | ✓ | hours-since-penned |
+| `displaySmall` | 36 / w400 | **40** (`numeralSize`) | w700 | ✓ | pen tile tag, keypad digits — **not a list row's tag**, see below |
+| `headlineLarge` | 32 / w400 | **32** | w700 | ✓ | hours-since-penned, **the tag in a list row** (`ShedAnimalRow`) |
 | `headlineMedium` | 28 / w400 | **28** | w600 | — | |
 | `headlineSmall` | 24 / w400 | **24** | w600 | — | |
 | `titleLarge` | 22 / w400 | **24** | w600 | — | screen titles (`headingLevel: 1`) |
@@ -968,6 +968,23 @@ TextTheme buildShedTextTheme(ShedTokens t) {
   );
 }
 ```
+
+**`ShedAnimalRow`'s tag is `headlineLarge`, not `displaySmall`.** It was
+`displaySmall` — 40 px, and 44 in a night-shift palette — which this table
+assigns to *the pen tile tag and the keypad digits*. A ewe row in a list is
+neither. `indelible.md §3.4` puts `--t-tag` **32** on *"tag in a row"* and
+reserves `--t-tag-xl` 44 for *"pen number, live-row tag"*, and `§4.4` states the
+ewe row as *"32px tag + an 18px summary line beneath it"*. Both outrank this
+document (CLAUDE.md's authority order puts `indelible.md` above the thirteen
+engineering documents), so the code follows them and this row is corrected rather
+than the design.
+
+It was not a cosmetic difference. At 200% on a 375 pt device the 40 px role
+measured a **240 px** tag column — 64% of the screen for three digits — and the
+In Pens strip's row overflowed. At 32 px the column is 192 px and the row fits
+with the summary intact. Found by the overflow matrix on the day the fixtures
+first carried an open pen occupancy; before that the strip had never rendered a
+row in any of the 144 cells.
 
 ### 5.2 The font asset
 

@@ -96,7 +96,23 @@ void main() {
     final AppDatabase db = testDatabase(seedOnCreate: false);
     await restoreFixture(db, 'flock_400_3seasons.json');
 
-    expect(await db.select(db.ewes).get(), hasLength(400));
+    // **400 ACTIVE, 401 ROWS.** The extra is `12 §11.5`'s culled ewe whose tag a
+    // live ewe reuses — the shape that makes `idx_ewe_tagdigits`' partial
+    // uniqueness meaningful, since that index covers active animals only. An
+    // assertion on the raw row count would have to be edited every time the
+    // fixture gains a shape; this one says what the flock IS.
+    final List<Ewe> all = await db.select(db.ewes).get();
+    expect(all.where((Ewe e) => e.status == 'active'), hasLength(400));
+    expect(
+      all.where((Ewe e) => e.status == 'culled'),
+      hasLength(1),
+      reason: 'the culled ewe is what makes the reused tag legal',
+    );
+    expect(
+      all.where((Ewe e) => e.tag == all.firstWhere((Ewe c) => c.status == 'culled').tag),
+      hasLength(2),
+      reason: 'a live ewe wears the culled ewe tag — one tag, two rows',
+    );
     expect(await db.select(db.seasons).get(), hasLength(3));
     expect(
       (await db.select(db.lambings).get()).length,
@@ -149,15 +165,44 @@ void main() {
             // long enough to scroll — and the seeder supplies the **hard single
             // record** the volume can never contain. Cells get both.
             final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
-            final Map<String, int> ids = await variant.value.seed(db);
 
-            await tester.pumpApp(
-              variant.value.build(ids),
-              db: db,
-              device: device,
-              textScale: scale,
-              boldText: bold,
-            );
+            // **THE CLOCK IS PINNED, AND WITHOUT IT THIS MATRIX ROTS.**
+            // `12 §2.1`: pin `now` and offset the seed data. The cells ran on the
+            // real clock, which is harmless while every screen renders stored
+            // values — and stops being harmless the moment one renders an ELAPSED
+            // one. The In Pens strip prints hours-since-penned, the fixture's open
+            // occupancies are dated 2026-02-10, and on the day this was written
+            // that read **4197h** — 182.5 px of trailing, and the row overflowed
+            // by 112.
+            //
+            // The number grows every day the repository ages. A static fixture
+            // plus a moving clock is a test whose layout demand is unbounded in
+            // time: green today, red on some Tuesday next year for nobody's
+            // change. Pinning is what makes 144 cells mean the same thing in
+            // March 2027 as they do now.
+            //
+            // 11 February 2026, the morning after the fixture pens its ewes, so
+            // the strip reads the small number a real shed shows. Single-instant
+            // assertions only — a cell pumps and looks for overflow; nothing here
+            // measures elapsed time, which is the other half of `12 §2.2`.
+            // **THE SEED IS INSIDE THE PIN TOO, AND THE FIRST DRAFT PUT IT
+            // OUTSIDE.** `12 §2.1` says pin `now` AND offset the seed data; a pin
+            // that covers only the pump stamps the seeded rows from the real
+            // clock and then renders them against a frozen one. The treatments
+            // screen showed it immediately: withdrawals seeded 28 days out from
+            // today, read back from 11 February, printed as `181` and `+153` —
+            // three-digit countdowns no shed produces, wide enough to overflow by
+            // 1.4 px. Seed and render must agree about what "now" is.
+            await atFixed(DateTime.utc(2026, 2, 11, 8), () async {
+              final Map<String, int> ids = await variant.value.seed(db);
+              await tester.pumpApp(
+                variant.value.build(ids),
+                db: db,
+                device: device,
+                textScale: scale,
+                boldText: bold,
+              );
+            });
 
             // takeException() is what catches a RenderFlex overflow: the
             // rendering library throws it during layout, and flutter_test parks

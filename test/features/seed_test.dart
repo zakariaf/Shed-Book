@@ -147,7 +147,14 @@ void main() {
     // THE MARKS ONLY A RESTORE LEAVES: ids re-issued from 1 in insertion order,
     // and no `seedFirstRun` season beyond the ones the file declares.
     final List<Ewe> ewes = await restored.select(restored.ewes).get();
-    expect(ewes, hasLength(30));
+    // **THIRTY ACTIVE, THIRTY-ONE ROWS.** The extra is `12 §11.5`'s culled ewe
+    // whose tag a live ewe reuses — the shape that makes `idx_ewe_tagdigits`'
+    // partial uniqueness mean something, since that index covers active animals
+    // only. Counting rows made this read `30` and fail the day the generator
+    // started carrying the shapes its own spec asks for; counting what the flock
+    // IS survives the next shape too.
+    expect(ewes.where((Ewe e) => e.status == 'active'), hasLength(30));
+    expect(ewes.where((Ewe e) => e.status == 'culled'), hasLength(1));
     expect(ewes.map((Ewe e) => e.id), containsAll(<int>[1, 2, 3]));
     expect(
       await restored.select(restored.seasons).get(),

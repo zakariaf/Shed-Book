@@ -160,7 +160,12 @@ ExportEnvelope seedEnvelope() => ExportEnvelope.standard(
 /// **Built as a file rather than as rows**, because the seed's whole design is
 /// that it writes through `RestoreService`: producing rows directly would be the
 /// second writer this task exists to avoid.
-Map<String, Object?> flockTables({required int ewes, required int seasons, required int seed}) {
+Map<String, Object?> flockTables({
+  required int ewes,
+  required int seasons,
+  required int seed,
+  bool withCulledReusedTag = true,
+}) {
   final FlockGenerator g = FlockGenerator(seed);
   const int dayMs = 24 * 60 * 60 * 1000;
   final int firstSeasonStart = DateTime.utc(2026 - seasons + 1, 1, 1).millisecondsSinceEpoch;
@@ -182,6 +187,64 @@ Map<String, Object?> flockTables({required int ewes, required int seasons, requi
     });
   }
 
+  // **THE FOUR SHAPES `12 §11.5` NAMES, AND THE FIXTURE CARRIED NONE OF THEM.**
+  // The table in that section is not decoration — it is what four topics load
+  // this file *for*: a culled ewe whose tag a live ewe reuses, an edited
+  // timestamp, a contradictory lambing, unicode notes. The first version of this
+  // generator emitted four tables of uniformly `active` ewes and no notes at all,
+  // so every test that believed it was exercising those shapes was exercising
+  // their absence. Found while starting N26, whose *culled tag* rendering and
+  // *currently penned* filter both need them.
+  //
+  // Pens and treatments are here for the same reason one step further on: N26's
+  // own T01 test asserts the *currently penned* filter narrows the list to the
+  // count of open `pen_occupancies` rows. With no pens that assertion reads
+  // `0 == 0` and passes against an implementation that ignores the filter.
+  final List<Map<String, Object?>> penRows = <Map<String, Object?>>[];
+  final List<Map<String, Object?>> occupancyRows = <Map<String, Object?>>[];
+  final List<Map<String, Object?>> noteRows = <Map<String, Object?>>[];
+  int openOccupancies = 0;
+
+  // Roughly one pen per twenty ewes, floored at four — a 400-ewe shed does not
+  // run on six pens, and the *currently penned* filter is only worth testing
+  // against a plausible number of them.
+  final int penCount = ewes ~/ 20 < 4 ? 4 : ewes ~/ 20;
+
+  for (int p = 0; p < penCount; p++) {
+    penRows.add(<String, Object?>{
+      'uid': g.uid('pen', p),
+      'created_at': firstSeasonStart,
+      'updated_at': firstSeasonStart,
+      'label': 'Pen ${p + 1}',
+      'sort_order': p,
+      'is_active': true,
+    });
+  }
+
+  // **THE CULLED EWE WHOSE TAG A LIVE EWE REUSES.** The one shape that makes
+  // `idx_ewe_tagdigits`' partial uniqueness meaningful: the index covers ACTIVE
+  // animals only, so this row is legal and a flock without it never proves the
+  // predicate is there. A shepherd really does put last year's number back on a
+  // new ewe.
+  //
+  // **AND IT IS OFF FOR THE AT-CAP FIXTURE.** `flock_15_at_cap.json` exists to
+  // BE the free tier's boundary (§7.0 ruling 8), so its ewe count has to mean one
+  // thing. Switching this on took it to sixteen rows — still fifteen *active*,
+  // so still at cap by the product's own rule, and that is exactly the ambiguity
+  // a boundary fixture must not carry. `12 §11.5` assigns this shape to the
+  // 400-ewe fixture and to that one only.
+  final String reusedTag = g.tag(3);
+  if (withCulledReusedTag) {
+    eweRows.add(<String, Object?>{
+      'uid': g.uid('culled', 0),
+      'created_at': firstSeasonStart,
+      'updated_at': firstSeasonStart,
+      'tag': reusedTag,
+      'tag_digits': reusedTag.replaceAll(RegExp('[^0-9]'), ''),
+      'status': 'culled',
+    });
+  }
+
   int lambN = 0;
   for (int e = 0; e < ewes; e++) {
     final String eweUid = g.uid('ewe', e);
@@ -196,6 +259,69 @@ Map<String, Object?> flockTables({required int ewes, required int seasons, requi
       'tag_digits': tag.replaceAll(RegExp('[^0-9]'), ''),
       'status': 'active',
     });
+
+    // **ONE EWE IN SEVEN IS IN A PEN RIGHT NOW** — an open occupancy, `exited_at`
+    // NULL, which is exactly what the *currently penned* filter's `EXISTS`
+    // subquery looks for. Every seventh rather than a block, so the filter cannot
+    // pass by taking a prefix of the list.
+    if (e % 7 == 3) {
+      // **AT MOST ONE OPEN OCCUPANCY PER PEN, AND THE DATABASE ENFORCES IT.**
+      // `idx_penocc_one_open` is `UNIQUE (pen) WHERE exited_at IS NULL` —
+      // *"the database physically refuses two ewes in pen 3 at once… the
+      // whiteboard gets wiped, solved at the storage layer."* The first draft
+      // put fifty-seven ewes in six pens and the fixture would not load:
+      // `UNIQUE constraint failed: pen_occupancies.pen`.
+      //
+      // Which is the right shape anyway. A season leaves far more pen history
+      // than it leaves current occupants, so the early ones stay OPEN — one per
+      // pen, which is what *currently penned* filters to — and the rest are
+      // CLOSED, which is what a pen board's history reads.
+      final bool open = openOccupancies < penCount;
+      final int enteredAt = DateTime.utc(2026, 2, 10).millisecondsSinceEpoch;
+      occupancyRows.add(<String, Object?>{
+        'uid': g.uid('occ', e),
+        'created_at': firstSeasonStart,
+        'updated_at': firstSeasonStart,
+        'pen_uid': g.uid('pen', open ? openOccupancies : e % penCount),
+        'season_uid': g.uid('season', seasons - 1),
+        'ewe_uid': eweUid,
+        'entered_at': enteredAt,
+        'captured_at': enteredAt,
+        'time_source': 'auto',
+        // The schema pairs these: `CHECK ((exited_at IS NULL) = (exit_reason IS
+        // NULL))`, so a closed occupancy without a reason is unstorable and a
+        // reason without an exit is too.
+        if (!open) 'exited_at': enteredAt + 2 * 24 * 3600 * 1000,
+        if (!open) 'exit_reason': 'turned_out',
+      });
+      if (open) {
+        openOccupancies++;
+      }
+    }
+
+    // **UNICODE NOTES, AND THE POINT IS THE BYTES.** A flock of ASCII notes never
+    // exercises the CSV writer's quoting, the FTS5 tokeniser or the row's
+    // ellipsis at a grapheme boundary. Welsh, an accent, an emoji and a
+    // right-to-left fragment, because those are the four that break different
+    // things.
+    if (e % 23 == 5) {
+      const List<String> bodies = <String>[
+        'Cadwyd yn y sied — llaeth yn brin',
+        'Prolapsed — vet called, réussi',
+        'Watch this one 🐑 next season',
+        'ملاحظة: توأم',
+      ];
+      noteRows.add(<String, Object?>{
+        'uid': g.uid('note', e),
+        'created_at': firstSeasonStart,
+        'updated_at': firstSeasonStart,
+        'ewe_uid': eweUid,
+        'body': bodies[(e ~/ 23) % bodies.length],
+        'occurred_at': DateTime.utc(2026, 2, 12).millisecondsSinceEpoch,
+        'captured_at': DateTime.utc(2026, 2, 12).millisecondsSinceEpoch,
+        'time_source': 'auto',
+      });
+    }
 
     // **THE MOST RECENT SEASON ONLY.** `--ewes` is *ewes in the most recent
     // season*; a flock that lambed identically three years running is a flock
@@ -220,7 +346,27 @@ Map<String, Object?> flockTables({required int ewes, required int seasons, requi
         at,
         isUtc: true,
       ).toIso8601String().substring(0, 10),
-      'time_source': 'auto',
+      // **THE EDITED TIMESTAMP (`12 §11.5`).** Every fortieth lambing carries the
+      // provenance quad's third state — `time_source = 'edited'` with
+      // `original_effective` holding what it said before. The schema's paired
+      // CHECK makes the two inseparable: `(time_source = 'edited') =
+      // (original_effective IS NOT NULL)`, so a fixture cannot fake one without
+      // the other, and §12.5's provenance label has something real to render.
+      'time_source': e % 40 == 11 ? 'edited' : 'auto',
+      if (e % 40 == 11) 'original_effective': at - 3 * 3600 * 1000,
+      // **THE CONTRADICTORY LAMBING (`12 §11.5`).** `lambing_consistency`
+      // computes `is_mismatched` from `declared_birth_type` against the attached
+      // lamb count, and it is the source of the Flock row's warning badge
+      // (`07 §3.1`: there is no `warning_count` column and there never will be,
+      // decision #54). A flock where declared always equals counted can never
+      // light that badge, so every thirty-first lambing declares one more than it
+      // has — which is what a shepherd tapping the tally and then losing a lamb
+      // actually produces.
+      //
+      // Not 5-vs-5-or-more: `declared = 5` means *more than four, count not
+      // declared*, so five attached lambs is NOT a mismatch. Declaring `litter +
+      // 1` stays under that rule for every litter this generator makes.
+      'declared_birth_type': e % 31 == 17 ? litter + 1 : litter,
     });
 
     for (int l = 0; l < litter; l++) {
@@ -271,9 +417,16 @@ Map<String, Object?> flockTables({required int ewes, required int seasons, requi
         'cycle_days': 17,
       },
     ],
+    // **PARENTS BEFORE CHILDREN.** `importInto` inserts in this order and
+    // resolves `<parent>_uid` as it goes, so `pens` must precede
+    // `pen_occupancies` and `ewes` must precede both. The order is the contract,
+    // not a preference.
     'seasons': seasonRows,
+    'pens': penRows,
     'ewes': eweRows,
     'lambings': lambingRows,
     'lambs': lambRows,
+    'pen_occupancies': occupancyRows,
+    'notes': noteRows,
   };
 }

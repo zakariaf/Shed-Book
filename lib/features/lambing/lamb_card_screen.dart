@@ -24,6 +24,7 @@ import 'package:shed_book/domain/validation/lambing_checks.dart';
 import 'package:shed_book/features/lambing/widgets/death_date_cell.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_status_row.dart';
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -56,21 +57,17 @@ class LambCardScreen extends ConsumerWidget {
           children: <Widget>[
             Padding(
               padding: EdgeInsets.all(t.gapMin),
-              child: Semantics(
-                headingLevel: 1,
-                child: Text(
-                  switch (data) {
-                    // THE TAG IS THE HEADING WHEN THERE IS ONE. A lamb without a
-                    // tag is not a lamb without an identity — it is a lamb whose
-                    // ear is still bare, which is most lambs for most of their
-                    // first week.
-                    AsyncData<LambCardData>(value: final LambCardData d) =>
-                      d.tag ?? l10n.lambCardUntagged,
-                    _ => l10n.lambCardUntagged,
-                  },
-                  key: const Key('lamb_card.title'),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+              child: ShedSectionHeading(
+                key: const Key('lamb_card.title'),
+                // THE TAG IS THE HEADING WHEN THERE IS ONE. A lamb without a tag
+                // is not a lamb without an identity — it is a lamb whose ear is
+                // still bare, which is most lambs for most of their first week.
+                label: switch (data) {
+                  AsyncData<LambCardData>(value: final LambCardData d) =>
+                    d.tag ?? l10n.lambCardUntagged,
+                  _ => l10n.lambCardUntagged,
+                },
+                level: 1,
               ),
             ),
             Expanded(

@@ -21,6 +21,7 @@ import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/penning.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/data/recorded_time_columns.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
 
@@ -184,6 +185,12 @@ final class PenRepository {
           _db.penOccupancyLambs,
           _db.ewes,
           _db.lambs,
+          // ADDED WITH THE CLEAR DATE. Without these two the board would show a
+          // stale withdrawal until something else happened to invalidate it —
+          // and the thing it would be stale about is whether an animal may
+          // leave the pen.
+          _db.treatments,
+          _db.treatmentWithdrawals,
         },
       )
       .watch()
@@ -206,6 +213,9 @@ final class PenRepository {
               timeSourceKey: r.readNullable<String>('time_source'),
               lambCount: r.read<int>('lamb_count'),
               hasLoss: r.read<int>('has_loss') != 0,
+              clearDate: r.readNullable<String>('clear_date') == null
+                  ? null
+                  : LocalDate.parse(r.read<String>('clear_date')),
             ),
         ],
       );
@@ -356,6 +366,7 @@ final class PenBoardRow {
     required this.timeSourceKey,
     required this.lambCount,
     required this.hasLoss,
+    required this.clearDate,
   });
 
   final PenId pen;
@@ -375,12 +386,37 @@ final class PenBoardRow {
   final int lambCount;
 
   final bool hasLoss;
+
+  /// The **latest** clear date across every non-voided withdrawal on the ewe or
+  /// on a lamb in this pen, or `null` when nothing is under withdrawal.
+  ///
+  /// Latest rather than earliest — see `_penBoardSql`. `forTick` decides whether
+  /// it is still open by comparing it against today; a date in the past is a
+  /// withdrawal that is over, which is the commonest state of all.
+  final LocalDate? clearDate;
 }
 
 /// `07 §9.1`'s statement.
 ///
 /// **A LEFT JOIN FROM `pens`**, so every active pen is a row whether or not
 /// anything is in it. The board is a picture of the shed.
+///
+/// **`MAX(clear_date)`, NOT `MIN` — AND THAT IS THE SAFE DIRECTION.** A ewe with
+/// two open withdrawals clearing on the 10th and the 20th is not clear until the
+/// 20th. `MIN` would put `CLEAR 10 AUG` on her tile, which reads as *she can go
+/// on the 10th* — the exact mistake the `attention` state exists to prevent, and
+/// worse than showing nothing because it is confidently wrong.
+///
+/// **`voided_at IS NULL` IS THE FILTER, HERE AND UPSTREAM OF EVERY "IS SHE
+/// CLEAR?" QUESTION.** `voidTreatment` is a soft void: the row stays because it
+/// may already be printed in a book handed to a vet, so every read that decides
+/// whether an animal may move has to exclude it.
+///
+/// **THE LAMBS COUNT TOO.** A lamb under withdrawal in the pen is a reason not to
+/// turn the pen out, and the board is about the pen. `pen_occupancy_lambs` is the
+/// join, and it is the third correlated subquery on this statement — a real cost
+/// on a board that re-runs on every lamb insert, and one worth paying to make a
+/// safety state reachable at all. Narrowing them is recorded as follow-up work.
 const String _penBoardSql = '''
 SELECT p.id AS pen_id, p.label AS label,
        o.id AS occupancy_id, o.entered_at AS entered_at, o.time_source AS time_source,
@@ -389,7 +425,15 @@ SELECT p.id AS pen_id, p.label AS label,
        (SELECT COUNT(*) FROM pen_occupancy_lambs pol2
           JOIN lambs l ON l.id = pol2.lamb
          WHERE pol2.occupancy = o.id
-           AND l.status IN ('dead', 'stillborn')) > 0 AS has_loss
+           AND l.status IN ('dead', 'stillborn')) > 0 AS has_loss,
+       (SELECT MAX(tw.clear_date)
+          FROM treatment_withdrawals tw
+          JOIN treatments t ON t.id = tw.treatment
+         WHERE t.voided_at IS NULL
+           AND tw.clear_date IS NOT NULL
+           AND (t.ewe = o.ewe
+                OR t.lamb IN (SELECT pol3.lamb FROM pen_occupancy_lambs pol3
+                               WHERE pol3.occupancy = o.id))) AS clear_date
   FROM pens p
   LEFT JOIN pen_occupancies o ON o.pen = p.id AND o.exited_at IS NULL
   LEFT JOIN ewes e            ON e.id = o.ewe

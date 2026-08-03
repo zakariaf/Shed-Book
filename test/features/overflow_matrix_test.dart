@@ -26,10 +26,10 @@ void main() {
 
     expect(
       cells,
-      90,
+      108,
       reason:
-          'FIVE variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
-          'joined at N16-T09, the Lamb Card at N17-T05 Foster at N18-T05 and the pen board at N19-T07. '
+          'SIX variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
+          'joined at N16-T09, the Lamb Card at N17-T05 Foster at N18-T05 the pen board at N19-T07 and treatments at N20-T07. '
           'It becomes 252 over '
           'fourteen variants at N33-T01, which is also where '
           "12 §6.2's length assertion belongs — writing it here would assert a future",
@@ -47,6 +47,7 @@ void main() {
       RouteNames.lambCard,
       RouteNames.foster,
       RouteNames.penBoard,
+      RouteNames.treatments,
     });
 
     // Every key is a real route name — a variant keyed on a string that is not

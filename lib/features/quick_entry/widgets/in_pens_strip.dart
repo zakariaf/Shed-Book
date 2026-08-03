@@ -96,6 +96,16 @@ class InPensStrip extends ConsumerWidget {
   }
 }
 
+/// **NOT `ShedEmptyState`, AND THAT WAS TRIED.** The shared component is
+/// `double.infinity` in both axes so it takes the maximum of LOOSE constraints —
+/// which is its whole no-jump point, and which requires a BOUNDED parent. A
+/// strip sizes to its content, so swapping it in overflowed six overflow-matrix
+/// cells at textScaler 2.0, on every device.
+///
+/// The constraint is real and was undocumented. It is now recorded here and on
+/// the component; reconciling the two shapes — an empty state that fills, and
+/// one that sits in a content-sized row — is a design question rather than a
+/// call-site choice.
 class _Empty extends StatelessWidget {
   const _Empty({required this.text});
 

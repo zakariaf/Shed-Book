@@ -19,8 +19,19 @@ import 'package:shed_book/core/ui/tokens.dart';
 ///
 /// **MIRRORED RATHER THAN IMPORTED**, because `lib/core/ui/` may not import
 /// `lib/features/` — a shared component that knew about one feature would be a
-/// component only that feature could use. The two enums are kept in step by a
-/// test on the source text, not by an import.
+/// component only that feature could use. The two enums are kept in step by
+/// `test/policy/mirrored_enums_agree_test.dart`, which compares the declared
+/// members and their order.
+///
+/// **THAT TEST DID NOT EXIST WHEN THIS COMMENT FIRST CLAIMED IT DID.** It was
+/// written after a review found the claim false, and a comment describing a
+/// mechanism that is not there is worse than no comment — it tells the next
+/// reader the risk is already handled.
+///
+/// The better fix is still open: layer rule 7 permits `lib/core/ui/` to import
+/// `lib/domain/`, and `shed_countdown.dart` already does — so this enum could
+/// live in `lib/domain/penning.dart` beside `PenExitReason` and the mirror could
+/// go entirely. That needs a `CONVENTIONS §6` ruling and a `10 §3.5` amendment.
 enum ShedPenTileStatus { settling, ready, attention, loss, empty }
 
 /// What one tile renders. Words arrive resolved; this component never looks one

@@ -63,7 +63,15 @@ final class PenTile {
 
   final bool hasLoss;
 
-  /// The EARLIEST open withdrawal clear date, or null. N20 fills it.
+  /// The **latest** clear date across every non-voided withdrawal on the ewe or
+  /// on a lamb in this pen, or `null` when nothing is under withdrawal.
+  ///
+  /// **IT SAID "EARLIEST" AND "N20 FILLS IT", AND BOTH WERE WRONG.** N20 did not
+  /// fill it — nothing did, so `PenTileStatus.attention` could not fire in the
+  /// shipped app at all, and the tests passed because they built `PenTile`
+  /// directly. And earliest is the unsafe direction: a ewe with withdrawals
+  /// clearing on the 10th and the 20th is not clear until the 20th, so the
+  /// earliest would print `CLEAR 10 AUG` on a tile beside a ewe who may not go.
   final LocalDate? clearDate;
 
   /// **RESOLVED PER TICK, NEVER STORED.** Both this and [status] depend on
@@ -196,6 +204,9 @@ final StreamProvider<List<PenTile>> penBoardProvider = StreamProvider<List<PenTi
                   : TimeSource.fromKey(r.timeSourceKey!),
               lambCount: r.lambCount,
               hasLoss: r.hasLoss,
+              // THE WHOLE POINT OF THIS FIX. Without it `attention` was
+              // unreachable: `forTick` read a field nothing ever set.
+              clearDate: r.clearDate,
               // `empty` UNTIL THE TICKER SAYS OTHERWISE. The other four depend
               // on `now`, so resolving them here would bake in the instant the
               // statement happened to emit.

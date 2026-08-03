@@ -91,5 +91,11 @@ abstract final class ContentPolicy {
   /// it would do so in the one file whose job is to hold that guard up.
   static final Map<String, String> allowlist = <String, String>{
     Disclaimers.exportFooter: 'This is the disclaimer itself (safety rule 3).',
+    // `Disclaimers.strikeNotice` (N21-T03) is DELIBERATELY NOT HERE. The task
+    // said any new const joins this map by reference, and measuring it says
+    // otherwise: the notice trips no pattern in `bannedInUserFacingText`, so an
+    // entry for it would be dead — and a dead entry weakens the assertion below
+    // it, which pins this map at exactly one key. `content_policy_test.dart`
+    // asserts the notice is permitted without one, which is the stronger claim.
   };
 }

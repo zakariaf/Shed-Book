@@ -130,13 +130,17 @@ final class CsvWriter {
     return b.takeBytes();
   }
 
-  /// Six records, on **every** CSV including a zero-row one (`07 §13.2`).
+  /// Seven records, on **every** CSV including a zero-row one (`07 §13.2`).
   ///
   /// Every string here is REFERENCED from [Disclaimers] and none is re-typed;
   /// `copy.disclaimer_retyped` fails the build if a second file spells one out.
   List<String> _trailer() => <String>[
     '# ${envelope.disclaimer}', // §12.3
     '# ${Disclaimers.withdrawalCaveat}', // §12.1
+    // R79 / screen 11. Its own const rather than an amendment to the footer —
+    // see `Disclaimers.strikeNotice` for why, and note that this row is why the
+    // trailer is seven records and not six.
+    '# ${Disclaimers.strikeNotice}',
     // BUILT FROM THE ENUM (§12.5). A fourth `TimeSource` changes this line with
     // no edit here; a hand-typed list of three would not.
     '# Times are exported in UTC. Each event carries its source: '

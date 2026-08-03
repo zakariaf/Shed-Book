@@ -641,7 +641,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 | `QuickEntryDeck` | same | `typedef QuickEntryDeck = ({List<DeckEntry> penned, List<DeckEntry> recents})` — a **record**, which is what makes `.select((d) => d.penned)` legal. ONE provider for both strips; `recentEwesProvider` and `inPensProvider` are banned spellings (R28) | 07 |
 | `timeSincePenned` | `lib/domain/penning.dart` | `Duration timeSincePenned(Instant enteredAt, Instant now)` — takes `now`, never reads a clock (R24) | 05 |
 | `ReminderBudget` | `lib/domain/reminder_budget.dart` | `abstract final class ReminderBudget { static int forPlatform(); }` → 56 iOS / 200 Android (R50) | 05 → 08 |
-| `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed | 05 |
+| `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `strikeNotice`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed. **`strikeNotice` arrived with N21-T03** as its own const rather than as an amendment to `exportFooter`, which three documents print verbatim | 05 |
 | `ContentPolicy` | `lib/domain/policy/content_policy.dart` | `bannedInUserFacingText`, `allowlist` keyed by `Disclaimers.*` | 05 |
 | `Terminology`, `TermLabel` | `lib/domain/terminology/` | as in 05 §8.1 | 05 |
 | `ResumePolicy` | `lib/app.dart` | `static const staleAfter = Duration(minutes: 2); static bool shouldClearSelection(DateTime, DateTime)` | 02 |

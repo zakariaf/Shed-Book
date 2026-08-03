@@ -35,6 +35,11 @@ import 'csv_writer_test.dart' show parseRfc4180;
 
 final Instant _exportedAt = Instant.fromDateTime(DateTime.utc(2026, 4, 1, 9));
 
+/// `09 §2.7` plus R79's strike notice (T03). Named rather than inlined, because
+/// a literal `6` in three files is three edits the day an eighth record lands —
+/// and the failure is a silently truncated `data` list, not an error.
+const int kTrailerRecords = 7;
+
 CsvWriter _writer() => CsvWriter(
   ExportEnvelope.standard(now: _exportedAt, appVersion: '1.0.0'),
   localZoneLabel: 'GMT (UTC+00:00)',
@@ -43,7 +48,7 @@ CsvWriter _writer() => CsvWriter(
 /// Header, data records and trailer, split apart — every case wants the middle.
 ({List<String> header, List<List<String>> data}) shapeOf(Uint8List bytes) {
   final List<List<String>> records = parseRfc4180(utf8.decode(bytes.sublist(3)));
-  return (header: records.first, data: records.sublist(1, records.length - 6));
+  return (header: records.first, data: records.sublist(1, records.length - kTrailerRecords));
 }
 
 int columnOf(List<String> header, String name) {

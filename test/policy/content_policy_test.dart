@@ -39,6 +39,11 @@ void main() {
       '412 · 3 seasons · avg 2.0 · assisted twice',
       'Clear on 11 Mar. Period ends 10 Mar 20:00.',
       'She has been penned 26 hours.',
+      // N21-T03's strike notice, and it is here rather than in the allowlist on
+      // purpose: it trips no pattern, so allowlisting it would be a dead entry
+      // that weakens the one-key assertion below. Asserting it is permitted
+      // WITHOUT an exemption is the stronger claim.
+      'Struck entries are included and marked struck. Nothing has been removed.',
     ];
     for (final String o in permitted) {
       expect(_banned(o), isFalse, reason: o);

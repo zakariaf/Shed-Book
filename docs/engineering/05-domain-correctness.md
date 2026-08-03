@@ -1513,6 +1513,14 @@ abstract final class Disclaimers {
       'record, holding register, or movement record, and must not be '
       'presented as one. All entries are as recorded by the user.';
 
+  /// indelible.md screen 11's second footer sentence. R79 made the strike real,
+  /// so the promise "struck entries are included and marked, nothing has been
+  /// removed" has to appear somewhere. ITS OWN CONST, ruled in N21-T03: amending
+  /// exportFooter would change a string three documents print verbatim and that
+  /// N22's backup-header golden is written against.
+  static const String strikeNotice =
+      'Struck entries are included and marked struck. Nothing has been removed.';
+
   static const String withdrawalProvenance = 'as entered by you';
 
   static const String withdrawalCaveat =

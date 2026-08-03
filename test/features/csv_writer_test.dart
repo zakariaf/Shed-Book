@@ -193,8 +193,9 @@ void main() {
       0x0A,
     ], reason: 'CRLF after the last record');
 
-    // One header + two rows + six trailer records.
-    expect('\r\n'.allMatches(bodyOf(bytes)).length, 1 + 2 + 6);
+    // One header + two rows + SEVEN trailer records — the seventh is R79's
+    // strike notice, added in T03.
+    expect('\r\n'.allMatches(bodyOf(bytes)).length, 1 + 2 + 7);
   });
 
   test('a ragged row throws in release mode as well as in debug', () {
@@ -294,14 +295,14 @@ void main() {
     expect(identical(typed, before), isTrue);
   });
 
-  test('a zero-row file still carries a header, six trailer records and the BOM', () {
+  test('a zero-row file still carries a header, seven trailer records and the BOM', () {
     // `07 §13.2`: a 0-row CSV still carries its disclaimer trailer. An export of
     // nothing is still an export, and it is the one a shepherd is most likely to
     // send to somebody while asking why it is empty.
     final Uint8List bytes = writerAt(_fixed).encode(<String>['a', 'b'], const <List<Object?>>[]);
 
     expect(bytes.sublist(0, 3), <int>[0xEF, 0xBB, 0xBF]);
-    expect(parseRfc4180(bodyOf(bytes)), hasLength(7));
+    expect(parseRfc4180(bodyOf(bytes)), hasLength(8));
   });
 
   test("every trailer row is padded to the header's field count", () {
@@ -340,6 +341,7 @@ void main() {
 
     expect(body, contains(Disclaimers.exportFooter));
     expect(body, contains(Disclaimers.withdrawalCaveat));
+    expect(body, contains(Disclaimers.strikeNotice));
     expect(body, contains('1.0.0'));
   });
 

@@ -795,7 +795,7 @@ The universal control. Min `64 × 64`, 12px inline padding, min-width 64px (so `
 
 ### 7.14 Bottom sheet
 
-The **only overlay in the app**. Rises from the bottom, `--sheet` `#141416`, 0 radius, **2px `--ink-full` top rule** (15.05:1) instead of a shadow. Height 60% of the viewport (511px) for the keypad, content-height for choosers. **No drag handle** — drag is banned, and a handle that cannot be dragged is a lie. Closing is an 88 × 64 `CLOSE` word-button in the sheet's top-right.
+The **only overlay in the normal flow of the app** — and the qualification is R85's, ruled at N23-T02. The two destructive confirmations in Settings (restore from backup, delete a season) are **modal by design**, because a sheet can be dismissed by tapping outside it and a confirmation that destroys every record must not be dismissible by a misplaced thumb. Everything else on this page applies to them too; only the dismissal does not. Rises from the bottom, `--sheet` `#141416`, 0 radius, **2px `--ink-full` top rule** (15.05:1) instead of a shadow. Height 60% of the viewport (511px) for the keypad, content-height for choosers. **No drag handle** — drag is banned, and a handle that cannot be dragged is a lie. Closing is an 88 × 64 `CLOSE` word-button in the sheet's top-right.
 
 Exactly three contents, ever: the tag keypad + recents; the index; an inline cell chooser. The spine continues *behind* the sheet; the sheet does not cover the margin column above its own top edge.
 

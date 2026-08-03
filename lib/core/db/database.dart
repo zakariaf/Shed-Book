@@ -79,6 +79,93 @@ class AppDatabase extends _$AppDatabase {
   /// Raised in the pull request.
   final int schemaVersionOverride;
 
+  /// **THE RESTORE'S TWO PRAGMAS, AND THEY LIVE HERE FOR A REASON.**
+  ///
+  /// `customStatement(` is banned outside `lib/core/db/` (layer rule 8) because a
+  /// raw statement bypasses drift's stream tracking. N23-T01 asked for these as
+  /// named `.drift` queries instead — and **drift cannot express a `PRAGMA` as
+  /// one**: the generator parses SQL it can type, and a pragma is neither a
+  /// SELECT nor an INSERT. Measured, not assumed.
+  ///
+  /// So they are methods on the database class, which is inside the directory
+  /// the rule permits. `lib/data/` calls them and says no raw SQL of its own.
+  ///
+  /// **`defer_foreign_keys`, NOT `foreign_keys = OFF`.** The second is a
+  /// **no-op inside a transaction** and drift wraps the import in one, so the
+  /// code that reaches for it compiles, runs, and enforces nothing (`04 §2.6`).
+  Future<void> deferForeignKeys() => customStatement('PRAGMA defer_foreign_keys = ON');
+
+  /// Asked **before** the commit, so a failure names the table rather than
+  /// arriving as a commit error nobody can attribute.
+  Future<List<QueryRow>> foreignKeyCheck() => customSelect('PRAGMA foreign_key_check').get();
+
+  /// `PRAGMA wal_checkpoint(TRUNCATE)` — step 8.
+  ///
+  /// **Not *close and hope*.** A staging file swapped in with its own `-wal`
+  /// still beside it is `04 §8.1`'s corruption from the other direction, and it
+  /// looks like a working database until it does not.
+  Future<void> walCheckpointTruncate() => customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
+
+  /// `VACUUM INTO` — **the snapshot**, and never *the backup* (`CONVENTIONS §5`
+  /// keeps those two words apart because swapping them is how somebody restores
+  /// the wrong thing).
+  ///
+  /// A byte-level copy of the database as SQLite itself understands it, so it
+  /// carries the schema, the indexes and any WAL content already merged. That is
+  /// what makes it safe to copy while a connection is open — and why it is the
+  /// right verb for both Settings → Diagnostics (`09 §6.2`, wired at N29) and for
+  /// the test harness's fixture snapshot.
+  ///
+  /// **The path is interpolated, and it must never come from a record.** It is a
+  /// caller-chosen output file — a support directory or a temp directory — and
+  /// SQLite cannot bind a parameter in this position.
+  Future<void> snapshotInto(String path) =>
+      customStatement("VACUUM INTO '${path.replaceAll("'", "''")}'");
+
+  /// One restored row, with its columns supplied at runtime.
+  ///
+  /// **IT LIVES HERE FOR THE SAME REASON THE PRAGMAS DO.** A 21-table import
+  /// cannot name its columns statically, and `RawValuesInsertable<dynamic>` does
+  /// not survive drift's typed `validateIntegrity` — measured: *"type
+  /// `RawValuesInsertable<dynamic>` is not a subtype of `Insertable<Season>`"*.
+  /// So the writer is raw, and raw belongs inside `lib/core/db/` (layer rule 8),
+  /// where the ban does not reach and where every other raw statement in the app
+  /// already lives.
+  ///
+  /// `lib/data/restore_service.dart` calls this and writes no SQL of its own,
+  /// which is what the rule is protecting.
+  Future<int> insertRestoredRow(String table, Map<String, Object?> columns) async {
+    await customStatement(
+      'INSERT INTO $table (${columns.keys.join(', ')}) '
+      'VALUES (${List<String>.filled(columns.length, '?').join(', ')})',
+      columns.values.toList(),
+    );
+    return (await customSelect('SELECT last_insert_rowid() AS id').getSingle()).read<int>('id');
+  }
+
+  /// `app_settings` is a singleton, imported onto row 1 — one of the five tables
+  /// with no `uid` (`09 §5.3`).
+  ///
+  /// **AN UPSERT, NOT AN UPDATE, AND THE DIFFERENCE WAS A SILENT DATA LOSS.**
+  /// Staging is opened with `seedOnCreate: false`, so on a backup that carries a
+  /// season — which is every real one — **no first-run seed runs and there is no
+  /// row for an UPDATE to hit.** It affected zero rows, reported nothing, and
+  /// every restored database came back with its settings gone: units, palette,
+  /// the turn-out threshold, the current season.
+  ///
+  /// Nothing above this caught it. `foreign_key_check` passed, `quick_check`
+  /// passed, every per-table count matched — because `counts` counts what the
+  /// FILE holds, not what landed. **N23-T07's round-trip property is what found
+  /// it**, on the first run, which is exactly the layer it exists to be.
+  Future<void> updateRestoredSingleton(String table, Map<String, Object?> columns) {
+    final Map<String, Object?> withId = <String, Object?>{'id': 1, ...columns};
+    return customStatement(
+      'INSERT OR REPLACE INTO $table (${withId.keys.join(', ')}) '
+      'VALUES (${List<String>.filled(withId.length, '?').join(', ')})',
+      withId.values.toList(),
+    );
+  }
+
   @override
   int get schemaVersion => schemaVersionOverride;
 

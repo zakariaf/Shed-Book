@@ -7,6 +7,12 @@
 library;
 
 import 'dart:io';
+import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/policy/export_envelope.dart';
+import 'package:shed_book/data/restore_service.dart';
+import 'package:shed_book/data/backup_format.dart';
+import 'dart:typed_data';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -340,6 +346,7 @@ void main() {
     expect(files, <String>[
       'decision_record.dart',
       'fake_share_service.dart', // N21-T06, the first of the seven to land
+      'flock_generator.dart', // N23-T04, 12 §5.3's twelfth support file
       'harness.dart',
       'harness_dst_test.dart',
       'harness_test.dart',
@@ -430,5 +437,79 @@ void main() {
           'Fake';
       expect(declarations, isNot(contains(declaration)), reason: f.path);
     }
+  });
+
+  group('freshSupportDir and restoreInto', () {
+    // The two halves N23-T06 lands, and the teardown assertion is the half a
+    // test cannot make about itself.
+    late Directory captured;
+
+    test(
+      'freshSupportDir is torn down with the test, and restoreInto writes only inside it',
+      () async {
+        captured = freshSupportDir();
+        expect(captured.existsSync(), isTrue);
+
+        // A backup this build can read, written by this build's own encoder — so
+        // the fixture and the reader cannot drift apart.
+        final Map<String, Object?> tables = <String, Object?>{
+          'ewes': <Object?>[
+            <String, Object?>{
+              'uid': 'ewe-0000-0000-0000-0000-00000000',
+              'created_at': 1773446400000,
+              'updated_at': 1773446400000,
+              'tag': '412',
+              'tag_digits': '412',
+              'status': 'active',
+            },
+          ],
+        };
+        final Uint8List body = canonicalJsonBytes(tables);
+        final File backup = File('${captured.path}/backup.json')
+          ..writeAsBytesSync(<int>[
+            ...utf8.encode(
+              headerPrefixJson(
+                BackupHeader(
+                  schema: kSchemaVersion,
+                  appVersion: '1.0.0',
+                  exportedAtUtc: '2026-03-14T00:00:00.000Z',
+                  exportedAtOffsetMinutes: 0,
+                  exportedAtZoneAbbreviation: 'GMT',
+                  counts: const <String, int>{'ewes': 1},
+                  media: const BackupMedia(included: false, count: 0, bytes: 0),
+                ),
+                fnv1a64Hex(body),
+                ExportEnvelope.standard(
+                  now: Instant.fromDateTime(DateTime.utc(2026, 3, 14)),
+                  appVersion: '1.0.0',
+                ),
+              ),
+            ),
+            ...body,
+            ...utf8.encode('}\n'),
+          ]);
+
+        // **THE FLOW COMPLETING IS THE ASSERTION THAT NOTHING REACHED FOR THE REAL
+        // SUPPORT DIRECTORY.** `getApplicationSupportDirectory()` has no platform
+        // channel under `flutter_test`, so a call throws — reaching this line is
+        // proof it was never made.
+        final AppDatabase restored = await restoreInto(captured, backup);
+        expect((await restored.select(restored.ewes).getSingle()).tag, '412');
+
+        // AND THE FILES ARE UNDER THAT PATH AND NOWHERE ELSE.
+        expect(File('${captured.path}/$kLiveDatabaseName').existsSync(), isTrue);
+      },
+    );
+
+    tearDownAll(() {
+      // **REGISTERED AFTER THE HELPER'S OWN TEARDOWN**, because a teardown
+      // asserted from inside the same test proves nothing: the helper's cleanup
+      // has not run yet at that point.
+      expect(
+        captured.existsSync(),
+        isFalse,
+        reason: 'freshSupportDir tears its directory down with the test',
+      );
+    });
   });
 }

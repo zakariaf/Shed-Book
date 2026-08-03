@@ -200,6 +200,8 @@ void main() {
       'shareServiceProvider',
       // N21-T07 — reads and assembles; writes nothing (CONVENTIONS §2.13)
       'exportRepositoryProvider',
+      // N23-T03 — both directions, and it deletes nothing but a `.part`
+      'mediaSweeperProvider',
     });
   });
 

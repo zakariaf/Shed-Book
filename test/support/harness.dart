@@ -27,12 +27,17 @@
 //
 
 //   restoreFixture / flock_400_3seasons.json (12 §5.2, critique defect S3) —
-//     fixtures go through RestoreService, which is N23, and tool/seed.dart
-//     writes them through the restore path in the same epic. Until then every
-//     test seeds with the targeted helpers in seeds.dart. The switch is
-//     N23-T05, "the two committed fixtures and the matrix switch". (N13-T07's
-//     own text says N23-T06; that is `restoreInto` and `freshSupportDir`, which
-//     is a different task. Corrected here.)
+//     **DONE, N23-T05.** The switch has happened: the overflow matrix's 144
+//     cells and the four Quick Entry tap budgets now load the 400-ewe fixture,
+//     and `no_monetization_test`'s at-cap cell loads the 15-ewe one. Defect S3
+//     is closed. (N13-T07's own text said N23-T06; that is `restoreInto` and
+//     `freshSupportDir`, a different task. Corrected here.)
+//
+//     The seeds.dart helpers did NOT go away and were never meant to: the
+//     fixture is the backdrop, the tuned `_seedHard*` seeders still run on top
+//     of it, and `setEwesInCurrentSeason` still answers *put the counter here*.
+//     Replacing the seeders with the fixture would have thrown away the five-lamb
+//     lambing and the query mark that eighteen of those cells exist to render.
 //
 //   the four fixture id constants (12 §5.3) — they index into the fixture and
 //     are meaningless without it: N23.
@@ -43,6 +48,9 @@
 library;
 
 import 'dart:io';
+import 'package:shed_book/data/restore_service.dart';
+import 'package:shed_book/data/backup_format.dart';
+import 'dart:convert';
 
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
@@ -550,6 +558,196 @@ MediaStore _memoryMediaStore() {
   final Directory dir = freshSupportDir();
   Future<Directory> resolve() async => dir;
   return MediaStore(supportDirectory: resolve, temporaryDirectory: resolve);
+}
+
+/// The harness wrapper around `04 §7.2`'s flow — staging file, validate, swap,
+/// reopen — returning the **reopened** database.
+///
+/// **THE ONLY RESTORE ENTRY POINT TESTS USE FOR THE WHOLE FLOW.**
+/// `restoreFixture` (N23-T05) is the other half: it loads a committed backup into
+/// an already-open in-memory database and never renames a file. Two entry points
+/// because they exercise two different halves, and mixing them is how a test
+/// that renames nothing claims to have proved the swap.
+///
+/// **`FakeNotificationScheduler` IS NOT A PARAMETER, AND THAT IS P15.** `09 §7.3`
+/// gives `RestoreService` a scheduler so a restore can cancel what the old
+/// database had scheduled. Reminders ship in `v1.1.0`, so there is nothing to
+/// cancel and no scheduler to fake — N24 adds both, here and in the service, in
+/// the commit that creates them.
+Future<AppDatabase> restoreInto(Directory support, File backup) async {
+  final Map<String, Object?> decoded =
+      jsonDecode(await backup.readAsString()) as Map<String, Object?>;
+
+  final BackupHeaderOutcome outcome = readBackupHeader(decoded);
+  expect(
+    outcome,
+    isA<BackupHeaderAccepted>(),
+    reason: 'the fixture is not readable by this build — check `schema` and `formatVersion`',
+  );
+
+  final Map<String, List<Map<String, Object?>>> tables = <String, List<Map<String, Object?>>>{
+    for (final MapEntry<String, Object?> e in (decoded['tables']! as Map<String, Object?>).entries)
+      e.key: <Map<String, Object?>>[
+        for (final Object? row in e.value! as List<Object?>) row! as Map<String, Object?>,
+      ],
+  };
+
+  final WriteOutcome result = await RestoreService(support).restore(
+    header: (outcome as BackupHeaderAccepted).header,
+    tables: tables,
+    openStaging: (File file) async {
+      file.parent.createSync(recursive: true);
+      return AppDatabase(NativeDatabase(file), seedOnCreate: false);
+    },
+  );
+  expect(
+    result,
+    isA<WriteCommitted>(),
+    reason: 'the restore aborted — the live database is untouched, which is the point',
+  );
+
+  // THE REOPENED DATABASE, from where the swap actually put it. Reopening the
+  // staging path instead would test a file the app will never read.
+  final AppDatabase reopened = AppDatabase(
+    NativeDatabase(File('${support.path}/$kLiveDatabaseName')),
+    seedOnCreate: false,
+  );
+  addTearDown(reopened.close);
+  return reopened;
+}
+
+/// A committed fixture, loaded into an **already-open in-memory database**.
+///
+/// **THE OTHER HALF OF `restoreInto`, AND THE SPLIT IS THE POINT.** This one
+/// touches no file and renames nothing — which is exactly why `RestoreService`'s
+/// import and swap are two methods (N23-T01 §5.2). Without the split the matrix
+/// could not use these fixtures at all, and critique **S3** would reopen in the
+/// epic meant to close it.
+///
+/// **It asserts what landed.** A `restoreFixture` that silently restores nothing
+/// turns every matrix cell green against the *empty* layout — which cannot
+/// overflow — and 144 cells then prove nothing at all. That is the failure this
+/// helper is most likely to have, so it is the one it refuses to have quietly.
+Future<void> restoreFixture(AppDatabase db, String name) async {
+  final File file = File('test/fixtures/$name');
+  expect(file.existsSync(), isTrue, reason: 'no fixture at ${file.path}');
+
+  final Map<String, Object?> decoded = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+  final BackupHeaderOutcome outcome = readBackupHeader(decoded);
+  expect(outcome, isA<BackupHeaderAccepted>(), reason: '$name is not readable by this build');
+
+  final Map<String, Object?> raw = decoded['tables']! as Map<String, Object?>;
+  await RestoreService(Directory.systemTemp).importInto(
+    db,
+    (outcome as BackupHeaderAccepted).header,
+    <String, List<Map<String, Object?>>>{
+      for (final MapEntry<String, Object?> e in raw.entries)
+        e.key: <Map<String, Object?>>[
+          for (final Object? row in e.value! as List<Object?>) row! as Map<String, Object?>,
+        ],
+    },
+  );
+
+  // WHAT THE FILE SAID, AGAINST WHAT LANDED. Not *did the call return* — the
+  // whole hazard is a load that returns happily having written nothing.
+  final Map<String, Object?> counts = decoded['counts']! as Map<String, Object?>;
+  for (final MapEntry<String, Object?> e in counts.entries) {
+    if (e.value == 0) {
+      continue;
+    }
+    final int landed = await db
+        .customSelect('SELECT COUNT(*) AS n FROM ${e.key}')
+        .getSingle()
+        .then((QueryRow r) => r.read<int>('n'));
+    expect(landed, e.value, reason: '$name: ${e.key} declared ${e.value} and $landed landed');
+  }
+}
+
+/// The snapshot each fixture is imported into **once per test process**, keyed by
+/// fixture name.
+///
+/// **THIS IS WHY THE MATRIX SWITCH IS AFFORDABLE AT ALL, AND THE NUMBERS ARE THE
+/// ARGUMENT.** `restoreFixture` costs **716 ms** for the 400-ewe flock, because
+/// it is a real restore: fifteen hundred rows through `importInto`, foreign keys
+/// deferred and re-checked. One hundred and forty-four cells paying that is
+/// **103 seconds** added to a suite that runs in fifty — the switch would have
+/// made the matrix the slowest thing in the project, and a slow matrix is one
+/// somebody eventually stops running.
+///
+/// Importing once and `VACUUM INTO` a file, then copying that file per cell,
+/// costs **521 ms once and 3.9 ms per cell** — 0.6 s for the whole matrix.
+/// Measured, both of them, before this was written.
+///
+/// The copy is what makes it safe: every cell gets its **own file**, so a cell
+/// that writes cannot be seen by the next one. Sharing one open database across
+/// 144 cells would be fast and wrong.
+final Map<String, File> _fixtureSnapshots = <String, File>{};
+
+/// A database preloaded with a committed fixture, cheap enough to call per cell.
+///
+/// The database is file-backed rather than in-memory — that is the mechanism,
+/// not an accident — and the file is deleted when the test ends.
+///
+/// **ONE `pumpApp` PER TEST. THIS IS A HARD CONSTRAINT, NOT A STYLE NOTE.**
+/// A widget test that pumps a second app after awaiting a query against a
+/// file-backed database **never completes** — `did not complete` after 6 m 20 s,
+/// measured, and at fifteen ewes as readily as at four hundred, so it is the file
+/// and not the volume. Real file I/O does not advance inside `flutter_test`'s
+/// fake-async zone. The overflow matrix is safe because every cell pumps exactly
+/// once; `tap_budget_test.dart` is not, and pays the full 716 ms import into an
+/// in-memory database instead (its `_flock()` says so at the call site).
+///
+/// If a new test needs a fixture **and** two pumps, copy `_flock()`. Do not
+/// reach for this and wonder why CI hangs.
+Future<AppDatabase> fixtureDatabase(String name) async {
+  final File snapshot = _fixtureSnapshots[name] ??= await _buildFixtureSnapshot(name);
+
+  final Directory dir = Directory.systemTemp.createTempSync('shed_fixture_cell');
+  final File copy = snapshot.copySync('${dir.path}/$name.sqlite');
+  final AppDatabase db = AppDatabase(NativeDatabase(copy));
+
+  // **CLOSED HERE, NOT LEFT TO THE CALLER.** `closeApp()` disposes the provider
+  // container and does not touch the database — so 144 cells each opened one and
+  // none of them closed it, and drift said so: *"you've created the database
+  // class AppDatabase multiple times… race conditions will occur"*.
+  //
+  // It was a false alarm on its own terms (every cell holds its **own file**, so
+  // there is no shared `QueryExecutor` to race on) and it was still worth fixing,
+  // because a suite that prints a warning nobody acts on is a suite where the
+  // next warning goes unread too.
+  addTearDown(() async {
+    await db.close();
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+    }
+  });
+  return db;
+}
+
+Future<File> _buildFixtureSnapshot(String name) async {
+  final Directory dir = Directory.systemTemp.createTempSync('shed_fixture_snapshot');
+  final File out = File('${dir.path}/$name.sqlite');
+
+  // **`seedOnCreate: true`, AND THE REASON IS NOT CONVENIENCE.** A fixture
+  // database is meant to stand in for a phone that has been used, and a phone
+  // that has been used went through first-run: it has an `entitlements` row, the
+  // seeded vocabulary, and the reminder defaults. `entitlements` is in
+  // `kBackupExcludedTables` — a backup deliberately does not carry a purchase —
+  // so importing onto an unseeded database leaves no entitlement row at all, and
+  // `setEntitlement` then UPDATEs nothing and reports success. That is the exact
+  // shape of the `app_settings` data loss this epic already found once.
+  //
+  // The fixture's own `app_settings` still wins: `updateRestoredSingleton` is an
+  // `INSERT OR REPLACE`, so first-run's defaults are overwritten by the file's
+  // row and `current_season` points where the file says.
+  final AppDatabase source = testDatabase();
+  await restoreFixture(source, name);
+  // `VACUUM INTO` is the snapshot verb (`09 §6.2`) and the same one the app uses
+  // for the diagnostic snapshot — one way to copy a database, not two.
+  await source.snapshotInto(out.path);
+  await source.close();
+
+  return out;
 }
 
 /// A temp directory torn down with the test — what `restoreInto` restores into

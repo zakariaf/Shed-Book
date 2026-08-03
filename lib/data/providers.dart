@@ -26,13 +26,14 @@
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
+//   mediaSweeperProvider        N23-T03  FutureProvider<MediaSweeper>         keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
-//   restoreServiceProvider · mediaSweeperProvider                    N23
+//   restoreServiceProvider                                           N23
 //   reminderRepositoryProvider · reminderReconcilerProvider ·
 //     notificationSchedulerProvider                                  N24
 //   seasonRepositoryProvider                                         N28
@@ -53,7 +54,10 @@ import 'package:shed_book/data/foster_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/media_sweeper.dart';
 import 'package:shed_book/data/export_repository.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
@@ -93,6 +97,18 @@ import 'package:shed_book/domain/units/weight_unit.dart';
 // type is inferred, no deprecated member is used, and no Riverpod 3 idiom
 // appears.
 final FutureProvider<AppDatabase> databaseProvider = FutureProvider<AppDatabase>((ref) async {
+  // **BEFORE THE DATABASE OPENS, ON EVERY LAUNCH** (`04 §7.5`, #20, #21). An
+  // interrupted swap has to be resolved while nothing holds the file — after
+  // `openAppDatabase()` the live database is open and renaming it is no longer
+  // an option.
+  //
+  // The common answer is one `existsSync` on a path that is not there, so the
+  // cold start pays almost nothing for it. Failing to resolve is not a reason to
+  // refuse to open: a shepherd whose restore was interrupted still needs their
+  // records, and `04 §8.4`'s corruption screen is reached from the outcome
+  // rather than from an exception here.
+  await completeInterruptedRestore(await getApplicationSupportDirectory());
+
   final AppDatabase db = await openAppDatabase();
   ref.onDispose(db.close);
   return db;
@@ -141,6 +157,15 @@ final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => Me
 /// before the database opens.
 final FutureProvider<ExportRepository> exportRepositoryProvider = FutureProvider<ExportRepository>(
   (ref) async => ExportRepository(await ref.watch(databaseProvider.future)),
+);
+
+/// Reconciles the media folder with the database, in both directions.
+///
+/// **A `FutureProvider`, because it needs the database** — and `keepAlive`,
+/// because the sweep is a once-per-launch job rather than a screen's.
+final FutureProvider<MediaSweeper> mediaSweeperProvider = FutureProvider<MediaSweeper>(
+  (ref) async =>
+      MediaSweeper(await ref.watch(databaseProvider.future), ref.watch(mediaStoreProvider)),
 );
 
 /// The one seam anything leaves the phone by.

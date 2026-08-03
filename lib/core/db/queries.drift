@@ -73,3 +73,22 @@ WHERE (subject_kind = 'note'      AND subject_id NOT IN (SELECT id FROM notes))
 -- source tables.
 rebuildSearchIndex:
 INSERT INTO search_fts(search_fts) VALUES ('rebuild');
+
+-- N23-T03. `lib/data/` may not say `customStatement(` (layer rule 8), so the
+-- sweep's three statements are named here.
+--
+-- One SELECT, projected to a Set<String> by the caller: the sweep compares a
+-- directory walk against every referenced path, and doing that comparison in
+-- Dart over one column is cheaper than a query per file.
+allMediaRelativePaths:
+SELECT relative_path FROM media_assets;
+
+-- Only the rows not already flagged. Re-flagging one every launch would rewrite
+-- `missing_since` to today for a file that has been gone since March, and the
+-- date is the useful half of the fact.
+mediaAssetsNotYetMissing:
+SELECT id, relative_path FROM media_assets WHERE missing_since IS NULL;
+
+-- And the rows that ARE flagged, so a file that came back can clear its scar.
+mediaAssetsMissing:
+SELECT id, relative_path FROM media_assets WHERE missing_since IS NOT NULL;

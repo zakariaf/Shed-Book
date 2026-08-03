@@ -519,6 +519,31 @@ final List<ConfinedPattern> _confinedPattern = <ConfinedPattern>[
     'file_selector lives behind restore_flow.dart — 08 §1.1',
   ),
 
+  // -- the two destructive confirmations, R85 (N23-T02) --------------------
+  //
+  // MOVED HERE FROM `_bannedPattern`, and the move is the ruling. The rule's own
+  // comment anticipated it: *"the exemptions arrive with the files, in the
+  // commits that need them"* — and this is that commit for the first of the two.
+  //
+  // `indelible.md §7.14` said the sheet is the only overlay in the app; `07 §14.4`
+  // said these two flows may use a dialog. R85 rules for the second and amends
+  // the first, because a sheet closes when a thumb lands outside it — correct for
+  // a chooser, exactly wrong for a confirmation that deletes every record on the
+  // phone.
+  //
+  // In the RULE, not in `tool/policy_allowlist.txt`: an `[exempt]` line reads
+  // *"that file was excused"* where the truth is *"that file is the exception the
+  // design ruled"*, and R56 fixes the allowlist at four lines.
+  //
+  // N29's delete-season confirmation joins `only` in its own commit.
+  (
+    'ui.show_dialog',
+    RegExp(r'showDialog\('),
+    <String>['lib/'],
+    <String>['lib/features/settings/widgets/restore_confirmation.dart'],
+    'the only overlay is ShedBottomSheet — CONVENTIONS §4.7, R85',
+  ),
+
   // -- share, N21-T06. The gateway rule and the two banned APIs -----------
   //
   // `08 §1.2` catalogues `layer.plugin_share_plus` as one of nine confinement
@@ -854,15 +879,6 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
     RegExp(r'\bCircularProgressIndicator\b'),
     'lib/features/',
     'a spinner is a screen that has not decided what it is — CONVENTIONS §4.7',
-  ),
-  // Two files will be allowlisted — delete-season (N29) and restore-from-backup
-  // (N23). Neither exists yet, so the rule has no exemption at all, which is
-  // correct: the exemptions arrive with the files, in the commits that need them.
-  (
-    'ui.show_dialog',
-    RegExp(r'showDialog\('),
-    'lib/',
-    'the only overlay is ShedBottomSheet — CONVENTIONS §4.7',
   ),
 
   // -- vocabulary (CONVENTIONS §5) ------------------------------------------

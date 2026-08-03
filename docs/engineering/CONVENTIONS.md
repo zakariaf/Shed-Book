@@ -1954,6 +1954,69 @@ pair), `09 §3.1`–`§3.3` and `§7` (the CSV and backup shapes),
 
 ---
 
+
+### R84 — The restore sentinel is `restore.inflight`
+
+`04 §7.5` printed **`restore.pending`** in three places and `copy.banned_word` refuses `pending`
+anywhere under `lib/`, because `CONVENTIONS §5` bans it as a state word. Writing the constant failed
+the gate on the first build of N23-T01.
+
+**Both rules were right about their own subject.** §5's ban is aimed at a status field claiming a
+record is *pending*; this is a filename on disk, prescribed by the owning document. The gate scans
+source text and cannot tell one from the other, and it should not have to guess.
+
+**The ruling: rename the file, keep the gate.** `restore.inflight` says the same thing and collides
+with nothing.
+
+**Why this direction rather than narrowing the rule.** The sentinel is on-disk state written by one
+build and read by the next, so the rename is free *only* until the first release: the day after
+`v1.0.0` ships, changing it means a build that cannot resume a swap the previous build started —
+which is precisely the failure the sentinel exists to prevent. Narrowing `copy.banned_word` to skip a
+quoted filename would have been permanent, would have applied everywhere, and would have weakened a
+vocabulary rule to accommodate one string.
+
+Neither `tool/check_policy.dart` nor `tool/policy_allowlist.txt` was touched. `CLAUDE.md` forbids
+both as a way to make a build pass, and this is the amendment path it leaves open instead.
+
+| Files that must change |
+|---|
+| `04-migrations-media-backup-restore.md` §7.2 step 10, §7.5's printed routine, §8.3's prevention list — three occurrences |
+| `lib/data/restore_service.dart` — `kRestoreSentinelName` |
+| `test/features/restore_test.dart` — reads the constant, never the literal |
+
+
+### R85 — The two destructive confirmations are modal, and `indelible.md` §7.14 is amended
+
+`indelible.md` §7.14 said the bottom sheet is **"the only overlay in the app"**. `07 §14.4` said
+restore and delete are **"the only two flows in the app permitted to use `showDialog`"**. Both are
+authoritative, they cannot both be true, and N23-T02 is the first commit that has to build one of
+them.
+
+**The ruling: `showDialog` stays for those two flows, and `indelible.md` §7.14 is the sentence that
+changes.** It now reads *the only overlay in the **normal flow** of the app*, with the exception named
+and its reason attached.
+
+**The reason is dismissal, and it is safety-shaped rather than aesthetic.** A `ShedBottomSheet` closes
+when a thumb lands outside it — which is correct for a chooser and correct for the keypad, and is
+exactly wrong for a confirmation that will delete every record on the phone. Indelible's own argument
+for the sheet is that nothing vanishes under your hand; a dismissible destruction dialog is that
+principle inverted. Going the other way — making restore a pushed route — would have satisfied §7.14
+literally while making the flow *more* dismissible, since a route pops on a system back gesture.
+
+**Restore is also the second `canPop: false` flow**, and `07 §14.3`'s *"the only"* is corrected in the
+same commit. Once step 12's rename has begun there is nothing to pop back to.
+
+The confinement lives in `tool/check_policy.dart`'s rule rather than in `tool/policy_allowlist.txt`,
+for the reason `_confinedPattern` was built at N21-T01: an `[exempt]` line reads *"that file was
+excused"* where the truth is *"that file is the exception the design ruled"* — and R56 fixes the
+allowlist at four lines.
+
+| Files that must change |
+|---|
+| `docs/design/indelible.md` §7.14 — the qualification and its reason |
+| `docs/engineering/07-screens.md` §14.3 (the `canPop` cell) and §14.4 (the `showDialog` sentence) |
+| `tool/check_policy.dart` — `ui.show_dialog` moves to the confinement family |
+
 ## §7 What this file deliberately does not settle
 
 Four things surfaced during this review that are **not** naming questions and must not be closed by a

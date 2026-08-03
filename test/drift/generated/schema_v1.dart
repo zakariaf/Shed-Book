@@ -6649,6 +6649,718 @@ class TreatmentsCompanion extends UpdateCompanion<TreatmentsData> {
   }
 }
 
+class MediaAssets extends Table with TableInfo<MediaAssets, MediaAssetsData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  MediaAssets(this.attachedDatabase, [this._alias]);
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
+  );
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL UNIQUE',
+  );
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
+    'byte_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    $customConstraints: 'NOT NULL',
+  );
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL REFERENCES ewes(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL REFERENCES lambs(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL REFERENCES lambings(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<int> note = GeneratedColumn<int>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL REFERENCES notes(id)ON DELETE CASCADE',
+  );
+  late final GeneratedColumn<int> missingSince = GeneratedColumn<int>(
+    'missing_since',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    $customConstraints: 'NULL',
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media_assets';
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {relativePath},
+  ];
+  @override
+  MediaAssetsData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaAssetsData(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      uid: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uid'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
+      byteSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_size'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      ),
+      ewe: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ewe'],
+      ),
+      lamb: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lamb'],
+      ),
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}note'],
+      ),
+      missingSince: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}missing_since'],
+      ),
+    );
+  }
+
+  @override
+  MediaAssets createAlias(String alias) {
+    return MediaAssets(attachedDatabase, alias);
+  }
+
+  @override
+  bool get isStrict => true;
+  @override
+  List<String> get customConstraints => const [
+    'UNIQUE(relative_path)',
+    'CHECK(kind IN (\'photo\', \'voice\'))',
+    'CHECK(byte_size >= 0)',
+    'CHECK(relative_path NOT LIKE \'/%\')',
+    'CHECK(relative_path GLOB \'[0-9][0-9][0-9][0-9]/[0-9][0-9]/*.*\')',
+    'CHECK(relative_path NOT GLOB \'*/*/*/*\')',
+    'CHECK((ewe IS NOT NULL)+(lamb IS NOT NULL)+(lambing IS NOT NULL)+(note IS NOT NULL)= 1)',
+    'CHECK(unknown_json IS NULL OR json_valid(unknown_json))',
+  ];
+  @override
+  bool get dontWriteConstraints => true;
+}
+
+class MediaAssetsData extends DataClass implements Insertable<MediaAssetsData> {
+  final int id;
+  final String uid;
+  final int createdAt;
+  final int updatedAt;
+  final String? unknownJson;
+  final String relativePath;
+  final String kind;
+  final int byteSize;
+  final int? durationMs;
+  final String? sha256;
+  final int? ewe;
+  final int? lamb;
+  final int? lambing;
+  final int? note;
+  final int? missingSince;
+  const MediaAssetsData({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.relativePath,
+    required this.kind,
+    required this.byteSize,
+    this.durationMs,
+    this.sha256,
+    this.ewe,
+    this.lamb,
+    this.lambing,
+    this.note,
+    this.missingSince,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['relative_path'] = Variable<String>(relativePath);
+    map['kind'] = Variable<String>(kind);
+    map['byte_size'] = Variable<int>(byteSize);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || sha256 != null) {
+      map['sha256'] = Variable<String>(sha256);
+    }
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<int>(note);
+    }
+    if (!nullToAbsent || missingSince != null) {
+      map['missing_since'] = Variable<int>(missingSince);
+    }
+    return map;
+  }
+
+  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
+    return MediaAssetsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(unknownJson),
+      relativePath: Value(relativePath),
+      kind: Value(kind),
+      byteSize: Value(byteSize),
+      durationMs: durationMs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(durationMs),
+      sha256: sha256 == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sha256),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      lambing: lambing == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lambing),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      missingSince: missingSince == null && nullToAbsent
+          ? const Value.absent()
+          : Value(missingSince),
+    );
+  }
+
+  factory MediaAssetsData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaAssetsData(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      kind: serializer.fromJson<String>(json['kind']),
+      byteSize: serializer.fromJson<int>(json['byteSize']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      sha256: serializer.fromJson<String?>(json['sha256']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      note: serializer.fromJson<int?>(json['note']),
+      missingSince: serializer.fromJson<int?>(json['missingSince']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'kind': serializer.toJson<String>(kind),
+      'byteSize': serializer.toJson<int>(byteSize),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'sha256': serializer.toJson<String?>(sha256),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'lambing': serializer.toJson<int?>(lambing),
+      'note': serializer.toJson<int?>(note),
+      'missingSince': serializer.toJson<int?>(missingSince),
+    };
+  }
+
+  MediaAssetsData copyWith({
+    int? id,
+    String? uid,
+    int? createdAt,
+    int? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    String? relativePath,
+    String? kind,
+    int? byteSize,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> sha256 = const Value.absent(),
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> note = const Value.absent(),
+    Value<int?> missingSince = const Value.absent(),
+  }) => MediaAssetsData(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    relativePath: relativePath ?? this.relativePath,
+    kind: kind ?? this.kind,
+    byteSize: byteSize ?? this.byteSize,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    sha256: sha256.present ? sha256.value : this.sha256,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    note: note.present ? note.value : this.note,
+    missingSince: missingSince.present ? missingSince.value : this.missingSince,
+  );
+  MediaAssetsData copyWithCompanion(MediaAssetsCompanion data) {
+    return MediaAssetsData(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present
+          ? data.unknownJson.value
+          : this.unknownJson,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
+      durationMs: data.durationMs.present
+          ? data.durationMs.value
+          : this.durationMs,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      note: data.note.present ? data.note.value : this.note,
+      missingSince: data.missingSince.present
+          ? data.missingSince.value
+          : this.missingSince,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsData(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAssetsData &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.relativePath == this.relativePath &&
+          other.kind == this.kind &&
+          other.byteSize == this.byteSize &&
+          other.durationMs == this.durationMs &&
+          other.sha256 == this.sha256 &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.lambing == this.lambing &&
+          other.note == this.note &&
+          other.missingSince == this.missingSince);
+}
+
+class MediaAssetsCompanion extends UpdateCompanion<MediaAssetsData> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<String> relativePath;
+  final Value<String> kind;
+  final Value<int> byteSize;
+  final Value<int?> durationMs;
+  final Value<String?> sha256;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<int?> lambing;
+  final Value<int?> note;
+  final Value<int?> missingSince;
+  const MediaAssetsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.byteSize = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  });
+  MediaAssetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required int createdAt,
+    required int updatedAt,
+    this.unknownJson = const Value.absent(),
+    required String relativePath,
+    required String kind,
+    required int byteSize,
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       relativePath = Value(relativePath),
+       kind = Value(kind),
+       byteSize = Value(byteSize);
+  static Insertable<MediaAssetsData> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<String>? relativePath,
+    Expression<String>? kind,
+    Expression<int>? byteSize,
+    Expression<int>? durationMs,
+    Expression<String>? sha256,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<int>? lambing,
+    Expression<int>? note,
+    Expression<int>? missingSince,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (kind != null) 'kind': kind,
+      if (byteSize != null) 'byte_size': byteSize,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (sha256 != null) 'sha256': sha256,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (lambing != null) 'lambing': lambing,
+      if (note != null) 'note': note,
+      if (missingSince != null) 'missing_since': missingSince,
+    });
+  }
+
+  MediaAssetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<String>? relativePath,
+    Value<String>? kind,
+    Value<int>? byteSize,
+    Value<int?>? durationMs,
+    Value<String?>? sha256,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<int?>? lambing,
+    Value<int?>? note,
+    Value<int?>? missingSince,
+  }) {
+    return MediaAssetsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      relativePath: relativePath ?? this.relativePath,
+      kind: kind ?? this.kind,
+      byteSize: byteSize ?? this.byteSize,
+      durationMs: durationMs ?? this.durationMs,
+      sha256: sha256 ?? this.sha256,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      lambing: lambing ?? this.lambing,
+      note: note ?? this.note,
+      missingSince: missingSince ?? this.missingSince,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (byteSize.present) {
+      map['byte_size'] = Variable<int>(byteSize.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<int>(note.value);
+    }
+    if (missingSince.present) {
+      map['missing_since'] = Variable<int>(missingSince.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class PenOccupancyLambs extends Table
     with TableInfo<PenOccupancyLambs, PenOccupancyLambsData> {
   @override
@@ -11024,718 +11736,6 @@ class ReminderRulesCompanion extends UpdateCompanion<ReminderRulesData> {
   }
 }
 
-class MediaAssets extends Table with TableInfo<MediaAssets, MediaAssetsData> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  MediaAssets(this.attachedDatabase, [this._alias]);
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NOT NULL PRIMARY KEY AUTOINCREMENT',
-  );
-  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
-    'uid',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL UNIQUE',
-  );
-  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
-    'unknown_json',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
-    'relative_path',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
-    'kind',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
-    'byte_size',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-    $customConstraints: 'NOT NULL',
-  );
-  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
-    'duration_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
-    'sha256',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
-    'ewe',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL REFERENCES ewes(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
-    'lamb',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL REFERENCES lambs(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
-    'lambing',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL REFERENCES lambings(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<int> note = GeneratedColumn<int>(
-    'note',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL REFERENCES notes(id)ON DELETE CASCADE',
-  );
-  late final GeneratedColumn<int> missingSince = GeneratedColumn<int>(
-    'missing_since',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    $customConstraints: 'NULL',
-  );
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    uid,
-    createdAt,
-    updatedAt,
-    unknownJson,
-    relativePath,
-    kind,
-    byteSize,
-    durationMs,
-    sha256,
-    ewe,
-    lamb,
-    lambing,
-    note,
-    missingSince,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'media_assets';
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {relativePath},
-  ];
-  @override
-  MediaAssetsData map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MediaAssetsData(
-      id: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}id'],
-      )!,
-      uid: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}uid'],
-      )!,
-      createdAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}created_at'],
-      )!,
-      updatedAt: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}updated_at'],
-      )!,
-      unknownJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}unknown_json'],
-      ),
-      relativePath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}relative_path'],
-      )!,
-      kind: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}kind'],
-      )!,
-      byteSize: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}byte_size'],
-      )!,
-      durationMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}duration_ms'],
-      ),
-      sha256: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}sha256'],
-      ),
-      ewe: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}ewe'],
-      ),
-      lamb: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}lamb'],
-      ),
-      lambing: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}lambing'],
-      ),
-      note: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}note'],
-      ),
-      missingSince: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}missing_since'],
-      ),
-    );
-  }
-
-  @override
-  MediaAssets createAlias(String alias) {
-    return MediaAssets(attachedDatabase, alias);
-  }
-
-  @override
-  bool get isStrict => true;
-  @override
-  List<String> get customConstraints => const [
-    'UNIQUE(relative_path)',
-    'CHECK(kind IN (\'photo\', \'voice\'))',
-    'CHECK(byte_size >= 0)',
-    'CHECK(relative_path NOT LIKE \'/%\')',
-    'CHECK(relative_path GLOB \'[0-9][0-9][0-9][0-9]/[0-9][0-9]/*.*\')',
-    'CHECK(relative_path NOT GLOB \'*/*/*/*\')',
-    'CHECK((ewe IS NOT NULL)+(lamb IS NOT NULL)+(lambing IS NOT NULL)+(note IS NOT NULL)= 1)',
-    'CHECK(unknown_json IS NULL OR json_valid(unknown_json))',
-  ];
-  @override
-  bool get dontWriteConstraints => true;
-}
-
-class MediaAssetsData extends DataClass implements Insertable<MediaAssetsData> {
-  final int id;
-  final String uid;
-  final int createdAt;
-  final int updatedAt;
-  final String? unknownJson;
-  final String relativePath;
-  final String kind;
-  final int byteSize;
-  final int? durationMs;
-  final String? sha256;
-  final int? ewe;
-  final int? lamb;
-  final int? lambing;
-  final int? note;
-  final int? missingSince;
-  const MediaAssetsData({
-    required this.id,
-    required this.uid,
-    required this.createdAt,
-    required this.updatedAt,
-    this.unknownJson,
-    required this.relativePath,
-    required this.kind,
-    required this.byteSize,
-    this.durationMs,
-    this.sha256,
-    this.ewe,
-    this.lamb,
-    this.lambing,
-    this.note,
-    this.missingSince,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['uid'] = Variable<String>(uid);
-    map['created_at'] = Variable<int>(createdAt);
-    map['updated_at'] = Variable<int>(updatedAt);
-    if (!nullToAbsent || unknownJson != null) {
-      map['unknown_json'] = Variable<String>(unknownJson);
-    }
-    map['relative_path'] = Variable<String>(relativePath);
-    map['kind'] = Variable<String>(kind);
-    map['byte_size'] = Variable<int>(byteSize);
-    if (!nullToAbsent || durationMs != null) {
-      map['duration_ms'] = Variable<int>(durationMs);
-    }
-    if (!nullToAbsent || sha256 != null) {
-      map['sha256'] = Variable<String>(sha256);
-    }
-    if (!nullToAbsent || ewe != null) {
-      map['ewe'] = Variable<int>(ewe);
-    }
-    if (!nullToAbsent || lamb != null) {
-      map['lamb'] = Variable<int>(lamb);
-    }
-    if (!nullToAbsent || lambing != null) {
-      map['lambing'] = Variable<int>(lambing);
-    }
-    if (!nullToAbsent || note != null) {
-      map['note'] = Variable<int>(note);
-    }
-    if (!nullToAbsent || missingSince != null) {
-      map['missing_since'] = Variable<int>(missingSince);
-    }
-    return map;
-  }
-
-  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
-    return MediaAssetsCompanion(
-      id: Value(id),
-      uid: Value(uid),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      unknownJson: unknownJson == null && nullToAbsent
-          ? const Value.absent()
-          : Value(unknownJson),
-      relativePath: Value(relativePath),
-      kind: Value(kind),
-      byteSize: Value(byteSize),
-      durationMs: durationMs == null && nullToAbsent
-          ? const Value.absent()
-          : Value(durationMs),
-      sha256: sha256 == null && nullToAbsent
-          ? const Value.absent()
-          : Value(sha256),
-      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
-      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
-      lambing: lambing == null && nullToAbsent
-          ? const Value.absent()
-          : Value(lambing),
-      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      missingSince: missingSince == null && nullToAbsent
-          ? const Value.absent()
-          : Value(missingSince),
-    );
-  }
-
-  factory MediaAssetsData.fromJson(
-    Map<String, dynamic> json, {
-    ValueSerializer? serializer,
-  }) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MediaAssetsData(
-      id: serializer.fromJson<int>(json['id']),
-      uid: serializer.fromJson<String>(json['uid']),
-      createdAt: serializer.fromJson<int>(json['createdAt']),
-      updatedAt: serializer.fromJson<int>(json['updatedAt']),
-      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
-      relativePath: serializer.fromJson<String>(json['relativePath']),
-      kind: serializer.fromJson<String>(json['kind']),
-      byteSize: serializer.fromJson<int>(json['byteSize']),
-      durationMs: serializer.fromJson<int?>(json['durationMs']),
-      sha256: serializer.fromJson<String?>(json['sha256']),
-      ewe: serializer.fromJson<int?>(json['ewe']),
-      lamb: serializer.fromJson<int?>(json['lamb']),
-      lambing: serializer.fromJson<int?>(json['lambing']),
-      note: serializer.fromJson<int?>(json['note']),
-      missingSince: serializer.fromJson<int?>(json['missingSince']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'uid': serializer.toJson<String>(uid),
-      'createdAt': serializer.toJson<int>(createdAt),
-      'updatedAt': serializer.toJson<int>(updatedAt),
-      'unknownJson': serializer.toJson<String?>(unknownJson),
-      'relativePath': serializer.toJson<String>(relativePath),
-      'kind': serializer.toJson<String>(kind),
-      'byteSize': serializer.toJson<int>(byteSize),
-      'durationMs': serializer.toJson<int?>(durationMs),
-      'sha256': serializer.toJson<String?>(sha256),
-      'ewe': serializer.toJson<int?>(ewe),
-      'lamb': serializer.toJson<int?>(lamb),
-      'lambing': serializer.toJson<int?>(lambing),
-      'note': serializer.toJson<int?>(note),
-      'missingSince': serializer.toJson<int?>(missingSince),
-    };
-  }
-
-  MediaAssetsData copyWith({
-    int? id,
-    String? uid,
-    int? createdAt,
-    int? updatedAt,
-    Value<String?> unknownJson = const Value.absent(),
-    String? relativePath,
-    String? kind,
-    int? byteSize,
-    Value<int?> durationMs = const Value.absent(),
-    Value<String?> sha256 = const Value.absent(),
-    Value<int?> ewe = const Value.absent(),
-    Value<int?> lamb = const Value.absent(),
-    Value<int?> lambing = const Value.absent(),
-    Value<int?> note = const Value.absent(),
-    Value<int?> missingSince = const Value.absent(),
-  }) => MediaAssetsData(
-    id: id ?? this.id,
-    uid: uid ?? this.uid,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
-    relativePath: relativePath ?? this.relativePath,
-    kind: kind ?? this.kind,
-    byteSize: byteSize ?? this.byteSize,
-    durationMs: durationMs.present ? durationMs.value : this.durationMs,
-    sha256: sha256.present ? sha256.value : this.sha256,
-    ewe: ewe.present ? ewe.value : this.ewe,
-    lamb: lamb.present ? lamb.value : this.lamb,
-    lambing: lambing.present ? lambing.value : this.lambing,
-    note: note.present ? note.value : this.note,
-    missingSince: missingSince.present ? missingSince.value : this.missingSince,
-  );
-  MediaAssetsData copyWithCompanion(MediaAssetsCompanion data) {
-    return MediaAssetsData(
-      id: data.id.present ? data.id.value : this.id,
-      uid: data.uid.present ? data.uid.value : this.uid,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      unknownJson: data.unknownJson.present
-          ? data.unknownJson.value
-          : this.unknownJson,
-      relativePath: data.relativePath.present
-          ? data.relativePath.value
-          : this.relativePath,
-      kind: data.kind.present ? data.kind.value : this.kind,
-      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
-      durationMs: data.durationMs.present
-          ? data.durationMs.value
-          : this.durationMs,
-      sha256: data.sha256.present ? data.sha256.value : this.sha256,
-      ewe: data.ewe.present ? data.ewe.value : this.ewe,
-      lamb: data.lamb.present ? data.lamb.value : this.lamb,
-      lambing: data.lambing.present ? data.lambing.value : this.lambing,
-      note: data.note.present ? data.note.value : this.note,
-      missingSince: data.missingSince.present
-          ? data.missingSince.value
-          : this.missingSince,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MediaAssetsData(')
-          ..write('id: $id, ')
-          ..write('uid: $uid, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('unknownJson: $unknownJson, ')
-          ..write('relativePath: $relativePath, ')
-          ..write('kind: $kind, ')
-          ..write('byteSize: $byteSize, ')
-          ..write('durationMs: $durationMs, ')
-          ..write('sha256: $sha256, ')
-          ..write('ewe: $ewe, ')
-          ..write('lamb: $lamb, ')
-          ..write('lambing: $lambing, ')
-          ..write('note: $note, ')
-          ..write('missingSince: $missingSince')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    uid,
-    createdAt,
-    updatedAt,
-    unknownJson,
-    relativePath,
-    kind,
-    byteSize,
-    durationMs,
-    sha256,
-    ewe,
-    lamb,
-    lambing,
-    note,
-    missingSince,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is MediaAssetsData &&
-          other.id == this.id &&
-          other.uid == this.uid &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.unknownJson == this.unknownJson &&
-          other.relativePath == this.relativePath &&
-          other.kind == this.kind &&
-          other.byteSize == this.byteSize &&
-          other.durationMs == this.durationMs &&
-          other.sha256 == this.sha256 &&
-          other.ewe == this.ewe &&
-          other.lamb == this.lamb &&
-          other.lambing == this.lambing &&
-          other.note == this.note &&
-          other.missingSince == this.missingSince);
-}
-
-class MediaAssetsCompanion extends UpdateCompanion<MediaAssetsData> {
-  final Value<int> id;
-  final Value<String> uid;
-  final Value<int> createdAt;
-  final Value<int> updatedAt;
-  final Value<String?> unknownJson;
-  final Value<String> relativePath;
-  final Value<String> kind;
-  final Value<int> byteSize;
-  final Value<int?> durationMs;
-  final Value<String?> sha256;
-  final Value<int?> ewe;
-  final Value<int?> lamb;
-  final Value<int?> lambing;
-  final Value<int?> note;
-  final Value<int?> missingSince;
-  const MediaAssetsCompanion({
-    this.id = const Value.absent(),
-    this.uid = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.unknownJson = const Value.absent(),
-    this.relativePath = const Value.absent(),
-    this.kind = const Value.absent(),
-    this.byteSize = const Value.absent(),
-    this.durationMs = const Value.absent(),
-    this.sha256 = const Value.absent(),
-    this.ewe = const Value.absent(),
-    this.lamb = const Value.absent(),
-    this.lambing = const Value.absent(),
-    this.note = const Value.absent(),
-    this.missingSince = const Value.absent(),
-  });
-  MediaAssetsCompanion.insert({
-    this.id = const Value.absent(),
-    required String uid,
-    required int createdAt,
-    required int updatedAt,
-    this.unknownJson = const Value.absent(),
-    required String relativePath,
-    required String kind,
-    required int byteSize,
-    this.durationMs = const Value.absent(),
-    this.sha256 = const Value.absent(),
-    this.ewe = const Value.absent(),
-    this.lamb = const Value.absent(),
-    this.lambing = const Value.absent(),
-    this.note = const Value.absent(),
-    this.missingSince = const Value.absent(),
-  }) : uid = Value(uid),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt),
-       relativePath = Value(relativePath),
-       kind = Value(kind),
-       byteSize = Value(byteSize);
-  static Insertable<MediaAssetsData> custom({
-    Expression<int>? id,
-    Expression<String>? uid,
-    Expression<int>? createdAt,
-    Expression<int>? updatedAt,
-    Expression<String>? unknownJson,
-    Expression<String>? relativePath,
-    Expression<String>? kind,
-    Expression<int>? byteSize,
-    Expression<int>? durationMs,
-    Expression<String>? sha256,
-    Expression<int>? ewe,
-    Expression<int>? lamb,
-    Expression<int>? lambing,
-    Expression<int>? note,
-    Expression<int>? missingSince,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (uid != null) 'uid': uid,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (unknownJson != null) 'unknown_json': unknownJson,
-      if (relativePath != null) 'relative_path': relativePath,
-      if (kind != null) 'kind': kind,
-      if (byteSize != null) 'byte_size': byteSize,
-      if (durationMs != null) 'duration_ms': durationMs,
-      if (sha256 != null) 'sha256': sha256,
-      if (ewe != null) 'ewe': ewe,
-      if (lamb != null) 'lamb': lamb,
-      if (lambing != null) 'lambing': lambing,
-      if (note != null) 'note': note,
-      if (missingSince != null) 'missing_since': missingSince,
-    });
-  }
-
-  MediaAssetsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? uid,
-    Value<int>? createdAt,
-    Value<int>? updatedAt,
-    Value<String?>? unknownJson,
-    Value<String>? relativePath,
-    Value<String>? kind,
-    Value<int>? byteSize,
-    Value<int?>? durationMs,
-    Value<String?>? sha256,
-    Value<int?>? ewe,
-    Value<int?>? lamb,
-    Value<int?>? lambing,
-    Value<int?>? note,
-    Value<int?>? missingSince,
-  }) {
-    return MediaAssetsCompanion(
-      id: id ?? this.id,
-      uid: uid ?? this.uid,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      unknownJson: unknownJson ?? this.unknownJson,
-      relativePath: relativePath ?? this.relativePath,
-      kind: kind ?? this.kind,
-      byteSize: byteSize ?? this.byteSize,
-      durationMs: durationMs ?? this.durationMs,
-      sha256: sha256 ?? this.sha256,
-      ewe: ewe ?? this.ewe,
-      lamb: lamb ?? this.lamb,
-      lambing: lambing ?? this.lambing,
-      note: note ?? this.note,
-      missingSince: missingSince ?? this.missingSince,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (uid.present) {
-      map['uid'] = Variable<String>(uid.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<int>(createdAt.value);
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<int>(updatedAt.value);
-    }
-    if (unknownJson.present) {
-      map['unknown_json'] = Variable<String>(unknownJson.value);
-    }
-    if (relativePath.present) {
-      map['relative_path'] = Variable<String>(relativePath.value);
-    }
-    if (kind.present) {
-      map['kind'] = Variable<String>(kind.value);
-    }
-    if (byteSize.present) {
-      map['byte_size'] = Variable<int>(byteSize.value);
-    }
-    if (durationMs.present) {
-      map['duration_ms'] = Variable<int>(durationMs.value);
-    }
-    if (sha256.present) {
-      map['sha256'] = Variable<String>(sha256.value);
-    }
-    if (ewe.present) {
-      map['ewe'] = Variable<int>(ewe.value);
-    }
-    if (lamb.present) {
-      map['lamb'] = Variable<int>(lamb.value);
-    }
-    if (lambing.present) {
-      map['lambing'] = Variable<int>(lambing.value);
-    }
-    if (note.present) {
-      map['note'] = Variable<int>(note.value);
-    }
-    if (missingSince.present) {
-      map['missing_since'] = Variable<int>(missingSince.value);
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MediaAssetsCompanion(')
-          ..write('id: $id, ')
-          ..write('uid: $uid, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('unknownJson: $unknownJson, ')
-          ..write('relativePath: $relativePath, ')
-          ..write('kind: $kind, ')
-          ..write('byteSize: $byteSize, ')
-          ..write('durationMs: $durationMs, ')
-          ..write('sha256: $sha256, ')
-          ..write('ewe: $ewe, ')
-          ..write('lamb: $lamb, ')
-          ..write('lambing: $lambing, ')
-          ..write('note: $note, ')
-          ..write('missingSince: $missingSince')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class TerminologyOverrides extends Table
     with TableInfo<TerminologyOverrides, TerminologyOverridesData> {
   @override
@@ -14987,6 +14987,7 @@ class DatabaseAtV1 extends GeneratedDatabase {
   late final Lambs lambs = Lambs(this);
   late final Notes notes = Notes(this);
   late final Treatments treatments = Treatments(this);
+  late final MediaAssets mediaAssets = MediaAssets(this);
   late final PenOccupancyLambs penOccupancyLambs = PenOccupancyLambs(this);
   late final Index idxPenoccPenTime = Index(
     'idx_penocc_pen_time',
@@ -15095,7 +15096,6 @@ class DatabaseAtV1 extends GeneratedDatabase {
   late final FosterEvents fosterEvents = FosterEvents(this);
   late final Reminders reminders = Reminders(this);
   late final ReminderRules reminderRules = ReminderRules(this);
-  late final MediaAssets mediaAssets = MediaAssets(this);
   late final TerminologyOverrides terminologyOverrides = TerminologyOverrides(
     this,
   );
@@ -15315,6 +15315,7 @@ class DatabaseAtV1 extends GeneratedDatabase {
     lambs,
     notes,
     treatments,
+    mediaAssets,
     penOccupancyLambs,
     idxPenoccPenTime,
     idxPenoccEwe,
@@ -15348,7 +15349,6 @@ class DatabaseAtV1 extends GeneratedDatabase {
     fosterEvents,
     reminders,
     reminderRules,
-    mediaAssets,
     terminologyOverrides,
     appSettings,
     entitlements,
@@ -15481,6 +15481,34 @@ class DatabaseAtV1 extends GeneratedDatabase {
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
+        'ewes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'lambs',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'lambings',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'notes',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
         'pen_occupancies',
         limitUpdateKind: UpdateKind.delete,
       ),
@@ -15604,34 +15632,6 @@ class DatabaseAtV1 extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('reminders', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'ewes',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'lambs',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'lambings',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName(
-        'notes',
-        limitUpdateKind: UpdateKind.delete,
-      ),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(

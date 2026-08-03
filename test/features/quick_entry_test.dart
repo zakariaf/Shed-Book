@@ -609,6 +609,21 @@ void _writePathTests() {
     // Two seasons and not unlocked is the state where the calm path refuses.
     // Here it must commit, because decision #91 says a shepherd mid-lambing is
     // never told to pay.
+    //
+    // **AND THAT DRILL ONLY HOLDS OUTSIDE QUIET HOURS.** `FreeTierPolicy.decide`
+    // runs `isQuietHours(now)` BEFORE it refuses anything — *"the app does not
+    // solicit at night, even in a calm context"* — so between 22:00 and 06:00 the
+    // calm path commits too, and this case stops being able to tell the two
+    // contexts apart. It reads the real clock through the controller's
+    // `appNow()`, so for eight hours a day it was asserting nothing at all: green
+    // either way, which is worse than red.
+    //
+    // The sibling of this bug was a genuine failure rather than a weakening —
+    // `flock_repository_test`'s calm arm asserts the REFUSAL, so it went red
+    // every night. That one is what led here.
+    //
+    // 14:00, nowhere near either boundary. A single-instant assertion, so the
+    // freeze is the right tool (`12 §2.2`) and nothing here measures elapsed time.
     final AppDatabase db = testDatabase();
     await _seedCurrentSeason(db);
     await _seedCurrentSeason(db, year: 2027);
@@ -619,7 +634,10 @@ void _writePathTests() {
     final ProviderContainer container = ProviderScope.containerOf(
       tester.element(find.byKey(const Key('quick_entry.keypad'))),
     );
-    await container.read(quickEntryWriteControllerProvider.notifier).createEwe('412');
+    await atFixed(
+      DateTime.utc(2026, 3, 14, 14),
+      () => container.read(quickEntryWriteControllerProvider.notifier).createEwe('412'),
+    );
     await tester.pumpAndSettle();
 
     expect(

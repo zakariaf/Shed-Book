@@ -6550,6 +6550,806 @@ class NotesCompanion extends UpdateCompanion<Note> {
   }
 }
 
+class $MediaAssetsTable extends MediaAssets with TableInfo<$MediaAssetsTable, MediaAsset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MediaAssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
+  @override
+  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
+    'uid',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($MediaAssetsTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  ).withConverter<Instant>($MediaAssetsTable.$converterupdatedAt);
+  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
+  @override
+  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
+    'unknown_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta('relativePath');
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _byteSizeMeta = const VerificationMeta('byteSize');
+  @override
+  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
+    'byte_size',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMsMeta = const VerificationMeta('durationMs');
+  @override
+  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
+    'duration_ms',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
+  @override
+  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
+    'sha256',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
+  @override
+  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
+    'ewe',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES ewes (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
+  @override
+  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
+    'lamb',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambs (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
+  @override
+  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
+    'lambing',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES lambings (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<int> note = GeneratedColumn<int>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES notes (id) ON DELETE CASCADE',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<Instant?, int> missingSince = GeneratedColumn<int>(
+    'missing_since',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  ).withConverter<Instant?>($MediaAssetsTable.$convertermissingSincen);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media_assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MediaAsset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uid')) {
+      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
+    } else if (isInserting) {
+      context.missing(_uidMeta);
+    }
+    if (data.containsKey('unknown_json')) {
+      context.handle(
+        _unknownJsonMeta,
+        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(data['relative_path']!, _relativePathMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_relativePathMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('byte_size')) {
+      context.handle(
+        _byteSizeMeta,
+        byteSize.isAcceptableOrUnknown(data['byte_size']!, _byteSizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_byteSizeMeta);
+    }
+    if (data.containsKey('duration_ms')) {
+      context.handle(
+        _durationMsMeta,
+        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
+      );
+    }
+    if (data.containsKey('sha256')) {
+      context.handle(_sha256Meta, sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta));
+    }
+    if (data.containsKey('ewe')) {
+      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
+    }
+    if (data.containsKey('lamb')) {
+      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
+    }
+    if (data.containsKey('lambing')) {
+      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {relativePath},
+  ];
+  @override
+  MediaAsset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaAsset(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
+      createdAt: $MediaAssetsTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      ),
+      updatedAt: $MediaAssetsTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
+      ),
+      unknownJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}unknown_json'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      )!,
+      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      byteSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}byte_size'],
+      )!,
+      durationMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}duration_ms'],
+      ),
+      sha256: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}sha256'],
+      ),
+      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
+      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
+      lambing: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}lambing'],
+      ),
+      note: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}note']),
+      missingSince: $MediaAssetsTable.$convertermissingSincen.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}missing_since'],
+        ),
+      ),
+    );
+  }
+
+  @override
+  $MediaAssetsTable createAlias(String alias) {
+    return $MediaAssetsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
+  static TypeConverter<Instant, int> $convertermissingSince = const InstantConverter();
+  static TypeConverter<Instant?, int?> $convertermissingSincen = NullAwareTypeConverter.wrap(
+    $convertermissingSince,
+  );
+  @override
+  bool get isStrict => true;
+}
+
+class MediaAsset extends DataClass implements Insertable<MediaAsset> {
+  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
+  /// means nothing on another phone, and exporting one invites a restore that
+  /// tries to honour it.
+  final int id;
+
+  /// UUID v7. The identity that survives export → re-import.
+  final String uid;
+
+  /// Instants: UTC epoch millis (§4).
+  final Instant createdAt;
+  final Instant updatedAt;
+
+  /// Unrecognised keys from an import, so an **import → export round trip is
+  /// lossless**: a user who restores onto an older build and re-exports has not
+  /// silently destroyed a newer field (04 §6.4, decision #73).
+  ///
+  /// `NULL` in the normal case, which is nearly always. It is **not** a
+  /// mechanism for importing from the future — a backup whose schema version is
+  /// newer than this build's is refused outright.
+  ///
+  /// Every table carrying it also carries
+  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
+  final String? unknownJson;
+
+  /// **RELATIVE to the media root**, e.g. `"2026/03/019524f7-….jpg"`.
+  ///
+  /// The iOS container UUID is not stable across launches, so an absolute path
+  /// 404s after every restore, update and re-install — and never reproduces on
+  /// the developer's Android phone.
+  final String relativePath;
+  final String kind;
+  final int byteSize;
+  final int? durationMs;
+  final String? sha256;
+  final int? ewe;
+  final int? lamb;
+  final int? lambing;
+  final int? note;
+
+  /// Set when a sweep finds the file gone. **The row is NEVER deleted**:
+  /// *"photo taken 14 March, file missing"* is more honest than silence.
+  final Instant? missingSince;
+  const MediaAsset({
+    required this.id,
+    required this.uid,
+    required this.createdAt,
+    required this.updatedAt,
+    this.unknownJson,
+    required this.relativePath,
+    required this.kind,
+    required this.byteSize,
+    this.durationMs,
+    this.sha256,
+    this.ewe,
+    this.lamb,
+    this.lambing,
+    this.note,
+    this.missingSince,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['uid'] = Variable<String>(uid);
+    {
+      map['created_at'] = Variable<int>($MediaAssetsTable.$convertercreatedAt.toSql(createdAt));
+    }
+    {
+      map['updated_at'] = Variable<int>($MediaAssetsTable.$converterupdatedAt.toSql(updatedAt));
+    }
+    if (!nullToAbsent || unknownJson != null) {
+      map['unknown_json'] = Variable<String>(unknownJson);
+    }
+    map['relative_path'] = Variable<String>(relativePath);
+    map['kind'] = Variable<String>(kind);
+    map['byte_size'] = Variable<int>(byteSize);
+    if (!nullToAbsent || durationMs != null) {
+      map['duration_ms'] = Variable<int>(durationMs);
+    }
+    if (!nullToAbsent || sha256 != null) {
+      map['sha256'] = Variable<String>(sha256);
+    }
+    if (!nullToAbsent || ewe != null) {
+      map['ewe'] = Variable<int>(ewe);
+    }
+    if (!nullToAbsent || lamb != null) {
+      map['lamb'] = Variable<int>(lamb);
+    }
+    if (!nullToAbsent || lambing != null) {
+      map['lambing'] = Variable<int>(lambing);
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<int>(note);
+    }
+    if (!nullToAbsent || missingSince != null) {
+      map['missing_since'] = Variable<int>(
+        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince),
+      );
+    }
+    return map;
+  }
+
+  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
+    return MediaAssetsCompanion(
+      id: Value(id),
+      uid: Value(uid),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
+      relativePath: Value(relativePath),
+      kind: Value(kind),
+      byteSize: Value(byteSize),
+      durationMs: durationMs == null && nullToAbsent ? const Value.absent() : Value(durationMs),
+      sha256: sha256 == null && nullToAbsent ? const Value.absent() : Value(sha256),
+      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
+      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
+      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      missingSince: missingSince == null && nullToAbsent
+          ? const Value.absent()
+          : Value(missingSince),
+    );
+  }
+
+  factory MediaAsset.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaAsset(
+      id: serializer.fromJson<int>(json['id']),
+      uid: serializer.fromJson<String>(json['uid']),
+      createdAt: serializer.fromJson<Instant>(json['createdAt']),
+      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
+      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
+      relativePath: serializer.fromJson<String>(json['relativePath']),
+      kind: serializer.fromJson<String>(json['kind']),
+      byteSize: serializer.fromJson<int>(json['byteSize']),
+      durationMs: serializer.fromJson<int?>(json['durationMs']),
+      sha256: serializer.fromJson<String?>(json['sha256']),
+      ewe: serializer.fromJson<int?>(json['ewe']),
+      lamb: serializer.fromJson<int?>(json['lamb']),
+      lambing: serializer.fromJson<int?>(json['lambing']),
+      note: serializer.fromJson<int?>(json['note']),
+      missingSince: serializer.fromJson<Instant?>(json['missingSince']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'uid': serializer.toJson<String>(uid),
+      'createdAt': serializer.toJson<Instant>(createdAt),
+      'updatedAt': serializer.toJson<Instant>(updatedAt),
+      'unknownJson': serializer.toJson<String?>(unknownJson),
+      'relativePath': serializer.toJson<String>(relativePath),
+      'kind': serializer.toJson<String>(kind),
+      'byteSize': serializer.toJson<int>(byteSize),
+      'durationMs': serializer.toJson<int?>(durationMs),
+      'sha256': serializer.toJson<String?>(sha256),
+      'ewe': serializer.toJson<int?>(ewe),
+      'lamb': serializer.toJson<int?>(lamb),
+      'lambing': serializer.toJson<int?>(lambing),
+      'note': serializer.toJson<int?>(note),
+      'missingSince': serializer.toJson<Instant?>(missingSince),
+    };
+  }
+
+  MediaAsset copyWith({
+    int? id,
+    String? uid,
+    Instant? createdAt,
+    Instant? updatedAt,
+    Value<String?> unknownJson = const Value.absent(),
+    String? relativePath,
+    String? kind,
+    int? byteSize,
+    Value<int?> durationMs = const Value.absent(),
+    Value<String?> sha256 = const Value.absent(),
+    Value<int?> ewe = const Value.absent(),
+    Value<int?> lamb = const Value.absent(),
+    Value<int?> lambing = const Value.absent(),
+    Value<int?> note = const Value.absent(),
+    Value<Instant?> missingSince = const Value.absent(),
+  }) => MediaAsset(
+    id: id ?? this.id,
+    uid: uid ?? this.uid,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
+    relativePath: relativePath ?? this.relativePath,
+    kind: kind ?? this.kind,
+    byteSize: byteSize ?? this.byteSize,
+    durationMs: durationMs.present ? durationMs.value : this.durationMs,
+    sha256: sha256.present ? sha256.value : this.sha256,
+    ewe: ewe.present ? ewe.value : this.ewe,
+    lamb: lamb.present ? lamb.value : this.lamb,
+    lambing: lambing.present ? lambing.value : this.lambing,
+    note: note.present ? note.value : this.note,
+    missingSince: missingSince.present ? missingSince.value : this.missingSince,
+  );
+  MediaAsset copyWithCompanion(MediaAssetsCompanion data) {
+    return MediaAsset(
+      id: data.id.present ? data.id.value : this.id,
+      uid: data.uid.present ? data.uid.value : this.uid,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
+      relativePath: data.relativePath.present ? data.relativePath.value : this.relativePath,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
+      durationMs: data.durationMs.present ? data.durationMs.value : this.durationMs,
+      sha256: data.sha256.present ? data.sha256.value : this.sha256,
+      ewe: data.ewe.present ? data.ewe.value : this.ewe,
+      lamb: data.lamb.present ? data.lamb.value : this.lamb,
+      lambing: data.lambing.present ? data.lambing.value : this.lambing,
+      note: data.note.present ? data.note.value : this.note,
+      missingSince: data.missingSince.present ? data.missingSince.value : this.missingSince,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAsset(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    uid,
+    createdAt,
+    updatedAt,
+    unknownJson,
+    relativePath,
+    kind,
+    byteSize,
+    durationMs,
+    sha256,
+    ewe,
+    lamb,
+    lambing,
+    note,
+    missingSince,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAsset &&
+          other.id == this.id &&
+          other.uid == this.uid &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.unknownJson == this.unknownJson &&
+          other.relativePath == this.relativePath &&
+          other.kind == this.kind &&
+          other.byteSize == this.byteSize &&
+          other.durationMs == this.durationMs &&
+          other.sha256 == this.sha256 &&
+          other.ewe == this.ewe &&
+          other.lamb == this.lamb &&
+          other.lambing == this.lambing &&
+          other.note == this.note &&
+          other.missingSince == this.missingSince);
+}
+
+class MediaAssetsCompanion extends UpdateCompanion<MediaAsset> {
+  final Value<int> id;
+  final Value<String> uid;
+  final Value<Instant> createdAt;
+  final Value<Instant> updatedAt;
+  final Value<String?> unknownJson;
+  final Value<String> relativePath;
+  final Value<String> kind;
+  final Value<int> byteSize;
+  final Value<int?> durationMs;
+  final Value<String?> sha256;
+  final Value<int?> ewe;
+  final Value<int?> lamb;
+  final Value<int?> lambing;
+  final Value<int?> note;
+  final Value<Instant?> missingSince;
+  const MediaAssetsCompanion({
+    this.id = const Value.absent(),
+    this.uid = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.unknownJson = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.byteSize = const Value.absent(),
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  });
+  MediaAssetsCompanion.insert({
+    this.id = const Value.absent(),
+    required String uid,
+    required Instant createdAt,
+    required Instant updatedAt,
+    this.unknownJson = const Value.absent(),
+    required String relativePath,
+    required String kind,
+    required int byteSize,
+    this.durationMs = const Value.absent(),
+    this.sha256 = const Value.absent(),
+    this.ewe = const Value.absent(),
+    this.lamb = const Value.absent(),
+    this.lambing = const Value.absent(),
+    this.note = const Value.absent(),
+    this.missingSince = const Value.absent(),
+  }) : uid = Value(uid),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt),
+       relativePath = Value(relativePath),
+       kind = Value(kind),
+       byteSize = Value(byteSize);
+  static Insertable<MediaAsset> custom({
+    Expression<int>? id,
+    Expression<String>? uid,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? unknownJson,
+    Expression<String>? relativePath,
+    Expression<String>? kind,
+    Expression<int>? byteSize,
+    Expression<int>? durationMs,
+    Expression<String>? sha256,
+    Expression<int>? ewe,
+    Expression<int>? lamb,
+    Expression<int>? lambing,
+    Expression<int>? note,
+    Expression<int>? missingSince,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (uid != null) 'uid': uid,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (unknownJson != null) 'unknown_json': unknownJson,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (kind != null) 'kind': kind,
+      if (byteSize != null) 'byte_size': byteSize,
+      if (durationMs != null) 'duration_ms': durationMs,
+      if (sha256 != null) 'sha256': sha256,
+      if (ewe != null) 'ewe': ewe,
+      if (lamb != null) 'lamb': lamb,
+      if (lambing != null) 'lambing': lambing,
+      if (note != null) 'note': note,
+      if (missingSince != null) 'missing_since': missingSince,
+    });
+  }
+
+  MediaAssetsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? uid,
+    Value<Instant>? createdAt,
+    Value<Instant>? updatedAt,
+    Value<String?>? unknownJson,
+    Value<String>? relativePath,
+    Value<String>? kind,
+    Value<int>? byteSize,
+    Value<int?>? durationMs,
+    Value<String?>? sha256,
+    Value<int?>? ewe,
+    Value<int?>? lamb,
+    Value<int?>? lambing,
+    Value<int?>? note,
+    Value<Instant?>? missingSince,
+  }) {
+    return MediaAssetsCompanion(
+      id: id ?? this.id,
+      uid: uid ?? this.uid,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unknownJson: unknownJson ?? this.unknownJson,
+      relativePath: relativePath ?? this.relativePath,
+      kind: kind ?? this.kind,
+      byteSize: byteSize ?? this.byteSize,
+      durationMs: durationMs ?? this.durationMs,
+      sha256: sha256 ?? this.sha256,
+      ewe: ewe ?? this.ewe,
+      lamb: lamb ?? this.lamb,
+      lambing: lambing ?? this.lambing,
+      note: note ?? this.note,
+      missingSince: missingSince ?? this.missingSince,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (uid.present) {
+      map['uid'] = Variable<String>(uid.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $MediaAssetsTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $MediaAssetsTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (unknownJson.present) {
+      map['unknown_json'] = Variable<String>(unknownJson.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (byteSize.present) {
+      map['byte_size'] = Variable<int>(byteSize.value);
+    }
+    if (durationMs.present) {
+      map['duration_ms'] = Variable<int>(durationMs.value);
+    }
+    if (sha256.present) {
+      map['sha256'] = Variable<String>(sha256.value);
+    }
+    if (ewe.present) {
+      map['ewe'] = Variable<int>(ewe.value);
+    }
+    if (lamb.present) {
+      map['lamb'] = Variable<int>(lamb.value);
+    }
+    if (lambing.present) {
+      map['lambing'] = Variable<int>(lambing.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<int>(note.value);
+    }
+    if (missingSince.present) {
+      map['missing_since'] = Variable<int>(
+        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince.value),
+      );
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('uid: $uid, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('unknownJson: $unknownJson, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('kind: $kind, ')
+          ..write('byteSize: $byteSize, ')
+          ..write('durationMs: $durationMs, ')
+          ..write('sha256: $sha256, ')
+          ..write('ewe: $ewe, ')
+          ..write('lamb: $lamb, ')
+          ..write('lambing: $lambing, ')
+          ..write('note: $note, ')
+          ..write('missingSince: $missingSince')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PenOccupancyLambsTable extends PenOccupancyLambs
     with TableInfo<$PenOccupancyLambsTable, PenOccupancyLamb> {
   @override
@@ -12339,806 +13139,6 @@ class ReminderRulesCompanion extends UpdateCompanion<ReminderRule> {
   }
 }
 
-class $MediaAssetsTable extends MediaAssets with TableInfo<$MediaAssetsTable, MediaAsset> {
-  @override
-  final GeneratedDatabase attachedDatabase;
-  final String? _alias;
-  $MediaAssetsTable(this.attachedDatabase, [this._alias]);
-  static const VerificationMeta _idMeta = const VerificationMeta('id');
-  @override
-  late final GeneratedColumn<int> id = GeneratedColumn<int>(
-    'id',
-    aliasedName,
-    false,
-    hasAutoIncrement: true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
-  );
-  static const VerificationMeta _uidMeta = const VerificationMeta('uid');
-  @override
-  late final GeneratedColumn<String> uid = GeneratedColumn<String>(
-    'uid',
-    aliasedName,
-    false,
-    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 36, maxTextLength: 36),
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-    defaultConstraints: GeneratedColumn.constraintIsAlways('UNIQUE'),
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<Instant, int> createdAt = GeneratedColumn<int>(
-    'created_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<Instant>($MediaAssetsTable.$convertercreatedAt);
-  @override
-  late final GeneratedColumnWithTypeConverter<Instant, int> updatedAt = GeneratedColumn<int>(
-    'updated_at',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  ).withConverter<Instant>($MediaAssetsTable.$converterupdatedAt);
-  static const VerificationMeta _unknownJsonMeta = const VerificationMeta('unknownJson');
-  @override
-  late final GeneratedColumn<String> unknownJson = GeneratedColumn<String>(
-    'unknown_json',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _relativePathMeta = const VerificationMeta('relativePath');
-  @override
-  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
-    'relative_path',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
-  @override
-  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
-    'kind',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _byteSizeMeta = const VerificationMeta('byteSize');
-  @override
-  late final GeneratedColumn<int> byteSize = GeneratedColumn<int>(
-    'byte_size',
-    aliasedName,
-    false,
-    type: DriftSqlType.int,
-    requiredDuringInsert: true,
-  );
-  static const VerificationMeta _durationMsMeta = const VerificationMeta('durationMs');
-  @override
-  late final GeneratedColumn<int> durationMs = GeneratedColumn<int>(
-    'duration_ms',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _sha256Meta = const VerificationMeta('sha256');
-  @override
-  late final GeneratedColumn<String> sha256 = GeneratedColumn<String>(
-    'sha256',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _eweMeta = const VerificationMeta('ewe');
-  @override
-  late final GeneratedColumn<int> ewe = GeneratedColumn<int>(
-    'ewe',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES ewes (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _lambMeta = const VerificationMeta('lamb');
-  @override
-  late final GeneratedColumn<int> lamb = GeneratedColumn<int>(
-    'lamb',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES lambs (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _lambingMeta = const VerificationMeta('lambing');
-  @override
-  late final GeneratedColumn<int> lambing = GeneratedColumn<int>(
-    'lambing',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES lambings (id) ON DELETE CASCADE',
-    ),
-  );
-  static const VerificationMeta _noteMeta = const VerificationMeta('note');
-  @override
-  late final GeneratedColumn<int> note = GeneratedColumn<int>(
-    'note',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'REFERENCES notes (id) ON DELETE CASCADE',
-    ),
-  );
-  @override
-  late final GeneratedColumnWithTypeConverter<Instant?, int> missingSince = GeneratedColumn<int>(
-    'missing_since',
-    aliasedName,
-    true,
-    type: DriftSqlType.int,
-    requiredDuringInsert: false,
-  ).withConverter<Instant?>($MediaAssetsTable.$convertermissingSincen);
-  @override
-  List<GeneratedColumn> get $columns => [
-    id,
-    uid,
-    createdAt,
-    updatedAt,
-    unknownJson,
-    relativePath,
-    kind,
-    byteSize,
-    durationMs,
-    sha256,
-    ewe,
-    lamb,
-    lambing,
-    note,
-    missingSince,
-  ];
-  @override
-  String get aliasedName => _alias ?? actualTableName;
-  @override
-  String get actualTableName => $name;
-  static const String $name = 'media_assets';
-  @override
-  VerificationContext validateIntegrity(
-    Insertable<MediaAsset> instance, {
-    bool isInserting = false,
-  }) {
-    final context = VerificationContext();
-    final data = instance.toColumns(true);
-    if (data.containsKey('id')) {
-      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
-    }
-    if (data.containsKey('uid')) {
-      context.handle(_uidMeta, uid.isAcceptableOrUnknown(data['uid']!, _uidMeta));
-    } else if (isInserting) {
-      context.missing(_uidMeta);
-    }
-    if (data.containsKey('unknown_json')) {
-      context.handle(
-        _unknownJsonMeta,
-        unknownJson.isAcceptableOrUnknown(data['unknown_json']!, _unknownJsonMeta),
-      );
-    }
-    if (data.containsKey('relative_path')) {
-      context.handle(
-        _relativePathMeta,
-        relativePath.isAcceptableOrUnknown(data['relative_path']!, _relativePathMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_relativePathMeta);
-    }
-    if (data.containsKey('kind')) {
-      context.handle(_kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
-    } else if (isInserting) {
-      context.missing(_kindMeta);
-    }
-    if (data.containsKey('byte_size')) {
-      context.handle(
-        _byteSizeMeta,
-        byteSize.isAcceptableOrUnknown(data['byte_size']!, _byteSizeMeta),
-      );
-    } else if (isInserting) {
-      context.missing(_byteSizeMeta);
-    }
-    if (data.containsKey('duration_ms')) {
-      context.handle(
-        _durationMsMeta,
-        durationMs.isAcceptableOrUnknown(data['duration_ms']!, _durationMsMeta),
-      );
-    }
-    if (data.containsKey('sha256')) {
-      context.handle(_sha256Meta, sha256.isAcceptableOrUnknown(data['sha256']!, _sha256Meta));
-    }
-    if (data.containsKey('ewe')) {
-      context.handle(_eweMeta, ewe.isAcceptableOrUnknown(data['ewe']!, _eweMeta));
-    }
-    if (data.containsKey('lamb')) {
-      context.handle(_lambMeta, lamb.isAcceptableOrUnknown(data['lamb']!, _lambMeta));
-    }
-    if (data.containsKey('lambing')) {
-      context.handle(_lambingMeta, lambing.isAcceptableOrUnknown(data['lambing']!, _lambingMeta));
-    }
-    if (data.containsKey('note')) {
-      context.handle(_noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
-    }
-    return context;
-  }
-
-  @override
-  Set<GeneratedColumn> get $primaryKey => {id};
-  @override
-  List<Set<GeneratedColumn>> get uniqueKeys => [
-    {relativePath},
-  ];
-  @override
-  MediaAsset map(Map<String, dynamic> data, {String? tablePrefix}) {
-    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
-    return MediaAsset(
-      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
-      uid: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}uid'])!,
-      createdAt: $MediaAssetsTable.$convertercreatedAt.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
-      ),
-      updatedAt: $MediaAssetsTable.$converterupdatedAt.fromSql(
-        attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}updated_at'])!,
-      ),
-      unknownJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}unknown_json'],
-      ),
-      relativePath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}relative_path'],
-      )!,
-      kind: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
-      byteSize: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}byte_size'],
-      )!,
-      durationMs: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}duration_ms'],
-      ),
-      sha256: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}sha256'],
-      ),
-      ewe: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}ewe']),
-      lamb: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}lamb']),
-      lambing: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}lambing'],
-      ),
-      note: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}note']),
-      missingSince: $MediaAssetsTable.$convertermissingSincen.fromSql(
-        attachedDatabase.typeMapping.read(
-          DriftSqlType.int,
-          data['${effectivePrefix}missing_since'],
-        ),
-      ),
-    );
-  }
-
-  @override
-  $MediaAssetsTable createAlias(String alias) {
-    return $MediaAssetsTable(attachedDatabase, alias);
-  }
-
-  static TypeConverter<Instant, int> $convertercreatedAt = const InstantConverter();
-  static TypeConverter<Instant, int> $converterupdatedAt = const InstantConverter();
-  static TypeConverter<Instant, int> $convertermissingSince = const InstantConverter();
-  static TypeConverter<Instant?, int?> $convertermissingSincen = NullAwareTypeConverter.wrap(
-    $convertermissingSince,
-  );
-  @override
-  bool get isStrict => true;
-}
-
-class MediaAsset extends DataClass implements Insertable<MediaAsset> {
-  /// Joins and foreign keys. Device-local. **NEVER exported** (03 §3): a row id
-  /// means nothing on another phone, and exporting one invites a restore that
-  /// tries to honour it.
-  final int id;
-
-  /// UUID v7. The identity that survives export → re-import.
-  final String uid;
-
-  /// Instants: UTC epoch millis (§4).
-  final Instant createdAt;
-  final Instant updatedAt;
-
-  /// Unrecognised keys from an import, so an **import → export round trip is
-  /// lossless**: a user who restores onto an older build and re-exports has not
-  /// silently destroyed a newer field (04 §6.4, decision #73).
-  ///
-  /// `NULL` in the normal case, which is nearly always. It is **not** a
-  /// mechanism for importing from the future — a backup whose schema version is
-  /// newer than this build's is refused outright.
-  ///
-  /// Every table carrying it also carries
-  /// `CHECK (unknown_json IS NULL OR json_valid(unknown_json))`.
-  final String? unknownJson;
-
-  /// **RELATIVE to the media root**, e.g. `"2026/03/019524f7-….jpg"`.
-  ///
-  /// The iOS container UUID is not stable across launches, so an absolute path
-  /// 404s after every restore, update and re-install — and never reproduces on
-  /// the developer's Android phone.
-  final String relativePath;
-  final String kind;
-  final int byteSize;
-  final int? durationMs;
-  final String? sha256;
-  final int? ewe;
-  final int? lamb;
-  final int? lambing;
-  final int? note;
-
-  /// Set when a sweep finds the file gone. **The row is NEVER deleted**:
-  /// *"photo taken 14 March, file missing"* is more honest than silence.
-  final Instant? missingSince;
-  const MediaAsset({
-    required this.id,
-    required this.uid,
-    required this.createdAt,
-    required this.updatedAt,
-    this.unknownJson,
-    required this.relativePath,
-    required this.kind,
-    required this.byteSize,
-    this.durationMs,
-    this.sha256,
-    this.ewe,
-    this.lamb,
-    this.lambing,
-    this.note,
-    this.missingSince,
-  });
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    map['id'] = Variable<int>(id);
-    map['uid'] = Variable<String>(uid);
-    {
-      map['created_at'] = Variable<int>($MediaAssetsTable.$convertercreatedAt.toSql(createdAt));
-    }
-    {
-      map['updated_at'] = Variable<int>($MediaAssetsTable.$converterupdatedAt.toSql(updatedAt));
-    }
-    if (!nullToAbsent || unknownJson != null) {
-      map['unknown_json'] = Variable<String>(unknownJson);
-    }
-    map['relative_path'] = Variable<String>(relativePath);
-    map['kind'] = Variable<String>(kind);
-    map['byte_size'] = Variable<int>(byteSize);
-    if (!nullToAbsent || durationMs != null) {
-      map['duration_ms'] = Variable<int>(durationMs);
-    }
-    if (!nullToAbsent || sha256 != null) {
-      map['sha256'] = Variable<String>(sha256);
-    }
-    if (!nullToAbsent || ewe != null) {
-      map['ewe'] = Variable<int>(ewe);
-    }
-    if (!nullToAbsent || lamb != null) {
-      map['lamb'] = Variable<int>(lamb);
-    }
-    if (!nullToAbsent || lambing != null) {
-      map['lambing'] = Variable<int>(lambing);
-    }
-    if (!nullToAbsent || note != null) {
-      map['note'] = Variable<int>(note);
-    }
-    if (!nullToAbsent || missingSince != null) {
-      map['missing_since'] = Variable<int>(
-        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince),
-      );
-    }
-    return map;
-  }
-
-  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
-    return MediaAssetsCompanion(
-      id: Value(id),
-      uid: Value(uid),
-      createdAt: Value(createdAt),
-      updatedAt: Value(updatedAt),
-      unknownJson: unknownJson == null && nullToAbsent ? const Value.absent() : Value(unknownJson),
-      relativePath: Value(relativePath),
-      kind: Value(kind),
-      byteSize: Value(byteSize),
-      durationMs: durationMs == null && nullToAbsent ? const Value.absent() : Value(durationMs),
-      sha256: sha256 == null && nullToAbsent ? const Value.absent() : Value(sha256),
-      ewe: ewe == null && nullToAbsent ? const Value.absent() : Value(ewe),
-      lamb: lamb == null && nullToAbsent ? const Value.absent() : Value(lamb),
-      lambing: lambing == null && nullToAbsent ? const Value.absent() : Value(lambing),
-      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
-      missingSince: missingSince == null && nullToAbsent
-          ? const Value.absent()
-          : Value(missingSince),
-    );
-  }
-
-  factory MediaAsset.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return MediaAsset(
-      id: serializer.fromJson<int>(json['id']),
-      uid: serializer.fromJson<String>(json['uid']),
-      createdAt: serializer.fromJson<Instant>(json['createdAt']),
-      updatedAt: serializer.fromJson<Instant>(json['updatedAt']),
-      unknownJson: serializer.fromJson<String?>(json['unknownJson']),
-      relativePath: serializer.fromJson<String>(json['relativePath']),
-      kind: serializer.fromJson<String>(json['kind']),
-      byteSize: serializer.fromJson<int>(json['byteSize']),
-      durationMs: serializer.fromJson<int?>(json['durationMs']),
-      sha256: serializer.fromJson<String?>(json['sha256']),
-      ewe: serializer.fromJson<int?>(json['ewe']),
-      lamb: serializer.fromJson<int?>(json['lamb']),
-      lambing: serializer.fromJson<int?>(json['lambing']),
-      note: serializer.fromJson<int?>(json['note']),
-      missingSince: serializer.fromJson<Instant?>(json['missingSince']),
-    );
-  }
-  @override
-  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
-    serializer ??= driftRuntimeOptions.defaultSerializer;
-    return <String, dynamic>{
-      'id': serializer.toJson<int>(id),
-      'uid': serializer.toJson<String>(uid),
-      'createdAt': serializer.toJson<Instant>(createdAt),
-      'updatedAt': serializer.toJson<Instant>(updatedAt),
-      'unknownJson': serializer.toJson<String?>(unknownJson),
-      'relativePath': serializer.toJson<String>(relativePath),
-      'kind': serializer.toJson<String>(kind),
-      'byteSize': serializer.toJson<int>(byteSize),
-      'durationMs': serializer.toJson<int?>(durationMs),
-      'sha256': serializer.toJson<String?>(sha256),
-      'ewe': serializer.toJson<int?>(ewe),
-      'lamb': serializer.toJson<int?>(lamb),
-      'lambing': serializer.toJson<int?>(lambing),
-      'note': serializer.toJson<int?>(note),
-      'missingSince': serializer.toJson<Instant?>(missingSince),
-    };
-  }
-
-  MediaAsset copyWith({
-    int? id,
-    String? uid,
-    Instant? createdAt,
-    Instant? updatedAt,
-    Value<String?> unknownJson = const Value.absent(),
-    String? relativePath,
-    String? kind,
-    int? byteSize,
-    Value<int?> durationMs = const Value.absent(),
-    Value<String?> sha256 = const Value.absent(),
-    Value<int?> ewe = const Value.absent(),
-    Value<int?> lamb = const Value.absent(),
-    Value<int?> lambing = const Value.absent(),
-    Value<int?> note = const Value.absent(),
-    Value<Instant?> missingSince = const Value.absent(),
-  }) => MediaAsset(
-    id: id ?? this.id,
-    uid: uid ?? this.uid,
-    createdAt: createdAt ?? this.createdAt,
-    updatedAt: updatedAt ?? this.updatedAt,
-    unknownJson: unknownJson.present ? unknownJson.value : this.unknownJson,
-    relativePath: relativePath ?? this.relativePath,
-    kind: kind ?? this.kind,
-    byteSize: byteSize ?? this.byteSize,
-    durationMs: durationMs.present ? durationMs.value : this.durationMs,
-    sha256: sha256.present ? sha256.value : this.sha256,
-    ewe: ewe.present ? ewe.value : this.ewe,
-    lamb: lamb.present ? lamb.value : this.lamb,
-    lambing: lambing.present ? lambing.value : this.lambing,
-    note: note.present ? note.value : this.note,
-    missingSince: missingSince.present ? missingSince.value : this.missingSince,
-  );
-  MediaAsset copyWithCompanion(MediaAssetsCompanion data) {
-    return MediaAsset(
-      id: data.id.present ? data.id.value : this.id,
-      uid: data.uid.present ? data.uid.value : this.uid,
-      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
-      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
-      unknownJson: data.unknownJson.present ? data.unknownJson.value : this.unknownJson,
-      relativePath: data.relativePath.present ? data.relativePath.value : this.relativePath,
-      kind: data.kind.present ? data.kind.value : this.kind,
-      byteSize: data.byteSize.present ? data.byteSize.value : this.byteSize,
-      durationMs: data.durationMs.present ? data.durationMs.value : this.durationMs,
-      sha256: data.sha256.present ? data.sha256.value : this.sha256,
-      ewe: data.ewe.present ? data.ewe.value : this.ewe,
-      lamb: data.lamb.present ? data.lamb.value : this.lamb,
-      lambing: data.lambing.present ? data.lambing.value : this.lambing,
-      note: data.note.present ? data.note.value : this.note,
-      missingSince: data.missingSince.present ? data.missingSince.value : this.missingSince,
-    );
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MediaAsset(')
-          ..write('id: $id, ')
-          ..write('uid: $uid, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('unknownJson: $unknownJson, ')
-          ..write('relativePath: $relativePath, ')
-          ..write('kind: $kind, ')
-          ..write('byteSize: $byteSize, ')
-          ..write('durationMs: $durationMs, ')
-          ..write('sha256: $sha256, ')
-          ..write('ewe: $ewe, ')
-          ..write('lamb: $lamb, ')
-          ..write('lambing: $lambing, ')
-          ..write('note: $note, ')
-          ..write('missingSince: $missingSince')
-          ..write(')'))
-        .toString();
-  }
-
-  @override
-  int get hashCode => Object.hash(
-    id,
-    uid,
-    createdAt,
-    updatedAt,
-    unknownJson,
-    relativePath,
-    kind,
-    byteSize,
-    durationMs,
-    sha256,
-    ewe,
-    lamb,
-    lambing,
-    note,
-    missingSince,
-  );
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      (other is MediaAsset &&
-          other.id == this.id &&
-          other.uid == this.uid &&
-          other.createdAt == this.createdAt &&
-          other.updatedAt == this.updatedAt &&
-          other.unknownJson == this.unknownJson &&
-          other.relativePath == this.relativePath &&
-          other.kind == this.kind &&
-          other.byteSize == this.byteSize &&
-          other.durationMs == this.durationMs &&
-          other.sha256 == this.sha256 &&
-          other.ewe == this.ewe &&
-          other.lamb == this.lamb &&
-          other.lambing == this.lambing &&
-          other.note == this.note &&
-          other.missingSince == this.missingSince);
-}
-
-class MediaAssetsCompanion extends UpdateCompanion<MediaAsset> {
-  final Value<int> id;
-  final Value<String> uid;
-  final Value<Instant> createdAt;
-  final Value<Instant> updatedAt;
-  final Value<String?> unknownJson;
-  final Value<String> relativePath;
-  final Value<String> kind;
-  final Value<int> byteSize;
-  final Value<int?> durationMs;
-  final Value<String?> sha256;
-  final Value<int?> ewe;
-  final Value<int?> lamb;
-  final Value<int?> lambing;
-  final Value<int?> note;
-  final Value<Instant?> missingSince;
-  const MediaAssetsCompanion({
-    this.id = const Value.absent(),
-    this.uid = const Value.absent(),
-    this.createdAt = const Value.absent(),
-    this.updatedAt = const Value.absent(),
-    this.unknownJson = const Value.absent(),
-    this.relativePath = const Value.absent(),
-    this.kind = const Value.absent(),
-    this.byteSize = const Value.absent(),
-    this.durationMs = const Value.absent(),
-    this.sha256 = const Value.absent(),
-    this.ewe = const Value.absent(),
-    this.lamb = const Value.absent(),
-    this.lambing = const Value.absent(),
-    this.note = const Value.absent(),
-    this.missingSince = const Value.absent(),
-  });
-  MediaAssetsCompanion.insert({
-    this.id = const Value.absent(),
-    required String uid,
-    required Instant createdAt,
-    required Instant updatedAt,
-    this.unknownJson = const Value.absent(),
-    required String relativePath,
-    required String kind,
-    required int byteSize,
-    this.durationMs = const Value.absent(),
-    this.sha256 = const Value.absent(),
-    this.ewe = const Value.absent(),
-    this.lamb = const Value.absent(),
-    this.lambing = const Value.absent(),
-    this.note = const Value.absent(),
-    this.missingSince = const Value.absent(),
-  }) : uid = Value(uid),
-       createdAt = Value(createdAt),
-       updatedAt = Value(updatedAt),
-       relativePath = Value(relativePath),
-       kind = Value(kind),
-       byteSize = Value(byteSize);
-  static Insertable<MediaAsset> custom({
-    Expression<int>? id,
-    Expression<String>? uid,
-    Expression<int>? createdAt,
-    Expression<int>? updatedAt,
-    Expression<String>? unknownJson,
-    Expression<String>? relativePath,
-    Expression<String>? kind,
-    Expression<int>? byteSize,
-    Expression<int>? durationMs,
-    Expression<String>? sha256,
-    Expression<int>? ewe,
-    Expression<int>? lamb,
-    Expression<int>? lambing,
-    Expression<int>? note,
-    Expression<int>? missingSince,
-  }) {
-    return RawValuesInsertable({
-      if (id != null) 'id': id,
-      if (uid != null) 'uid': uid,
-      if (createdAt != null) 'created_at': createdAt,
-      if (updatedAt != null) 'updated_at': updatedAt,
-      if (unknownJson != null) 'unknown_json': unknownJson,
-      if (relativePath != null) 'relative_path': relativePath,
-      if (kind != null) 'kind': kind,
-      if (byteSize != null) 'byte_size': byteSize,
-      if (durationMs != null) 'duration_ms': durationMs,
-      if (sha256 != null) 'sha256': sha256,
-      if (ewe != null) 'ewe': ewe,
-      if (lamb != null) 'lamb': lamb,
-      if (lambing != null) 'lambing': lambing,
-      if (note != null) 'note': note,
-      if (missingSince != null) 'missing_since': missingSince,
-    });
-  }
-
-  MediaAssetsCompanion copyWith({
-    Value<int>? id,
-    Value<String>? uid,
-    Value<Instant>? createdAt,
-    Value<Instant>? updatedAt,
-    Value<String?>? unknownJson,
-    Value<String>? relativePath,
-    Value<String>? kind,
-    Value<int>? byteSize,
-    Value<int?>? durationMs,
-    Value<String?>? sha256,
-    Value<int?>? ewe,
-    Value<int?>? lamb,
-    Value<int?>? lambing,
-    Value<int?>? note,
-    Value<Instant?>? missingSince,
-  }) {
-    return MediaAssetsCompanion(
-      id: id ?? this.id,
-      uid: uid ?? this.uid,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      unknownJson: unknownJson ?? this.unknownJson,
-      relativePath: relativePath ?? this.relativePath,
-      kind: kind ?? this.kind,
-      byteSize: byteSize ?? this.byteSize,
-      durationMs: durationMs ?? this.durationMs,
-      sha256: sha256 ?? this.sha256,
-      ewe: ewe ?? this.ewe,
-      lamb: lamb ?? this.lamb,
-      lambing: lambing ?? this.lambing,
-      note: note ?? this.note,
-      missingSince: missingSince ?? this.missingSince,
-    );
-  }
-
-  @override
-  Map<String, Expression> toColumns(bool nullToAbsent) {
-    final map = <String, Expression>{};
-    if (id.present) {
-      map['id'] = Variable<int>(id.value);
-    }
-    if (uid.present) {
-      map['uid'] = Variable<String>(uid.value);
-    }
-    if (createdAt.present) {
-      map['created_at'] = Variable<int>(
-        $MediaAssetsTable.$convertercreatedAt.toSql(createdAt.value),
-      );
-    }
-    if (updatedAt.present) {
-      map['updated_at'] = Variable<int>(
-        $MediaAssetsTable.$converterupdatedAt.toSql(updatedAt.value),
-      );
-    }
-    if (unknownJson.present) {
-      map['unknown_json'] = Variable<String>(unknownJson.value);
-    }
-    if (relativePath.present) {
-      map['relative_path'] = Variable<String>(relativePath.value);
-    }
-    if (kind.present) {
-      map['kind'] = Variable<String>(kind.value);
-    }
-    if (byteSize.present) {
-      map['byte_size'] = Variable<int>(byteSize.value);
-    }
-    if (durationMs.present) {
-      map['duration_ms'] = Variable<int>(durationMs.value);
-    }
-    if (sha256.present) {
-      map['sha256'] = Variable<String>(sha256.value);
-    }
-    if (ewe.present) {
-      map['ewe'] = Variable<int>(ewe.value);
-    }
-    if (lamb.present) {
-      map['lamb'] = Variable<int>(lamb.value);
-    }
-    if (lambing.present) {
-      map['lambing'] = Variable<int>(lambing.value);
-    }
-    if (note.present) {
-      map['note'] = Variable<int>(note.value);
-    }
-    if (missingSince.present) {
-      map['missing_since'] = Variable<int>(
-        $MediaAssetsTable.$convertermissingSincen.toSql(missingSince.value),
-      );
-    }
-    return map;
-  }
-
-  @override
-  String toString() {
-    return (StringBuffer('MediaAssetsCompanion(')
-          ..write('id: $id, ')
-          ..write('uid: $uid, ')
-          ..write('createdAt: $createdAt, ')
-          ..write('updatedAt: $updatedAt, ')
-          ..write('unknownJson: $unknownJson, ')
-          ..write('relativePath: $relativePath, ')
-          ..write('kind: $kind, ')
-          ..write('byteSize: $byteSize, ')
-          ..write('durationMs: $durationMs, ')
-          ..write('sha256: $sha256, ')
-          ..write('ewe: $ewe, ')
-          ..write('lamb: $lamb, ')
-          ..write('lambing: $lambing, ')
-          ..write('note: $note, ')
-          ..write('missingSince: $missingSince')
-          ..write(')'))
-        .toString();
-  }
-}
-
 class $TerminologyOverridesTable extends TerminologyOverrides
     with TableInfo<$TerminologyOverridesTable, TerminologyOverride> {
   @override
@@ -16649,6 +16649,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LambingsTable lambings = $LambingsTable(this);
   late final $LambsTable lambs = $LambsTable(this);
   late final $NotesTable notes = $NotesTable(this);
+  late final $MediaAssetsTable mediaAssets = $MediaAssetsTable(this);
   late final $PenOccupancyLambsTable penOccupancyLambs = $PenOccupancyLambsTable(this);
   late final Index idxPenoccPenTime = Index(
     'idx_penocc_pen_time',
@@ -16758,7 +16759,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TreatmentsTable treatments = $TreatmentsTable(this);
   late final $RemindersTable reminders = $RemindersTable(this);
   late final $ReminderRulesTable reminderRules = $ReminderRulesTable(this);
-  late final $MediaAssetsTable mediaAssets = $MediaAssetsTable(this);
   late final $TerminologyOverridesTable terminologyOverrides = $TerminologyOverridesTable(this);
   late final $AppSettingsTable appSettings = $AppSettingsTable(this);
   late final $EntitlementsTable entitlements = $EntitlementsTable(this);
@@ -17026,6 +17026,40 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     );
   }
 
+  Selectable<String> allMediaRelativePaths() {
+    return customSelect(
+      'SELECT relative_path FROM media_assets',
+      variables: [],
+      readsFrom: {mediaAssets},
+    ).map((QueryRow row) => row.read<String>('relative_path'));
+  }
+
+  Selectable<MediaAssetsNotYetMissingResult> mediaAssetsNotYetMissing() {
+    return customSelect(
+      'SELECT id, relative_path FROM media_assets WHERE missing_since IS NULL',
+      variables: [],
+      readsFrom: {mediaAssets},
+    ).map(
+      (QueryRow row) => MediaAssetsNotYetMissingResult(
+        id: row.read<int>('id'),
+        relativePath: row.read<String>('relative_path'),
+      ),
+    );
+  }
+
+  Selectable<MediaAssetsMissingResult> mediaAssetsMissing() {
+    return customSelect(
+      'SELECT id, relative_path FROM media_assets WHERE missing_since IS NOT NULL',
+      variables: [],
+      readsFrom: {mediaAssets},
+    ).map(
+      (QueryRow row) => MediaAssetsMissingResult(
+        id: row.read<int>('id'),
+        relativePath: row.read<String>('relative_path'),
+      ),
+    );
+  }
+
   Selectable<SearchAllResult> searchAll(String query, int limit) {
     return customSelect(
       'SELECT d.id AS doc_id, d.subject_kind AS subject_kind, d.subject_id AS subject_id, d.ewe_id AS ewe_id, d.season_id AS season_id, d.title AS title, d.occurred_at AS occurred_at, snippet(search_fts, 1, \'[\', \']\', \'…\', 12) AS snippet FROM search_fts AS f JOIN search_docs AS d ON d.id = f."rowid" WHERE search_fts MATCH ?1 ORDER BY bm25(search_fts), d.occurred_at DESC LIMIT ?2',
@@ -17058,6 +17092,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     lambings,
     lambs,
     notes,
+    mediaAssets,
     penOccupancyLambs,
     idxPenoccPenTime,
     idxPenoccEwe,
@@ -17092,7 +17127,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     treatments,
     reminders,
     reminderRules,
-    mediaAssets,
     terminologyOverrides,
     appSettings,
     entitlements,
@@ -17186,6 +17220,22 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       result: [TableUpdate('notes', kind: UpdateKind.delete)],
     ),
     WritePropagation(
+      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('notes', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
       on: TableUpdateQuery.onTableName('pen_occupancies', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('pen_occupancy_lambs', kind: UpdateKind.delete)],
     ),
@@ -17264,22 +17314,6 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName('treatments', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('reminders', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName('ewes', limitUpdateKind: UpdateKind.delete),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName('lambs', limitUpdateKind: UpdateKind.delete),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName('lambings', limitUpdateKind: UpdateKind.delete),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
-    ),
-    WritePropagation(
-      on: TableUpdateQuery.onTableName('notes', limitUpdateKind: UpdateKind.delete),
-      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName('seasons', limitUpdateKind: UpdateKind.delete),
@@ -18803,6 +18837,20 @@ final class $$EwesTableReferences extends BaseReferences<_$AppDatabase, $EwesTab
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'ewes__id__media_assets__ewe');
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$EweSeasonsTable, List<EweSeason>> _eweSeasonsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(db.eweSeasons, aliasName: 'ewes__id__ewe_seasons__ewe');
@@ -18890,20 +18938,6 @@ final class $$EwesTableReferences extends BaseReferences<_$AppDatabase, $EwesTab
     ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
-  }
-
-  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'ewes__id__media_assets__ewe');
-
-  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
-    final manager = $$MediaAssetsTableTableManager(
-      $_db,
-      $_db.mediaAssets,
-    ).filter((f) => f.ewe.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
@@ -19043,6 +19077,26 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
     return f(composer);
   }
 
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> eweSeasonsRefs(Expression<bool> Function($$EweSeasonsTableFilterComposer f) f) {
     final $$EweSeasonsTableFilterComposer composer = $composerBuilder(
       composer: this,
@@ -19147,26 +19201,6 @@ class $$EwesTableFilterComposer extends Composer<_$AppDatabase, $EwesTable> {
           $$RemindersTableFilterComposer(
             $db: $db,
             $table: $db.reminders,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> mediaAssetsRefs(
-    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
-  ) {
-    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.ewe,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableFilterComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -19368,6 +19402,26 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
     return f(composer);
   }
 
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.ewe,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> eweSeasonsRefs<T extends Object>(
     Expression<T> Function($$EweSeasonsTableAnnotationComposer a) f,
   ) {
@@ -19488,26 +19542,6 @@ class $$EwesTableAnnotationComposer extends Composer<_$AppDatabase, $EwesTable> 
     return f(composer);
   }
 
-  Expression<T> mediaAssetsRefs<T extends Object>(
-    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
-  ) {
-    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.ewe,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
   Expression<T> eweSummariesRefs<T extends Object>(
     Expression<T> Function($$EweSummariesTableAnnotationComposer a) f,
   ) {
@@ -19546,13 +19580,13 @@ class $$EwesTableTableManager
             bool penOccupanciesRefs,
             bool lambingsRefs,
             bool notesRefs,
+            bool mediaAssetsRefs,
             bool eweSeasonsRefs,
             bool eweTouchesRefs,
             bool eweObservationsRefs,
             bool fosterEventsRefs,
             bool treatmentsRefs,
             bool remindersRefs,
-            bool mediaAssetsRefs,
             bool eweSummariesRefs,
           })
         > {
@@ -19643,13 +19677,13 @@ class $$EwesTableTableManager
                 penOccupanciesRefs = false,
                 lambingsRefs = false,
                 notesRefs = false,
+                mediaAssetsRefs = false,
                 eweSeasonsRefs = false,
                 eweTouchesRefs = false,
                 eweObservationsRefs = false,
                 fosterEventsRefs = false,
                 treatmentsRefs = false,
                 remindersRefs = false,
-                mediaAssetsRefs = false,
                 eweSummariesRefs = false,
               }) {
                 return PrefetchHooks(
@@ -19658,13 +19692,13 @@ class $$EwesTableTableManager
                     if (penOccupanciesRefs) db.penOccupancies,
                     if (lambingsRefs) db.lambings,
                     if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
                     if (eweSeasonsRefs) db.eweSeasons,
                     if (eweTouchesRefs) db.eweTouches,
                     if (eweObservationsRefs) db.eweObservations,
                     if (fosterEventsRefs) db.fosterEvents,
                     if (treatmentsRefs) db.treatments,
                     if (remindersRefs) db.reminders,
-                    if (mediaAssetsRefs) db.mediaAssets,
                     if (eweSummariesRefs) db.eweSummaries,
                   ],
                   addJoins: null,
@@ -19696,6 +19730,16 @@ class $$EwesTableTableManager
                           referencedTable: $$EwesTableReferences._notesRefsTable(db),
                           managerFromTypedResult: (p0) =>
                               $$EwesTableReferences(db, table, p0).notesRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.ewe == item.id),
+                          typedResults: items,
+                        ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Ewe, $EwesTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$EwesTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$EwesTableReferences(db, table, p0).mediaAssetsRefs,
                           referencedItemsForCurrentItem: (item, referencedItems) =>
                               referencedItems.where((e) => e.ewe == item.id),
                           typedResults: items,
@@ -19760,16 +19804,6 @@ class $$EwesTableTableManager
                               referencedItems.where((e) => e.ewe == item.id),
                           typedResults: items,
                         ),
-                      if (mediaAssetsRefs)
-                        await $_getPrefetchedData<Ewe, $EwesTable, MediaAsset>(
-                          currentTable: table,
-                          referencedTable: $$EwesTableReferences._mediaAssetsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$EwesTableReferences(db, table, p0).mediaAssetsRefs,
-                          referencedItemsForCurrentItem: (item, referencedItems) =>
-                              referencedItems.where((e) => e.ewe == item.id),
-                          typedResults: items,
-                        ),
                       if (eweSummariesRefs)
                         await $_getPrefetchedData<Ewe, $EwesTable, EweSummary>(
                           currentTable: table,
@@ -19804,13 +19838,13 @@ typedef $$EwesTableProcessedTableManager =
         bool penOccupanciesRefs,
         bool lambingsRefs,
         bool notesRefs,
+        bool mediaAssetsRefs,
         bool eweSeasonsRefs,
         bool eweTouchesRefs,
         bool eweObservationsRefs,
         bool fosterEventsRefs,
         bool treatmentsRefs,
         bool remindersRefs,
-        bool mediaAssetsRefs,
         bool eweSummariesRefs,
       })
     >;
@@ -21229,6 +21263,23 @@ final class $$LambingsTableReferences
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.mediaAssets,
+    aliasName: 'lambings__id__media_assets__lambing',
+  );
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$EweObservationsTable, List<EweObservation>> _eweObservationsRefsTable(
     _$AppDatabase db,
   ) => MultiTypedResultKey.fromTable(
@@ -21272,23 +21323,6 @@ final class $$LambingsTableReferences
     ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
-  }
-
-  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(
-    db.mediaAssets,
-    aliasName: 'lambings__id__media_assets__lambing',
-  );
-
-  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
-    final manager = $$MediaAssetsTableTableManager(
-      $_db,
-      $_db.mediaAssets,
-    ).filter((f) => f.lambing.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 }
@@ -21461,6 +21495,26 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
     return f(composer);
   }
 
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> eweObservationsRefs(
     Expression<bool> Function($$EweObservationsTableFilterComposer f) f,
   ) {
@@ -21509,26 +21563,6 @@ class $$LambingsTableFilterComposer extends Composer<_$AppDatabase, $LambingsTab
           $$RemindersTableFilterComposer(
             $db: $db,
             $table: $db.reminders,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> mediaAssetsRefs(
-    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
-  ) {
-    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.lambing,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableFilterComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -21810,6 +21844,26 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
     return f(composer);
   }
 
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lambing,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> eweObservationsRefs<T extends Object>(
     Expression<T> Function($$EweObservationsTableAnnotationComposer a) f,
   ) {
@@ -21869,26 +21923,6 @@ class $$LambingsTableAnnotationComposer extends Composer<_$AppDatabase, $Lambing
     );
     return f(composer);
   }
-
-  Expression<T> mediaAssetsRefs<T extends Object>(
-    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
-  ) {
-    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.lambing,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$LambingsTableTableManager
@@ -21910,10 +21944,10 @@ class $$LambingsTableTableManager
             bool presentation,
             bool lambsRefs,
             bool notesRefs,
+            bool mediaAssetsRefs,
             bool eweObservationsRefs,
             bool careEventsRefs,
             bool remindersRefs,
-            bool mediaAssetsRefs,
           })
         > {
   $$LambingsTableTableManager(_$AppDatabase db, $LambingsTable table)
@@ -22022,20 +22056,20 @@ class $$LambingsTableTableManager
                 presentation = false,
                 lambsRefs = false,
                 notesRefs = false,
+                mediaAssetsRefs = false,
                 eweObservationsRefs = false,
                 careEventsRefs = false,
                 remindersRefs = false,
-                mediaAssetsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (lambsRefs) db.lambs,
                     if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
                     if (eweObservationsRefs) db.eweObservations,
                     if (careEventsRefs) db.careEvents,
                     if (remindersRefs) db.reminders,
-                    if (mediaAssetsRefs) db.mediaAssets,
                   ],
                   addJoins:
                       <
@@ -22112,6 +22146,16 @@ class $$LambingsTableTableManager
                               referencedItems.where((e) => e.lambing == item.id),
                           typedResults: items,
                         ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Lambing, $LambingsTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$LambingsTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambingsTableReferences(db, table, p0).mediaAssetsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lambing == item.id),
+                          typedResults: items,
+                        ),
                       if (eweObservationsRefs)
                         await $_getPrefetchedData<Lambing, $LambingsTable, EweObservation>(
                           currentTable: table,
@@ -22142,16 +22186,6 @@ class $$LambingsTableTableManager
                               referencedItems.where((e) => e.lambing == item.id),
                           typedResults: items,
                         ),
-                      if (mediaAssetsRefs)
-                        await $_getPrefetchedData<Lambing, $LambingsTable, MediaAsset>(
-                          currentTable: table,
-                          referencedTable: $$LambingsTableReferences._mediaAssetsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$LambingsTableReferences(db, table, p0).mediaAssetsRefs,
-                          referencedItemsForCurrentItem: (item, referencedItems) =>
-                              referencedItems.where((e) => e.lambing == item.id),
-                          typedResults: items,
-                        ),
                     ];
                   },
                 );
@@ -22178,10 +22212,10 @@ typedef $$LambingsTableProcessedTableManager =
         bool presentation,
         bool lambsRefs,
         bool notesRefs,
+        bool mediaAssetsRefs,
         bool eweObservationsRefs,
         bool careEventsRefs,
         bool remindersRefs,
-        bool mediaAssetsRefs,
       })
     >;
 typedef $$LambsTableCreateCompanionBuilder =
@@ -22307,6 +22341,20 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
+    _$AppDatabase db,
+  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'lambs__id__media_assets__lamb');
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
+
   static MultiTypedResultKey<$PenOccupancyLambsTable, List<PenOccupancyLamb>>
   _penOccupancyLambsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
     db.penOccupancyLambs,
@@ -22376,20 +22424,6 @@ final class $$LambsTableReferences extends BaseReferences<_$AppDatabase, $LambsT
     ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_remindersRefsTable($_db));
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
-  }
-
-  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>> _mediaAssetsRefsTable(
-    _$AppDatabase db,
-  ) => MultiTypedResultKey.fromTable(db.mediaAssets, aliasName: 'lambs__id__media_assets__lamb');
-
-  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
-    final manager = $$MediaAssetsTableTableManager(
-      $_db,
-      $_db.mediaAssets,
-    ).filter((f) => f.lamb.id.sqlEquals($_itemColumn<int>('id')!));
-
-    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 }
@@ -22548,6 +22582,26 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
     return f(composer);
   }
 
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<bool> penOccupancyLambsRefs(
     Expression<bool> Function($$PenOccupancyLambsTableFilterComposer f) f,
   ) {
@@ -22634,26 +22688,6 @@ class $$LambsTableFilterComposer extends Composer<_$AppDatabase, $LambsTable> {
           $$RemindersTableFilterComposer(
             $db: $db,
             $table: $db.reminders,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
-
-  Expression<bool> mediaAssetsRefs(
-    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
-  ) {
-    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.lamb,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableFilterComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -22939,6 +22973,26 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
     return f(composer);
   }
 
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.lamb,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> penOccupancyLambsRefs<T extends Object>(
     Expression<T> Function($$PenOccupancyLambsTableAnnotationComposer a) f,
   ) {
@@ -23038,26 +23092,6 @@ class $$LambsTableAnnotationComposer extends Composer<_$AppDatabase, $LambsTable
     );
     return f(composer);
   }
-
-  Expression<T> mediaAssetsRefs<T extends Object>(
-    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
-  ) {
-    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.id,
-      referencedTable: $db.mediaAssets,
-      getReferencedColumn: (t) => t.lamb,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$MediaAssetsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.mediaAssets,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return f(composer);
-  }
 }
 
 class $$LambsTableTableManager
@@ -23079,12 +23113,12 @@ class $$LambsTableTableManager
             bool deathCause,
             bool becameEwe,
             bool notesRefs,
+            bool mediaAssetsRefs,
             bool penOccupancyLambsRefs,
             bool careEventsRefs,
             bool fosterEventsRefs,
             bool treatmentsRefs,
             bool remindersRefs,
-            bool mediaAssetsRefs,
           })
         > {
   $$LambsTableTableManager(_$AppDatabase db, $LambsTable table)
@@ -23192,23 +23226,23 @@ class $$LambsTableTableManager
                 deathCause = false,
                 becameEwe = false,
                 notesRefs = false,
+                mediaAssetsRefs = false,
                 penOccupancyLambsRefs = false,
                 careEventsRefs = false,
                 fosterEventsRefs = false,
                 treatmentsRefs = false,
                 remindersRefs = false,
-                mediaAssetsRefs = false,
               }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (notesRefs) db.notes,
+                    if (mediaAssetsRefs) db.mediaAssets,
                     if (penOccupancyLambsRefs) db.penOccupancyLambs,
                     if (careEventsRefs) db.careEvents,
                     if (fosterEventsRefs) db.fosterEvents,
                     if (treatmentsRefs) db.treatments,
                     if (remindersRefs) db.reminders,
-                    if (mediaAssetsRefs) db.mediaAssets,
                   ],
                   addJoins:
                       <
@@ -23283,6 +23317,16 @@ class $$LambsTableTableManager
                               referencedItems.where((e) => e.lamb == item.id),
                           typedResults: items,
                         ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<Lamb, $LambsTable, MediaAsset>(
+                          currentTable: table,
+                          referencedTable: $$LambsTableReferences._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$LambsTableReferences(db, table, p0).mediaAssetsRefs,
+                          referencedItemsForCurrentItem: (item, referencedItems) =>
+                              referencedItems.where((e) => e.lamb == item.id),
+                          typedResults: items,
+                        ),
                       if (penOccupancyLambsRefs)
                         await $_getPrefetchedData<Lamb, $LambsTable, PenOccupancyLamb>(
                           currentTable: table,
@@ -23333,16 +23377,6 @@ class $$LambsTableTableManager
                               referencedItems.where((e) => e.lamb == item.id),
                           typedResults: items,
                         ),
-                      if (mediaAssetsRefs)
-                        await $_getPrefetchedData<Lamb, $LambsTable, MediaAsset>(
-                          currentTable: table,
-                          referencedTable: $$LambsTableReferences._mediaAssetsRefsTable(db),
-                          managerFromTypedResult: (p0) =>
-                              $$LambsTableReferences(db, table, p0).mediaAssetsRefs,
-                          referencedItemsForCurrentItem: (item, referencedItems) =>
-                              referencedItems.where((e) => e.lamb == item.id),
-                          typedResults: items,
-                        ),
                     ];
                   },
                 );
@@ -23369,12 +23403,12 @@ typedef $$LambsTableProcessedTableManager =
         bool deathCause,
         bool becameEwe,
         bool notesRefs,
+        bool mediaAssetsRefs,
         bool penOccupancyLambsRefs,
         bool careEventsRefs,
         bool fosterEventsRefs,
         bool treatmentsRefs,
         bool remindersRefs,
-        bool mediaAssetsRefs,
       })
     >;
 typedef $$NotesTableCreateCompanionBuilder =
@@ -24103,6 +24137,636 @@ typedef $$NotesTableProcessedTableManager =
       (Note, $$NotesTableReferences),
       Note,
       PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool season, bool mediaAssetsRefs})
+    >;
+typedef $$MediaAssetsTableCreateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      Value<int> id,
+      required String uid,
+      required Instant createdAt,
+      required Instant updatedAt,
+      Value<String?> unknownJson,
+      required String relativePath,
+      required String kind,
+      required int byteSize,
+      Value<int?> durationMs,
+      Value<String?> sha256,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> note,
+      Value<Instant?> missingSince,
+    });
+typedef $$MediaAssetsTableUpdateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      Value<int> id,
+      Value<String> uid,
+      Value<Instant> createdAt,
+      Value<Instant> updatedAt,
+      Value<String?> unknownJson,
+      Value<String> relativePath,
+      Value<String> kind,
+      Value<int> byteSize,
+      Value<int?> durationMs,
+      Value<String?> sha256,
+      Value<int?> ewe,
+      Value<int?> lamb,
+      Value<int?> lambing,
+      Value<int?> note,
+      Value<Instant?> missingSince,
+    });
+
+final class $$MediaAssetsTableReferences
+    extends BaseReferences<_$AppDatabase, $MediaAssetsTable, MediaAsset> {
+  $$MediaAssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $EwesTable _eweTable(_$AppDatabase db) =>
+      db.ewes.createAlias('media_assets__ewe__ewes__id');
+
+  $$EwesTableProcessedTableManager? get ewe {
+    final $_column = $_itemColumn<int>('ewe');
+    if ($_column == null) return null;
+    final manager = $$EwesTableTableManager(
+      $_db,
+      $_db.ewes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eweTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambsTable _lambTable(_$AppDatabase db) =>
+      db.lambs.createAlias('media_assets__lamb__lambs__id');
+
+  $$LambsTableProcessedTableManager? get lamb {
+    final $_column = $_itemColumn<int>('lamb');
+    if ($_column == null) return null;
+    final manager = $$LambsTableTableManager(
+      $_db,
+      $_db.lambs,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LambingsTable _lambingTable(_$AppDatabase db) =>
+      db.lambings.createAlias('media_assets__lambing__lambings__id');
+
+  $$LambingsTableProcessedTableManager? get lambing {
+    final $_column = $_itemColumn<int>('lambing');
+    if ($_column == null) return null;
+    final manager = $$LambingsTableTableManager(
+      $_db,
+      $_db.lambings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $NotesTable _noteTable(_$AppDatabase db) =>
+      db.notes.createAlias('media_assets__note__notes__id');
+
+  $$NotesTableProcessedTableManager? get note {
+    final $_column = $_itemColumn<int>('note');
+    if ($_column == null) return null;
+    final manager = $$NotesTableTableManager(
+      $_db,
+      $_db.notes,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_noteTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$MediaAssetsTableFilterComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Instant?, Instant, int> get missingSince => $composableBuilder(
+    column: $table.missingSince,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  $$EwesTableFilterComposer get ewe {
+    final $$EwesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableFilterComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableFilterComposer get lamb {
+    final $$LambsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableFilterComposer get lambing {
+    final $$LambingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableFilterComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableFilterComposer get note {
+    final $$NotesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableFilterComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableOrderingComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get missingSince =>
+      $composableBuilder(column: $table.missingSince, builder: (column) => ColumnOrderings(column));
+
+  $$EwesTableOrderingComposer get ewe {
+    final $$EwesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableOrderingComposer get lamb {
+    final $$LambsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableOrderingComposer get lambing {
+    final $$LambingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableOrderingComposer get note {
+    final $$NotesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableOrderingComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableAnnotationComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uid =>
+      $composableBuilder(column: $table.uid, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get unknownJson =>
+      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
+
+  GeneratedColumn<String> get relativePath =>
+      $composableBuilder(column: $table.relativePath, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<int> get byteSize =>
+      $composableBuilder(column: $table.byteSize, builder: (column) => column);
+
+  GeneratedColumn<int> get durationMs =>
+      $composableBuilder(column: $table.durationMs, builder: (column) => column);
+
+  GeneratedColumn<String> get sha256 =>
+      $composableBuilder(column: $table.sha256, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Instant?, int> get missingSince =>
+      $composableBuilder(column: $table.missingSince, builder: (column) => column);
+
+  $$EwesTableAnnotationComposer get ewe {
+    final $$EwesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.ewe,
+      referencedTable: $db.ewes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EwesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ewes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambsTableAnnotationComposer get lamb {
+    final $$LambsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lamb,
+      referencedTable: $db.lambs,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambs,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LambingsTableAnnotationComposer get lambing {
+    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.lambing,
+      referencedTable: $db.lambings,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LambingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.lambings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$NotesTableAnnotationComposer get note {
+    final $$NotesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.note,
+      referencedTable: $db.notes,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$NotesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.notes,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $MediaAssetsTable,
+          MediaAsset,
+          $$MediaAssetsTableFilterComposer,
+          $$MediaAssetsTableOrderingComposer,
+          $$MediaAssetsTableAnnotationComposer,
+          $$MediaAssetsTableCreateCompanionBuilder,
+          $$MediaAssetsTableUpdateCompanionBuilder,
+          (MediaAsset, $$MediaAssetsTableReferences),
+          MediaAsset,
+          PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
+        > {
+  $$MediaAssetsTableTableManager(_$AppDatabase db, $MediaAssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$MediaAssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$MediaAssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MediaAssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> uid = const Value.absent(),
+                Value<Instant> createdAt = const Value.absent(),
+                Value<Instant> updatedAt = const Value.absent(),
+                Value<String?> unknownJson = const Value.absent(),
+                Value<String> relativePath = const Value.absent(),
+                Value<String> kind = const Value.absent(),
+                Value<int> byteSize = const Value.absent(),
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> note = const Value.absent(),
+                Value<Instant?> missingSince = const Value.absent(),
+              }) => MediaAssetsCompanion(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                relativePath: relativePath,
+                kind: kind,
+                byteSize: byteSize,
+                durationMs: durationMs,
+                sha256: sha256,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                note: note,
+                missingSince: missingSince,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String uid,
+                required Instant createdAt,
+                required Instant updatedAt,
+                Value<String?> unknownJson = const Value.absent(),
+                required String relativePath,
+                required String kind,
+                required int byteSize,
+                Value<int?> durationMs = const Value.absent(),
+                Value<String?> sha256 = const Value.absent(),
+                Value<int?> ewe = const Value.absent(),
+                Value<int?> lamb = const Value.absent(),
+                Value<int?> lambing = const Value.absent(),
+                Value<int?> note = const Value.absent(),
+                Value<Instant?> missingSince = const Value.absent(),
+              }) => MediaAssetsCompanion.insert(
+                id: id,
+                uid: uid,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                unknownJson: unknownJson,
+                relativePath: relativePath,
+                kind: kind,
+                byteSize: byteSize,
+                durationMs: durationMs,
+                sha256: sha256,
+                ewe: ewe,
+                lamb: lamb,
+                lambing: lambing,
+                note: note,
+                missingSince: missingSince,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), $$MediaAssetsTableReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: ({ewe = false, lamb = false, lambing = false, note = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (ewe) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.ewe,
+                                referencedTable: $$MediaAssetsTableReferences._eweTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._eweTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lamb) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lamb,
+                                referencedTable: $$MediaAssetsTableReferences._lambTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._lambTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (lambing) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.lambing,
+                                referencedTable: $$MediaAssetsTableReferences._lambingTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._lambingTable(db).id,
+                              )
+                              as T;
+                    }
+                    if (note) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.note,
+                                referencedTable: $$MediaAssetsTableReferences._noteTable(db),
+                                referencedColumn: $$MediaAssetsTableReferences._noteTable(db).id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$MediaAssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $MediaAssetsTable,
+      MediaAsset,
+      $$MediaAssetsTableFilterComposer,
+      $$MediaAssetsTableOrderingComposer,
+      $$MediaAssetsTableAnnotationComposer,
+      $$MediaAssetsTableCreateCompanionBuilder,
+      $$MediaAssetsTableUpdateCompanionBuilder,
+      (MediaAsset, $$MediaAssetsTableReferences),
+      MediaAsset,
+      PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
     >;
 typedef $$PenOccupancyLambsTableCreateCompanionBuilder =
     PenOccupancyLambsCompanion Function({
@@ -28840,636 +29504,6 @@ typedef $$ReminderRulesTableProcessedTableManager =
       ReminderRule,
       PrefetchHooks Function()
     >;
-typedef $$MediaAssetsTableCreateCompanionBuilder =
-    MediaAssetsCompanion Function({
-      Value<int> id,
-      required String uid,
-      required Instant createdAt,
-      required Instant updatedAt,
-      Value<String?> unknownJson,
-      required String relativePath,
-      required String kind,
-      required int byteSize,
-      Value<int?> durationMs,
-      Value<String?> sha256,
-      Value<int?> ewe,
-      Value<int?> lamb,
-      Value<int?> lambing,
-      Value<int?> note,
-      Value<Instant?> missingSince,
-    });
-typedef $$MediaAssetsTableUpdateCompanionBuilder =
-    MediaAssetsCompanion Function({
-      Value<int> id,
-      Value<String> uid,
-      Value<Instant> createdAt,
-      Value<Instant> updatedAt,
-      Value<String?> unknownJson,
-      Value<String> relativePath,
-      Value<String> kind,
-      Value<int> byteSize,
-      Value<int?> durationMs,
-      Value<String?> sha256,
-      Value<int?> ewe,
-      Value<int?> lamb,
-      Value<int?> lambing,
-      Value<int?> note,
-      Value<Instant?> missingSince,
-    });
-
-final class $$MediaAssetsTableReferences
-    extends BaseReferences<_$AppDatabase, $MediaAssetsTable, MediaAsset> {
-  $$MediaAssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
-
-  static $EwesTable _eweTable(_$AppDatabase db) =>
-      db.ewes.createAlias('media_assets__ewe__ewes__id');
-
-  $$EwesTableProcessedTableManager? get ewe {
-    final $_column = $_itemColumn<int>('ewe');
-    if ($_column == null) return null;
-    final manager = $$EwesTableTableManager(
-      $_db,
-      $_db.ewes,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_eweTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
-  }
-
-  static $LambsTable _lambTable(_$AppDatabase db) =>
-      db.lambs.createAlias('media_assets__lamb__lambs__id');
-
-  $$LambsTableProcessedTableManager? get lamb {
-    final $_column = $_itemColumn<int>('lamb');
-    if ($_column == null) return null;
-    final manager = $$LambsTableTableManager(
-      $_db,
-      $_db.lambs,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_lambTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
-  }
-
-  static $LambingsTable _lambingTable(_$AppDatabase db) =>
-      db.lambings.createAlias('media_assets__lambing__lambings__id');
-
-  $$LambingsTableProcessedTableManager? get lambing {
-    final $_column = $_itemColumn<int>('lambing');
-    if ($_column == null) return null;
-    final manager = $$LambingsTableTableManager(
-      $_db,
-      $_db.lambings,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_lambingTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
-  }
-
-  static $NotesTable _noteTable(_$AppDatabase db) =>
-      db.notes.createAlias('media_assets__note__notes__id');
-
-  $$NotesTableProcessedTableManager? get note {
-    final $_column = $_itemColumn<int>('note');
-    if ($_column == null) return null;
-    final manager = $$NotesTableTableManager(
-      $_db,
-      $_db.notes,
-    ).filter((f) => f.id.sqlEquals($_column));
-    final item = $_typedResult.readTableOrNull(_noteTable($_db));
-    if (item == null) return manager;
-    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
-  }
-}
-
-class $$MediaAssetsTableFilterComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
-  $$MediaAssetsTableFilterComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnFilters<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get uid =>
-      $composableBuilder(column: $table.uid, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<Instant, Instant, int> get createdAt => $composableBuilder(
-    column: $table.createdAt,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnWithTypeConverterFilters<Instant, Instant, int> get updatedAt => $composableBuilder(
-    column: $table.updatedAt,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  ColumnFilters<String> get unknownJson =>
-      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get relativePath =>
-      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get byteSize =>
-      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<int> get durationMs =>
-      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get sha256 =>
-      $composableBuilder(column: $table.sha256, builder: (column) => ColumnFilters(column));
-
-  ColumnWithTypeConverterFilters<Instant?, Instant, int> get missingSince => $composableBuilder(
-    column: $table.missingSince,
-    builder: (column) => ColumnWithTypeConverterFilters(column),
-  );
-
-  $$EwesTableFilterComposer get ewe {
-    final $$EwesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.ewe,
-      referencedTable: $db.ewes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$EwesTableFilterComposer(
-            $db: $db,
-            $table: $db.ewes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambsTableFilterComposer get lamb {
-    final $$LambsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lamb,
-      referencedTable: $db.lambs,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambsTableFilterComposer(
-            $db: $db,
-            $table: $db.lambs,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambingsTableFilterComposer get lambing {
-    final $$LambingsTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lambing,
-      referencedTable: $db.lambings,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambingsTableFilterComposer(
-            $db: $db,
-            $table: $db.lambings,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$NotesTableFilterComposer get note {
-    final $$NotesTableFilterComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.note,
-      referencedTable: $db.notes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$NotesTableFilterComposer(
-            $db: $db,
-            $table: $db.notes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$MediaAssetsTableOrderingComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
-  $$MediaAssetsTableOrderingComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  ColumnOrderings<int> get id =>
-      $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get uid =>
-      $composableBuilder(column: $table.uid, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get unknownJson =>
-      $composableBuilder(column: $table.unknownJson, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get relativePath =>
-      $composableBuilder(column: $table.relativePath, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get byteSize =>
-      $composableBuilder(column: $table.byteSize, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get durationMs =>
-      $composableBuilder(column: $table.durationMs, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get sha256 =>
-      $composableBuilder(column: $table.sha256, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<int> get missingSince =>
-      $composableBuilder(column: $table.missingSince, builder: (column) => ColumnOrderings(column));
-
-  $$EwesTableOrderingComposer get ewe {
-    final $$EwesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.ewe,
-      referencedTable: $db.ewes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$EwesTableOrderingComposer(
-            $db: $db,
-            $table: $db.ewes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambsTableOrderingComposer get lamb {
-    final $$LambsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lamb,
-      referencedTable: $db.lambs,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambsTableOrderingComposer(
-            $db: $db,
-            $table: $db.lambs,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambingsTableOrderingComposer get lambing {
-    final $$LambingsTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lambing,
-      referencedTable: $db.lambings,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambingsTableOrderingComposer(
-            $db: $db,
-            $table: $db.lambings,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$NotesTableOrderingComposer get note {
-    final $$NotesTableOrderingComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.note,
-      referencedTable: $db.notes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$NotesTableOrderingComposer(
-            $db: $db,
-            $table: $db.notes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$MediaAssetsTableAnnotationComposer extends Composer<_$AppDatabase, $MediaAssetsTable> {
-  $$MediaAssetsTableAnnotationComposer({
-    required super.$db,
-    required super.$table,
-    super.joinBuilder,
-    super.$addJoinBuilderToRootComposer,
-    super.$removeJoinBuilderFromRootComposer,
-  });
-  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
-
-  GeneratedColumn<String> get uid =>
-      $composableBuilder(column: $table.uid, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<Instant, int> get createdAt =>
-      $composableBuilder(column: $table.createdAt, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<Instant, int> get updatedAt =>
-      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
-
-  GeneratedColumn<String> get unknownJson =>
-      $composableBuilder(column: $table.unknownJson, builder: (column) => column);
-
-  GeneratedColumn<String> get relativePath =>
-      $composableBuilder(column: $table.relativePath, builder: (column) => column);
-
-  GeneratedColumn<String> get kind =>
-      $composableBuilder(column: $table.kind, builder: (column) => column);
-
-  GeneratedColumn<int> get byteSize =>
-      $composableBuilder(column: $table.byteSize, builder: (column) => column);
-
-  GeneratedColumn<int> get durationMs =>
-      $composableBuilder(column: $table.durationMs, builder: (column) => column);
-
-  GeneratedColumn<String> get sha256 =>
-      $composableBuilder(column: $table.sha256, builder: (column) => column);
-
-  GeneratedColumnWithTypeConverter<Instant?, int> get missingSince =>
-      $composableBuilder(column: $table.missingSince, builder: (column) => column);
-
-  $$EwesTableAnnotationComposer get ewe {
-    final $$EwesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.ewe,
-      referencedTable: $db.ewes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$EwesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.ewes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambsTableAnnotationComposer get lamb {
-    final $$LambsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lamb,
-      referencedTable: $db.lambs,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.lambs,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$LambingsTableAnnotationComposer get lambing {
-    final $$LambingsTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.lambing,
-      referencedTable: $db.lambings,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$LambingsTableAnnotationComposer(
-            $db: $db,
-            $table: $db.lambings,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-
-  $$NotesTableAnnotationComposer get note {
-    final $$NotesTableAnnotationComposer composer = $composerBuilder(
-      composer: this,
-      getCurrentColumn: (t) => t.note,
-      referencedTable: $db.notes,
-      getReferencedColumn: (t) => t.id,
-      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
-          $$NotesTableAnnotationComposer(
-            $db: $db,
-            $table: $db.notes,
-            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
-            joinBuilder: joinBuilder,
-            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
-          ),
-    );
-    return composer;
-  }
-}
-
-class $$MediaAssetsTableTableManager
-    extends
-        RootTableManager<
-          _$AppDatabase,
-          $MediaAssetsTable,
-          MediaAsset,
-          $$MediaAssetsTableFilterComposer,
-          $$MediaAssetsTableOrderingComposer,
-          $$MediaAssetsTableAnnotationComposer,
-          $$MediaAssetsTableCreateCompanionBuilder,
-          $$MediaAssetsTableUpdateCompanionBuilder,
-          (MediaAsset, $$MediaAssetsTableReferences),
-          MediaAsset,
-          PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
-        > {
-  $$MediaAssetsTableTableManager(_$AppDatabase db, $MediaAssetsTable table)
-    : super(
-        TableManagerState(
-          db: db,
-          table: table,
-          createFilteringComposer: () => $$MediaAssetsTableFilterComposer($db: db, $table: table),
-          createOrderingComposer: () => $$MediaAssetsTableOrderingComposer($db: db, $table: table),
-          createComputedFieldComposer: () =>
-              $$MediaAssetsTableAnnotationComposer($db: db, $table: table),
-          updateCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                Value<String> uid = const Value.absent(),
-                Value<Instant> createdAt = const Value.absent(),
-                Value<Instant> updatedAt = const Value.absent(),
-                Value<String?> unknownJson = const Value.absent(),
-                Value<String> relativePath = const Value.absent(),
-                Value<String> kind = const Value.absent(),
-                Value<int> byteSize = const Value.absent(),
-                Value<int?> durationMs = const Value.absent(),
-                Value<String?> sha256 = const Value.absent(),
-                Value<int?> ewe = const Value.absent(),
-                Value<int?> lamb = const Value.absent(),
-                Value<int?> lambing = const Value.absent(),
-                Value<int?> note = const Value.absent(),
-                Value<Instant?> missingSince = const Value.absent(),
-              }) => MediaAssetsCompanion(
-                id: id,
-                uid: uid,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                unknownJson: unknownJson,
-                relativePath: relativePath,
-                kind: kind,
-                byteSize: byteSize,
-                durationMs: durationMs,
-                sha256: sha256,
-                ewe: ewe,
-                lamb: lamb,
-                lambing: lambing,
-                note: note,
-                missingSince: missingSince,
-              ),
-          createCompanionCallback:
-              ({
-                Value<int> id = const Value.absent(),
-                required String uid,
-                required Instant createdAt,
-                required Instant updatedAt,
-                Value<String?> unknownJson = const Value.absent(),
-                required String relativePath,
-                required String kind,
-                required int byteSize,
-                Value<int?> durationMs = const Value.absent(),
-                Value<String?> sha256 = const Value.absent(),
-                Value<int?> ewe = const Value.absent(),
-                Value<int?> lamb = const Value.absent(),
-                Value<int?> lambing = const Value.absent(),
-                Value<int?> note = const Value.absent(),
-                Value<Instant?> missingSince = const Value.absent(),
-              }) => MediaAssetsCompanion.insert(
-                id: id,
-                uid: uid,
-                createdAt: createdAt,
-                updatedAt: updatedAt,
-                unknownJson: unknownJson,
-                relativePath: relativePath,
-                kind: kind,
-                byteSize: byteSize,
-                durationMs: durationMs,
-                sha256: sha256,
-                ewe: ewe,
-                lamb: lamb,
-                lambing: lambing,
-                note: note,
-                missingSince: missingSince,
-              ),
-          withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), $$MediaAssetsTableReferences(db, table, e)))
-              .toList(),
-          prefetchHooksCallback: ({ewe = false, lamb = false, lambing = false, note = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (ewe) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.ewe,
-                                referencedTable: $$MediaAssetsTableReferences._eweTable(db),
-                                referencedColumn: $$MediaAssetsTableReferences._eweTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (lamb) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.lamb,
-                                referencedTable: $$MediaAssetsTableReferences._lambTable(db),
-                                referencedColumn: $$MediaAssetsTableReferences._lambTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (lambing) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.lambing,
-                                referencedTable: $$MediaAssetsTableReferences._lambingTable(db),
-                                referencedColumn: $$MediaAssetsTableReferences._lambingTable(db).id,
-                              )
-                              as T;
-                    }
-                    if (note) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.note,
-                                referencedTable: $$MediaAssetsTableReferences._noteTable(db),
-                                referencedColumn: $$MediaAssetsTableReferences._noteTable(db).id,
-                              )
-                              as T;
-                    }
-
-                    return state;
-                  },
-              getPrefetchedDataCallback: (items) async {
-                return [];
-              },
-            );
-          },
-        ),
-      );
-}
-
-typedef $$MediaAssetsTableProcessedTableManager =
-    ProcessedTableManager<
-      _$AppDatabase,
-      $MediaAssetsTable,
-      MediaAsset,
-      $$MediaAssetsTableFilterComposer,
-      $$MediaAssetsTableOrderingComposer,
-      $$MediaAssetsTableAnnotationComposer,
-      $$MediaAssetsTableCreateCompanionBuilder,
-      $$MediaAssetsTableUpdateCompanionBuilder,
-      (MediaAsset, $$MediaAssetsTableReferences),
-      MediaAsset,
-      PrefetchHooks Function({bool ewe, bool lamb, bool lambing, bool note})
-    >;
 typedef $$TerminologyOverridesTableCreateCompanionBuilder =
     TerminologyOverridesCompanion Function({
       required String key,
@@ -31383,6 +31417,8 @@ class $AppDatabaseManager {
   $$LambingsTableTableManager get lambings => $$LambingsTableTableManager(_db, _db.lambings);
   $$LambsTableTableManager get lambs => $$LambsTableTableManager(_db, _db.lambs);
   $$NotesTableTableManager get notes => $$NotesTableTableManager(_db, _db.notes);
+  $$MediaAssetsTableTableManager get mediaAssets =>
+      $$MediaAssetsTableTableManager(_db, _db.mediaAssets);
   $$PenOccupancyLambsTableTableManager get penOccupancyLambs =>
       $$PenOccupancyLambsTableTableManager(_db, _db.penOccupancyLambs);
   $$EweSeasonsTableTableManager get eweSeasons =>
@@ -31400,8 +31436,6 @@ class $AppDatabaseManager {
   $$RemindersTableTableManager get reminders => $$RemindersTableTableManager(_db, _db.reminders);
   $$ReminderRulesTableTableManager get reminderRules =>
       $$ReminderRulesTableTableManager(_db, _db.reminderRules);
-  $$MediaAssetsTableTableManager get mediaAssets =>
-      $$MediaAssetsTableTableManager(_db, _db.mediaAssets);
   $$TerminologyOverridesTableTableManager get terminologyOverrides =>
       $$TerminologyOverridesTableTableManager(_db, _db.terminologyOverrides);
   $$AppSettingsTableTableManager get appSettings =>
@@ -31531,6 +31565,50 @@ class EarlierAnimalsWithTagResult {
           ..write('tag: $tag, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class MediaAssetsNotYetMissingResult {
+  final int id;
+  final String relativePath;
+  MediaAssetsNotYetMissingResult({required this.id, required this.relativePath});
+  @override
+  int get hashCode => Object.hash(id, relativePath);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAssetsNotYetMissingResult &&
+          other.id == this.id &&
+          other.relativePath == this.relativePath);
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsNotYetMissingResult(')
+          ..write('id: $id, ')
+          ..write('relativePath: $relativePath')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class MediaAssetsMissingResult {
+  final int id;
+  final String relativePath;
+  MediaAssetsMissingResult({required this.id, required this.relativePath});
+  @override
+  int get hashCode => Object.hash(id, relativePath);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAssetsMissingResult &&
+          other.id == this.id &&
+          other.relativePath == this.relativePath);
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsMissingResult(')
+          ..write('id: $id, ')
+          ..write('relativePath: $relativePath')
           ..write(')'))
         .toString();
   }

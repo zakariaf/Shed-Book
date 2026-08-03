@@ -1192,11 +1192,15 @@ Every non-destructive setting is reachable in **≤2 taps** from the Settings sc
 
 | Action | Taps | Guard |
 |---|---|---|
-| Delete a season | 4 | typed confirmation; the only `canPop: false` flow in the app; **no undo** |
+| Delete a season | 4 | typed confirmation; one of the **two** `canPop: false` flows (R85 adds restore); **no undo** |
 | Delete everything | 4 | typed confirmation, with "Export first" offered as a 72 pt action above it — offered, never required |
 | **Restore from backup** | 4 | states plainly what will be destroyed; imports into a new file beside the live one, validates row counts and `PRAGMA foreign_key_check`, then swaps and reopens. **Never merges.** Refuses a backup whose schema is higher than the app's, with a clear message |
 
-Restore and delete are the only two flows in the app permitted to use `showDialog`; `tool/check_policy.dart` allowlists exactly those two files and bans `showDialog(` everywhere else in `lib/features/**`.
+Restore and delete are the only two flows in the app permitted to use `showDialog` — **ruled R85** at N23-T02, against `indelible.md` §7.14's *"the only overlay in the app"*, which is amended in the same commit. The reason is dismissal: a bottom sheet closes when a thumb lands outside it, and a confirmation that destroys every record on the phone must not.
+
+`tool/check_policy.dart` confines `showDialog(` to exactly those two files **in the rule itself**, not in `tool/policy_allowlist.txt` — an `[exempt]` line reads *"that file was excused"* where the truth is *"that file is the exception the design ruled"*, and R56 fixes the allowlist at four lines.
+
+**Restore is also the second `canPop: false` flow**, and §14.3's table is corrected above: once step 12's rename has begun there is nothing to pop back to.
 
 ### 14.5 §12 on this screen
 

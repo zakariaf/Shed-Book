@@ -313,19 +313,31 @@ void main() {
   test('the calm path refuses a second season and the live path never does', () async {
     // The asymmetry IS the decision (#91). Both arms are asserted, because a
     // policy that refused nothing would pass the live-entry case on its own.
-    await _seedSeason(db);
-    await _seedSeason(db, year: 2027);
+    //
+    // **PINNED TO 14:00, AND IT WAS NOT — THIS TEST FAILED EVERY NIGHT.**
+    // `FreeTierPolicy.decide` runs `isQuietHours(now)` before it refuses
+    // anything: *"the app does not solicit at night, even in a calm context."*
+    // So the calm arm ALLOWS the write between 22:00 and 06:00, and this case
+    // read the real clock — green by day, red by night, which is the half of the
+    // day this product is used in. Found at 22:32 on an unrelated run.
+    //
+    // A single-instant assertion, so `atFixed` is the right tool (`12 §2.2`) and
+    // 14:00 is chosen for being nowhere near either quiet-hours boundary.
+    await atFixed(DateTime.utc(2026, 3, 14, 14), () async {
+      await _seedSeason(db);
+      await _seedSeason(db, year: 2027);
 
-    expect(
-      await repo.createEwe(tag: '900', context: EntryContext.calm),
-      isA<WriteRefused>(),
-      reason: 'two seasons, not unlocked — the calm path is where the gate lands',
-    );
-    expect(
-      await repo.createEwe(tag: '901', context: EntryContext.liveEntry),
-      isA<WriteCommitted>(),
-      reason: 'a shepherd mid-lambing is never told to pay',
-    );
+      expect(
+        await repo.createEwe(tag: '900', context: EntryContext.calm),
+        isA<WriteRefused>(),
+        reason: 'two seasons, not unlocked — the calm path is where the gate lands',
+      );
+      expect(
+        await repo.createEwe(tag: '901', context: EntryContext.liveEntry),
+        isA<WriteCommitted>(),
+        reason: 'a shepherd mid-lambing is never told to pay',
+      );
+    });
   });
 
   test('an unlocked flock is never over the cap', () async {

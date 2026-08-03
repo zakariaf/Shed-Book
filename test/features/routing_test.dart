@@ -184,16 +184,19 @@ void main() {
     }
   });
 
-  test('lib/ contains zero PopScope with canPop false', () {
-    // TODAY'S TRUE COUNT. canPop is true on every screen in this app forever,
-    // because every write commits immediately and there is no "discard unsaved
-    // changes?" dialog anywhere. The single permitted exception is N29's
-    // season-deletion flow (#69); a second is a defect.
+  test('canPop false appears exactly once, in the restore confirmation', () {
+    // `canPop` is true on every SCREEN in this app forever, because every write
+    // commits immediately and there is no *discard unsaved changes?* dialog
+    // anywhere. The exceptions are the two destructive confirmations, and R85
+    // (N23-T02) lands the first of them.
+    //
+    // TODAY'S TRUE COUNT, and it moves in the commit that earns it: N29's
+    // season delete makes it two.
     int found = 0;
     for (final String path in _authoredDart('lib')) {
       found += RegExp(r'canPop:\s*false').allMatches(_declarations(path)).length;
     }
-    expect(found, 0);
+    expect(found, 1);
   });
 
   test('onPopInvoked does not appear; onPopInvokedWithResult is the only spelling', () {

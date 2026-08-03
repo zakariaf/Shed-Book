@@ -1192,6 +1192,62 @@
   "@restoreRefusedNotABackup": {
     "description": "The catch-all for an unrecognised first byte - most often a photo the shepherd renamed. It says what to pick INSTEAD, because a refusal that names no next step leaves somebody holding a phone at 2am with nothing to try."
   },
+  "restoreBackupSummary": "{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments. Made on {date} by Shed Book {version}.",
+  "@restoreBackupSummary": {
+    "description": "04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.",
+    "placeholders": {
+      "seasons": { "type": "int" },
+      "ewes": { "type": "int" },
+      "lambs": { "type": "int" },
+      "treatments": { "type": "int" },
+      "date": { "type": "String" },
+      "version": { "type": "String" }
+    }
+  },
+  "restoreLiveSummary": "{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.",
+  "@restoreLiveSummary": {
+    "description": "04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.",
+    "placeholders": {
+      "seasons": { "type": "int" },
+      "ewes": { "type": "int" },
+      "lambs": { "type": "int" },
+      "treatments": { "type": "int" }
+    }
+  },
+  "restoreDestruction": "Restoring will delete everything now on this phone and replace it with the backup. This cannot be undone from inside the app.",
+  "@restoreDestruction": {
+    "description": "04 7.3 statement 3. 'Cannot be undone FROM INSIDE THE APP' is exact and is not softened: the old database is kept for one launch by the rollback file, so a developer can recover it - and a shepherd cannot. Saying 'cannot be undone' flat would be a smaller truth than the one available."
+  },
+  "restoreMediaNotice": "Photos and voice notes are not part of a backup. {count} were recorded on the other phone and will show as \"not on this phone\".",
+  "@restoreMediaNotice": {
+    "description": "04 7.3 statement 4 - WHAT THIS DOES NOT INCLUDE, said BEFORE the controls rather than after the restore. Media is records-only by decision 85, and a shepherd who learns that afterwards has been told too late to choose differently.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "restoreStepOne": "I UNDERSTAND - CONTINUE",
+  "@restoreStepOne": {
+    "description": "Step one of two. It commits to nothing; it unlocks step two. Two steps rather than one because a single 72pt button under a wall of text is one cold thumb away from destroying a season."
+  },
+  "restoreReplaceEverything": "REPLACE EVERYTHING",
+  "@restoreReplaceEverything": {
+    "description": "Step two, 72pt, DISABLED until step one is taken, and on the OPPOSITE side of the screen from Cancel. It says what it does rather than 'OK' or 'Confirm' - a shepherd reading only the buttons still learns the outcome."
+  },
+  "restoreCancel": "CANCEL",
+  "@restoreCancel": {
+    "description": "Always live, always reachable, and never the destructive side. Backing out of a destruction confirmation is the expected answer, not the exceptional one."
+  },
+  "restoreDoneTitle": "Your records are back.",
+  "@restoreDoneTitle": {
+    "description": "04 7.6. A statement, not a celebration - no tick, no 'Success!'. The shepherd asked for their records and here they are."
+  },
+  "restoreDoneMedia": "{count} photos and voice notes were recorded on the other phone. Photos are not part of a backup in this version - they stay on the phone that took them. Each one still shows in the record it belongs to, marked \"not on this phone\".",
+  "@restoreDoneMedia": {
+    "description": "04 7.6 verbatim, and one of the two places in the product where the app admits a limitation in full sentences rather than in a shortened label. It says where the photos ARE, not only that they are absent - a shepherd who reads 'not included' assumes they are gone.",
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
   "treatmentsTitle": "TREATMENTS",
   "@treatmentsTitle": {
     "description": "The screen's heading, headingLevel 1."

@@ -12,7 +12,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 const String _sheetFile = 'lib/core/ui/components/shed_bottom_sheet.dart';
-const String _allowlist = 'tool/policy_allowlist.txt';
 
 List<String> _authoredDart(String root) =>
     Directory(root)
@@ -66,32 +65,49 @@ void main() {
     }
   });
 
-  test('the modal-dialog function is called only from the allowlisted files', () {
-    // Read off disk rather than retyped: the allowlist is the authority, and a
-    // test that hard-codes the same two paths would agree with itself after
-    // somebody edited one.
+  test('the modal-dialog function is called only from the files the rule permits', () {
+    // **THE AUTHORITY MOVED, AND SO DID THIS TEST — R85.** It read
+    // `tool/policy_allowlist.txt`, because that is where the exception was
+    // expected to live. It lives in the RULE now: `ui.show_dialog` is a
+    // `_confinedPattern` whose `only` list names the permitted files, for the
+    // reason that family was built at N21-T01 — an `[exempt]` line reads *"that
+    // file was excused"* where the truth is *"that file is the exception the
+    // design ruled"*, and R56 fixes the allowlist at four lines.
+    //
+    // Still read off disk rather than retyped: a test that hard-codes the same
+    // paths agrees with itself after somebody edits one.
     const String needle =
         'show'
         'Dialog';
 
-    final Set<String> allowed = File(_allowlist)
-        .readAsLinesSync()
-        .map((String l) => l.split('#').first.trim())
-        .where((String l) => l.contains('ui.show_dialog'))
-        .map((String l) => l.split('::').first.trim())
-        .toSet();
+    final String gate = File('tool/check_policy.dart').readAsStringSync();
+    final int at = gate.indexOf("'ui.show_dialog'");
+    expect(at, isNot(-1), reason: 'the rule is gone, not merely widened');
+    // A FIXED WINDOW, NOT A SEARCH FOR THE CLOSING PAREN. The first `),` after
+    // the id is inside the row's own `RegExp(r'showDialog\(')`, so a
+    // paren-terminated slice reads an empty permitted set and the assertion then
+    // fails with *larger than expected* — which reads as *the code is wrong*
+    // rather than *the test is*. Measured.
+    final Set<String> allowed = RegExp(
+      "'(lib/[^']+[.]dart)'",
+    ).allMatches(gate.substring(at, at + 600)).map((RegExpMatch m) => m.group(1)!).toSet();
+    expect(allowed, isNotEmpty, reason: 'the rule names no permitted file');
 
     expect(_callSites(needle).toSet(), allowed);
   });
 
-  test('no file under lib/ constructs a PopScope with canPop false', () {
-    // Today the expected count is ZERO. 07 §14.4 gives it exactly one call site
-    // at N29, and this test is where that stays deliberate — the number changes
-    // in the commit that earns it, visibly, rather than by drift.
+  test('canPop false appears only in the two destructive confirmations', () {
+    // **THE NUMBER CHANGED IN THE COMMIT THAT EARNED IT, WHICH IS THE POINT.**
+    // It was zero, and `07 §14.4` gave it exactly one call site at N29's season
+    // delete. R85 (N23-T02) makes restore the second and corrects §14.3's *"the
+    // only"* in the same commit: once step 12's rename has begun there is
+    // nothing to pop back to.
+    //
+    // Named rather than counted, so a third arrives visibly.
     final List<String> offenders = _authoredDart(
       'lib',
     ).where((String p) => _declarations(p).contains('canPop: false')).toList();
-    expect(offenders, isEmpty);
+    expect(offenders, <String>['lib/features/settings/widgets/restore_confirmation.dart']);
   });
 
   test('no file under lib/ names BoxShadow or sets an elevation', () {

@@ -1467,6 +1467,72 @@ abstract class AppLocalizations {
   /// **'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.'**
   String get restoreRefusedNotABackup;
 
+  /// 04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.
+  ///
+  /// In en, this message translates to:
+  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments. Made on {date} by Shed Book {version}.'**
+  String restoreBackupSummary({
+    required int seasons,
+    required int ewes,
+    required int lambs,
+    required int treatments,
+    required String date,
+    required String version,
+  });
+
+  /// 04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.
+  ///
+  /// In en, this message translates to:
+  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.'**
+  String restoreLiveSummary({
+    required int seasons,
+    required int ewes,
+    required int lambs,
+    required int treatments,
+  });
+
+  /// 04 7.3 statement 3. 'Cannot be undone FROM INSIDE THE APP' is exact and is not softened: the old database is kept for one launch by the rollback file, so a developer can recover it - and a shepherd cannot. Saying 'cannot be undone' flat would be a smaller truth than the one available.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring will delete everything now on this phone and replace it with the backup. This cannot be undone from inside the app.'**
+  String get restoreDestruction;
+
+  /// 04 7.3 statement 4 - WHAT THIS DOES NOT INCLUDE, said BEFORE the controls rather than after the restore. Media is records-only by decision 85, and a shepherd who learns that afterwards has been told too late to choose differently.
+  ///
+  /// In en, this message translates to:
+  /// **'Photos and voice notes are not part of a backup. {count} were recorded on the other phone and will show as \"not on this phone\".'**
+  String restoreMediaNotice({required int count});
+
+  /// Step one of two. It commits to nothing; it unlocks step two. Two steps rather than one because a single 72pt button under a wall of text is one cold thumb away from destroying a season.
+  ///
+  /// In en, this message translates to:
+  /// **'I UNDERSTAND - CONTINUE'**
+  String get restoreStepOne;
+
+  /// Step two, 72pt, DISABLED until step one is taken, and on the OPPOSITE side of the screen from Cancel. It says what it does rather than 'OK' or 'Confirm' - a shepherd reading only the buttons still learns the outcome.
+  ///
+  /// In en, this message translates to:
+  /// **'REPLACE EVERYTHING'**
+  String get restoreReplaceEverything;
+
+  /// Always live, always reachable, and never the destructive side. Backing out of a destruction confirmation is the expected answer, not the exceptional one.
+  ///
+  /// In en, this message translates to:
+  /// **'CANCEL'**
+  String get restoreCancel;
+
+  /// 04 7.6. A statement, not a celebration - no tick, no 'Success!'. The shepherd asked for their records and here they are.
+  ///
+  /// In en, this message translates to:
+  /// **'Your records are back.'**
+  String get restoreDoneTitle;
+
+  /// 04 7.6 verbatim, and one of the two places in the product where the app admits a limitation in full sentences rather than in a shortened label. It says where the photos ARE, not only that they are absent - a shepherd who reads 'not included' assumes they are gone.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} photos and voice notes were recorded on the other phone. Photos are not part of a backup in this version - they stay on the phone that took them. Each one still shows in the record it belongs to, marked \"not on this phone\".'**
+  String restoreDoneMedia({required int count});
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

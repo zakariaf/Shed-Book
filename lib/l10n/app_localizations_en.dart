@@ -833,6 +833,54 @@ class AppLocalizationsEn extends AppLocalizations {
       'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.';
 
   @override
+  String restoreBackupSummary({
+    required int seasons,
+    required int ewes,
+    required int lambs,
+    required int treatments,
+    required String date,
+    required String version,
+  }) {
+    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments. Made on $date by Shed Book $version.';
+  }
+
+  @override
+  String restoreLiveSummary({
+    required int seasons,
+    required int ewes,
+    required int lambs,
+    required int treatments,
+  }) {
+    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments.';
+  }
+
+  @override
+  String get restoreDestruction =>
+      'Restoring will delete everything now on this phone and replace it with the backup. This cannot be undone from inside the app.';
+
+  @override
+  String restoreMediaNotice({required int count}) {
+    return 'Photos and voice notes are not part of a backup. $count were recorded on the other phone and will show as \"not on this phone\".';
+  }
+
+  @override
+  String get restoreStepOne => 'I UNDERSTAND - CONTINUE';
+
+  @override
+  String get restoreReplaceEverything => 'REPLACE EVERYTHING';
+
+  @override
+  String get restoreCancel => 'CANCEL';
+
+  @override
+  String get restoreDoneTitle => 'Your records are back.';
+
+  @override
+  String restoreDoneMedia({required int count}) {
+    return '$count photos and voice notes were recorded on the other phone. Photos are not part of a backup in this version - they stay on the phone that took them. Each one still shows in the record it belongs to, marked \"not on this phone\".';
+  }
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

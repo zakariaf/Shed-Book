@@ -16,7 +16,12 @@ library;
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/data/restore_service.dart';
+import 'package:shed_book/features/settings/widgets/restore_confirmation.dart';
+
+import '../support/harness.dart';
 
 /// The three files a SQLite database is, and the reason `_moveInto` moves all
 /// three: a main file reunited with a stale `-wal` is the corruption `04 §8.1`
@@ -158,5 +163,242 @@ void main() {
     expect(changedTheRecords, isNot(contains(RestoreOutcome.notStarted)));
     expect(changedTheRecords, isNot(contains(RestoreOutcome.nothingToDo)));
     expect(changedTheRecords, isNot(contains(RestoreOutcome.lostBothFiles)));
+  });
+
+  testWidgets('the confirmation names the live counts and requires two steps', (
+    WidgetTester tester,
+  ) async {
+    // AWKWARD NUMBERS ON BOTH SIDES, and they are different on purpose:
+    // rendering the backup's counts under *what is on this phone now* is the one
+    // bug that makes the whole confirmation a lie, and it looks right in every
+    // screenshot.
+    const RestoreCounts live = (seasons: 1, ewes: 38, lambs: 41, treatments: 6);
+    const RestoreCounts backup = (seasons: 3, ewes: 412, lambs: 861, treatments: 145);
+
+    bool? answer;
+    await tester.pumpApp(
+      Builder(
+        builder: (BuildContext context) => TextButton(
+          onPressed: () async {
+            answer = await showRestoreConfirmation(
+              context,
+              backup: backup,
+              live: live,
+              backupDate: '14 Jul 2026',
+              backupVersion: '1.1.0',
+              mediaCount: 452,
+            );
+          },
+          child: const Text('open'),
+        ),
+      ),
+      db: testDatabase(),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // BOTH SETS RENDER, and each carries its own numbers.
+    expect(find.textContaining('412 ewes'), findsOneWidget);
+    expect(find.textContaining('38 ewes'), findsOneWidget);
+
+    // AND IN `04 §7.3`'s ORDER: gain, lose, mean, exclude, controls.
+    // READ BEFORE ANY SCROLL. The dialog is taller than a small viewport at
+    // default scale — which is correct: five statements before a control is the
+    // point — so the order is read from the unscrolled layout.
+    final double gain = tester
+        .getTopLeft(find.byKey(const Key('settings.restore.backup_summary')))
+        .dy;
+    final double lose = tester
+        .getTopLeft(find.byKey(const Key('settings.restore.live_summary')))
+        .dy;
+    final double mean = tester.getTopLeft(find.byKey(const Key('settings.restore.destruction'))).dy;
+    final double exclude = tester
+        .getTopLeft(find.byKey(const Key('settings.restore.media_notice')))
+        .dy;
+    final double controls = tester
+        .getTopLeft(find.byKey(const Key('settings.restore.step_one')))
+        .dy;
+    expect(<double>[
+      gain,
+      lose,
+      mean,
+      exclude,
+      controls,
+    ], orderedEquals(<double>[gain, lose, mean, exclude, controls]..sort()));
+
+    // THE MEDIA SENTENCE IS BEFORE THE CONTROLS, said in time to change the
+    // decision rather than after it.
+    expect(exclude, lessThan(controls));
+
+    // STEP TWO IS NOT READY UNTIL STEP ONE IS TAKEN — and it is `refusing`
+    // rather than dead, because `ShedPrimaryButton` has no disabled state and
+    // `onTap` is non-nullable *"and that is the whole task"*.
+    ShedPrimaryButtonState stateOfStepTwo() => tester
+        .widget<ShedPrimaryButton>(find.byKey(const Key('settings.restore.replace_everything')))
+        .state;
+
+    expect(stateOfStepTwo(), ShedPrimaryButtonState.refusing);
+
+    await tester.ensureVisible(find.byKey(const Key('settings.restore.step_one')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings.restore.step_one')));
+    await tester.pumpAndSettle();
+    expect(stateOfStepTwo(), ShedPrimaryButtonState.ready);
+    expect(answer, isNull, reason: 'step one commits to nothing');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a thumb that lands on step two first takes step one, and restores nothing', (
+    WidgetTester tester,
+  ) async {
+    // Indelible's `refusing` in one case: *"what is missing, said in words…
+    // `onTap` still fires: it opens the thing that is missing."* A dead
+    // rectangle would announce as a disabled button, make `06 §6.3`'s geometric
+    // gate skip it, and leave a cold thumb pressing something that does nothing.
+    //
+    // **The two-step guarantee is unchanged**: the restore still needs two
+    // presses, and the first one cannot be the destructive one.
+    bool? answer;
+    await tester.pumpApp(
+      Builder(
+        builder: (BuildContext context) => TextButton(
+          onPressed: () async {
+            answer = await showRestoreConfirmation(
+              context,
+              backup: const (seasons: 3, ewes: 412, lambs: 861, treatments: 145),
+              live: const (seasons: 1, ewes: 38, lambs: 41, treatments: 6),
+              backupDate: '14 Jul 2026',
+              backupVersion: '1.1.0',
+              mediaCount: 452,
+            );
+          },
+          child: const Text('open'),
+        ),
+      ),
+      db: testDatabase(),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.byKey(const Key('settings.restore.replace_everything')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings.restore.replace_everything')));
+    await tester.pumpAndSettle();
+
+    expect(answer, isNull, reason: 'the first press was not the destructive one');
+    expect(
+      tester
+          .widget<ShedPrimaryButton>(find.byKey(const Key('settings.restore.replace_everything')))
+          .state,
+      ShedPrimaryButtonState.ready,
+      reason: 'it took step one instead of doing nothing',
+    );
+
+    // AND THE SECOND PRESS RESTORES.
+    await tester.ensureVisible(find.byKey(const Key('settings.restore.replace_everything')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings.restore.replace_everything')));
+    await tester.pumpAndSettle();
+    expect(answer, isTrue);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the confirmation cannot be dismissed by tapping outside it', (
+    WidgetTester tester,
+  ) async {
+    // R85's whole reason. A `ShedBottomSheet` closes when a thumb lands outside
+    // it — correct for a chooser, exactly wrong here.
+    bool? answer;
+    await tester.pumpApp(
+      Builder(
+        builder: (BuildContext context) => TextButton(
+          onPressed: () async {
+            answer = await showRestoreConfirmation(
+              context,
+              backup: const (seasons: 3, ewes: 412, lambs: 861, treatments: 145),
+              live: const (seasons: 1, ewes: 38, lambs: 41, treatments: 6),
+              backupDate: '14 Jul 2026',
+              backupVersion: '1.1.0',
+              mediaCount: 452,
+            );
+          },
+          child: const Text('open'),
+        ),
+      ),
+      db: testDatabase(),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    await tester.tapAt(const Offset(5, 5));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings.restore.destruction')), findsOneWidget);
+    expect(answer, isNull);
+
+    // **AND BOTH MECHANISMS ARE ASSERTED, because the behavioural half cannot
+    // tell them apart.** Drilled: flipping `barrierDismissible` to `true` left
+    // this case green — `PopScope(canPop: false)` was already refusing the pop,
+    // so the barrier flag was carrying nothing a test could see.
+    //
+    // They guard different doors. `PopScope` refuses a pop from any source,
+    // including the Android back gesture; `barrierDismissible` decides whether
+    // the barrier offers one at all. Relying on one silently is how the other
+    // gets deleted in a tidy-up, and the tidy-up is always green.
+    // COMMENTS STRIPPED FIRST, and that is the second thing this case had to
+    // learn: the file's own doc comment names `canPop: false` to explain it, so
+    // a raw `contains` passed while the argument said `true`. The scan reads
+    // declarations, which is what every policy test in this project already
+    // does and what I should have copied rather than re-derived.
+    final String source = File(
+      'lib/features/settings/widgets/restore_confirmation.dart',
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+    expect(source, contains('barrierDismissible: false'));
+    expect(source, contains('canPop: false'));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('cancel is always live and is never the destructive side', (
+    WidgetTester tester,
+  ) async {
+    bool? answer;
+    await tester.pumpApp(
+      Builder(
+        builder: (BuildContext context) => TextButton(
+          onPressed: () async {
+            answer = await showRestoreConfirmation(
+              context,
+              backup: const (seasons: 3, ewes: 412, lambs: 861, treatments: 145),
+              live: const (seasons: 1, ewes: 38, lambs: 41, treatments: 6),
+              backupDate: '14 Jul 2026',
+              backupVersion: '1.1.0',
+              mediaCount: 452,
+            );
+          },
+          child: const Text('open'),
+        ),
+      ),
+      db: testDatabase(),
+    );
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    // OPPOSITE SIDES OF THE SCREEN.
+    final double cancel = tester.getCenter(find.byKey(const Key('settings.restore.cancel'))).dx;
+    final double destroy = tester
+        .getCenter(find.byKey(const Key('settings.restore.replace_everything')))
+        .dx;
+    expect(cancel, lessThan(destroy));
+
+    await tester.ensureVisible(find.byKey(const Key('settings.restore.cancel')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('settings.restore.cancel')));
+    await tester.pumpAndSettle();
+    expect(answer, isFalse);
+
+    await tester.closeApp();
   });
 }

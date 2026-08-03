@@ -14,6 +14,8 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/treatment_repository.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/data/pen_repository.dart';
 import 'package:shed_book/domain/penning.dart';
 import 'package:shed_book/core/time/app_clock.dart';
@@ -525,5 +527,161 @@ void main() {
 
     handle.dispose();
     await tester.closeApp();
+  });
+
+  // ---------------------------------------------------------------------------
+  // The withdrawal-attention state, END TO END
+  // ---------------------------------------------------------------------------
+
+  testWidgets('a ewe under withdrawal renders attention on the board', (WidgetTester tester) async {
+    // THE CASE THAT WAS MISSING, AND ITS ABSENCE IS WHY THE STATE WAS DEAD.
+    //
+    // Every existing `attention` case builds a `PenTile` BY HAND and asserts
+    // `forTick`. That proves the priority order and nothing about whether the
+    // data ever arrives — and it did not: `PenBoardRow` had no clear date, so
+    // `penBoardProvider` left `clearDate` null and the arm could not fire in the
+    // shipped app. The tests were green the whole time.
+    //
+    // So this one goes through the REAL path: a treatment recorded by the real
+    // verb, read by the real statement, projected by the real provider, rendered
+    // by the real screen.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository pens = PenRepository(db);
+    final TreatmentRepository treatments = TreatmentRepository(db);
+
+    final WriteOutcome pen = await pens.addPen();
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await pens.enterPen(PenId((pen as WriteCommitted).insertedId!), ewe: ewe);
+
+    await treatments.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    // THE STATEMENT CARRIES IT.
+    final List<PenBoardRow> board = await pens.watchBoard().first;
+    expect(board.single.clearDate, isNotNull, reason: 'the board can see the withdrawal');
+
+    // AND THE SCREEN RENDERS THE ATTENTION MARK — the circle-slash badge, which
+    // no other status draws.
+    await tester.pumpApp(const PenBoardScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('pen_tile.badge')),
+      findsOneWidget,
+      reason: 'she is 48 h settled and still under withdrawal — attention, not ready',
+    );
+    expect(
+      find.byKey(const Key('pen_tile.dagger')),
+      findsNothing,
+      reason: 'and NOT ready, which is the mistake this state exists to prevent',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('a voided treatment does not hold a pen under withdrawal', () async {
+    // EVERY "IS SHE CLEAR?" READ FILTERS `voided_at IS NULL`. The row stays —
+    // it may already be printed in a book handed to a vet — but a treatment the
+    // shepherd voided must not keep a ewe off the board.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository pens = PenRepository(db);
+    final TreatmentRepository treatments = TreatmentRepository(db);
+
+    final WriteOutcome pen = await pens.addPen();
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await pens.enterPen(PenId((pen as WriteCommitted).insertedId!), ewe: ewe);
+
+    final WriteOutcome t = await treatments.recordTreatment(
+      TreatEwe(ewe),
+      productName: 'Alamycin',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 28, target: WithdrawalTarget.meat),
+      ],
+    );
+    expect((await pens.watchBoard().first).single.clearDate, isNotNull);
+
+    await treatments.voidTreatment(TreatmentId((t as WriteCommitted).insertedId!));
+
+    expect(
+      (await pens.watchBoard().first).single.clearDate,
+      isNull,
+      reason: 'voided, so it holds nothing — but the row itself is still there',
+    );
+    expect(await db.select(db.treatmentWithdrawals).get(), hasLength(1));
+  });
+
+  test('two withdrawals hold the pen until the LATER one clears', () async {
+    // `MAX`, NOT `MIN`, AND THIS IS THE CASE THAT SAYS SO. A ewe clearing on the
+    // 10th and the 20th is not clear until the 20th; `MIN` would print
+    // `CLEAR 10 AUG` beside a ewe who may not go, which is worse than showing
+    // nothing because it is confidently wrong.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository pens = PenRepository(db);
+    final TreatmentRepository treatments = TreatmentRepository(db);
+
+    final WriteOutcome pen = await pens.addPen();
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await pens.enterPen(PenId((pen as WriteCommitted).insertedId!), ewe: ewe);
+
+    for (final int days in <int>[7, 28]) {
+      await treatments.recordTreatment(
+        TreatEwe(ewe),
+        productName: 'Alamycin $days',
+        withdrawals: <WithdrawalPeriod>[
+          WithdrawalDays.asEnteredByUser(days: days, target: WithdrawalTarget.meat),
+        ],
+      );
+    }
+
+    final List<TreatmentWithdrawal> stored = await db.select(db.treatmentWithdrawals).get();
+    final LocalDate latest = stored
+        .map((TreatmentWithdrawal w) => w.clearDate!)
+        .reduce((LocalDate a, LocalDate b) => a.compareTo(b) >= 0 ? a : b);
+
+    expect(
+      (await pens.watchBoard().first).single.clearDate,
+      latest,
+      reason: 'the last date she clears, never the first',
+    );
+  });
+
+  test('a lamb under withdrawal holds its pen too', () async {
+    // THE BOARD IS ABOUT THE PEN. A lamb under withdrawal in it is a reason not
+    // to turn the pen out, and reading only the ewe would miss the orphan pen
+    // entirely — which has no ewe at all.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final PenRepository pens = PenRepository(db);
+    final TreatmentRepository treatments = TreatmentRepository(db);
+
+    final WriteOutcome pen = await pens.addPen();
+    final EweId dam = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, dam);
+    final LambId lamb = await seedLamb(db, lambing, dam);
+    await pens.enterPen(PenId((pen as WriteCommitted).insertedId!), lambs: <LambId>[lamb]);
+
+    expect((await pens.watchBoard().first).single.clearDate, isNull);
+
+    await treatments.recordTreatment(
+      TreatLamb(lamb),
+      productName: 'Spectam',
+      withdrawals: <WithdrawalPeriod>[
+        WithdrawalDays.asEnteredByUser(days: 14, target: WithdrawalTarget.meat),
+      ],
+    );
+
+    expect(
+      (await pens.watchBoard().first).single.clearDate,
+      isNotNull,
+      reason: 'an orphan pen has no ewe, and its lambs are the only animals in it',
+    );
   });
 }

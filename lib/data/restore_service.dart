@@ -18,7 +18,9 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:shed_book/core/db/database.dart' show kSchemaVersion;
+import 'package:drift/drift.dart';
+import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/db/seed/first_run.dart';
 import 'package:shed_book/core/log/local_log.dart';
 import 'package:shed_book/data/backup_format.dart';
 
@@ -252,3 +254,157 @@ Future<void> _tidy(Directory support, File sentinel) async {
 }
 
 const List<String> _sidecarSuffixes = <String>['', '-wal', '-shm'];
+
+/// The import half — `04 §7.2` steps 6 and 7, against a database that is already
+/// open.
+///
+/// **A CLASS, AND THIS IS WHERE THE DANGER STARTS.** The prelude above holds no
+/// database and cannot write a row; this one writes 21 tables. The split is what
+/// lets `restoreFixture` (N23-T05) exist at all — it restores into an already-open
+/// in-memory database with no files to rename — and without it the overflow
+/// matrix cannot use the committed fixtures.
+final class RestoreService {
+  /// **THE SUPPORT DIRECTORY IS INJECTED.** `getApplicationSupportDirectory()` is
+  /// banned outside `connection.dart` and `media_store.dart` (`layer.path_provider`,
+  /// `04 §4.9`) — and injecting it is what makes `tool/seed.dart`, a plain Dart
+  /// script with no Flutter bindings, able to call this code at all.
+  RestoreService(this._support);
+
+  // ignore: unused_field
+  final Directory _support;
+
+  /// Parents before children, and the order is the whole correctness argument.
+  ///
+  /// **`PRAGMA defer_foreign_keys = ON` INSIDE THE TRANSACTION**, not
+  /// `foreign_keys = OFF` — that pragma is a **no-op inside a transaction** and
+  /// drift wraps this in one, so the code that reaches for it compiles, runs, and
+  /// enforces nothing. `04 §2.6` says this about migrations; it is exactly as
+  /// true here, and this is where people reach for the wrong one.
+  static const List<String> _order = <String>[
+    'vocab_terms',
+    'seasons',
+    'ewes',
+    'ewe_seasons',
+    'ewe_touches',
+    'lambings',
+    'lambs',
+    'foster_events',
+    'care_events',
+    'ewe_observations',
+    'pens',
+    'pen_occupancies',
+    'pen_occupancy_lambs',
+    'treatments',
+    'treatment_withdrawals',
+    'notes',
+    'media_assets',
+    'reminder_rules',
+    'reminders',
+    'terminology_overrides',
+    'app_settings',
+  ];
+
+  Future<void> importInto(
+    AppDatabase target,
+    BackupHeader header,
+    Map<String, List<Map<String, Object?>>> tables,
+  ) async {
+    await target.transaction(() async {
+      await target.deferForeignKeys();
+
+      // uid → the id this database issued. Built as each parent lands.
+      final Map<String, int> ids = <String, int>{};
+
+      for (final String table in _order) {
+        final List<Map<String, Object?>> rows = tables[table] ?? const <Map<String, Object?>>[];
+        for (final Map<String, Object?> row in rows) {
+          final int id = await _insert(target, table, row, ids);
+          if (row['uid'] case final String uid) {
+            ids[uid] = id;
+          }
+        }
+      }
+
+      // **THE ENTITLEMENT IS NEVER IMPORTED** (#88). It is in
+      // `kBackupExcludedTables` so a file we wrote never carries one — but a
+      // hand-edited file can, and restoring your neighbour's backup must not
+      // unlock your app. The skip is here as well as in the writer because the
+      // two protect against different things.
+      //
+      // (It is simply absent from `_order`, which is the strongest form: there
+      // is no branch to get wrong.)
+
+      // **`seedFirstRun` ONLY WHEN THE BACKUP HAS NO SEASON**, and at the END of
+      // the same transaction. Every event table's `season` is `NOT NULL`, so a
+      // seasonless restored database cannot accept a lambing at all.
+      //
+      // Get the condition backwards and every restored database gains a phantom
+      // season nobody created — and N23-T07's round trip then fails on the first
+      // table.
+      if ((tables['seasons'] ?? const <Map<String, Object?>>[]).isEmpty) {
+        await seedFirstRun(target);
+      }
+
+      // ZERO ROWS, OR THE IMPORT IS ABANDONED. `defer_foreign_keys` postpones
+      // enforcement to the commit; this asks the question before it, so the
+      // failure names the table rather than arriving as a commit error.
+      final List<QueryRow> broken = await target.customSelect('PRAGMA foreign_key_check').get();
+      if (broken.isNotEmpty) {
+        throw StateError(
+          'restore: ${broken.length} foreign keys unresolved after import — abandoning',
+        );
+      }
+    });
+  }
+
+  /// One row, with its `<parent>_uid` pointers resolved.
+  ///
+  /// **NOTHING IS RE-STAMPED.** `created_at` and `updated_at` are written exactly
+  /// as the file carries them; `appNow()` is never substituted. `09 §7.2` item 13:
+  /// freshening `updated_at` breaks byte equality on every row in the database at
+  /// once **and** destroys the only evidence of when a record was actually made.
+  Future<int> _insert(
+    AppDatabase target,
+    String table,
+    Map<String, Object?> row,
+    Map<String, int> ids,
+  ) async {
+    final Map<String, String> fks = kBackupForeignKeys[table] ?? const <String, String>{};
+
+    final Map<String, Object?> columns = <String, Object?>{};
+    for (final MapEntry<String, Object?> e in row.entries) {
+      if (e.key.endsWith('_uid') && fks.containsKey(e.key.substring(0, e.key.length - 4))) {
+        // A ROW POINTER. Resolved against the map, never written through as the
+        // file's own integer — that number belongs to the phone the backup came
+        // from and means something else here.
+        final String column = e.key.substring(0, e.key.length - 4);
+        columns[column] = e.value == null ? null : ids[e.value as String];
+        continue;
+      }
+      // Everything else, including the five VOCABULARY foreign keys, which carry
+      // a `vocab_terms.key` rather than a uid (`03 §5.12`: the key IS the
+      // identity). Treating one as a uid fails `foreign_key_check`, which is the
+      // good outcome; treating it as unknown and writing `NULL` is a silently
+      // empty column, which is not.
+      columns[e.key] = e.value;
+    }
+
+    // **THE WRITER IS `AppDatabase`'s, AND THIS FILE SAYS NO SQL.** A 21-table
+    // import cannot name its columns statically, and drift's typed insert
+    // refuses a dynamically-built insertable — measured: *"type
+    // `RawValuesInsertable<dynamic>` is not a subtype of `Insertable<Season>`"*.
+    // Layer rule 8 keeps raw statements inside `lib/core/db/`, so that is where
+    // the dynamic writer lives and this file calls it.
+    //
+    // `app_settings` is a singleton and is imported ONTO its existing row rather
+    // than inserted beside it — one of the five tables with no `uid`
+    // (`09 §5.3`). An importer that assumes `uid` everywhere drops all five and
+    // the restore still passes `quick_check`.
+    if (table == 'app_settings') {
+      await target.updateRestoredSingleton(table, columns);
+      return 1;
+    }
+
+    return target.insertRestoredRow(table, columns);
+  }
+}

@@ -395,7 +395,8 @@ final class FlockRow {
     required this.lambsBornAlive,
     required this.assistedLambings,
     required this.isPenned,
-    required this.underWithdrawal,
+    required this.latestClearDate,
+    required this.unrecordedWithdrawal,
     required this.hasWarning,
   });
 
@@ -414,7 +415,18 @@ final class FlockRow {
   final int? assistedLambings;
 
   final bool isPenned;
-  final bool underWithdrawal;
+
+  /// The stored TEXT civil date of the furthest-out live `days` withdrawal, or
+  /// null if she carries none. **Read, never derived** — it is the date the
+  /// shepherd was told on the day the medicine went in.
+  final String? latestClearDate;
+
+  /// **A live treatment with no withdrawal row: UNKNOWN, never clear** (§12.1,
+  /// `03 §5.8`). Its own field rather than folded into a single boolean, because
+  /// *still running* and *nobody typed it* are different facts and the screen
+  /// says different things about them (`indelible.md §2.7`: `— NOT RECORDED`
+  /// over a dotted rule, never a blank that could read as zero).
+  final bool unrecordedWithdrawal;
 
   /// Read from the `lambing_consistency` VIEW, which recomputes on read.
   ///
@@ -422,6 +434,31 @@ final class FlockRow {
   /// #54): a warning cannot be persisted because there is nowhere to persist it
   /// that survives the record changing underneath it.
   final bool hasWarning;
+
+  /// **RULING N1 — THE COMPARISON HAPPENS HERE, NOT IN SQL.**
+  ///
+  /// `now` is a parameter (R24), so the answer advances with the clock: a phone
+  /// left on the flock page across midnight re-answers correctly on the next
+  /// rebuild, which a date bound into a long-lived `watch()` statement cannot do.
+  ///
+  /// **Unknown counts as under treatment.** A ewe whose withdrawal nobody typed
+  /// is not clear — the app does not know, and hiding her from this list is the
+  /// app deciding on the shepherd's behalf (spec §12.1). *Not applicable* is a
+  /// recorded ANSWER and is therefore clear; the difference between an answer and
+  /// an absence is the whole of `03 §5.8`.
+  bool isUnderTreatment(Instant now) {
+    if (unrecordedWithdrawal) {
+      return true;
+    }
+    final String? clear = latestClearDate;
+    if (clear == null) {
+      return false;
+    }
+    // A LEXICOGRAPHIC COMPARISON, correct only because the format sorts —
+    // `YYYY-MM-DD`, decision #2. Written out rather than parsed back into a date,
+    // because parsing and re-formatting is two chances to shift a day.
+    return clear.compareTo(LocalDate.of(now).iso) >= 0;
+  }
 }
 
 /// `07 §3.1`, printed there in full and copied here once.
@@ -437,10 +474,21 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
        s.assisted_lambings,
        EXISTS (SELECT 1 FROM pen_occupancies o
                 WHERE o.ewe = e.id AND o.exited_at IS NULL)          AS is_penned,
+       -- RULING N1, HALF ONE: clock-free. The latest clear date this ewe carries,
+       -- returned as the stored TEXT civil date and compared in Dart, because a
+       -- date bound into a `watch()` statement is bound ONCE and never advances.
+       (SELECT MAX(w.clear_date) FROM treatments t
+          JOIN treatment_withdrawals w ON w.treatment = t.id
+         WHERE t.ewe = e.id AND t.voided_at IS NULL
+           AND w.kind = 'days')                                      AS latest_clear_date,
+       -- RULING N1, HALF TWO: a live treatment with NO withdrawal row for any
+       -- target. `03 §5.8`: no row means NotRecorded — which is UNKNOWN, and
+       -- never clear. The predicate this replaced was an INNER JOIN, so this ewe
+       -- had nothing to join to and silently vanished from *under treatment*.
        EXISTS (SELECT 1 FROM treatments t
-                 JOIN treatment_withdrawals w ON w.treatment = t.id
                 WHERE t.ewe = e.id AND t.voided_at IS NULL
-                  AND w.kind = 'days' AND w.clear_date >= ?)         AS under_withdrawal,
+                  AND NOT EXISTS (SELECT 1 FROM treatment_withdrawals w
+                                   WHERE w.treatment = t.id))        AS unrecorded_withdrawal,
        EXISTS (SELECT 1 FROM lambing_consistency lc
                  JOIN lambings lg ON lg.id = lc.lambing_id
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
@@ -455,10 +503,6 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                           GROUP BY lg.id HAVING COUNT(lb.id) >= 3))
    AND (? = 0 OR EXISTS (SELECT 1 FROM pen_occupancies o
                           WHERE o.ewe = e.id AND o.exited_at IS NULL))
-   AND (? = 0 OR EXISTS (SELECT 1 FROM treatments t
-                           JOIN treatment_withdrawals w ON w.treatment = t.id
-                          WHERE t.ewe = e.id AND t.voided_at IS NULL
-                            AND w.kind = 'days' AND w.clear_date >= ?))
  ORDER BY e.tag_digits, e.tag;
 ''';
 
@@ -487,20 +531,26 @@ Future<List<FlockRow>> flockList(AppDatabase db, FlockFilters filters) async =>
         .toList();
 
 List<Variable<Object>> _flockVariables(FlockFilters f) {
-  // COUNTED OFF THE STATEMENT, not remembered: one `?` for the withdrawal date
-  // in the SELECT list, then the five filter flags, then the withdrawal date
-  // again inside the fifth filter's subquery. Seven.
-  final String today = LocalDate.of(appNow()).iso;
+  // COUNTED OFF THE STATEMENT, not remembered: four `?`, one per SQL filter.
+  //
+  // **NO DATE IS BOUND, AND THAT IS RULING N1.** `underTreatment` is the one
+  // filter whose answer depends on today, and `watch()` binds its variables once
+  // when the stream is built — so a bound date never advances and a phone left on
+  // this screen overnight filters against yesterday. It is applied in Dart
+  // instead, against the two clock-free columns.
   return <Variable<Object>>[
-    Variable<String>(today),
     Variable<int>(f.barren ? 1 : 0),
     Variable<int>(f.notYetLambed ? 1 : 0),
     Variable<int>(f.tripletBearing ? 1 : 0),
     Variable<int>(f.currentlyPenned ? 1 : 0),
-    Variable<int>(f.underTreatment ? 1 : 0),
-    Variable<String>(today),
   ];
 }
+
+/// The statement, for the property that asserts no date is in it.
+///
+/// Exposed rather than duplicated: a test that keeps its own copy of the SQL
+/// asserts against the copy.
+const String flockListSqlForTest = _flockListSql;
 
 Set<ResultSetImplementation<dynamic, dynamic>> _flockReads(AppDatabase db) =>
     <ResultSetImplementation<dynamic, dynamic>>{
@@ -523,6 +573,7 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   lambsBornAlive: r.readNullable<int>('lambs_born_alive'),
   assistedLambings: r.readNullable<int>('assisted_lambings'),
   isPenned: r.read<int>('is_penned') == 1,
-  underWithdrawal: r.read<int>('under_withdrawal') == 1,
+  latestClearDate: r.readNullable<String>('latest_clear_date'),
+  unrecordedWithdrawal: r.read<int>('unrecorded_withdrawal') == 1,
   hasWarning: r.read<int>('has_warning') == 1,
 );

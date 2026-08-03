@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
 
@@ -50,5 +51,18 @@ final StreamProviderFamily<List<FlockRow>, FlockFilters> flockListProvider =
       // `media_sweeper_test.dart`'s split clock literal by name and tripped
       // `time.dart_clock` the same way. Two rules, two comments, both of them
       // mine — the gate does not read intent, and that is the point of it.
-      yield* watchFlockList(await ref.watch(databaseProvider.future), filters);
+      // **RULING N1: `underTreatment` IS APPLIED HERE, NOT IN SQL.** It is the
+      // one filter whose answer depends on today, and a date bound into a
+      // `watch()` statement is bound once and never advances — a phone left on
+      // this page overnight would filter against yesterday. The statement returns
+      // `latest_clear_date` and `unrecorded_withdrawal`, both clock-free, and
+      // `FlockRow.isUnderTreatment` compares them against `appNow()`.
+      //
+      // **A ewe whose withdrawal nobody typed is UNKNOWN, and stays in the list**
+      // (§12.1). Hiding her would be the app deciding she is clear.
+      yield* watchFlockList(await ref.watch(databaseProvider.future), filters).map(
+        (List<FlockRow> rows) => filters.underTreatment
+            ? rows.where((FlockRow r) => r.isUnderTreatment(appNow())).toList()
+            : rows,
+      );
     });

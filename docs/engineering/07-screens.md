@@ -163,10 +163,14 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
        s.assisted_lambings, s.scored_lambings, s.last_observation_season,
        EXISTS (SELECT 1 FROM pen_occupancies o
                 WHERE o.ewe = e.id AND o.exited_at IS NULL)          AS is_penned,
+       (SELECT MAX(w.clear_date) FROM treatments t
+          JOIN treatment_withdrawals w ON w.treatment = t.id
+         WHERE t.ewe = e.id AND t.voided_at IS NULL
+           AND w.kind = 'days')                                      AS latest_clear_date,
        EXISTS (SELECT 1 FROM treatments t
-                 JOIN treatment_withdrawals w ON w.treatment = t.id
                 WHERE t.ewe = e.id AND t.voided_at IS NULL
-                  AND w.kind = 'days' AND w.clear_date >= :today)    AS under_withdrawal,
+                  AND NOT EXISTS (SELECT 1 FROM treatment_withdrawals w
+                                   WHERE w.treatment = t.id))        AS unrecorded_withdrawal,
        EXISTS (SELECT 1 FROM lambing_consistency lc
                  JOIN lambings lg ON lg.id = lc.lambing_id
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
@@ -176,7 +180,15 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
  ORDER BY e.tag_digits, e.tag;
 ```
 
-`readsFrom: {ewes, eweSummaries, penOccupancies, treatments, treatmentWithdrawals, lambings, lambs}`. `:today` is bound as a `TEXT 'YYYY-MM-DD'` civil date computed in Dart from `appNow()` — the one wall-clock reader in the app (`lib/core/time/app_clock.dart`), and SQL-side time is banned (decision #47), and `clear_date` is a `TEXT` civil date (decision #2), so the comparison is a lexicographic string comparison and is correct only because the format sorts.
+**RULING N1 (N26-T02) — the two columns above replaced a single `under_withdrawal` `EXISTS` whose predicate was `w.kind = 'days' AND w.clear_date >= :today`, and it was wrong twice.**
+
+*An unrecorded withdrawal is **unknown**, never clear.* The old predicate INNER JOINed `treatment_withdrawals`, so a ewe injected yesterday whose withdrawal nobody typed had nothing to join to and vanished from the *under treatment* filter — the app answering a withdrawal question on the shepherd's behalf, which is spec §12.1's exact shape and the thing `03 §5.8`'s child table already refuses at the storage layer. `unrecorded_withdrawal` names that state so the screen can say `— NOT RECORDED` rather than nothing.
+
+*And no date may be bound into this statement.* `watch()` binds its variables **once**, when the stream is built, and drift re-runs the same prepared statement with the same arguments on every table change — so a phone left on the flock page overnight goes on filtering against yesterday, and the ewe who cleared at midnight stays listed as running. Decision #47 bans SQL-side time; a Dart date frozen into a long-lived statement is the same defect wearing a Dart hat. Both columns are clock-free and the comparison happens in Dart, where `now` is a parameter (R24) and advances. `test/policy/flock_filter_never_implies_a_withdrawal_test.dart` holds all three halves.
+
+Consequently **four of the five §7.7 filters narrow the `WHERE`; `under treatment` is applied in Dart** against these two columns.
+
+`readsFrom: {ewes, eweSummaries, penOccupancies, treatments, treatmentWithdrawals, lambings, lambs}`. `clear_date` is a `TEXT 'YYYY-MM-DD'` civil date computed in Dart at write time (decision #2, #50) — the one wall-clock reader in the app (`lib/core/time/app_clock.dart`), and SQL-side time is banned (decision #47), and `clear_date` is a `TEXT` civil date (decision #2), so the comparison is a lexicographic string comparison and is correct only because the format sorts.
 
 **There is no `warning_count` column and there never will be** (decision #54): a warning cannot be persisted because there is nowhere to persist it. `has_warning` is read from the `lambing_consistency` **view** (doc 03 §5.4), which recomputes on read. The remaining warning codes that can badge a Flock row — `duplicateActiveTag` in particular — are computed in Dart from the same active-tag cache the keypad uses; they are not in this statement because they are not in the database.
 

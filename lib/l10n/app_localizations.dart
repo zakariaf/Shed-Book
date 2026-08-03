@@ -1408,6 +1408,35 @@ abstract class AppLocalizations {
   /// **'NOT THIS SEASON'**
   String get exportBannerDismiss;
 
+  /// Shown when formatVersion or schema in the file is higher than this build can read. DO NOT soften this to 'may not be compatible': guessing at a newer schema is spec 12.4 applied to restore, and a partial import would destroy records rather than decline to touch them. 09 5.5.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was made by a newer version of Shed Book. Update the app and try again.'**
+  String get restoreRefusedNewerApp;
+
+  /// The second line under restoreRefusedNewerApp. Named numbers, so a shepherd on the phone to a friend can say which build wrote the file. It NEVER replaces the sentence above it - a pair of version numbers with no sentence is a screen that has told somebody their records are unreachable without telling them what to do.
+  ///
+  /// In en, this message translates to:
+  /// **'This file: format {foundFormat}, records {foundSchema}. This app reads format {readsFormat}, records {readsSchema}.'**
+  String restoreRefusedNewerAppDetail({
+    required int foundFormat,
+    required int foundSchema,
+    required int readsFormat,
+    required int readsSchema,
+  });
+
+  /// A different sentence from restoreRefusedDamaged on purpose: 'this is not ours' and 'this is ours and it is damaged' send a shepherd to two different next steps - find the right file, versus find an older copy.
+  ///
+  /// In en, this message translates to:
+  /// **'This is not a Shed Book backup file.'**
+  String get restoreRefusedNotOurs;
+
+  /// Ours, and a required header key is missing or the wrong type. It does not say 'try again' - re-picking the same file will not help, and a shepherd who has just been told their backup is damaged should not be sent in a circle.
+  ///
+  /// In en, this message translates to:
+  /// **'This Shed Book backup is damaged and cannot be read.'**
+  String get restoreRefusedDamaged;
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

@@ -1150,6 +1150,28 @@
   "@exportBannerDismiss": {
     "description": "Writes export_prompt_dismissed_for_season and the banner never appears again this season. There is NO third 'later' action and no close X: not answering is already free, and a dismiss-for-now button would be a third decision at the one moment the app promised not to ask for any."
   },
+  "restoreRefusedNewerApp": "This backup was made by a newer version of Shed Book. Update the app and try again.",
+  "@restoreRefusedNewerApp": {
+    "description": "Shown when formatVersion or schema in the file is higher than this build can read. DO NOT soften this to 'may not be compatible': guessing at a newer schema is spec 12.4 applied to restore, and a partial import would destroy records rather than decline to touch them. 09 5.5."
+  },
+  "restoreRefusedNewerAppDetail": "This file: format {foundFormat}, records {foundSchema}. This app reads format {readsFormat}, records {readsSchema}.",
+  "@restoreRefusedNewerAppDetail": {
+    "description": "The second line under restoreRefusedNewerApp. Named numbers, so a shepherd on the phone to a friend can say which build wrote the file. It NEVER replaces the sentence above it - a pair of version numbers with no sentence is a screen that has told somebody their records are unreachable without telling them what to do.",
+    "placeholders": {
+      "foundFormat": { "type": "int" },
+      "foundSchema": { "type": "int" },
+      "readsFormat": { "type": "int" },
+      "readsSchema": { "type": "int" }
+    }
+  },
+  "restoreRefusedNotOurs": "This is not a Shed Book backup file.",
+  "@restoreRefusedNotOurs": {
+    "description": "A different sentence from restoreRefusedDamaged on purpose: 'this is not ours' and 'this is ours and it is damaged' send a shepherd to two different next steps - find the right file, versus find an older copy."
+  },
+  "restoreRefusedDamaged": "This Shed Book backup is damaged and cannot be read.",
+  "@restoreRefusedDamaged": {
+    "description": "Ours, and a required header key is missing or the wrong type. It does not say 'try again' - re-picking the same file will not help, and a shepherd who has just been told their backup is damaged should not be sent in a circle."
+  },
   "treatmentsTitle": "TREATMENTS",
   "@treatmentsTitle": {
     "description": "The screen's heading, headingLevel 1."

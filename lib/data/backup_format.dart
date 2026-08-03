@@ -24,6 +24,7 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:shed_book/core/db/database.dart' show kSchemaVersion;
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/policy/export_envelope.dart';
 
@@ -314,3 +315,186 @@ const String kUnknownJsonColumn = 'unknown_json';
 /// import, so writing it writes a number that means something different on the
 /// next phone.
 const String kRowIdColumn = 'id';
+
+// ---------------------------------------------------------------------------
+// FORWARD COMPATIBILITY (`09 §5.3`, §5.5, §7.2 rule 8).
+//
+// A shepherd who installs `v1.1.0` on a new phone and restores a `v1.0.0` file
+// must lose nothing — and the shepherd who goes the other way must lose nothing
+// either. A column this build has never heard of rides through in
+// `unknown_json` and comes back out at the row's top level, unchanged.
+//
+// **This carries an unknown COLUMN. It does not carry an unknown TABLE** — which
+// is why P15 requires the format to ship whole in `v1.0.0`, all 21 tables, even
+// the empty ones.
+// ---------------------------------------------------------------------------
+
+/// What reading a file's header produced.
+///
+/// **An outcome rather than an exception** (`01 §5`): a refusal is a value the
+/// restore screen renders. `ShedFailure` is not the type for it either — that is
+/// for a database the app could not read, and this is a file it read perfectly
+/// well and declined to act on.
+sealed class BackupHeaderOutcome {
+  const BackupHeaderOutcome();
+}
+
+final class BackupHeaderAccepted extends BackupHeaderOutcome {
+  const BackupHeaderAccepted(this.header);
+  final BackupHeader header;
+}
+
+final class BackupRefused extends BackupHeaderOutcome {
+  const BackupRefused(this.reason, {this.foundFormatVersion, this.foundSchema});
+
+  final BackupRefusalReason reason;
+
+  /// What the file says.
+  final int? foundFormatVersion;
+  final int? foundSchema;
+
+  /// What this build reads. **Both numbers are shown**, so a shepherd on the
+  /// phone to a friend can say which build wrote the file.
+  int get readsFormatVersion => kBackupFormatVersion;
+  int get readsSchema => kSchemaVersion;
+}
+
+/// **`BackupRefusalReason`, not `RefusalReason`** — that name is already
+/// `lib/domain/free_tier.dart`'s, and two enums with one name is the kind of
+/// collision that is resolved by an import alias and then forgotten.
+enum BackupRefusalReason {
+  /// `format` is absent or is not the frozen string. *This is not a Shed Book
+  /// backup* and *this is one and it is damaged* send a shepherd to two
+  /// different next steps, so they are two reasons.
+  notShedBookFormat,
+
+  /// `09 §5.5` row 1.
+  newerFormatVersion,
+
+  /// `09 §5.5` row 2.
+  newerSchema,
+
+  /// Ours, and a required key is missing or the wrong type.
+  malformedHeader,
+}
+
+/// Validates the thirteen header keys and nothing else.
+///
+/// It touches no file and no database, so it is unit-testable against a decoded
+/// map — which is why the restore path can be reasoned about before any of it
+/// exists.
+BackupHeaderOutcome readBackupHeader(Map<String, Object?> decoded) {
+  if (decoded['format'] != kBackupFormat) {
+    return const BackupRefused(BackupRefusalReason.notShedBookFormat);
+  }
+
+  final Object? formatVersion = decoded['formatVersion'];
+  final Object? schema = decoded['schema'];
+  if (formatVersion is! int || schema is! int) {
+    return const BackupRefused(BackupRefusalReason.malformedHeader);
+  }
+
+  // THE APP READS DOWN, NEVER UP. Guessing at a newer schema is §12.4 applied to
+  // restore, and a partial import destroys records rather than declining to
+  // touch them. Do not soften this to *may not be compatible*.
+  if (formatVersion > kBackupFormatVersion) {
+    return BackupRefused(
+      BackupRefusalReason.newerFormatVersion,
+      foundFormatVersion: formatVersion,
+      foundSchema: schema,
+    );
+  }
+  if (schema > kSchemaVersion) {
+    return BackupRefused(
+      BackupRefusalReason.newerSchema,
+      foundFormatVersion: formatVersion,
+      foundSchema: schema,
+    );
+  }
+
+  return BackupHeaderAccepted(
+    BackupHeader(
+      schema: schema,
+      appVersion: decoded['appVersion'] as String? ?? '',
+      exportedAtUtc: decoded['exportedAtUtc'] as String? ?? '',
+      exportedAtOffsetMinutes: decoded['exportedAtOffsetMinutes'] as int? ?? 0,
+      exportedAtZoneAbbreviation: decoded['exportedAtZoneAbbreviation'] as String? ?? '',
+      counts: const <String, int>{},
+      media: const BackupMedia(included: false, count: 0, bytes: 0),
+      formatVersion: formatVersion,
+    ),
+  );
+}
+
+/// Merges a stored row's `unknown_json` into the row **before** the keys are
+/// sorted, and never emits the column itself.
+///
+/// **THE ORDER IS THE WHOLE THING.** Merging after the sort produces a file that
+/// decodes correctly, reads correctly and looks right in `jq` — and whose key
+/// order is wrong, so the second export is not byte-identical to the first. Only
+/// T01's byte-equality assertion catches it.
+///
+/// The container is never emitted under its own name: doing that as well writes
+/// every preserved field twice, and the next export nests it again, one level
+/// deeper each time (`09 §9`).
+Map<String, Object?> splatUnknownJson(Map<String, Object?> row) {
+  final Object? container = row[kUnknownJsonColumn];
+  final Map<String, Object?> out = <String, Object?>{
+    for (final MapEntry<String, Object?> e in row.entries)
+      if (e.key != kUnknownJsonColumn) e.key: e.value,
+  };
+
+  if (container is! String || container.isEmpty) {
+    return out;
+  }
+
+  final Object? parsed = jsonDecode(container);
+  if (parsed is! Map<String, Object?>) {
+    return out;
+  }
+
+  for (final MapEntry<String, Object?> e in parsed.entries) {
+    // **THE LIVE COLUMN WINS, AND THE DECISION IS IN CODE.** In theory this
+    // cannot happen — if the column exists today the key is not unknown. In
+    // practice it happens the moment somebody hand-edits a backup, or a column
+    // is added and an older file is replayed through a build that has since
+    // gained it. Letting map-merge order settle it would settle it silently, and
+    // differently depending on which way the merge was written.
+    if (out.containsKey(e.key)) {
+      continue;
+    }
+    // PASSED THROUGH, NEVER RE-PARSED. A preserved key whose value looks like an
+    // instant is a *string* to this build; the build that wrote it knows what it
+    // means and this one does not.
+    out[e.key] = e.value;
+  }
+  return out;
+}
+
+/// The inverse, for N23's importer: every key the target table does not have is
+/// lifted out into the container.
+///
+/// Returns `null` for a row with nothing unknown — **never `'{}'`**, because
+/// `'{}'` and `NULL` are different bytes on the next export, and almost every
+/// row has nothing to preserve.
+({Map<String, Object?> row, String? unknownJson}) captureUnknownColumns(
+  Map<String, Object?> incoming,
+  Set<String> knownColumns,
+) {
+  final Map<String, Object?> row = <String, Object?>{};
+  final Map<String, Object?> unknown = <String, Object?>{};
+
+  for (final MapEntry<String, Object?> e in incoming.entries) {
+    if (knownColumns.contains(e.key)) {
+      row[e.key] = e.value;
+    } else {
+      unknown[e.key] = e.value;
+    }
+  }
+
+  // A JSON **object** or `NULL`. The column's
+  // `CHECK (unknown_json IS NULL OR json_valid(unknown_json))` throws a
+  // `SqliteException` on a bare string, an empty string or an array — from the
+  // importer, at the one moment nothing may throw.
+  return (row: row, unknownJson: unknown.isEmpty ? null : jsonEncode(unknown));
+}

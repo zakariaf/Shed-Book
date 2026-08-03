@@ -168,6 +168,41 @@ void main() {
     await db.close();
   });
 
+  test('a stored unknown_json is splatted into the exported row, end to end', () async {
+    // THE CASE THAT WAS MISSING, AND THE DRILL FOUND IT. Removing the splat from
+    // the export path passed every test in this file and its sibling — because
+    // nothing exercised `writeBackup` against a row whose container was
+    // populated. Every other case worked on maps by hand.
+    //
+    // This is the one that fails when a `v1.1.0` column silently stops
+    // surviving a round trip through `v1.0.0`, which is the entire contract.
+    final AppDatabase db = testDatabase();
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await db.customStatement(
+      "UPDATE ewes SET unknown_json = '{\"tupping_ram_tag\":\"R7\"}' WHERE id = ?",
+      <Object?>[ewe.value],
+    );
+
+    final Directory dir = Directory.systemTemp.createTempSync('shed_backup');
+    addTearDown(() => dir.deleteSync(recursive: true));
+
+    final String text = File(
+      (await ExportRepository(db).writeBackup(envelope: _envelope(), outputDir: dir)).path,
+    ).readAsStringSync();
+
+    expect(text, contains('"tupping_ram_tag":"R7"'));
+    expect(text, isNot(contains('unknown_json')), reason: 'the container is never emitted');
+
+    final Map<String, Object?> row =
+        (((jsonDecode(text) as Map<String, Object?>)['tables']! as Map<String, Object?>)['ewes']!
+                    as List<Object?>)
+                .single
+            as Map<String, Object?>;
+    expect(row['tupping_ram_tag'], 'R7');
+
+    await db.close();
+  });
+
   test('a vocabulary foreign key keeps its own name and its own value', () async {
     // `03 §5.12`: the key IS the identity — *"globally unique, list-prefixed,
     // ASCII, stable forever… never translated and never edited."* So it is

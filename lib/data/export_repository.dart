@@ -167,13 +167,16 @@ final class ExportRepository {
 
     return <Map<String, Object?>>[
       for (final QueryRow r in rows)
-        <String, Object?>{
+        // THE SPLAT HAPPENS HERE, BEFORE `canonicalJsonBytes` SORTS. Merging
+        // after the sort produces a file that decodes correctly and whose key
+        // order is wrong — and only byte equality catches that.
+        //
+        // `splatUnknownJson` also drops the container itself, so a preserved
+        // field is written once rather than twice.
+        splatUnknownJson(<String, Object?>{
           for (final MapEntry<String, Object?> e in r.data.entries)
-            // `unknown_json` IS SKIPPED DELIBERATELY. It is a container, not a
-            // fact; T03 splats its contents at the row's top level.
-            if (e.key != kRowIdColumn && e.key != kUnknownJsonColumn && !fks.containsKey(e.key))
-              e.key: e.value,
-        },
+            if (e.key != kRowIdColumn && !fks.containsKey(e.key)) e.key: e.value,
+        }),
     ];
   }
 

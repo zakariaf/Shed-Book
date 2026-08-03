@@ -793,6 +793,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportBannerDismiss => 'NOT THIS SEASON';
 
   @override
+  String get restoreRefusedNewerApp =>
+      'This backup was made by a newer version of Shed Book. Update the app and try again.';
+
+  @override
+  String restoreRefusedNewerAppDetail({
+    required int foundFormat,
+    required int foundSchema,
+    required int readsFormat,
+    required int readsSchema,
+  }) {
+    return 'This file: format $foundFormat, records $foundSchema. This app reads format $readsFormat, records $readsSchema.';
+  }
+
+  @override
+  String get restoreRefusedNotOurs => 'This is not a Shed Book backup file.';
+
+  @override
+  String get restoreRefusedDamaged => 'This Shed Book backup is damaged and cannot be read.';
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

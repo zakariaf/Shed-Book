@@ -57,6 +57,30 @@ const List<({int hour, int minute})> _hours = <({int hour, int minute})>[
   (hour: 1, minute: 30),
 ];
 
+/// The database a cell runs against.
+///
+/// **THE AT-CAP CELL LOADS A REAL AT-CAP DATABASE (N23-T05).** `ewes: 15` is the
+/// free tier's boundary and the one number a paying user notices, so proving
+/// nothing monetization-related renders there is worth more than proving it
+/// against a count somebody set. `setEwesInCurrentSeason` writes a number;
+/// `flock_15_at_cap.json` is fifteen ewes with lambings, lambs and a season
+/// behind them, restored through the same path a shepherd's own backup takes.
+///
+/// **AND IT DOES NOT REPLACE `setEwesInCurrentSeason`.** Decision #90's assertion
+/// point is 99 ewes and there is no 99-ewe fixture — nor should there be, since
+/// the helper is exactly right for *put the counter here*. One mechanism per
+/// question: a fixture where the flock matters, a counter where the count does.
+Future<AppDatabase> _databaseFor(({bool unlocked, int ewes}) e) async {
+  final AppDatabase db = e.ewes == 15
+      ? await fixtureDatabase('flock_15_at_cap.json')
+      : testDatabase();
+  await setEntitlement(db, unlocked: e.unlocked);
+  if (e.ewes != 15) {
+    await setEwesInCurrentSeason(db, e.ewes);
+  }
+  return db;
+}
+
 void main() {
   for (final ({bool unlocked, int ewes}) e in _entitlements) {
     for (final ({int hour, int minute}) h in _hours) {
@@ -66,9 +90,7 @@ void main() {
       ) async {
         // THE ANCHOR, one cell at a time. If a cell goes red the fix is in T03
         // or T04, not here — this test is allowed to be the thing that fails.
-        final AppDatabase db = testDatabase();
-        await setEntitlement(db, unlocked: e.unlocked);
-        await setEwesInCurrentSeason(db, e.ewes);
+        final AppDatabase db = await _databaseFor(e);
 
         await tester.pumpApp(const QuickEntryScreen(), db: db);
         await tester.pumpAndSettle();
@@ -102,12 +124,10 @@ void main() {
   // in an app with no cloud is a data-hostage pattern, and the free tier caps
   // seasons and ewes — never the way out.
   for (final ({bool unlocked, int ewes}) e in _entitlements) {
-    testWidgets('Export is never gated — unlocked=\${e.unlocked} ewes=\${e.ewes}', (
+    testWidgets('Export is never gated — unlocked=${e.unlocked} ewes=${e.ewes}', (
       WidgetTester tester,
     ) async {
-      final AppDatabase db = testDatabase();
-      await setEntitlement(db, unlocked: e.unlocked);
-      await setEwesInCurrentSeason(db, e.ewes);
+      final AppDatabase db = await _databaseFor(e);
 
       await tester.pumpApp(const ExportScreen(), db: db);
       await tester.pumpAndSettle();

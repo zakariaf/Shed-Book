@@ -27,12 +27,17 @@
 //
 
 //   restoreFixture / flock_400_3seasons.json (12 §5.2, critique defect S3) —
-//     fixtures go through RestoreService, which is N23, and tool/seed.dart
-//     writes them through the restore path in the same epic. Until then every
-//     test seeds with the targeted helpers in seeds.dart. The switch is
-//     N23-T05, "the two committed fixtures and the matrix switch". (N13-T07's
-//     own text says N23-T06; that is `restoreInto` and `freshSupportDir`, which
-//     is a different task. Corrected here.)
+//     **DONE, N23-T05.** The switch has happened: the overflow matrix's 144
+//     cells and the four Quick Entry tap budgets now load the 400-ewe fixture,
+//     and `no_monetization_test`'s at-cap cell loads the 15-ewe one. Defect S3
+//     is closed. (N13-T07's own text said N23-T06; that is `restoreInto` and
+//     `freshSupportDir`, a different task. Corrected here.)
+//
+//     The seeds.dart helpers did NOT go away and were never meant to: the
+//     fixture is the backdrop, the tuned `_seedHard*` seeders still run on top
+//     of it, and `setEwesInCurrentSeason` still answers *put the counter here*.
+//     Replacing the seeders with the fixture would have thrown away the five-lamb
+//     lambing and the query mark that eighteen of those cells exist to render.
 //
 //   the four fixture id constants (12 §5.3) — they index into the fixture and
 //     are meaningless without it: N23.
@@ -656,6 +661,93 @@ Future<void> restoreFixture(AppDatabase db, String name) async {
         .then((QueryRow r) => r.read<int>('n'));
     expect(landed, e.value, reason: '$name: ${e.key} declared ${e.value} and $landed landed');
   }
+}
+
+/// The snapshot each fixture is imported into **once per test process**, keyed by
+/// fixture name.
+///
+/// **THIS IS WHY THE MATRIX SWITCH IS AFFORDABLE AT ALL, AND THE NUMBERS ARE THE
+/// ARGUMENT.** `restoreFixture` costs **716 ms** for the 400-ewe flock, because
+/// it is a real restore: fifteen hundred rows through `importInto`, foreign keys
+/// deferred and re-checked. One hundred and forty-four cells paying that is
+/// **103 seconds** added to a suite that runs in fifty — the switch would have
+/// made the matrix the slowest thing in the project, and a slow matrix is one
+/// somebody eventually stops running.
+///
+/// Importing once and `VACUUM INTO` a file, then copying that file per cell,
+/// costs **521 ms once and 3.9 ms per cell** — 0.6 s for the whole matrix.
+/// Measured, both of them, before this was written.
+///
+/// The copy is what makes it safe: every cell gets its **own file**, so a cell
+/// that writes cannot be seen by the next one. Sharing one open database across
+/// 144 cells would be fast and wrong.
+final Map<String, File> _fixtureSnapshots = <String, File>{};
+
+/// A database preloaded with a committed fixture, cheap enough to call per cell.
+///
+/// The database is file-backed rather than in-memory — that is the mechanism,
+/// not an accident — and the file is deleted when the test ends.
+///
+/// **ONE `pumpApp` PER TEST. THIS IS A HARD CONSTRAINT, NOT A STYLE NOTE.**
+/// A widget test that pumps a second app after awaiting a query against a
+/// file-backed database **never completes** — `did not complete` after 6 m 20 s,
+/// measured, and at fifteen ewes as readily as at four hundred, so it is the file
+/// and not the volume. Real file I/O does not advance inside `flutter_test`'s
+/// fake-async zone. The overflow matrix is safe because every cell pumps exactly
+/// once; `tap_budget_test.dart` is not, and pays the full 716 ms import into an
+/// in-memory database instead (its `_flock()` says so at the call site).
+///
+/// If a new test needs a fixture **and** two pumps, copy `_flock()`. Do not
+/// reach for this and wonder why CI hangs.
+Future<AppDatabase> fixtureDatabase(String name) async {
+  final File snapshot = _fixtureSnapshots[name] ??= await _buildFixtureSnapshot(name);
+
+  final Directory dir = Directory.systemTemp.createTempSync('shed_fixture_cell');
+  final File copy = snapshot.copySync('${dir.path}/$name.sqlite');
+  final AppDatabase db = AppDatabase(NativeDatabase(copy));
+
+  // **CLOSED HERE, NOT LEFT TO THE CALLER.** `closeApp()` disposes the provider
+  // container and does not touch the database — so 144 cells each opened one and
+  // none of them closed it, and drift said so: *"you've created the database
+  // class AppDatabase multiple times… race conditions will occur"*.
+  //
+  // It was a false alarm on its own terms (every cell holds its **own file**, so
+  // there is no shared `QueryExecutor` to race on) and it was still worth fixing,
+  // because a suite that prints a warning nobody acts on is a suite where the
+  // next warning goes unread too.
+  addTearDown(() async {
+    await db.close();
+    if (dir.existsSync()) {
+      dir.deleteSync(recursive: true);
+    }
+  });
+  return db;
+}
+
+Future<File> _buildFixtureSnapshot(String name) async {
+  final Directory dir = Directory.systemTemp.createTempSync('shed_fixture_snapshot');
+  final File out = File('${dir.path}/$name.sqlite');
+
+  // **`seedOnCreate: true`, AND THE REASON IS NOT CONVENIENCE.** A fixture
+  // database is meant to stand in for a phone that has been used, and a phone
+  // that has been used went through first-run: it has an `entitlements` row, the
+  // seeded vocabulary, and the reminder defaults. `entitlements` is in
+  // `kBackupExcludedTables` — a backup deliberately does not carry a purchase —
+  // so importing onto an unseeded database leaves no entitlement row at all, and
+  // `setEntitlement` then UPDATEs nothing and reports success. That is the exact
+  // shape of the `app_settings` data loss this epic already found once.
+  //
+  // The fixture's own `app_settings` still wins: `updateRestoredSingleton` is an
+  // `INSERT OR REPLACE`, so first-run's defaults are overwritten by the file's
+  // row and `current_season` points where the file says.
+  final AppDatabase source = testDatabase();
+  await restoreFixture(source, name);
+  // `VACUUM INTO` is the snapshot verb (`09 §6.2`) and the same one the app uses
+  // for the diagnostic snapshot — one way to copy a database, not two.
+  await source.snapshotInto(out.path);
+  await source.close();
+
+  return out;
 }
 
 /// A temp directory torn down with the test — what `restoreInto` restores into

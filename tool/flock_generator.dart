@@ -20,6 +20,17 @@ import 'dart:math';
 import 'package:shed_book/domain/policy/export_envelope.dart';
 import 'package:shed_book/domain/time/instant.dart';
 
+/// **THE RESERVED BAND.** Every tag a generated flock carries starts here, so
+/// the fixtures occupy `2000`–`2399` and the hand-written seeders in
+/// `test/support/` keep the space below it.
+///
+/// The two have to be disjoint because `ewes.tag` is uniquely indexed on active
+/// animals (§7.0 ruling 7) and the matrix now loads a fixture **and then** runs a
+/// seeder on top of it. They were not disjoint, and all 144 cells said so at
+/// once. One number holds the separation; `flock_generator_test.dart` asserts it
+/// rather than trusting this comment.
+const int kFixtureTagBase = 2000;
+
 /// One flock, reproducibly.
 ///
 /// The same seed produces byte-identical output, which is what makes
@@ -47,7 +58,7 @@ final class FlockGenerator {
   /// none of them sequential all the way through.
   ///
   /// Sequential tags are what a naive generator produces and they hide the one
-  /// bug the tag index has — `412` and `4120` ranking wrong — because a run of
+  /// bug the tag index has — `2096` and `20960` ranking wrong — because a run of
   /// consecutive numbers never produces a prefix collision.
   String tag(int n) {
     // **UNIQUE, AND STILL COLLIDING ON A PREFIX.** Both properties at once, and
@@ -59,19 +70,34 @@ final class FlockGenerator {
     // tags**, and `ewes.tag` carries a partial unique index on active animals
     // (§7.0 ruling 7). The 400-ewe fixture refused to load. Measured, twice.
     //
-    // So: the plain form is `100 + n`, distinct for every ewe. Every ninety-
+    // So: the plain form is `kFixtureTagBase + n`, distinct for every ewe. Every
+    // ninety-
     // seventh ewe instead takes the PREVIOUS ewe's number with a `0` appended —
-    // four digits, so it can collide with no three-digit tag, and distinct from
-    // every other four-digit tag because `n` is.
+    // five digits, so it can collide with no four-digit tag, and distinct from
+    // every other five-digit tag because `n` is.
     //
-    // That gives `412` and `4120` in the same flock, which is the one pair the
-    // tag index ranks wrong and the one a sequential generator can never make.
+    // That gives `2096` and `20960` in the same flock — the pair the tag index
+    // ranks wrong, and the one a sequential generator can never make. (An earlier
+    // comment here claimed the pair was `412`/`4120`. It was not: `4120` is
+    // `${100 + n - 1}0` for no `n`, and reading the generated file said so.)
+    //
+    // **THE BASE IS 2000, AND THAT IS A RESERVED BAND (`kFixtureTagBase`).**
+    // It was `100`, which put the flock across `100`–`499` — straight through
+    // the tags the hand-written seeders use. Every one of the 144 matrix cells
+    // failed with `WriteFailed` the first time the fixture became their backdrop,
+    // because `_seedHardLambing` inserts ewe `412` and the fixture already owned
+    // it (`ewes.tag` is uniquely indexed, §7.0 ruling 7).
+    //
+    // Moving the fixture up is the one-line fix; prefixing every seeder tag is
+    // the N-line one, and it would have to be redone by whoever writes seeder
+    // N+1. Four-to-five digit tags are what UK ear tags actually look like, so
+    // nothing is lost. `flock_generator_test.dart` holds the band.
     if (n > 0 && n % 97 == 0) {
-      return '${100 + n - 1}0';
+      return '${kFixtureTagBase + n - 1}0';
     }
     // A few carry a letter, because real ear tags do and a digits-only flock
     // never exercises `tag_digits` being a projection rather than the tag.
-    return _random.nextInt(23) == 0 ? 'B${100 + n}' : '${100 + n}';
+    return _random.nextInt(23) == 0 ? 'B${kFixtureTagBase + n}' : '${kFixtureTagBase + n}';
   }
 
   /// Most ewes rear twins; a few are barren; a few have a single or triplets.
@@ -211,6 +237,40 @@ Map<String, Object?> flockTables({required int ewes, required int seasons, requi
   }
 
   return <String, Object?>{
+    // **`app_settings` FIRST, AND IT IS NOT DECORATION.** Every write verb in the
+    // app reads the current season out of this row — `_currentSeason()` does
+    // `getSingle()` on `id = 1` — so a flock without it is a database the app
+    // cannot write to at all.
+    //
+    // The generator omitted it, and the fixture therefore restored to 400 ewes
+    // and no settings. Nothing said so: the restore committed, `foreign_key_check`
+    // passed, and every declared count matched, because the counts count what the
+    // FILE holds. It surfaced as `Bad state: No element` from
+    // `TreatmentRepository` when the matrix first ran against the fixture — four
+    // layers away from the omission.
+    //
+    // **THAT IS THE SECOND TIME THIS TABLE HAS GONE MISSING IN THIS EPIC.** The
+    // first was `updateRestoredSingleton` issuing an `UPDATE` that matched no
+    // row; this is the file simply not carrying it. Same silence, same table,
+    // two different causes — which is the argument for the round-trip property
+    // over any amount of per-table checking.
+    'app_settings': <Map<String, Object?>>[
+      <String, Object?>{
+        'id': 1,
+        // POINTED AT THE MOST RECENT SEASON, resolved through `<parent>_uid`
+        // like every other foreign key in the format (`kBackupForeignKeys`
+        // already maps it — the mapping was there, the row was not).
+        'current_season_uid': g.uid('season', seasons - 1),
+        'weight_unit': 'kg',
+        'palette': 'night',
+        'high_contrast': false,
+        'wakelock_enabled': false,
+        'left_handed': false,
+        'percentage_definition': 'born_alive_per_ewe_to_ram',
+        'turn_out_threshold_hours': 24,
+        'cycle_days': 17,
+      },
+    ],
     'seasons': seasonRows,
     'ewes': eweRows,
     'lambings': lambingRows,

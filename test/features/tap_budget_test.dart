@@ -8,10 +8,7 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
-import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/domain/ids.dart';
-import 'package:shed_book/domain/time/instant.dart';
-import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
@@ -54,23 +51,36 @@ Future<void> _selectEwe(WidgetTester tester, String tag, TapCounter c) async {
   await tester.countedTap(find.byKey(const Key('quick_entry.confirm')), c);
 }
 
-Future<void> _seedCurrentSeason(AppDatabase db) async {
-  final Instant now = Instant.fromDateTime(DateTime.utc(2026, 3, 1, 3, 20));
-  final int id = await db
-      .into(db.seasons)
-      .insert(
-        SeasonsCompanion.insert(
-          year: 2026,
-          label: '2026',
-          startDate: LocalDate(2026, 1, 1),
-          uid: newUid(),
-          createdAt: now,
-          updatedAt: now,
-        ),
-      );
-  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
-    AppSettingsCompanion(currentSeason: Value<int?>(id)),
-  );
+/// **THE BUDGETS RUN AGAINST 400 EWES, AND THAT IS THE WHOLE POINT (N23-T05).**
+/// They used to seed one season and one ewe, which meant a five-tap path was
+/// proved against a deck holding a single animal — *"a tag search that is fast
+/// against six ewes is not evidence"*. The fixture is what makes the number mean
+/// something: 400 ewes in the deck, three seasons behind them, and ewe `412`
+/// still added on top because these tests tap that tag by name.
+///
+/// `_seedCurrentSeason` is gone with them — the fixture carries `app_settings`
+/// with `current_season` already pointing at the most recent season, which is
+/// the row the generator was missing until this task.
+
+/// The 400-ewe flock, **in memory**.
+///
+/// **NOT `fixtureDatabase`, AND THE REASON IS A SIX-MINUTE DEADLOCK.**
+/// `fixtureDatabase` hands back a file-backed database — that is what makes it
+/// 3.9 ms instead of 716 — and a widget test that pumps a SECOND app after
+/// awaiting a query against one never completes. Measured: `did not complete`
+/// after 6 m 20 s, and at fifteen ewes as readily as at four hundred, so it is
+/// the file and not the volume. Real file I/O does not advance inside
+/// `flutter_test`'s fake-async zone; the matrix escapes it only because each
+/// cell pumps exactly once and never awaits between two pumps.
+///
+/// So these pay the full 716 ms import into an in-memory database. Four tests,
+/// three seconds, and the budgets still run against the flock they are supposed
+/// to run against — which was the whole point of pointing them here.
+Future<AppDatabase> _flock() async {
+  final AppDatabase db = testDatabase();
+  await restoreFixture(db, 'flock_400_3seasons.json');
+  addTearDown(db.close);
+  return db;
 }
 
 void main() {
@@ -88,8 +98,20 @@ void main() {
     // CONVENTIONS §4.5's worked example and R59, which still publish the key.
     // This task does not amend them — it leaves this comment so the next reader
     // does not "restore" the sixth tap.
-    final AppDatabase db = testDatabase();
-    await _seedCurrentSeason(db);
+    final AppDatabase db = await _flock();
+    // **A DELTA, NOT AN ABSOLUTE.** These read `countLambings(db) == 1` when the
+    // database started empty, and against 400 ewes that is 381 — the fixture
+    // brought its own history. One-more-than-before is what the assertion always
+    // meant, and it is the stronger claim: an absolute 1 also passes for a screen
+    // that wiped the table and wrote one row.
+    final int lambingsBefore = await countLambings(db);
+    // **UNLOCKED, BECAUSE 400 EWES IS AN UNLOCKED FLOCK.** `createEwe` asks the
+    // cap policy with `ewesInCurrentSeason + 1`, so the create-on-the-fly budget
+    // against this fixture was refused at the free tier and no ewe was written —
+    // correctly. The cap is 15; nobody reaches 400 without unlocking, so a
+    // locked 400-ewe flock is a state no shepherd can be in and a budget
+    // measured there measures nothing.
+    await setEntitlement(db, unlocked: true);
     await seedEwe(db, tag: '412');
 
     await tester.pumpApp(const QuickEntryScreen(), db: db);
@@ -126,7 +148,7 @@ void main() {
 
     // READ OUT OF THE DATABASE, never off the screen. A screen can show a row
     // that was never committed; the database cannot.
-    expect(await countLambings(db), 1);
+    expect(await countLambings(db), lambingsBefore + 1);
 
     await tester.closeApp();
   });
@@ -150,8 +172,14 @@ void main() {
     // bar reads "Create 412" and makes one. It is the SAME budget, because
     // create-on-the-fly is the path a shepherd takes at 03:20 with a lamb in one
     // hand — not a settings task.
-    final AppDatabase db = testDatabase();
-    await _seedCurrentSeason(db);
+    final AppDatabase db = await _flock();
+    // **UNLOCKED, BECAUSE 400 EWES IS AN UNLOCKED FLOCK.** `createEwe` asks the
+    // cap policy with `ewesInCurrentSeason + 1`, so the create-on-the-fly budget
+    // against this fixture was refused at the free tier and no ewe was written —
+    // correctly. The cap is 15; nobody reaches 400 without unlocking, so a
+    // locked 400-ewe flock is a state no shepherd can be in and a budget
+    // measured there measures nothing.
+    await setEntitlement(db, unlocked: true);
 
     await tester.pumpApp(const QuickEntryScreen(), db: db);
     await tester.pumpAndSettle();
@@ -175,8 +203,14 @@ void main() {
     // this screen would summon the system keyboard, which fails every clause of
     // the 3am test — its keys are under the floor, its layout moves, and it is
     // light-themed on a device whose owner has a head torch.
-    final AppDatabase db = testDatabase();
-    await _seedCurrentSeason(db);
+    final AppDatabase db = await _flock();
+    // **UNLOCKED, BECAUSE 400 EWES IS AN UNLOCKED FLOCK.** `createEwe` asks the
+    // cap policy with `ewesInCurrentSeason + 1`, so the create-on-the-fly budget
+    // against this fixture was refused at the free tier and no ewe was written —
+    // correctly. The cap is 15; nobody reaches 400 without unlocking, so a
+    // locked 400-ewe flock is a state no shepherd can be in and a budget
+    // measured there measures nothing.
+    await setEntitlement(db, unlocked: true);
 
     await tester.pumpApp(const QuickEntryScreen(), db: db);
     await tester.pumpAndSettle();
@@ -197,8 +231,21 @@ void main() {
     // that is a SAFETY rule rather than a simplification — a declared type and a
     // counted one can disagree, and every way of resolving that disagreement is
     // worse than not having it.
-    final AppDatabase db = testDatabase();
-    await _seedCurrentSeason(db);
+    final AppDatabase db = await _flock();
+    // **A DELTA, NOT AN ABSOLUTE.** These read `countLambings(db) == 1` when the
+    // database started empty, and against 400 ewes that is 381 — the fixture
+    // brought its own history. One-more-than-before is what the assertion always
+    // meant, and it is the stronger claim: an absolute 1 also passes for a screen
+    // that wiped the table and wrote one row.
+    final int lambingsBefore = await countLambings(db);
+    final int lambsBefore = (await db.select(db.lambs).get()).length;
+    // **UNLOCKED, BECAUSE 400 EWES IS AN UNLOCKED FLOCK.** `createEwe` asks the
+    // cap policy with `ewesInCurrentSeason + 1`, so the create-on-the-fly budget
+    // against this fixture was refused at the free tier and no ewe was written —
+    // correctly. The cap is 15; nobody reaches 400 without unlocking, so a
+    // locked 400-ewe flock is a state no shepherd can be in and a budget
+    // measured there measures nothing.
+    await setEntitlement(db, unlocked: true);
     await seedEwe(db, tag: '412');
 
     await tester.pumpApp(const QuickEntryScreen(), db: db);
@@ -208,10 +255,22 @@ void main() {
     await _selectEwe(tester, '412', c);
     await tester.countedTap(find.byKey(const Key('quick_entry.event.lambing')), c);
 
-    expect(await countLambings(db), 1, reason: 'five taps commit the lambing');
+    expect(await countLambings(db), lambingsBefore + 1, reason: 'five taps commit the lambing');
 
     // The sixth lands on Lambing Entry, which N16-T01's push helper opens.
-    final LambingId lambing = LambingId((await db.select(db.lambings).get()).single.id);
+    // **THE ONE JUST WRITTEN, NOT `.single`.** `.single` threw *Bad state: Too
+    // many elements* the moment the fixture became the backdrop — it only ever
+    // worked because the database held exactly one lambing. The highest id is the
+    // row those five taps produced, and it stays correct at any flock size.
+    final LambingId lambing = LambingId(
+      (await (db.select(db.lambings)
+                ..orderBy(<OrderClauseGenerator<$LambingsTable>>[
+                  ($LambingsTable t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+                ])
+                ..limit(1))
+              .getSingle())
+          .id,
+    );
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
@@ -219,8 +278,10 @@ void main() {
 
     expect(c.taps, 6);
     expect(c.textEntries, 0);
-    expect(await countLambings(db), 1);
-    expect((await db.select(db.lambs).get()).length, 1);
+    expect(await countLambings(db), lambingsBefore + 1);
+    // A DELTA HERE TOO: the fixture brings 717 lambs of its own, and the claim
+    // is that the sixth tap added ONE.
+    expect((await db.select(db.lambs).get()).length, lambsBefore + 1);
 
     await tester.closeApp();
   });

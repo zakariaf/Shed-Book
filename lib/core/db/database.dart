@@ -106,6 +106,22 @@ class AppDatabase extends _$AppDatabase {
   /// looks like a working database until it does not.
   Future<void> walCheckpointTruncate() => customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
 
+  /// `VACUUM INTO` — **the snapshot**, and never *the backup* (`CONVENTIONS §5`
+  /// keeps those two words apart because swapping them is how somebody restores
+  /// the wrong thing).
+  ///
+  /// A byte-level copy of the database as SQLite itself understands it, so it
+  /// carries the schema, the indexes and any WAL content already merged. That is
+  /// what makes it safe to copy while a connection is open — and why it is the
+  /// right verb for both Settings → Diagnostics (`09 §6.2`, wired at N29) and for
+  /// the test harness's fixture snapshot.
+  ///
+  /// **The path is interpolated, and it must never come from a record.** It is a
+  /// caller-chosen output file — a support directory or a temp directory — and
+  /// SQLite cannot bind a parameter in this position.
+  Future<void> snapshotInto(String path) =>
+      customStatement("VACUUM INTO '${path.replaceAll("'", "''")}'");
+
   /// One restored row, with its columns supplied at runtime.
   ///
   /// **IT LIVES HERE FOR THE SAME REASON THE PRAGMAS DO.** A 21-table import

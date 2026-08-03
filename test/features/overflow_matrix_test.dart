@@ -134,10 +134,21 @@ void main() {
         for (final bool bold in kBoldStates) {
           testWidgets('${variant.key} · ${device.name} · scale $scale · bold $bold does not '
               'overflow', (WidgetTester tester) async {
-            final AppDatabase db = testDatabase();
-            // SEEDED FIRST. A cell that pumps against an empty database renders
-            // the screen's loading arm and proves nothing — see the seeder's own
-            // comment in harness.dart.
+            // **THE FIXTURE IS THE BACKDROP AND THE SEEDER STILL RUNS ON TOP.**
+            // N23-T05 asks for the cells to load the 400-ewe fixture "instead
+            // of the seeds.dart helpers", and doing exactly that would have
+            // thrown away what N16-T09 put there: `_seedHardLambing`'s five
+            // lambs, its query mark, its two-line provenance header. A generic
+            // flock contains none of those on any particular animal, so eighteen
+            // cells would have gone green having stopped testing the hard state
+            // — the failure mode the matrix exists to catch.
+            //
+            // The two are not alternatives. The fixture supplies **volume**,
+            // which is what a screen overflows on — 400 ewes in the deck, a
+            // three-digit count where there was one digit, a treatments list
+            // long enough to scroll — and the seeder supplies the **hard single
+            // record** the volume can never contain. Cells get both.
+            final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
             final Map<String, int> ids = await variant.value.seed(db);
 
             await tester.pumpApp(

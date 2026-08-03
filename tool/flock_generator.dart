@@ -50,25 +50,28 @@ final class FlockGenerator {
   /// bug the tag index has — `412` and `4120` ranking wrong — because a run of
   /// consecutive numbers never produces a prefix collision.
   String tag(int n) {
-    // **THE RANGE IS NARROWER THAN THE FLOCK ON PURPOSE.** With `% 900` over 400
-    // draws every base is distinct — 7 and 900 are coprime — so no base can
-    // appear at both widths and a prefix collision is arithmetically impossible.
-    // The second draft had the widths right and still produced none.
+    // **UNIQUE, AND STILL COLLIDING ON A PREFIX.** Both properties at once, and
+    // the first two drafts had one each.
     //
-    // Real flocks reuse numbers across years anyway: a culled 412 releases the
-    // tag, which is the whole reason the unique index is partial (§7.0 ruling 7).
-    final int base = 100 + (n * 7) % 300;
-    final int r = _random.nextInt(10);
-    // **THREE DIGITS AND FOUR, MIXED**, which is what makes a prefix collision
-    // possible at all — and the first draft produced only three, so `412` and
-    // `4120` could never both exist.
+    // Draft one used `% 900`, giving 400 distinct three-digit tags — unique, and
+    // no prefix collision was arithmetically possible. Draft two narrowed to
+    // `% 300` so bases repeated, which produced the collision **and duplicate
+    // tags**, and `ewes.tag` carries a partial unique index on active animals
+    // (§7.0 ruling 7). The 400-ewe fixture refused to load. Measured, twice.
     //
-    // That pair ranking wrong is the one bug the tag index has, and a flock of
-    // uniform-width tags hides it completely. Real flocks carry both widths.
-    if (r == 0) {
-      return 'B$base';
+    // So: the plain form is `100 + n`, distinct for every ewe. Every ninety-
+    // seventh ewe instead takes the PREVIOUS ewe's number with a `0` appended —
+    // four digits, so it can collide with no three-digit tag, and distinct from
+    // every other four-digit tag because `n` is.
+    //
+    // That gives `412` and `4120` in the same flock, which is the one pair the
+    // tag index ranks wrong and the one a sequential generator can never make.
+    if (n > 0 && n % 97 == 0) {
+      return '${100 + n - 1}0';
     }
-    return r < 3 ? '${base}0' : '$base';
+    // A few carry a letter, because real ear tags do and a digits-only flock
+    // never exercises `tag_digits` being a projection rather than the tag.
+    return _random.nextInt(23) == 0 ? 'B${100 + n}' : '${100 + n}';
   }
 
   /// Most ewes rear twins; a few are barren; a few have a single or triplets.

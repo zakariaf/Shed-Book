@@ -87,6 +87,47 @@ void main() {
     }
   });
 
+  test('restoreFixture loads flock_400_3seasons.json into an in-memory database', () async {
+    // **ROW COUNTS AFTER THE LOAD, NOT *the call returned*.** A `restoreFixture`
+    // that silently restores nothing turns every matrix cell green against the
+    // EMPTY layout — which cannot overflow — and 144 cells then prove nothing at
+    // all. That is the one failure this whole fixture mechanism can have
+    // quietly.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_400_3seasons.json');
+
+    expect(await db.select(db.ewes).get(), hasLength(400));
+    expect(await db.select(db.seasons).get(), hasLength(3));
+    expect(
+      (await db.select(db.lambings).get()).length,
+      greaterThan(300),
+      reason: 'a flock where nothing lambed is not a flock',
+    );
+
+    // AND SOME EWES ARE BARREN, which is a ewe with no lambing rather than an
+    // absent row — the distinction the pen board and the flock filters both
+    // depend on.
+    expect(
+      (await db.select(db.lambings).get()).length,
+      lessThan((await db.select(db.ewes).get()).length),
+    );
+
+    await db.close();
+  });
+
+  test('the at-cap fixture is exactly the free tier\'s boundary', () async {
+    // 15 ewes is the cap (§7.0 ruling 8), so this fixture is what N30's at-cap
+    // tests pump. One ewe more or fewer and they assert against the wrong side
+    // of the line.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_15_at_cap.json');
+
+    expect(await db.select(db.ewes).get(), hasLength(15));
+    expect(await db.select(db.seasons).get(), hasLength(1));
+
+    await db.close();
+  });
+
   for (final MapEntry<String, PumpableVariant> variant in kPumpableVariants.entries) {
     for (final Device device in Device.all) {
       for (final double scale in kTextScales) {

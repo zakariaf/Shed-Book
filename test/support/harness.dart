@@ -611,6 +611,53 @@ Future<AppDatabase> restoreInto(Directory support, File backup) async {
   return reopened;
 }
 
+/// A committed fixture, loaded into an **already-open in-memory database**.
+///
+/// **THE OTHER HALF OF `restoreInto`, AND THE SPLIT IS THE POINT.** This one
+/// touches no file and renames nothing — which is exactly why `RestoreService`'s
+/// import and swap are two methods (N23-T01 §5.2). Without the split the matrix
+/// could not use these fixtures at all, and critique **S3** would reopen in the
+/// epic meant to close it.
+///
+/// **It asserts what landed.** A `restoreFixture` that silently restores nothing
+/// turns every matrix cell green against the *empty* layout — which cannot
+/// overflow — and 144 cells then prove nothing at all. That is the failure this
+/// helper is most likely to have, so it is the one it refuses to have quietly.
+Future<void> restoreFixture(AppDatabase db, String name) async {
+  final File file = File('test/fixtures/$name');
+  expect(file.existsSync(), isTrue, reason: 'no fixture at ${file.path}');
+
+  final Map<String, Object?> decoded = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+  final BackupHeaderOutcome outcome = readBackupHeader(decoded);
+  expect(outcome, isA<BackupHeaderAccepted>(), reason: '$name is not readable by this build');
+
+  final Map<String, Object?> raw = decoded['tables']! as Map<String, Object?>;
+  await RestoreService(Directory.systemTemp).importInto(
+    db,
+    (outcome as BackupHeaderAccepted).header,
+    <String, List<Map<String, Object?>>>{
+      for (final MapEntry<String, Object?> e in raw.entries)
+        e.key: <Map<String, Object?>>[
+          for (final Object? row in e.value! as List<Object?>) row! as Map<String, Object?>,
+        ],
+    },
+  );
+
+  // WHAT THE FILE SAID, AGAINST WHAT LANDED. Not *did the call return* — the
+  // whole hazard is a load that returns happily having written nothing.
+  final Map<String, Object?> counts = decoded['counts']! as Map<String, Object?>;
+  for (final MapEntry<String, Object?> e in counts.entries) {
+    if (e.value == 0) {
+      continue;
+    }
+    final int landed = await db
+        .customSelect('SELECT COUNT(*) AS n FROM ${e.key}')
+        .getSingle()
+        .then((QueryRow r) => r.read<int>('n'));
+    expect(landed, e.value, reason: '$name: ${e.key} declared ${e.value} and $landed landed');
+  }
+}
+
 /// A temp directory torn down with the test — what `restoreInto` restores into
 /// (09 §7.3).
 ///

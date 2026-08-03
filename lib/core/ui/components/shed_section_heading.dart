@@ -26,7 +26,18 @@ final class ShedSectionHeading extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
     return Semantics(
       headingLevel: level,
-      child: Text(label, style: level == 1 ? text.titleLarge : text.titleMedium),
+      child: Text(
+        label,
+        style: level == 1 ? text.titleLarge : text.titleMedium,
+        // ELLIPSISED, ADDED WHEN THE FIVE HAND-ROLLED HEADINGS MIGRATED IN.
+        // Four Quick Entry matrix cells failed at textScaler 2.0 the moment they
+        // did: `titleLarge` is a long way above the `labelMedium` they had been
+        // using, and Quick Entry's heading is a DATE, which is the longest of
+        // the five. A heading that clips is worse than one that ellipsises, and
+        // `10 §4.4` bans shrink-to-fit — so ellipsis is the only option left.
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

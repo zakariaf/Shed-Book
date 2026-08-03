@@ -13,11 +13,14 @@ library;
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_empty_state.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -64,13 +67,10 @@ class TreatmentsScreen extends ConsumerWidget {
           children: <Widget>[
             Padding(
               padding: EdgeInsets.all(t.gapMin),
-              child: Semantics(
-                headingLevel: 1,
-                child: Text(
-                  l10n.treatmentsTitle,
-                  key: const Key('treatments.title'),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+              child: ShedSectionHeading(
+                key: const Key('treatments.title'),
+                label: l10n.treatmentsTitle,
+                level: 1,
               ),
             ),
             // THE TWO SEGMENTS. Word buttons, not a segmented control —
@@ -103,48 +103,55 @@ class TreatmentsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    if (rows.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.all(t.gapMin),
-                        child: Text(
-                          l10n.treatmentsEmpty,
-                          key: const Key('treatments.empty'),
-                          style: Theme.of(
-                            context,
-                          ).textTheme.bodySmall?.copyWith(color: t.textSecondary),
-                        ),
-                      )
-                    else
+            // AN EMPTY LIST HAS NOTHING TO SCROLL, so the empty state replaces
+            // the scroll view rather than sitting in it — which is also the only
+            // place `ShedEmptyState`'s infinite sizing is valid. Measured:
+            // inside, every treatments case threw `BoxConstraints forces an
+            // infinite height`.
+            if (rows.isEmpty)
+              Flexible(
+                child: ShedEmptyState(
+                  key: const Key('treatments.empty'),
+                  copy: l10n.treatmentsEmpty,
+                ),
+              )
+            else
+              Flexible(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      // THE EMPTY STATE IS *OUTSIDE* THIS SCROLL VIEW — see the
+                      // `if (rows.isEmpty)` arm above. `ShedEmptyState` is
+                      // `double.infinity` in both axes, and a scroll view gives
+                      // its child an UNBOUNDED height where infinity is an error
+                      // rather than a maximum.
                       for (final TreatmentRow row in rows)
                         _TreatmentLine(row: row, locale: locale, l10n: l10n),
-                    // THE FOOTER IS ON THE FIRST PAINTED FRAME OF BOOK MODE, not
-                    // behind an affordance. A disclosure the shepherd has to go
-                    // looking for is a disclosure that has not been made.
-                    if (mode == TreatmentMode.book) const TreatmentBookFooter(),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(t.gapMin),
-              child: ShedTapTarget(
-                key: const Key('treatments.repeat_last'),
-                semanticLabel: l10n.treatmentsRepeatLast,
-                minSize: t.tapHero,
-                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
-                child: ExcludeSemantics(
-                  child: Center(
-                    child: Text(
-                      l10n.treatmentsRepeatLast,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
+                    ],
                   ),
                 ),
+              ),
+            // THE FOOTER BELONGS TO THE MODE, NOT TO THE LIST — which is what
+            // moving the empty state out of the scroll view exposed: it had been
+            // sitting inside the list's Column, so an EMPTY book rendered no
+            // disclosure at all. The one view somebody might print or hand to a
+            // vet was the one that could lose its §12.3 footer.
+            //
+            // Still on the first painted frame of book mode, never behind an
+            // affordance.
+            if (mode == TreatmentMode.book) const TreatmentBookFooter(),
+            Padding(
+              padding: EdgeInsets.all(t.gapMin),
+              // `indelible.md:973` names this control: "REPEAT LAST TREATMENT
+              // is a prominent word button", and §7.13 puts a primary at
+              // `--t-ctl-lg` 22px. The hand-rolled version used `titleMedium`,
+              // which is not that role.
+              child: ShedPrimaryButton(
+                key: const Key('treatments.repeat_last'),
+                label: l10n.treatmentsRepeatLast,
+                semanticLabel: l10n.treatmentsRepeatLast,
+                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
               ),
             ),
           ],

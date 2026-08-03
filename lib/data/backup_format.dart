@@ -209,3 +209,108 @@ String fnv1a64Hex(List<int> bytes) {
   final int low = hash & 0xffffffff;
   return high.toRadixString(16).padLeft(8, '0') + low.toRadixString(16).padLeft(8, '0');
 }
+
+/// The four tables that are **not** in a backup, each with its reason here.
+///
+/// `09 §5.4`'s rule is one sentence: **if you add a table it is exported unless
+/// you write down why not, in the same commit.** A file listing four names and
+/// no reasons is a file the fifth exclusion joins silently.
+const Set<String> kBackupExcludedTables = <String>{
+  // Never exported and ignored on import (#88). Restoring your neighbour's
+  // backup must not unlock your app — and the entitlement is a fact about a
+  // purchase, not about a flock.
+  'entitlements',
+  // A rebuildable cache (`03 §5.13`). Its writers maintain it inside the writes
+  // that invalidate it, so a restore that carried it would carry a snapshot of
+  // counts that the restored rows may not agree with.
+  'ewe_summaries',
+  // Derived — refilled by the source-table triggers as the rows land.
+  'search_docs',
+  // Derived — the FTS5 index over `search_docs`, rebuilt after the rows land.
+  'search_fts',
+};
+
+/// The `ORDER BY` for each table, so two exports of one database agree.
+///
+/// **`ORDER BY id` IS THE BUG THIS WHOLE MAP EXISTS TO AVOID.** Integer primary
+/// keys are re-issued on import (#32), so an id-ordered export makes the *second*
+/// export a permutation of the first — and byte equality then fails somewhere in
+/// the middle of a 40,000-row file, with a diff nobody can read.
+///
+/// Sixteen tables carry `uid` and order by it, so they are not listed. These five
+/// do not (`09 §5.3`), and each orders by the natural key that stands in for it —
+/// **resolved to the PARENT'S uid, never to the local integer**, which means a
+/// join. `ORDER BY ewe` on `ewe_touches` compiles, runs, and is stable on the
+/// exporting phone; it is a different order after a restore.
+///
+/// **This rule is about the backup only.** The three CSVs order by the keys
+/// `09 §3` names, because a CSV is read by a human in the order a shepherd thinks
+/// in, and no CSV is ever re-imported.
+const Map<String, List<String>> kBackupOrderKeys = <String, List<String>>{
+  'app_settings': <String>[], // exactly one row
+  'ewe_touches': <String>['ewe_uid'],
+  'pen_occupancy_lambs': <String>['occupancy_uid', 'lamb_uid'],
+  'reminder_rules': <String>['kind'], // a stored key
+  'terminology_overrides': <String>['key'],
+};
+
+/// Every foreign key that points at a **row**, per table: the SQLite column name
+/// mapped to the table it points at.
+///
+/// The emitted key is the column name with `_uid` appended and the value is the
+/// parent row's uid (#32). The raw integer is never written: it is re-issued on
+/// import, so a file carrying it carries a pointer that stops pointing.
+///
+/// **THE FIVE VOCABULARY FOREIGN KEYS ARE DELIBERATELY ABSENT.**
+/// `lambings.presentation`, `lambs.death_cause`, `treatments.route`,
+/// `ewe_observations.kind` and `foster_events.method` point at `vocab_terms.key`,
+/// and the key *is* the identity — `03 §5.12`: *"globally unique, list-prefixed,
+/// ASCII, stable forever… never translated and never edited."* So the column
+/// keeps its own name and its own value: `"route": "rt_subcutaneous"`, never
+/// `"route_uid"`.
+const Map<String, Map<String, String>> kBackupForeignKeys = <String, Map<String, String>>{
+  'app_settings': <String, String>{
+    'current_season': 'seasons',
+    'export_prompt_dismissed_for_season': 'seasons',
+  },
+  // `care_events` has NO `ewe` column — the first draft of this map guessed one
+  // and the SELECT failed with `no such column: t.ewe`. That is why
+  // `backup_format_test.dart` asserts every declared column exists on its table:
+  // a map written from memory is a map that is wrong in exactly one place.
+  'care_events': <String, String>{'season': 'seasons', 'lambing': 'lambings', 'lamb': 'lambs'},
+  'ewe_observations': <String, String>{'ewe': 'ewes', 'season': 'seasons', 'lambing': 'lambings'},
+  'ewe_seasons': <String, String>{'season': 'seasons', 'ewe': 'ewes'},
+  'ewe_touches': <String, String>{'ewe': 'ewes'},
+  'foster_events': <String, String>{'lamb': 'lambs', 'season': 'seasons', 'rearing_dam': 'ewes'},
+  'lambings': <String, String>{'season': 'seasons', 'ewe': 'ewes'},
+  'lambs': <String, String>{'lambing': 'lambings', 'birth_dam': 'ewes', 'became_ewe': 'ewes'},
+  'media_assets': <String, String>{'ewe': 'ewes', 'lamb': 'lambs', 'lambing': 'lambings'},
+  'notes': <String, String>{
+    'ewe': 'ewes',
+    'lamb': 'lambs',
+    'lambing': 'lambings',
+    'season': 'seasons',
+  },
+  'pen_occupancies': <String, String>{'pen': 'pens', 'ewe': 'ewes', 'season': 'seasons'},
+  'pen_occupancy_lambs': <String, String>{'occupancy': 'pen_occupancies', 'lamb': 'lambs'},
+  'reminders': <String, String>{
+    'ewe': 'ewes',
+    'lamb': 'lambs',
+    'lambing': 'lambings',
+    'treatment': 'treatments',
+    'season': 'seasons',
+  },
+  'treatment_withdrawals': <String, String>{'treatment': 'treatments'},
+  'treatments': <String, String>{'season': 'seasons', 'ewe': 'ewes', 'lamb': 'lambs'},
+};
+
+/// A container, not a fact (`09 §5.3`) — and it is **never emitted as a column**.
+///
+/// T03 splats its contents at the row's top level. Emitting it here "for now"
+/// would make every byte-equality case pass while the format is wrong.
+const String kUnknownJsonColumn = 'unknown_json';
+
+/// The integer primary key, dropped from every emitted row: it is re-issued on
+/// import, so writing it writes a number that means something different on the
+/// next phone.
+const String kRowIdColumn = 'id';

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 9 (1 of 2) |
+| **Ships in** | `v1.1.0` |
 | **Depends on** | N23 |
 | **Size** | L |
 | **Was** | E20, plus the fixture regeneration the old plan never scheduled |
@@ -27,6 +28,34 @@ could have told the shepherd why.
 the gateway and its fake, the eight channels, the rows inside the write transactions, the reconciler,
 the permissions and receivers, the tap path — and the two fixtures, regenerated now that reminder rows
 finally have a writer.
+
+## Release scope — P15
+
+**This epic ships in `v1.1.0`, built February–May 2027 and released on 1 June 2027.**
+
+It is the largest single deferral in the split — fourteen tasks with N25 — and it is deferred for its
+risk profile rather than its size. It is the only feature in the backlog whose correctness depends on
+undocumented OS behaviour: Apple's ceiling is 64 pending requests and the behaviour above it is
+*permanently undefined*, while a 400-ewe flock in one peak week produces roughly 500. Its failure mode
+is **silent** — a dropped reminder looks exactly like one that was never due. Shipping that for the
+first time, into the first season, three weeks before a freeze during which `13 §11` forbids fixing
+it, is the worst-timed thing in the plan.
+
+Three consequences, and each is a reason deferring is *safer* than shipping, not merely cheaper:
+
+- **`v1.0.0` creates no channel**, so #63/#65's *ids are frozen at release* freezes nothing and T03 is
+  the first and only place the eight ids are fixed. Getting them wrong later orphans every scheduled
+  reminder on every installed device; there is now exactly one chance to get them right, not two.
+- **`v1.0.0`'s permission set is strictly smaller.** `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`
+  and `SCHEDULE_EXACT_ALARM` arrive with this epic. N31-T01 names them in
+  `android/expected_permissions.txt` as the `v1.1.0` delta, so the day G1 goes red the answer is in a
+  file. **This epic edits that file and G1 in the same branch.**
+- **A lambing recorded in `v1.0.0` gets no reminders.** No rows are written, so there is nothing to
+  project. Deliberate: by June 2027 every reminder a February lambing would have raised is months
+  past, and writing rows nothing reads is a shape this project uses nowhere else.
+
+Decision-record §7.1 item **17** — *does the free tier cap reminders too?* — expires with this epic
+rather than before the first release.
 
 ## Why the epic sits here — `00-README` §9's reasoning, not re-derived
 

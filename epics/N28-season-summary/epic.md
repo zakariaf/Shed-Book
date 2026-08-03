@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 10 (3 of 4) |
+| **Ships in** | `v1.1.0` |
 | **Depends on** | N27 |
 | **Size** | L |
 | **Was** | E24, closer task deleted |
@@ -19,6 +20,22 @@ recorded barren, 1 with no recorded outcome — reads **120% / 100% / 80% / 200%
 legitimate published definitions (`05-domain-correctness.md` §6). A bare number leaving this screen
 is a number a shepherd quotes over a gate. So every figure here ships welded to the sentence that
 defines it, and every figure that cannot be computed says so in words.
+
+## Release scope — P15
+
+**`v1.1.0`.** Third of the six `v1.1.0` branches, after N24 and N25 and before the three deferred
+tails; it depends on N27, which merged in `v1.0.0`.
+
+**What covers it until June 2027.** `v1.0.0`'s three CSV shapes — one row per lamb, per ewe, per
+treatment — carry every number this screen derives. A shepherd who wants their lambing percentage in
+April 2027 opens a spreadsheet. That is a weaker answer than it sounds only until you read `05 §6`:
+the same toy season reads **120% / 100% / 80% / 200%** under four legitimate published definitions, so
+a shepherd computing it themselves is choosing the one they already quote over a gate — which is what
+this screen would have made configurable anyway.
+
+**And T05 cannot run in `v1.0.0` at all.** *Comparison against previous seasons once they exist* has
+none in a first season, by construction. Shipping this epic into the 2027 season would have shipped
+one task that renders its own empty state and nothing else.
 
 ## Why the epic sits here
 

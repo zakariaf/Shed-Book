@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 4 (3 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N10 |
 | **Size** | L |
 | **Was** | E09a — the half that touches native files |

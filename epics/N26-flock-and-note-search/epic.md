@@ -3,7 +3,8 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 10 (1 of 4) |
-| **Depends on** | N25 |
+| **Ships in** | **split** — `v1.0.0` T01 T02 T03 T04 T07 · `v1.1.0` T05 T06 (note search) |
+| **Depends on** | N23 — the old N25 edge was linear order alone (P15 §6) |
 | **Size** | L |
 | **Was** | E22 + E25, absorbed |
 | **Branch** | `epic/n26-flock-and-note-search` — one pull request, merged before the next epic is cut |
@@ -28,6 +29,31 @@ disagree about something this epic has to build:
 | **N1** | T02 | `07 §3.1`'s `under_withdrawal` predicate treats *"withdrawal not recorded"* as *"not under treatment"*, which is the one direction spec §12.1 does not permit |
 | **N2** | T03 | `07 §3.1` selects `WHERE e.status = 'active'` — Indelible §7.4 keeps a struck ewe **in the list**, at the bottom, under a printed `STRUCK — 1` rule. Both cannot ship |
 | **N3** | T04 | `07 §3.3` says the `duplicateActiveTag` warning *"never blocks the create"*; `03 §6`'s partial unique index makes a second **active** 412 unstorable. `00-README` §10 lists this as a **known open contradiction** and N14-T01 defers it here by name |
+
+## Release scope — P15
+
+**Five tasks ship in `v1.0.0`; note search waits for `v1.1.0`.**
+
+| | |
+|---|---|
+| `v1.0.0` | **T01** `flockListProvider` · **T02** the five filters and ruling **N1** · **T03** the 88 px row · **T04** add a ewe · **T07** the Flock matrix variant |
+| `v1.1.0` | **T05** `noteSearchProvider` over FTS5 · **T06** hit rendering, navigation, the three empty states, and T07's second matrix variant |
+
+**Ruling N1 is in the `v1.0.0` half and stays there.** `07 §3.1`'s `under_withdrawal` predicate treats
+*withdrawal not recorded* as *not under treatment*, which is the one direction spec §12.1 does not
+permit — a safety ruling does not wait for a second release.
+
+**Deferring search costs nothing, and that is checkable rather than asserted.**
+`lib/core/db/search.drift` keeps `search_docs` and `search_fts` in step through **SQL triggers, not
+Dart** — five source-table trios, and the file says why: *"a Dart projection is one repository method
+away from being skipped, and a note that is not in the index is a note the shepherd cannot find."* The
+index is therefore maintained by `v1.0.0` with no code and no task, so **`v1.1.0`'s search finds every
+note written in the 2027 season.** Nothing is backfilled because nothing is missed.
+
+Until then notes are read on the Ewe Card and the Lamb Card, both of which ship in `v1.0.0`.
+
+**Depends on N23, not N25.** The old edge was linear order alone: Flock reads `ewes` and the filters,
+neither of which N24 or N25 touches.
 
 ## Why the epic sits here
 

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 5 (1 of 2) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N12 |
 | **Size** | M |
 | **Was** | E10 |

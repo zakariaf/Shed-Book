@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 5 (2 of 2) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N13 |
 | **Size** | M |
 | **Was** | E11, with `createEwe` taking `EntryContext` |

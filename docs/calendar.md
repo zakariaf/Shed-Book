@@ -30,6 +30,32 @@ by a parser, exactly as a CSV carries an ISO-8601 column beside its human one.
 | `price_and_territories` | The exact price and the territory list, read in Play Console | | before the first submission | | | A price set from a secondary source, wrong for three years |
 | `store_identifiers` | Application id / bundle id and the unlock product id, created on both stores | | before N32 | | The application id and bundle id half is **done**: `com.shedbook.shedbook`, fixed in N00-T01 and recorded in `RELEASES.md`'s header and decision #129. The unlock product id is fixed as **`shed_book_unlock`** — one id, identical on both stores — but has **not been created** on either: a non-consumable in App Store Connect and a one-time (managed) product in Play Console. That half is N00-T09's and needs the accounts first | Two stores keyed on a string nobody wrote down |
 
+## P15 turned three of these due points into dates
+
+**Ruled 2026-08-03** (decision record §7.0c, scope in [`RELEASE-SCOPE.md`](RELEASE-SCOPE.md)). The
+product ships twice, and `v1.0.0` has to be in the store before **1 February 2027** because `13 §11`
+freezes releases 1 Feb – 30 Apr and that is the only time of year this app is used. A release that
+misses it slips by a year.
+
+The `Due` column stays expressed in epics, which is right — it is the column a developer reads. But
+three rows now also have a calendar date behind them, and they are the three that need somebody else:
+
+| Key | Reads | Now also means |
+|---|---|---|
+| `twelve_testers` | before N32 | **~November 2026.** Play counts testers who joined the closed track via the opt-in link, for **fourteen continuous days**, before production. Working back from a mid-December submission, the link has to be live in November — and this row is still empty |
+| `developer_accounts` | before N32 | **~October 2026.** Both accounts must exist before the app record, the closed track and TestFlight do; Apple's enrolment is not same-day |
+| `store_identifiers` | before N32 | **~October 2026**, its unresolved half. `shed_book_unlock` has to exist as a non-consumable in App Store Connect and a one-time managed product in Play Console, and it needs the accounts first |
+
+`apple_sbp_enrolment` and `price_and_territories` read *before the first sale* and *before the first
+submission*, and those now resolve to **mid-December 2026** by the same arithmetic.
+
+**`field_night` and `ziplock_capacitance` are unaffected and remain the two that are late.** Their due
+point was *before N13*, N13 merged in 2026, and the honest reading is that both were missed rather
+than moved. The 2027 lambing season — February to April — is the next window a shed night can be
+booked in at all, and it falls **during the freeze**, which is a good time to observe and a forbidden
+time to ship. Recording that here rather than quietly re-dating the rows is what §0 of this file
+requires.
+
 ## How the columns are read
 
 ```

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 11 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N29 |
 | **Size** | L |
 | **Was** | E27, minus the `FreeTierPolicy` wiring which moved to N06 and N14 |

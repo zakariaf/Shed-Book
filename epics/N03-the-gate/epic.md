@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 1 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N02 |
 | **Size** | L |
 | **Was** | E02, with the two `copy.*` content rules deferred to N06-T09 |

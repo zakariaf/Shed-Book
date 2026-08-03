@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 9 (2 of 2) |
+| **Ships in** | `v1.1.0` |
 | **Depends on** | N24 |
 | **Size** | M |
 | **Was** | E21, closer task deleted |
@@ -18,6 +19,19 @@ N24 built the durable half: `reminders` rows written inside the lambing and trea
 `ReminderBudget.forPlatform()`, `NotificationScheduler`, the eight channels, `ReminderReconciler.reconcile()`
 and the two regenerated fixtures. **Nothing in N24 renders.** This epic is the only place a shepherd can
 see what the app knows, and the only place the app admits what the OS will not hold.
+
+## Release scope — P15
+
+**`v1.1.0`, with N24.** Nothing in N24 renders and nothing here exists without it, so the pair moves
+together; the reasoning is in [N24's release-scope section](../N24-reminders-rows-reconcile-and-the-fixtures/epic.md).
+
+Two things this epic owes the split:
+
+- **`kPumpableVariants` gains its Reminders entry here, not in N33.** `v1.0.0`'s overflow matrix is
+  **eleven** variants, not fourteen (N33-T01), and the membership test is derived from the built
+  screens precisely so a half-landed screen fails loudly rather than quietly.
+- **T05's `reminder_rules` is user-configurable interval editing**, which is the half of spec §7.10
+  that N29-T03 does not cover. Both land in `v1.1.0`; neither is cut.
 
 ## Why it sits here — `00-README` §9's reasoning, not re-derived
 

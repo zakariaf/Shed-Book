@@ -3,7 +3,8 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 10 (4 of 4) |
-| **Depends on** | N28 |
+| **Ships in** | **split** — `v1.0.0` T01 T02 T04 T05 T07 T08 · `v1.1.0` T03 T06 (terminology, the two deletes) |
+| **Depends on** | N27 — the old N28 edge was linear order alone (P15 §6) |
 | **Size** | L |
 | **Was** | E26, plus the `WakelockController` gateway the old plan never gave a task |
 | **Branch** | `epic/n29-settings` — one pull request, merged before the next epic is cut |
@@ -26,6 +27,38 @@ destructive one at 4, and the deliberate friction is the feature rather than a c
 one screen in the product where the word *delete* is honest**: `indelible.md` §9 says of the rest of
 the app *"there is no delete. Not banned — absent."* Two verbs on this screen are the exception, and
 `ON DELETE CASCADE` has already run by the time the shepherd sees the result.
+
+## Release scope — P15
+
+**Six tasks ship in `v1.0.0`; two wait for `v1.1.0`.**
+
+| | |
+|---|---|
+| `v1.0.0` | **T01** the screen · **T02** units · **T04** appearance, high contrast, the left-handed mirror and `WakelockController` · **T05** season start date, switching and `startSeason` · **T07** Diagnostics and About · **T08** the matrix variant and the deliberate friction |
+| `v1.1.0` | **T03** terminology editing · **T06** the two honest deletes |
+
+**T05 is not deferrable and the reason is a dependency, not a preference.** N30-T04 wires the
+entitlement source into the two gated verbs and one of them is `startSeason`. The free tier is
+season-primary (§7.0 question 8), so without T05 there is no second season to gate and no cap to sell
+against.
+
+**T07 is not deferrable either, and it is the one people will argue about.** There is no crash
+reporting in this product and there never will be — the diagnostics log is the **only** way a shepherd
+can tell you what went wrong. A first release with no telemetry by design needs it more than a fifth
+one does.
+
+**Why terminology waits.** The authored defaults ship in `v1.0.0` and every screen already reads
+`terminologyProvider`, in the DI graph since N12-T02, so the labels are correct for the region the
+owner ruled first (§7.0 question 3) — they simply cannot be edited yet. `reminder_rules` interval
+editing, the other half of spec §7.10, is N25-T05 and also `v1.1.0`.
+
+**Why the two deletes wait.** `v1.0.0`'s honest answer to *delete everything* is **uninstall** — with
+no account and no server that genuinely is all of it, which About can print without qualification. And
+deleting a season is destructive, irreversible, priced at four taps by `07 §14.4`, and there is no
+season worth deleting in a first season.
+
+**Depends on N27, not N28.** The old edge was linear order alone: this screen composes over
+`SettingsRepository`, built at N12-T02.
 
 ## Why the epic sits here
 

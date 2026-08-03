@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 4 (1 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N08 |
 | **Size** | L |
 | **Was** | E08, with the two sweeps that iterate `kPumpableVariants` moved to N33 |

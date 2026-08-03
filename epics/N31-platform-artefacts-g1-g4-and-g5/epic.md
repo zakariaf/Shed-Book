@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 12 (1 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N30 |
 | **Size** | L |
 | **Was** | E29 minus T01 (G0 ran at N02) and minus T06 (identifiers fixed at N00-T01) |
@@ -22,6 +23,24 @@ directive that evidence supports lands in the manifest, `tool/assert_permissions
 dependency adds a permission there is a record of which one and when, and the iOS surface — three
 usage strings, one appearance key, four absences — is held by the only two mechanisms iOS gives you:
 construction, and one observed pass on a real device.
+
+## Release scope — P15
+
+**`v1.0.0` — and T01 writes `v1.0.0`'s permission set, which is smaller than the doc set anticipates.**
+
+Reminders ship in `v1.1.0`, so **`POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED` and
+`SCHEDULE_EXACT_ALARM` are not in this release's `.aab`** and must not be in
+`android/expected_permissions.txt`, because G1 asserts **set equality** rather than containment.
+
+**T01 writes those three lines anyway — commented, named, with the epic that adds them (N24).** The
+day G1 goes red somebody has five minutes to decide whether a permission appeared because we added a
+feature or because a dependency did, and decision-record §3.2 is built entirely on that being
+answerable from a file rather than from memory. A delta nobody wrote down in advance is a delta that
+gets waved through.
+
+This is a **gain** for `v1.0.0`, not a cost: the release that first argues offline purity to a store
+reviewer, a shepherd and a forum ships with three fewer permissions than planned. Say so in the G4
+archive note, because it will be the first thing a second reader compares against N02's evidence.
 
 ## Why the epic sits here
 

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 1 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N00 (merged) |
 | **Size** | M |
 | **Was** | E01, plus the ARB bootstrap, the `test` job and the PR template |

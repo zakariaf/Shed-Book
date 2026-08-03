@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 4 (2 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N09 |
 | **Size** | L |
 | **Was** | new — the largest hole in the old plan |

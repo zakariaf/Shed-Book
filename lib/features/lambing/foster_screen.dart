@@ -11,9 +11,10 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
@@ -91,13 +92,10 @@ class FosterScreen extends ConsumerWidget {
             children: <Widget>[
               Padding(
                 padding: EdgeInsets.all(t.gapMin),
-                child: Semantics(
-                  headingLevel: 1,
-                  child: Text(
-                    l10n.fosterTitle,
-                    key: const Key('foster.title'),
-                    style: Theme.of(context).textTheme.labelMedium,
-                  ),
+                child: ShedSectionHeading(
+                  key: const Key('foster.title'),
+                  label: l10n.fosterTitle,
+                  level: 1,
                 ),
               ),
               // FLEXIBLE, NOT EXPANDED, AND MEASURED. `Expanded` fills whatever
@@ -116,6 +114,16 @@ class FosterScreen extends ConsumerWidget {
                   // carries the ewe's tag, so `foster.target.128` is the tap
                   // the budget test counts.
                   if (matches.isEmpty)
+                    // NOT `ShedEmptyState`, AND THE ATTEMPT IS WHY THIS COMMENT
+                    // IS LONGER THAN THE CODE. That component is
+                    // `double.infinity` in BOTH axes, so it needs a BOUNDED
+                    // parent; this line sits inside a scroll view, above the
+                    // two no-ewe targets, and swapping it in threw
+                    // `BoxConstraints forces an infinite height`.
+                    //
+                    // Which vindicates the original reading: this is not the
+                    // SCREEN's empty state. There is content below it, and the
+                    // shepherd is mid-tag rather than looking at nothing.
                     Padding(
                       padding: EdgeInsets.all(t.gapMin),
                       child: Text(
@@ -128,27 +136,27 @@ class FosterScreen extends ConsumerWidget {
                     )
                   else
                     for (final DeckEntry e in matches)
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
-                        child: ShedTapTarget(
-                          key: Key('foster.target.${e.tag}'),
-                          semanticLabel: l10n.fosterOnto(tag: e.tag),
-                          minSize: t.tapPrimary,
-                          // ONE TAP, AND IT IS THE WRITE. No confirm.
-                          onTap: () => write().recordFoster(
-                            lambId,
-                            ToEwe(e.eweId),
-                            currentRearingDam: rearingDam,
-                          ),
-                          child: ExcludeSemantics(
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                l10n.fosterOnto(tag: e.tag),
-                                style: Theme.of(context).textTheme.bodyMedium,
-                              ),
-                            ),
-                          ),
+                      // `ShedAnimalRow`, WHICH THIS SCREEN WAS THROWING
+                      // AWAY. It measures the tabular tag column against
+                      // `MediaQuery.textScalerOf` so 412 / 128 / 77 align on the
+                      // units digit — which is how a shepherd finds a tag in a
+                      // list by shape rather than by reading every row.
+                      //
+                      // THE KEY STAYS TAG-BASED even though `in_pens_strip.dart`
+                      // argues for the ewe id under R59: `07 §8.2`'s budget case
+                      // names `foster.target.128` verbatim, so changing it would
+                      // break a published test contract. The tension is real and
+                      // is recorded rather than resolved here.
+                      ShedAnimalRow(
+                        key: Key('foster.target.${e.tag}'),
+                        tag: e.tag,
+                        summary: e.penLabel ?? '',
+                        semanticLabel: l10n.fosterOnto(tag: e.tag),
+                        // ONE TAP, AND IT IS THE WRITE. No confirm.
+                        onTap: () => write().recordFoster(
+                          lambId,
+                          ToEwe(e.eweId),
+                          currentRearingDam: rearingDam,
                         ),
                       ),
                   SizedBox(height: t.gapMin),

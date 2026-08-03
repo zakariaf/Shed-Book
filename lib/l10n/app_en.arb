@@ -1059,5 +1059,94 @@
   "withdrawalRecomputed": "TODAY'S ARITHMETIC {date}",
   "@withdrawalRecomputed": {
     "description": "Labels the recomputed date, shown second and only when it disagrees. It is an observation, never an offer: there is no button beside it."
+  },
+  "treatmentsTitle": "TREATMENTS",
+  "@treatmentsTitle": {
+    "description": "The screen's heading, headingLevel 1."
+  },
+  "treatmentsModeCountdown": "RUNNING",
+  "@treatmentsModeCountdown": {
+    "description": "The countdown segment. It shows what is still under withdrawal - the question at the gate, 'can she go?'. It is the segment the screen OPENS on, because the book is what they open in the office. Never 'Active' and never 'Current': running is what a withdrawal does."
+  },
+  "treatmentsModeBook": "BOOK",
+  "@treatmentsModeBook": {
+    "description": "The medicine-book segment. indelible.md 8 screen 8: the book is not a separate view, it is the book filtered to treatments. It shows voided rows too, struck and marked, because a voided treatment may already be printed in a book handed to a vet."
+  },
+  "treatmentsVoided": "VOIDED {date}",
+  "@treatmentsVoided": {
+    "description": "The voided stamp in book mode. The row STAYS and is struck rather than removed - 12.3 and 09 3.2: the export marks voided rows rather than dropping them, because the app must never disagree with a book somebody already has.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentsClears": "CLEARS {date}",
+  "@treatmentsClears": {
+    "description": "The countdown line. It prints the STORED clear date and never recomputes one. There is no 'she is clear' copy anywhere: leaving the countdown is not the same as claiming a negative, and only the shepherd and their vet can say the second.",
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentsNoWithdrawal": "NOT RECORDED",
+  "@treatmentsNoWithdrawal": {
+    "description": "WithdrawalUnknown on a treatment row - no withdrawal row exists at all. Absence IS the state (12.1) and it says so - it does NOT say the animal is clear, which would be the app answering a clinical question nobody asked it. 10 5.2 names this word: NOT RECORDED, never 0 and never blank. It is NOT the same as treatmentsNotApplicable, and the row that printed one sentence for both was the defect that split them."
+  },
+  "treatmentsCountdown": "{tag} · {target}",
+  "@treatmentsCountdown": {
+    "description": "The line above a countdown, naming WHO and WHICH TARGET. The target is spelled on every countdown because one product routinely prints a meat figure and a milk figure, and a countdown with no target named is a number a shepherd could apply to the wrong one.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentsCountdownSemantics": "{tag}, {target}, {product}, clears {date}",
+  "@treatmentsCountdownSemantics": {
+    "description": "The spoken form of one countdown row. It does NOT speak the day tally - the tally and the figure are the same fact in two channels, and a screen reader that read both would say the number twice.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      },
+      "product": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentsNotApplicable": "NOT APPLICABLE",
+  "@treatmentsNotApplicable": {
+    "description": "NoWithdrawal on a treatment row - the shepherd read the label and it said none applies. A RECORDED FACT, and the whole reason it cannot share a word with treatmentsNoWithdrawal: one is something somebody read, the other is a gap nobody filled. 10 5.2 row 8."
+  },
+  "treatmentsRepeatLast": "REPEAT LAST",
+  "@treatmentsRepeatLast": {
+    "description": "Opens the repeat flow. It shows the previous entry WITH its provenance so the shepherd can read what they entered last time, and the withdrawal days are NOT carried across - copying them would make the app the source of a clinical figure for a treatment nobody read a label for (12.1)."
+  },
+  "treatmentsRepeatOnto": "ONTO {tag}",
+  "@treatmentsRepeatOnto": {
+    "description": "One animal target in the repeat flow. One tap commits, which is the second of the two taps 07 10 budgets.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "treatmentsEmpty": "NOTHING RECORDED YET",
+  "@treatmentsEmpty": {
+    "description": "The empty state. Not an error and not a prompt: a flock that has treated nothing has treated nothing, and the screen says so rather than inviting them to start."
+  },
+  "treatmentsUntagged": "UNTAGGED",
+  "@treatmentsUntagged": {
+    "description": "A treatment on a lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number."
   }
 }

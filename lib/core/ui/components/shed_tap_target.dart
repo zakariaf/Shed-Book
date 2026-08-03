@@ -24,6 +24,7 @@ class ShedTapTarget extends StatelessWidget {
     super.key,
     this.minSize,
     this.onTapHint,
+    this.selected,
   });
 
   /// Null means disabled. A disabled target is still a target — it keeps its
@@ -49,12 +50,23 @@ class ShedTapTarget extends StatelessWidget {
   /// which is one more reason the `Semantics(onTap:)` line below is mandatory.
   final String? onTapHint;
 
+  /// **STATE GOES HERE, NEVER IN THE LABEL** (`10 §3.2` rule 2). A word button
+  /// that announces *"Barren, selected"* has a label that no longer matches its
+  /// visible text, which is rule 3 of the same section — and a screen reader then
+  /// reads the state twice, once from the string and once from the node.
+  ///
+  /// Null for a control that has no selected/unselected axis at all, which is
+  /// most of them: `Semantics.selected` on a plain button announces it as a
+  /// toggle that is currently off.
+  final bool? selected;
+
   @override
   Widget build(BuildContext context) {
     final double size = minSize ?? context.tokens.tapMin;
     return Semantics(
       button: true,
       enabled: onTap != null,
+      selected: selected,
       label: semanticLabel,
       // MANDATORY, AND THE LINE EVERYBODY DELETES. ExcludeSemantics below drops
       // the GestureDetector's own SemanticsAction.tap, so without this the node

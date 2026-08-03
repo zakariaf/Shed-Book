@@ -358,6 +358,21 @@ SELECT * FROM penned UNION ALL SELECT * FROM recents;
 /// *barren* and *not yet lambed* are different questions and a shepherd may want
 /// both at once. An enum would make the screen build a second statement the day
 /// somebody ticks two boxes, and `07 §1.2` allows one.
+/// Spec §7.7's five, in the order `indelible.md §8` prints them on the filter
+/// line. **The stored keys are the ARB keys and the widget keys; spell them
+/// once** — three spellings of one filter is two of them going stale.
+enum FlockFilter {
+  notYetLambed('not_yet_lambed'),
+  currentlyPenned('currently_penned'),
+  underTreatment('under_treatment'),
+  tripletBearing('triplet_bearing'),
+  barren('barren');
+
+  const FlockFilter(this.key);
+
+  final String key;
+}
+
 final class FlockFilters {
   const FlockFilters({
     this.barren = false,
@@ -375,6 +390,46 @@ final class FlockFilters {
 
   bool get isEmpty =>
       !barren && !notYetLambed && !tripletBearing && !currentlyPenned && !underTreatment;
+
+  bool has(FlockFilter f) => switch (f) {
+    FlockFilter.barren => barren,
+    FlockFilter.notYetLambed => notYetLambed,
+    FlockFilter.tripletBearing => tripletBearing,
+    FlockFilter.currentlyPenned => currentlyPenned,
+    FlockFilter.underTreatment => underTreatment,
+  };
+
+  FlockFilters toggle(FlockFilter f) => FlockFilters(
+    barren: f == FlockFilter.barren ? !barren : barren,
+    notYetLambed: f == FlockFilter.notYetLambed ? !notYetLambed : notYetLambed,
+    tripletBearing: f == FlockFilter.tripletBearing ? !tripletBearing : tripletBearing,
+    currentlyPenned: f == FlockFilter.currentlyPenned ? !currentlyPenned : currentlyPenned,
+    underTreatment: f == FlockFilter.underTreatment ? !underTreatment : underTreatment,
+  );
+
+  /// **VALUE EQUALITY, AND IT IS LOAD-BEARING RATHER THAN TIDY.** This type is a
+  /// Riverpod `.family` argument, and a family keys its providers by `==`. Two
+  /// equal-but-distinct filter sets would be two providers, two subscriptions and
+  /// two statements over four hundred rows — and the first one would never be
+  /// disposed. T01 shipped without it and got away with it only because the
+  /// notifier hands back the same instance until the state changes, which is
+  /// identity holding by luck rather than equality holding by construction.
+  ///
+  /// This is also why the type is not `Set<FlockFilter>`, which N26-T02 §5.2
+  /// prints: a Dart `Set` has no value equality either, so it would carry the
+  /// same defect with none of the compile-time help.
+  @override
+  bool operator ==(Object other) =>
+      other is FlockFilters &&
+      other.barren == barren &&
+      other.notYetLambed == notYetLambed &&
+      other.tripletBearing == tripletBearing &&
+      other.currentlyPenned == currentlyPenned &&
+      other.underTreatment == underTreatment;
+
+  @override
+  int get hashCode =>
+      Object.hash(barren, notYetLambed, tripletBearing, currentlyPenned, underTreatment);
 }
 
 /// One row of the flock list, as the statement returns it.
@@ -395,6 +450,9 @@ final class FlockRow {
     required this.lambsBornAlive,
     required this.assistedLambings,
     required this.isPenned,
+    required this.barren,
+    required this.notYetLambed,
+    required this.tripletBearing,
     required this.latestClearDate,
     required this.unrecordedWithdrawal,
     required this.hasWarning,
@@ -415,6 +473,16 @@ final class FlockRow {
   final int? assistedLambings;
 
   final bool isPenned;
+
+  /// `ewe_seasons.status = 'barren'` (R42) — a stored ANSWER, not the absence of
+  /// a lambing. `CONVENTIONS §5.1` keeps this word away from *empty* and *not in
+  /// lamb* precisely because it is a different fact from [notYetLambed].
+  final bool barren;
+
+  /// In lamb and still waiting: in the season, and no lambing written in it.
+  final bool notYetLambed;
+
+  final bool tripletBearing;
 
   /// The stored TEXT civil date of the furthest-out live `days` withdrawal, or
   /// null if she carries none. **Read, never derived** — it is the date the
@@ -489,14 +557,54 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                 WHERE t.ewe = e.id AND t.voided_at IS NULL
                   AND NOT EXISTS (SELECT 1 FROM treatment_withdrawals w
                                    WHERE w.treatment = t.id))        AS unrecorded_withdrawal,
+       -- **THE FILTER PREDICATES AS COLUMNS.** The counts Indelible prints after
+       -- each word are then derived in Dart from ONE result set, instead of six
+       -- more statements — and every one of them is clock-free, so the same row
+       -- answers correctly tomorrow.
+       EXISTS (SELECT 1 FROM ewe_seasons es
+                WHERE es.ewe = e.id
+                  AND es.season = (SELECT current_season FROM app_settings WHERE id = 1)
+                  AND es.status = 'barren')                          AS barren,
+       (EXISTS (SELECT 1 FROM ewe_seasons es
+                 WHERE es.ewe = e.id
+                   AND es.season = (SELECT current_season FROM app_settings WHERE id = 1)
+                   AND es.status IN ('to_ram','scanned'))
+        AND NOT EXISTS (SELECT 1 FROM lambings lg
+                         WHERE lg.ewe = e.id
+                           AND lg.season = (SELECT current_season FROM app_settings
+                                             WHERE id = 1)))         AS not_yet_lambed,
+       EXISTS (SELECT 1 FROM lambings lg
+                 JOIN lambs lb ON lb.lambing = lg.id
+                WHERE lg.ewe = e.id
+                GROUP BY lg.id HAVING COUNT(lb.id) >= 3)             AS triplet_bearing,
        EXISTS (SELECT 1 FROM lambing_consistency lc
                  JOIN lambings lg ON lg.id = lc.lambing_id
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
   FROM ewes e
   LEFT JOIN ewe_summaries s ON s.ewe = e.id
  WHERE e.status = 'active'
-   AND (? = 0 OR COALESCE(s.lambings_recorded, 0) = 0)
-   AND (? = 0 OR NOT EXISTS (SELECT 1 FROM lambings lg WHERE lg.ewe = e.id))
+   -- **BARREN IS A STORED STATUS, NOT AN ABSENCE OF LAMBINGS** (R42,
+   -- `03 §5.3`). It is `ewe_seasons.status = 'barren'` — the shepherd scanned
+   -- her and she is not in lamb. T01 wrote this as `lambings_recorded = 0`,
+   -- which is a different question with the same answer shape, and made *barren*
+   -- and *not yet lambed* the same filter wearing two words. `CONVENTIONS §5.1`
+   -- keeps those words apart for exactly this reason.
+   AND (? = 0 OR EXISTS (SELECT 1 FROM ewe_seasons es
+                          WHERE es.ewe = e.id
+                            AND es.season = (SELECT current_season FROM app_settings WHERE id = 1)
+                            AND es.status = 'barren'))
+   -- **NOT YET LAMBED IS *IN LAMB AND STILL WAITING*.** She is in this season —
+   -- there is an `ewe_seasons` row — and no lambing has been written for her in
+   -- it. A ewe with no `ewe_seasons` row at all is not in the season and is not
+   -- waiting for anything; a barren one has an answer already.
+   AND (? = 0 OR (EXISTS (SELECT 1 FROM ewe_seasons es
+                           WHERE es.ewe = e.id
+                             AND es.season = (SELECT current_season FROM app_settings WHERE id = 1)
+                             AND es.status IN ('to_ram','scanned'))
+                  AND NOT EXISTS (SELECT 1 FROM lambings lg
+                                   WHERE lg.ewe = e.id
+                                     AND lg.season = (SELECT current_season FROM app_settings
+                                                       WHERE id = 1))))
    AND (? = 0 OR EXISTS (SELECT 1 FROM lambings lg
                            JOIN lambs lb ON lb.lambing = lg.id
                           WHERE lg.ewe = e.id
@@ -555,6 +663,8 @@ const String flockListSqlForTest = _flockListSql;
 Set<ResultSetImplementation<dynamic, dynamic>> _flockReads(AppDatabase db) =>
     <ResultSetImplementation<dynamic, dynamic>>{
       db.ewes,
+      db.eweSeasons,
+      db.appSettings,
       db.eweSummaries,
       db.penOccupancies,
       db.treatments,
@@ -573,6 +683,9 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   lambsBornAlive: r.readNullable<int>('lambs_born_alive'),
   assistedLambings: r.readNullable<int>('assisted_lambings'),
   isPenned: r.read<int>('is_penned') == 1,
+  barren: r.read<int>('barren') == 1,
+  notYetLambed: r.read<int>('not_yet_lambed') == 1,
+  tripletBearing: r.read<int>('triplet_bearing') == 1,
   latestClearDate: r.readNullable<String>('latest_clear_date'),
   unrecordedWithdrawal: r.read<int>('unrecorded_withdrawal') == 1,
   hasWarning: r.read<int>('has_warning') == 1,

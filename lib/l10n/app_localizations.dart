@@ -1645,6 +1645,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tag {tag}'**
   String flockRowLabel({required String tag});
+
+  /// 07 §3.2 / indelible.md §8 Screen 1. The filter line's first word — tapping it clears every filter.
+  ///
+  /// In en, this message translates to:
+  /// **'ALL {count}'**
+  String flockFilterAll({required int count});
+
+  /// In lamb and still waiting: an ewe_seasons row of to_ram or scanned, and no lambing this season. NOT the same question as barren (R42).
+  ///
+  /// In en, this message translates to:
+  /// **'NOT YET LAMBED {count}'**
+  String flockFilterNotYetLambed({required int count});
+
+  /// An open pen_occupancies row. 'penned', never 'housed' (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'IN THE PENS {count}'**
+  String flockFilterCurrentlyPenned({required int count});
+
+  /// A live treatment still running OR one whose withdrawal nobody recorded — unknown is never clear (ruling N1, spec §12.1).
+  ///
+  /// In en, this message translates to:
+  /// **'UNDER TREATMENT {count}'**
+  String flockFilterUnderTreatment({required int count});
+
+  /// Three or more lambs on a single lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'TRIPLET-BEARING {count}'**
+  String flockFilterTripletBearing({required int count});
+
+  /// ewe_seasons.status = 'barren' (R42). 'barren', never 'empty' or 'not in lamb' (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'BARREN {count}'**
+  String flockFilterBarren({required int count});
+
+  /// The filter line's first word while the list is still loading. The count is omitted rather than shown as 0 — unknown is not zero (#58).
+  ///
+  /// In en, this message translates to:
+  /// **'ALL'**
+  String get flockFilterAllUnknown;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

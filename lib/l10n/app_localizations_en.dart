@@ -952,4 +952,37 @@ class AppLocalizationsEn extends AppLocalizations {
   String flockRowLabel({required String tag}) {
     return 'Tag $tag';
   }
+
+  @override
+  String flockFilterAll({required int count}) {
+    return 'ALL $count';
+  }
+
+  @override
+  String flockFilterNotYetLambed({required int count}) {
+    return 'NOT YET LAMBED $count';
+  }
+
+  @override
+  String flockFilterCurrentlyPenned({required int count}) {
+    return 'IN THE PENS $count';
+  }
+
+  @override
+  String flockFilterUnderTreatment({required int count}) {
+    return 'UNDER TREATMENT $count';
+  }
+
+  @override
+  String flockFilterTripletBearing({required int count}) {
+    return 'TRIPLET-BEARING $count';
+  }
+
+  @override
+  String flockFilterBarren({required int count}) {
+    return 'BARREN $count';
+  }
+
+  @override
+  String get flockFilterAllUnknown => 'ALL';
 }

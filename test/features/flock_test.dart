@@ -10,10 +10,14 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:flutter/material.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
+import 'package:shed_book/l10n/app_localizations.dart';
 
 import '../support/harness.dart';
+import '../support/seeds.dart';
 
 /// Active ewes, counted the way the statement must count them.
 Future<int> _activeEwes(AppDatabase db) async =>
@@ -96,6 +100,109 @@ void main() {
     );
 
     await db.close();
+  });
+
+  test('barren and not yet lambed are different filters, not one word twice', () async {
+    // **THE CASE T01'S PREDICATES COULD NOT HAVE FAILED.** Both were written as
+    // *no lambings recorded*, which is the same SQL for two different questions —
+    // so *barren* and *not yet lambed* returned the same ewes and no test could
+    // tell. `CONVENTIONS §5.1` keeps the words apart because the facts are
+    // different, and R42 says where barren lives: `ewe_seasons.status`.
+    //
+    // Barren is an ANSWER: she was scanned and is not in lamb. Not yet lambed is
+    // a WAIT: she is in lamb and it has not happened. A ewe cannot be both, and
+    // that is what makes this test able to fail.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    final EweId barren = await seedEweInSeason(db, tag: 'B1', status: 'barren');
+    final EweId waiting = await seedEweInSeason(db, tag: 'B2', status: 'scanned');
+    final EweId lambed = await seedEweInSeason(db, tag: 'B3', status: 'lambed');
+    await seedLambing(db, lambed);
+
+    Future<Set<int>> ids(FlockFilters f) async =>
+        (await flockList(db, f)).map((FlockRow r) => r.id.value).toSet();
+
+    final Set<int> barrenIds = await ids(const FlockFilters(barren: true));
+    final Set<int> waitingIds = await ids(const FlockFilters(notYetLambed: true));
+
+    expect(barrenIds, <int>{barren.value});
+    expect(waitingIds, <int>{waiting.value});
+
+    // **AND THEY DO NOT OVERLAP**, which is the assertion that fails the moment
+    // somebody writes one of them as the other.
+    expect(
+      barrenIds.intersection(waitingIds),
+      isEmpty,
+      reason: 'barren and not yet lambed returned the same ewe — they are one filter again',
+    );
+    expect(barrenIds, isNot(contains(lambed.value)));
+    expect(waitingIds, isNot(contains(lambed.value)));
+
+    await db.close();
+  });
+
+  testWidgets('a filter with no matches renders the filtered-empty copy, not the empty copy', (
+    WidgetTester tester,
+  ) async {
+    // **T02'S ANCHOR, AND IT CANNOT PASS ON A SHARED STRING.** *You have no
+    // ewes* and *no ewes match this filter* are different facts and only one of
+    // them is alarming: a shepherd with 400 ewes who taps two filters and reads
+    // "No animals yet." has just been told their flock is gone.
+    //
+    // Both strings are read from `AppLocalizations`, never typed as literals, so
+    // renaming either ARB key breaks compilation rather than passing silently.
+    //
+    // **IN MEMORY, NOT `fixtureDatabase`.** Tapping a filter opens a new
+    // subscription and therefore a new statement, and real file I/O does not
+    // advance inside `flutter_test`'s fake-async zone — this test hung rather
+    // than failed, exactly as `harness.dart` warns. The matrix gets away with the
+    // fast file-backed path because each cell pumps once and never queries again;
+    // anything that TAPS pays the import instead.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_400_3seasons.json');
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final BuildContext context = tester.element(find.byType(FlockScreen));
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // BARREN and TRIPLET-BEARING at once. The intersection is empty by
+    // construction rather than by luck — a barren ewe carries no lambing, so she
+    // can never have three lambs on one.
+    // **THE LAST WORDS ARE SCROLLED TO, AND THAT IS THE DESIGN WORKING RATHER
+    // THAN A TEST WORKAROUND.** `indelible.md §8` makes this line a single
+    // horizontally scrolling row, so `BARREN` is genuinely off the viewport at
+    // 400 pt — the finder found `ALL` and nothing after it. Scrolling is the ONE
+    // permitted tracked gesture (`06 §7`), and it is legal here precisely because
+    // no action hides behind it: every filter is reachable, and none of them is
+    // the only way to do anything.
+    Future<void> tapFilter(String key) async {
+      // TWO STEPS, AND BOTH ARE NEEDED. `scrollUntilVisible` stops as soon as
+      // the widget is BUILT, which for a lazily-built horizontal list leaves its
+      // centre outside the viewport — the tap then warned that the offset it
+      // derived was off-screen and hit nothing. `ensureVisible` finishes the
+      // scroll so the target is somewhere a thumb could actually land, which is
+      // the state the assertion is meant to be about.
+      final Finder word = find.byKey(Key('flock.filter.$key'));
+      await tester.scrollUntilVisible(word, 120, scrollable: find.byType(Scrollable).first);
+      await tester.ensureVisible(word);
+      await tester.pumpAndSettle();
+      await tester.tap(word);
+      await tester.pumpAndSettle();
+    }
+
+    await tapFilter('barren');
+    await tapFilter('triplet_bearing');
+
+    expect(find.text(l10n.flockFilteredEmpty), findsOneWidget);
+    expect(
+      find.text(l10n.flockEmpty),
+      findsNothing,
+      reason: 'the flock is not empty — 400 ewes are behind this filter',
+    );
+
+    await tester.closeApp();
   });
 
   testWidgets('the screen renders a row per active ewe', (WidgetTester tester) async {

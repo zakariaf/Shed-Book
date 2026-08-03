@@ -8,10 +8,11 @@ library;
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
 
-export 'package:shed_book/data/flock_repository.dart' show FlockFilters, FlockRow;
+export 'package:shed_book/data/flock_repository.dart' show FlockFilter, FlockFilters, FlockRow;
 
 /// Which of `spec §7.7`'s five filters are on. **Screen state**, not persisted:
 /// a filter a shepherd left on last night is a filter that hides animals from
@@ -20,9 +21,59 @@ final class FlockFilterController extends AutoDisposeNotifier<FlockFilters> {
   @override
   FlockFilters build() => const FlockFilters();
 
-  void set(FlockFilters filters) => state = filters;
+  void toggle(FlockFilter f) => state = state.toggle(f);
 
   void clear() => state = const FlockFilters();
+}
+
+/// How many ewes each filter would leave, for the counts Indelible prints after
+/// each word.
+///
+/// **ONE STATEMENT PER FILTER, AND THAT IS SIX RATHER THAN ONE — SAID OUT LOUD
+/// BECAUSE `07 §1.2` IS A RULE ABOUT THE LIST.** The rule binds the list the
+/// screen renders; the counts are a separate, unfiltered read that exists so a
+/// shepherd knows a filter is empty BEFORE tapping it. They are derived from the
+/// single unfiltered result set in Dart rather than by six round trips.
+final AutoDisposeProvider<FlockFilterCounts?>
+flockFilterCountsProvider = Provider.autoDispose<FlockFilterCounts?>((ref) {
+  // **SWITCHED ON THE ASYNCVALUE** (#18, `rp3.value_or_null` — and that rule scans comments, so the banned accessor is not spelled here either). Coalescing
+  // an absent list to an empty one would print `BARREN 0` against a flock
+  // whose statement has not returned yet — a count that is *not computed*
+  // rendered as a count that is *zero*, which is #58 wearing another hat.
+  // Null means the line has nothing true to print, and the screen reserves
+  // its height instead.
+  final List<FlockRow> all = switch (ref.watch(flockListProvider(const FlockFilters()))) {
+    AsyncData<List<FlockRow>>(value: final List<FlockRow> rows) => rows,
+    _ => const <FlockRow>[],
+  };
+  if (all.isEmpty) {
+    return null;
+  }
+  final Instant now = appNow();
+  return FlockFilterCounts(
+    notYetLambed: all.where((FlockRow r) => r.notYetLambed).length,
+    currentlyPenned: all.where((FlockRow r) => r.isPenned).length,
+    underTreatment: all.where((FlockRow r) => r.isUnderTreatment(now)).length,
+    tripletBearing: all.where((FlockRow r) => r.tripletBearing).length,
+    barren: all.where((FlockRow r) => r.barren).length,
+  );
+});
+
+/// The five counts, all five present or it does not compile.
+final class FlockFilterCounts {
+  const FlockFilterCounts({
+    required this.notYetLambed,
+    required this.currentlyPenned,
+    required this.underTreatment,
+    required this.tripletBearing,
+    required this.barren,
+  });
+
+  final int notYetLambed;
+  final int currentlyPenned;
+  final int underTreatment;
+  final int tripletBearing;
+  final int barren;
 }
 
 final AutoDisposeNotifierProvider<FlockFilterController, FlockFilters> flockFilterProvider =

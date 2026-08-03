@@ -16,6 +16,7 @@ import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
+import 'package:shed_book/features/flock/widgets/flock_filter_line.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class FlockScreen extends ConsumerWidget {
@@ -31,38 +32,71 @@ class FlockScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: t.surfaceBase,
       body: SafeArea(
-        // **EVERY ARM `02 §4.5` NAMES IS WRITTEN OUT**, in the order the screen
-        // meets them. The trailing `_` is loading and Dart's exhaustiveness
-        // requirement in one — `AsyncValue`'s sealed hierarchy is not closed over
-        // the refreshing/reloading combinations, so the analyser rejects the
-        // switch without it. `in_pens_strip.dart` reads the same way for the same
-        // reason; it is not a catch-all for states nobody considered.
-        child: switch (rows) {
-          AsyncData<List<FlockRow>>(value: final List<FlockRow> list) when list.isEmpty =>
-            ShedEmptyState(
-              key: const Key('flock.empty'),
-              // FILTERED-EMPTY IS ITS OWN STATE (`07 §3.2`). "No animals yet"
-              // shown to somebody with 400 ewes and a filter on is the app
-              // telling them their flock is gone.
-              copy: filters.isEmpty ? l10n.flockEmpty : l10n.flockFilteredEmpty,
-            ),
-          AsyncData<List<FlockRow>>(value: final List<FlockRow> list) => ListView.builder(
-            key: const Key('flock.list'),
-            padding: EdgeInsets.zero,
-            itemCount: list.length,
-            itemBuilder: (BuildContext context, int i) => _row(context, l10n, list[i]),
-          ),
-          AsyncError<List<FlockRow>>() => ShedEmptyState(
-            key: const Key('flock.error'),
-            copy: l10n.flockUnavailable,
-          ),
-          // **NEVER A SPINNER** (decision #71, `02 §4.5`). `07 §3.2`'s frame 1 is
-          // six fixed-height dark placeholders, which is what a ruled page looks
-          // like before the ink lands — T03 draws them; until then the page
-          // colour is the honest first frame and not a lie about progress.
-          _ => const SizedBox.expand(),
-        },
+        child: Column(
+          children: <Widget>[
+            // **THE LINE PRINTS ITS COUNTS OR RESERVES ITS HEIGHT.** Never a
+            // count of 0 for a filter whose statement has not returned — that is
+            // #58 in the one place a shepherd would act on it, by not tapping a
+            // filter that looks empty and is not.
+            switch (ref.watch(flockFilterCountsProvider)) {
+              final FlockFilterCounts counts => FlockFilterLine(
+                filters: filters,
+                counts: counts,
+                total: switch (rows) {
+                  AsyncData<List<FlockRow>>(value: final List<FlockRow> l) => l.length,
+                  _ => null,
+                },
+                onToggle: (FlockFilter f) => ref.read(flockFilterProvider.notifier).toggle(f),
+                onClear: () => ref.read(flockFilterProvider.notifier).clear(),
+              ),
+              // The grid does not move while it waits (`indelible.md §3.6`).
+              null => SizedBox(height: t.tapMin),
+            },
+            Expanded(child: _body(context, l10n, filters, rows)),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    AppLocalizations l10n,
+    FlockFilters filters,
+    AsyncValue<List<FlockRow>> rows,
+  ) {
+    return SizedBox.expand(
+      // **EVERY ARM `02 §4.5` NAMES IS WRITTEN OUT**, in the order the screen
+      // meets them. The trailing `_` is loading and Dart's exhaustiveness
+      // requirement in one — `AsyncValue`'s sealed hierarchy is not closed over
+      // the refreshing/reloading combinations, so the analyser rejects the
+      // switch without it. `in_pens_strip.dart` reads the same way for the same
+      // reason; it is not a catch-all for states nobody considered.
+      child: switch (rows) {
+        AsyncData<List<FlockRow>>(value: final List<FlockRow> list) when list.isEmpty =>
+          ShedEmptyState(
+            key: const Key('flock.empty'),
+            // FILTERED-EMPTY IS ITS OWN STATE (`07 §3.2`). "No animals yet"
+            // shown to somebody with 400 ewes and a filter on is the app
+            // telling them their flock is gone.
+            copy: filters.isEmpty ? l10n.flockEmpty : l10n.flockFilteredEmpty,
+          ),
+        AsyncData<List<FlockRow>>(value: final List<FlockRow> list) => ListView.builder(
+          key: const Key('flock.list'),
+          padding: EdgeInsets.zero,
+          itemCount: list.length,
+          itemBuilder: (BuildContext context, int i) => _row(context, l10n, list[i]),
+        ),
+        AsyncError<List<FlockRow>>() => ShedEmptyState(
+          key: const Key('flock.error'),
+          copy: l10n.flockUnavailable,
+        ),
+        // **NEVER A SPINNER** (decision #71, `02 §4.5`). `07 §3.2`'s frame 1 is
+        // six fixed-height dark placeholders, which is what a ruled page looks
+        // like before the ink lands — T03 draws them; until then the page
+        // colour is the honest first frame and not a lie about progress.
+        _ => const SizedBox.expand(),
+      },
     );
   }
 

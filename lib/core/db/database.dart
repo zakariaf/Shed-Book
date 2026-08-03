@@ -127,14 +127,28 @@ class AppDatabase extends _$AppDatabase {
     return (await customSelect('SELECT last_insert_rowid() AS id').getSingle()).read<int>('id');
   }
 
-  /// `app_settings` is a singleton and is imported **onto** its existing row
-  /// rather than inserted beside it — one of the five tables with no `uid`
-  /// (`09 §5.3`).
-  Future<void> updateRestoredSingleton(String table, Map<String, Object?> columns) =>
-      customStatement(
-        'UPDATE $table SET ${columns.keys.map((String c) => '$c = ?').join(', ')} WHERE id = 1',
-        columns.values.toList(),
-      );
+  /// `app_settings` is a singleton, imported onto row 1 — one of the five tables
+  /// with no `uid` (`09 §5.3`).
+  ///
+  /// **AN UPSERT, NOT AN UPDATE, AND THE DIFFERENCE WAS A SILENT DATA LOSS.**
+  /// Staging is opened with `seedOnCreate: false`, so on a backup that carries a
+  /// season — which is every real one — **no first-run seed runs and there is no
+  /// row for an UPDATE to hit.** It affected zero rows, reported nothing, and
+  /// every restored database came back with its settings gone: units, palette,
+  /// the turn-out threshold, the current season.
+  ///
+  /// Nothing above this caught it. `foreign_key_check` passed, `quick_check`
+  /// passed, every per-table count matched — because `counts` counts what the
+  /// FILE holds, not what landed. **N23-T07's round-trip property is what found
+  /// it**, on the first run, which is exactly the layer it exists to be.
+  Future<void> updateRestoredSingleton(String table, Map<String, Object?> columns) {
+    final Map<String, Object?> withId = <String, Object?>{'id': 1, ...columns};
+    return customStatement(
+      'INSERT OR REPLACE INTO $table (${withId.keys.join(', ')}) '
+      'VALUES (${List<String>.filled(withId.length, '?').join(', ')})',
+      withId.values.toList(),
+    );
+  }
 
   @override
   int get schemaVersion => schemaVersionOverride;

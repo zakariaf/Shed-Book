@@ -364,7 +364,11 @@ ewe_uid,tag,eid,breed,date_of_birth,source,status,season_year,season_label,seaso
 treatment_uid,season_year,season_label,animal_kind,animal_tag,animal_uid,product_name,dose_text,route_key,route_label,batch_no,administered_at_utc,administered_at_local,time_source,time_provenance,time_captured_at_utc,time_original_effective_utc,meat_withdrawal_state,meat_withdrawal_days,meat_clear_date,meat_withdrawal_source,milk_withdrawal_state,milk_withdrawal_days,milk_clear_date,milk_withdrawal_source,clear_date_disagrees,is_voided,voided_at_utc,note,struck,struck_at
 ```
 
-35, 26 and 29 fields. Every `*_key` column is the stable ASCII vocabulary key that never changes; every `*_label` column is the resolved human wording, which the user may have edited. Both ship, because the key is what a machine joins on and the label is what a human reads, and neither substitutes for the other.
+**37, 28 and 31 fields**, and the count was wrong here until N21-T01's golden test measured it. It read *"35, 26 and 29"*, which was true before **R79** appended `struck` and `struck_at` to all three shapes — the tables above and the three header strings were both updated and this summary line was not. The count is now printed in `csv_header_golden_test.dart`'s failure message, so the next drift is a red test rather than a stale sentence.
+
+The `treatments.csv` table above also numbers two rows **29**. The header string is the contract and it is right: `note` is 29, `struck` is 30, `struck_at` is 31.
+
+Every `*_key` column is the stable ASCII vocabulary key that never changes; every `*_label` column is the resolved human wording, which the user may have edited. Both ship, because the key is what a machine joins on and the label is what a human reads, and neither substitutes for the other.
 
 **Where the labels come from.** `lib/data/` cannot reach `AppLocalizations` (layer rule 4 keeps Flutter's widget layer out, and there is no `BuildContext` down there). Neither can a controller: `CONVENTIONS` §4.4 rule 3 says a controller holds no `BuildContext`, and `AppLocalizations.of(context)` needs one. So the resolution happens one layer further out, and the ownership is exact:
 

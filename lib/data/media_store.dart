@@ -53,10 +53,18 @@ final class MediaStore {
   /// runs under `flutter_test` where the `path_provider` method channel does not
   /// answer. **Production passes nothing.** It is a departure from `04 §4.3`'s
   /// printed class and is flagged in the pull request.
-  MediaStore({Future<Directory> Function()? supportDirectory})
-    : _supportDirectory = supportDirectory ?? getApplicationSupportDirectory;
+  MediaStore({
+    Future<Directory> Function()? supportDirectory,
+    Future<Directory> Function()? temporaryDirectory,
+  }) : _supportDirectory = supportDirectory ?? getApplicationSupportDirectory,
+       _temporaryDirectory = temporaryDirectory ?? getTemporaryDirectory;
 
   final Future<Directory> Function() _supportDirectory;
+
+  /// Injected for the same reason [_supportDirectory] is: the `path_provider`
+  /// method channel does not answer under `flutter_test`. **Production passes
+  /// nothing.**
+  final Future<Directory> Function() _temporaryDirectory;
 
   /// Resolved fresh every run and **deliberately never persisted anywhere**: on
   /// iOS the container path contains a UUID that changes between installs and
@@ -66,6 +74,27 @@ final class MediaStore {
   Future<Directory> root() async {
     final Directory support = await _supportDirectory();
     return Directory('${support.path}/media');
+  }
+
+  /// Where an artefact is assembled before it is handed to the share sheet.
+  ///
+  /// **IT LIVES HERE BECAUSE `package:path_provider` DOES.** `08 §1.2` confines
+  /// that import to two files under `layer.path_provider`, and neither
+  /// `export_repository.dart` nor a controller is one of them. `04 §7.5` gives
+  /// the reason the rule exists — *two roots means two answers* — so the seam
+  /// that already owns *where files live* keeps owning it, and
+  /// `ExportRepository` takes a `Directory` the way `LocalLog.attachTo` does
+  /// (N11-T09's precedent). Ruled in N21-T07.
+  ///
+  /// **The OS temp area, deliberately.** An export is a hand-off, not a record:
+  /// the file exists to reach the share sheet and the OS may reclaim it the
+  /// moment it is done. Writing exports into the support directory would put
+  /// files the app never reads back inside the folder the backup sweeps.
+  Future<Directory> exportScratch() async {
+    final Directory temp = await _temporaryDirectory();
+    final Directory dir = Directory('${temp.path}/export');
+    await dir.create(recursive: true);
+    return dir;
   }
 
   /// The **only** string that ever reaches the database. Always

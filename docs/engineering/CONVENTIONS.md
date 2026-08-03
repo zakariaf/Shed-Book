@@ -295,7 +295,7 @@ extension type const VocabTermId(int value) {}
 | `LocalDate` | `lib/domain/time/local_date.dart` | `extension type const LocalDate._(String iso)`; `LocalDate(y,m,d)`, `LocalDate.parse(String)` (strict, throws), `LocalDate.of(Instant)`; `.year/.month/.day/.iso`, `.plusDays`, `.daysUntil`, `.startOfDayLocal()`, `.compareTo` | 05 |
 | `PartialDate` | `lib/domain/time/partial_date.dart` | `extension type const PartialDate._(String iso)`; `PartialDate.parse`; `int get year`, `int? get month`, `LocalDate? get exactDate`. Never widened to a full date. | 05 |
 | `RecordedTime` | `lib/domain/time/recorded_time.dart` | `final class`; fields `effective`, `capturedAt`, `originalEffective?`, `source`; factories `RecordedTime.capture(Instant)`, `RecordedTime.entered({effective, now})`; `editedTo(Instant)`; `isEdited`, `provenanceLabel`, `entryLag` | 05 |
-| `TimeSource` | same file | `enum TimeSource { autoCaptured('auto'), userEntered('entered'), userEdited('edited') }` + `fromKey` | 05 |
+| `TimeSource` | same file | `enum TimeSource { autoCaptured('auto'), userEntered('entered'), userEdited('edited') }` + `fromKey` + **`String get label`** (N21-T01) | 05 |
 | `appNow()` | `lib/core/time/app_clock.dart` | `Instant appNow() => Instant(clock.now().millisecondsSinceEpoch);` — **the only wall-clock reader in the app** (R23) | 05 |
 | `checkLocalWallTimeExists` | `lib/domain/time/wall_time.dart` | `List<Warning> checkLocalWallTimeExists(int y,int mo,int d,int h,int mi)` | 05 |
 
@@ -641,7 +641,7 @@ is wrong twice over and must be rewritten as a `try`/`catch` around a `Future<La
 | `QuickEntryDeck` | same | `typedef QuickEntryDeck = ({List<DeckEntry> penned, List<DeckEntry> recents})` — a **record**, which is what makes `.select((d) => d.penned)` legal. ONE provider for both strips; `recentEwesProvider` and `inPensProvider` are banned spellings (R28) | 07 |
 | `timeSincePenned` | `lib/domain/penning.dart` | `Duration timeSincePenned(Instant enteredAt, Instant now)` — takes `now`, never reads a clock (R24) | 05 |
 | `ReminderBudget` | `lib/domain/reminder_budget.dart` | `abstract final class ReminderBudget { static int forPlatform(); }` → 56 iOS / 200 Android (R50) | 05 → 08 |
-| `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed | 05 |
+| `Disclaimers` | `lib/domain/policy/disclaimers.dart` | `abstract final class`; `exportFooter`, `strikeNotice`, `withdrawalProvenance`, `withdrawalCaveat` — referenced, never re-typed. **`strikeNotice` arrived with N21-T03** as its own const rather than as an amendment to `exportFooter`, which three documents print verbatim | 05 |
 | `ContentPolicy` | `lib/domain/policy/content_policy.dart` | `bannedInUserFacingText`, `allowlist` keyed by `Disclaimers.*` | 05 |
 | `Terminology`, `TermLabel` | `lib/domain/terminology/` | as in 05 §8.1 | 05 |
 | `ResumePolicy` | `lib/app.dart` | `static const staleAfter = Duration(minutes: 2); static bool shouldClearSelection(DateTime, DateTime)` | 02 |
@@ -860,7 +860,14 @@ is a breaking change to `test/features/`.
 
 Dotted `namespace.name`, all `lower_snake` (R54). The namespaces: `layer`, `net`, `time`, `rp3`,
 `stream`, `db`, `stat`, `a11y`, `gesture`, `token`, `theme`, `type`, `ui`, `main`, `dep`, `launch`,
-`copy`.
+`copy`, `media`, `export`, `share`.
+
+**A living list.** `export` arrived with N21-T01 and its two rows are the gate's fourth rule family —
+a *confinement*, which is neither "banned everywhere" nor "banned under a prefix" but *legal in one
+named file and nowhere else*, and its inverse. `export.csv_bytes` confines CRLF literals and the UTF-8
+BOM triple to `lib/data/csv_writer.dart`; `export.intl_in_writer` bans a locale-aware formatter inside
+the byte-format writers, which layer rule 3 permits everywhere else in `lib/data/`. A rule id whose
+namespace is not in this list is a rule id `gate_rules_test.dart`'s grammar assertion rejects.
 
 04's `snake_case` ids are renamed:
 

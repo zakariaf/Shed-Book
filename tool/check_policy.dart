@@ -478,6 +478,104 @@ const List<String> _tier3Claims = <String>['your data never leaves your phone', 
 /// shorthand (`design.raw_hex`, `design.magic_size`) would mean the id in an
 /// `[exempt]` line never matches the id in this table, and R54 exists because a
 /// duplicated rule is a rule that gets weakened twice.
+/// The **confinement** family: a pattern that is legal in a named file and
+/// nowhere else, or illegal in a named file and legal everywhere else.
+///
+/// A fourth family beside [_bannedText], [_bannedPattern] and [_copyRules], and
+/// not an overload of any of them, because the (id, pattern, one path prefix)
+/// tuple cannot say *"under `lib/`, except in this one file"* — a `RegExp` never
+/// sees the path it is matched against.
+///
+/// The alternative was an `[exempt]` line per confined file, and that is exactly
+/// the wrong shape: R56 fixes the allowlist at four lines on day one, and an
+/// exemption reads *"that file was excused"* where the truth is *"that file IS
+/// the definition"*. `copy.disclaimer_retyped`'s `except` and
+/// `stream.invalidate`'s negative lookahead already follow the same doctrine —
+/// encode the exception in the rule.
+///
+/// [under] is a list of prefixes; [only] is the list of paths where the pattern
+/// is permitted. An empty [only] makes the row an ordinary ban with a narrow
+/// scope, which is how `export.intl_in_writer` reads: banned in the byte-format
+/// writers, permitted everywhere else in `lib/data/` by layer rule 3.
+typedef ConfinedPattern = (
+  String id,
+  RegExp pattern,
+  List<String> under,
+  List<String> only,
+  String why,
+);
+
+final List<ConfinedPattern> _confinedPattern = <ConfinedPattern>[
+  // -- share, N21-T06. The gateway rule and the two banned APIs -----------
+  //
+  // `08 §1.2` catalogues `layer.plugin_share_plus` as one of nine confinement
+  // rows and this is the first task with a real file for it to point at. No
+  // plugin type crosses a gateway's boundary in either direction, so the import
+  // is legal in exactly one file.
+  (
+    'layer.plugin_share_plus',
+    RegExp(r'''import\s+['"]package:share_plus'''),
+    <String>['lib/'],
+    <String>['lib/data/share_service.dart'],
+    'share_plus lives behind ShareService — 08 §1.1',
+  ),
+  // The deprecated static API. It is not merely old: it takes no
+  // `sharePositionOrigin`, which the README says "may cause crashes or
+  // unresponsive UI" on iPad — the platform nobody tests on first.
+  (
+    'export.share_static',
+    RegExp(r'\bShare\.(share|shareXFiles|shareWithResult)\b'),
+    <String>['lib/'],
+    <String>[],
+    'the static Share.* API is deprecated and takes no origin — #80',
+  ),
+  // Bytes instead of a path. Decision #80: always a path. A blob has no name and
+  // no on-disk identity, and on Android it round-trips through a content
+  // provider some targets silently refuse.
+  (
+    'share.from_data',
+    RegExp(r'\bXFile\.fromData\b'),
+    <String>['lib/'],
+    <String>[],
+    'share a path, never bytes — #80',
+  ),
+  // -- export -------------------------------------------------------------
+  //
+  // csv_writer.dart is the app's ONLY producer of CSV bytes (09 §2.1), and that
+  // is what makes the §12.3 trailer structural rather than habitual: a writer
+  // that cannot be bypassed is a writer whose footer cannot be forgotten.
+  //
+  // The BOM triple is in the same row because it is the same claim in the other
+  // direction. The BOM is CSV-only: a leading BOM makes `jsonDecode` fail or
+  // turns itself into part of the first key, so backup_format.dart must never
+  // emit one.
+  (
+    'export.csv_bytes',
+    RegExp(
+      r"'\\r\\n'"
+      r'|"\\r\\n"'
+      r'|0xEF,\s*0xBB,\s*0xBF',
+    ),
+    <String>['lib/'],
+    <String>['lib/data/csv_writer.dart'],
+    'CSV bytes are csv_writer.dart\'s alone; the BOM is CSV-only — 09 §2.1',
+  ),
+  // The inverse shape, and the narrower ban layer rule 3 cannot express.
+  // `package:intl` is PERMITTED in lib/data/ generally; it is banned in the
+  // byte-format writers, because a locale-aware formatter on a device set to
+  // French emits a comma decimal and every column after the weight shifts.
+  //
+  // N22 adds backup_format.dart to [under] and v1.1.0's PDF task adds
+  // pdf_writer.dart. One id, three files — R54 forbids giving one idea three.
+  (
+    'export.intl_in_writer',
+    RegExp(r'package:intl|\bNumberFormat\b|\bDateFormat\b'),
+    <String>['lib/data/csv_writer.dart'],
+    <String>[],
+    'a locale formatter shifts every column after the weight — 09 §2.5',
+  ),
+];
+
 final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, String, String)>[
   // -- the read path's manual-invalidation ban, narrowed to what it means ----
   //
@@ -841,7 +939,8 @@ String _wordPattern(String word) {
 /// Every rule id this script can emit, in declaration order, from **all** of:
 /// [_layerRuleIds] (which covers `_directionRuleId`'s values and the three ids
 /// emitted by code rather than by a map entry) · `layer.import` · [_bannedText]
-/// · [_bannedPattern] · the three `dep.*` ids [_checkLockfile] interpolates.
+/// · [_bannedPattern] · [_confinedPattern] · the three `dep.*` ids
+/// [_checkLockfile] interpolates.
 ///
 /// An id a rule can emit but this getter does not yield is invisible to the
 /// inventory assertion — which is the one way that assertion can be written and
@@ -856,6 +955,9 @@ Iterable<String> get policyRuleIds sync* {
     yield id;
   }
   for (final (String id, _, _, _, _) in _copyRules) {
+    yield id;
+  }
+  for (final (String id, _, _, _, _) in _confinedPattern) {
     yield id;
   }
   for (final String kind in _sectionFor.keys) {
@@ -881,6 +983,11 @@ Iterable<(String, String)> get policyRuleScopes sync* {
     yield (id, under);
   }
   for (final (String id, _, List<String> under, _, _) in _copyRules) {
+    for (final String prefix in under) {
+      yield (id, prefix);
+    }
+  }
+  for (final (String id, _, List<String> under, _, _) in _confinedPattern) {
     for (final String prefix in under) {
       yield (id, prefix);
     }
@@ -1044,6 +1151,20 @@ List<String> runPolicy({String root = '.'}) {
     for (final (String id, RegExp pattern, String under, String why) in _bannedPattern) {
       final String haystack = _declarationsOnly.contains(id) ? declarations : source;
       if (!path.startsWith(under) || !pattern.hasMatch(haystack)) {
+        continue;
+      }
+      if (exempt.contains('$path :: $id')) {
+        continue;
+      }
+      violations.add('[$id] $path matches ${pattern.pattern} — $why');
+    }
+
+    for (final (String id, RegExp pattern, List<String> under, List<String> only, String why)
+        in _confinedPattern) {
+      if (!under.any(path.startsWith) || only.contains(path)) {
+        continue;
+      }
+      if (!pattern.hasMatch(source)) {
         continue;
       }
       if (exempt.contains('$path :: $id')) {

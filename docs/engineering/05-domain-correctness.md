@@ -744,6 +744,16 @@ enum TimeSource {
   static TimeSource fromKey(String k) =>
       TimeSource.values.firstWhere((s) => s.key == k,
           orElse: () => throw FormatException('Unknown time source', k));
+
+  /// 07 §1.5's three strings, verbatim. ON THE ENUM rather than on RecordedTime
+  /// because the CSV's §12.5 trailer line is built from TimeSource.values and a
+  /// writer has no instance to ask (09 §1.3). The exhaustive switch does not
+  /// weaken by moving — a fourth member is still a compile error here.
+  String get label => switch (this) {
+        TimeSource.autoCaptured => 'recorded automatically',
+        TimeSource.userEntered  => 'time entered by you',
+        TimeSource.userEdited   => 'time edited by you',
+      };
 }
 
 final class RecordedTime {
@@ -776,11 +786,10 @@ final class RecordedTime {
   bool get isEdited => source == TimeSource.userEdited;
 
   /// Never empty: the label is part of the value, by exhaustive switch.
-  String get provenanceLabel => switch (source) {
-        TimeSource.autoCaptured => 'recorded automatically',
-        TimeSource.userEntered  => 'time entered by you',
-        TimeSource.userEdited   => 'time edited by you',
-      };
+  /// DELEGATES to TimeSource.label (N21-T01) — one switch, on the enum. Two
+  /// copies of these three strings is two things to keep in step, and the
+  /// second stops being read the moment it stops being wrong.
+  String get provenanceLabel => source.label;
 
   /// The time it takes an entry to reach the app. Only meaningful because
   /// [capturedAt] is immutable; it is how spec §15's "within five minutes of
@@ -1503,6 +1512,14 @@ abstract final class Disclaimers {
       'Shed Book is a personal notebook. It is not a statutory medicine '
       'record, holding register, or movement record, and must not be '
       'presented as one. All entries are as recorded by the user.';
+
+  /// indelible.md screen 11's second footer sentence. R79 made the strike real,
+  /// so the promise "struck entries are included and marked, nothing has been
+  /// removed" has to appear somewhere. ITS OWN CONST, ruled in N21-T03: amending
+  /// exportFooter would change a string three documents print verbatim and that
+  /// N22's backup-header golden is written against.
+  static const String strikeNotice =
+      'Struck entries are included and marked struck. Nothing has been removed.';
 
   static const String withdrawalProvenance = 'as entered by you';
 

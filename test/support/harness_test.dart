@@ -339,6 +339,7 @@ void main() {
 
     expect(files, <String>[
       'decision_record.dart',
+      'fake_share_service.dart', // N21-T06, the first of the seven to land
       'harness.dart',
       'harness_dst_test.dart',
       'harness_test.dart',
@@ -367,15 +368,24 @@ void main() {
     final String source = File('test/support/harness.dart').readAsStringSync();
 
     expect(source, contains(needle));
-    expect(kPumpableVariants, hasLength(6));
-    expect(kPumpableVariants.keys.toSet(), <String>{
-      'quick_entry',
-      'lambing_entry',
-      'lamb_card',
-      'foster',
-      'pen_board',
-      'treatments',
-    }, reason: 'six screens exist; each screen epic adds its own row');
+    expect(kPumpableVariants, hasLength(8));
+    expect(
+      kPumpableVariants.keys.toSet(),
+      <String>{
+        'quick_entry',
+        'lambing_entry',
+        'lamb_card',
+        'foster',
+        'pen_board',
+        'treatments',
+        'export',
+        // NOT A SCREEN — a STATE of Quick Entry, and `12 §6.4` gives it a variant
+        // of its own because the banner takes height from the screen with the
+        // tightest vertical budget in the app.
+        'quick_entry.export_banner',
+      },
+      reason: 'seven screens exist plus one state; each epic adds its own row',
+    );
     expect(
       source,
       contains('N33-T01'),
@@ -383,13 +393,34 @@ void main() {
     );
   });
 
-  test('no Fake class is declared under test/support/', () {
-    // The seven fakes have named homes and this is the tripwire. Matched on the
-    // DECLARATION, not the word, so the header ledger that names all seven does
-    // not fire the rule that keeps them out — and split across two literals,
-    // because this file lives in the directory it is scanning. The
-    // twenty-second self-match in this project.
+  test('a Fake class is declared only in its own named file', () {
+    // FLIPPED AT N21-T06, and the flip is the point rather than a relaxation.
+    //
+    // It used to assert that NO fake existed anywhere here, which was the right
+    // property while the answer was "none of the seven has landed" — critique
+    // defect S1 was fakes arriving early, without the gateway they double.
+    // `12 §4.2` gives each fake a named file, so the property that survives the
+    // first landing is *one fake, in the file named for it* — a
+    // `FakeMediaStore` inside `harness.dart` is the same defect S1 named.
+    //
+    // Matched on the DECLARATION, not the word, so the header ledger that names
+    // all seven does not fire the rule that keeps them out — and split across
+    // two literals, because this file lives in the directory it is scanning.
+    // The twenty-second self-match in this project.
+    const Map<String, String> homes = <String, String>{
+      'fake_share_service.dart': 'FakeShareService', // N21-T06
+    };
+
     for (final File f in Directory('test/support').listSync().whereType<File>()) {
+      final String name = f.path.split(Platform.pathSeparator).last;
+      if (homes.containsKey(name)) {
+        expect(
+          f.readAsStringSync(),
+          contains('class ${homes[name]} implements'),
+          reason: '$name must declare ${homes[name]}, and `implements` — 12 §4.2',
+        );
+        continue;
+      }
       final String declarations = f
           .readAsLinesSync()
           .where((String l) => !l.trimLeft().startsWith('//'))

@@ -23,6 +23,23 @@ abstract final class Disclaimers {
 
   static const String withdrawalProvenance = 'as entered by you';
 
+  /// `indelible.md` screen 11's second footer sentence, and it is **its own
+  /// const rather than an amendment to [exportFooter]** — ruled in N21-T03.
+  ///
+  /// R79 made the strike real, so screen 11's promise — *the export includes
+  /// struck entries and marks them, and removes nothing* — now has to appear
+  /// somewhere. Amending [exportFooter] would have been cheaper in the writer
+  /// and more expensive everywhere else: three documents print that string
+  /// verbatim, `05 §7.4` pins it, and N22's backup-header golden is written
+  /// against it before that golden exists. A fourth const costs one catalogue
+  /// row.
+  ///
+  /// What was never an option is a third sentence typed inline in a writer *just
+  /// for the CSV*. That is exactly what `copy.disclaimer_retyped` exists to
+  /// catch, and it is how two footers become three.
+  static const String strikeNotice =
+      'Struck entries are included and marked struck. Nothing has been removed.';
+
   static const String withdrawalCaveat =
       'Withdrawal period as entered by you from the product label. '
       'Shed Book does not know any product and suggests no value. '

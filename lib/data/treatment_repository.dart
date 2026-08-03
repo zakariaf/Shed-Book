@@ -77,7 +77,7 @@ final class TreatmentRepository {
 
     try {
       final int id = await _db.transaction(() async {
-        final SeasonId season = await _seasonOf(subject);
+        final SeasonId season = await _currentSeason();
 
         final int treatment = await _db
             .into(_db.treatments)
@@ -373,7 +373,13 @@ final class TreatmentRepository {
     };
   }
 
-  Future<SeasonId> _seasonOf(TreatmentSubject subject) async {
+  /// **NAMED `_currentSeason`, NOT `_seasonOf(subject)`.** It was the second,
+  /// and the signature was a lie: the body never read the subject. It returns
+  /// the CURRENT season, not the season the animal belongs to — and a name that
+  /// promised derivation is how that divergence would have stayed invisible.
+  /// `lambing_repository` and `foster_repository` answer the OTHER question
+  /// (`_seasonOfLamb`), and which one a treatment should use is an open ruling.
+  Future<SeasonId> _currentSeason() async {
     final AppSetting settings = await (_db.select(
       _db.appSettings,
     )..where(($AppSettingsTable t) => t.id.equals(1))).getSingle();

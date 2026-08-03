@@ -35,7 +35,11 @@ class TreatmentsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final String locale = Localizations.localeOf(context).toLanguageTag();
+    // `context.localeName`, THE EXTENSION `formatters.dart` SHIPS — which had
+    // zero uses and six bypasses, mine among them. The two spellings are not
+    // equal (`en-GB` vs `en_GB`), so the single point of truth its doc comment
+    // claims did not exist until the call sites moved.
+    final String locale = context.localeName;
     final TreatmentMode mode = ref.watch(treatmentModeProvider);
     final List<TreatmentRow> rows =
         ref.watch(treatmentsProvider(mode)).value ?? const <TreatmentRow>[];
@@ -132,7 +136,7 @@ class TreatmentsScreen extends ConsumerWidget {
                 key: const Key('treatments.repeat_last'),
                 semanticLabel: l10n.treatmentsRepeatLast,
                 minSize: t.tapHero,
-                onTap: () => _openRepeat(context, ref, l10n, locale, previous, stored, candidates),
+                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
                 child: ExcludeSemantics(
                   child: Center(
                     child: Text(
@@ -156,13 +160,17 @@ class TreatmentsScreen extends ConsumerWidget {
   /// decides; copying it would make the app the source of a clinical figure for
   /// a treatment nobody read a label for (§12.1).
   ///
-  /// Everything it renders is ALREADY LOADED — see `repeatOfferProvider`. The
-  /// handler opens a sheet and nothing else.
+  /// Everything it renders is ALREADY LOADED, by the `ref.watch`es in `build`
+  /// above — `treatmentsProvider` for the previous treatment and
+  /// `storedWithdrawalsProvider` for its periods. The handler opens a sheet and
+  /// nothing else.
+  ///
+  /// An earlier draft named a `repeatOfferProvider` here that was deleted in the
+  /// rewrite; the comment outlived it and pointed at nothing.
   void _openRepeat(
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    String locale,
     TreatmentRow? previous,
     List<StoredWithdrawal> stored,
     List<DeckEntry> candidates,
@@ -175,7 +183,6 @@ class TreatmentsScreen extends ConsumerWidget {
             previous: entry,
             stored: stored,
             candidates: candidates,
-            locale: locale,
             l10n: l10n,
             onPicked: (EweId ewe) {
               unawaited(
@@ -214,7 +221,6 @@ class _RepeatSheet extends StatelessWidget {
     required this.previous,
     required this.stored,
     required this.candidates,
-    required this.locale,
     required this.l10n,
     required this.onPicked,
   });
@@ -222,7 +228,6 @@ class _RepeatSheet extends StatelessWidget {
   final TreatmentRow previous;
   final List<StoredWithdrawal> stored;
   final List<DeckEntry> candidates;
-  final String locale;
   final AppLocalizations l10n;
   final ValueChanged<EweId> onPicked;
 

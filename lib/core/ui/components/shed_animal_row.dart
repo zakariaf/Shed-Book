@@ -67,7 +67,7 @@ final class ShedAnimalRow extends StatelessWidget {
     // makes a four-digit tag at 200% overflow. Measuring three digits in the
     // real style keeps the column honest at every scale.
     final TextPainter probe = TextPainter(
-      text: TextSpan(text: '000', style: text.displaySmall),
+      text: TextSpan(text: '000', style: text.headlineLarge),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
     )..layout();
@@ -97,7 +97,7 @@ final class ShedAnimalRow extends StatelessWidget {
                   // RIGHT-aligned: the units digit is what aligns, not the
                   // first digit.
                   textAlign: TextAlign.right,
-                  style: text.displaySmall,
+                  style: text.headlineLarge,
                   maxLines: 1,
                 ),
               ),

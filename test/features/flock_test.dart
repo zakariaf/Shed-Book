@@ -60,7 +60,13 @@ void main() {
     final List<FlockRow> all = await flockList(db, const FlockFilters());
     final int spent = c.counter.selects - before;
 
-    expect(all, hasLength(active));
+    // **ACTIVE PLUS STRUCK** (ruling N2). The struck ewe is in the list, at the
+    // bottom — counted here rather than assumed, so this stays true when the
+    // fixture gains another.
+    final int struck = (await db.select(db.ewes).get())
+        .where((Ewe e) => e.status != 'active')
+        .length;
+    expect(all, hasLength(active + struck));
     expect(spent, 1, reason: '$spent statements for one list — 07 §1.2 says one');
 
     // AND THE FILTER IS SQL, not a Dart `.where` over the same rows. Counted the
@@ -83,20 +89,47 @@ void main() {
     await db.close();
   });
 
-  test('the culled ewe is not in the flock, and its tag still is', () async {
-    // `12 §11.5`'s shape, asserted where it matters: the statement filters on
-    // `status = 'active'`, and the reused tag proves the filter is on STATUS
-    // rather than on the tag being absent.
+  test('the struck ewe is in the list, at the bottom, wearing the same tag', () async {
+    // **RULING N2, AND IT REVERSES WHAT THIS CASE ASSERTED THREE COMMITS AGO.**
+    // T01 wrote `WHERE e.status = 'active'` straight out of `07 §3.1` and this
+    // test asserted the culled ewe was absent. Two documents cannot both ship:
+    //
+    //   `07 §3.1`          — `WHERE e.status = 'active'`
+    //   `indelible.md §7.4` — *"She stays in the list, at the bottom, under a
+    //                          printed line reading `STRUCK — 1`."*
+    //
+    // CLAUDE.md's authority order puts `indelible.md` above the thirteen
+    // engineering documents, so the design wins. Two independent arguments say
+    // the same thing: the system's FIRST rule is *nothing is ever removed, only
+    // struck*, and a statement that filters her out is that rule inverted at the
+    // data layer — and N26-T03's own Definition of Done, *a culled tag is
+    // visibly distinct from an active one with the same number*, is
+    // unsatisfiable if the struck row never renders.
+    //
+    // She is also what makes §7.0 ruling 7 legible: tags are unique among ACTIVE
+    // animals only, so `2003` is here twice and that is legal rather than a bug.
     final AppDatabase db = testDatabase(seedOnCreate: false);
     await restoreFixture(db, 'flock_400_3seasons.json');
 
     final Ewe culled = (await db.select(db.ewes).get()).firstWhere((Ewe e) => e.status == 'culled');
     final List<FlockRow> rows = await flockList(db, const FlockFilters());
 
+    // BOTH ANIMALS, ONE TAG. `03 §6`: they are two animals, and it is a link,
+    // never a merge offer.
+    final List<FlockRow> sameTag = rows.where((FlockRow r) => r.tag == culled.tag).toList();
+    expect(sameTag, hasLength(2), reason: 'the struck ewe and the live one that reused her tag');
+    expect(sameTag.where((FlockRow r) => r.struck), hasLength(1));
+    expect(sameTag.where((FlockRow r) => !r.struck), hasLength(1));
+
+    // **AT THE BOTTOM**, which is the half a `struck` flag alone does not give.
+    // Asserted as *no active row follows a struck one* rather than on an index,
+    // so it survives the fixture gaining another struck animal.
+    final int firstStruck = rows.indexWhere((FlockRow r) => r.struck);
+    expect(firstStruck, greaterThan(0), reason: 'the list does not open with a struck row');
     expect(
-      rows.where((FlockRow r) => r.tag == culled.tag),
-      hasLength(1),
-      reason: 'the live ewe wearing the culled tag is in the flock, exactly once',
+      rows.skip(firstStruck).every((FlockRow r) => r.struck),
+      isTrue,
+      reason: 'an active ewe is printed below a struck one — §7.4 puts them last',
     );
 
     await db.close();

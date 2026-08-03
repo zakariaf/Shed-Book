@@ -176,9 +176,16 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
   FROM ewes e
   LEFT JOIN ewe_summaries s ON s.ewe = e.id
- WHERE e.status = 'active'
- ORDER BY e.tag_digits, e.tag;
+ ORDER BY (e.status <> 'active'), e.tag_digits, e.tag;
 ```
+
+**RULING N2 (N26-T03) — `WHERE e.status = 'active'` is struck from this statement.**
+
+It contradicted `indelible.md §7.4`, whose **Struck** state reads *"She stays in the list, at the bottom, under a printed line reading `STRUCK — 1`."* Both could not ship. `CLAUDE.md`'s authority order puts `indelible.md` above the thirteen engineering documents, so the design wins — and two further arguments point the same way. The design system's **first rule** is *nothing is ever removed, only struck*, so filtering her out is that rule inverted at the data layer; and N26-T03's Definition of Done — *a culled tag is visibly distinct from an active one with the same number* — is unsatisfiable if the struck row never renders.
+
+She is also what makes §7.0 ruling 7 legible: tags are unique among **active** animals only, so one tag appears twice and the struck row is the reason that is legal rather than a bug (`03 §6`: they are two animals, *"a link, never a merge offer"*).
+
+The ordering clause carries it: active first, struck last, tag order within each. `test/features/flock_test.dart` holds both halves — that she is present, and that no active row is printed below her.
 
 **RULING N1 (N26-T02) — the two columns above replaced a single `under_withdrawal` `EXISTS` whose predicate was `w.kind = 'days' AND w.clear_date >= :today`, and it was wrong twice.**
 

@@ -444,6 +444,7 @@ final class FlockRow {
     required this.id,
     required this.tag,
     required this.tagDigits,
+    required this.struck,
     required this.seasonsRecorded,
     required this.lambingsRecorded,
     required this.lambsBorn,
@@ -461,6 +462,16 @@ final class FlockRow {
   final EweId id;
   final String tag;
   final String tagDigits;
+
+  /// **NOT ACTIVE: CULLED, SOLD OR DEAD.** She stays in the list, struck, at the
+  /// bottom (`indelible.md §7.4`) — the design system's first rule is *nothing is
+  /// ever removed, only struck*, and a statement that filtered her out was that
+  /// rule inverted at the data layer.
+  ///
+  /// It is also what makes §7.0 ruling 7 legible: tags are unique among ACTIVE
+  /// animals only, so `2003` can be here twice, and the struck one is the reason
+  /// that is legal rather than a bug.
+  final bool struck;
 
   /// **NULLABLE, AND NEVER `?? 0`** (decision #58). `ewe_summaries` is a
   /// `LEFT JOIN`, so a ewe with no summary row yet returns NULL — which means
@@ -582,7 +593,7 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
   FROM ewes e
   LEFT JOIN ewe_summaries s ON s.ewe = e.id
- WHERE e.status = 'active'
+ WHERE 1 = 1
    -- **BARREN IS A STORED STATUS, NOT AN ABSENCE OF LAMBINGS** (R42,
    -- `03 §5.3`). It is `ewe_seasons.status = 'barren'` — the shepherd scanned
    -- her and she is not in lamb. T01 wrote this as `lambings_recorded = 0`,
@@ -611,7 +622,10 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                           GROUP BY lg.id HAVING COUNT(lb.id) >= 3))
    AND (? = 0 OR EXISTS (SELECT 1 FROM pen_occupancies o
                           WHERE o.ewe = e.id AND o.exited_at IS NULL))
- ORDER BY e.tag_digits, e.tag;
+ -- **RULING N2: ACTIVE FIRST, THEN THE STRUCK ONES.** They are in the list —
+ -- `indelible.md`'s first rule is *nothing is ever removed, only struck* — and
+ -- §7.4 puts them at the bottom under a printed `STRUCK` line.
+ ORDER BY (e.status <> 'active'), e.tag_digits, e.tag;
 ''';
 
 /// The flock, filtered — **one statement**, streamed.
@@ -677,6 +691,7 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   id: EweId(r.read<int>('id')),
   tag: r.read<String>('tag'),
   tagDigits: r.read<String>('tag_digits'),
+  struck: r.read<String>('status') != 'active',
   seasonsRecorded: r.readNullable<int>('seasons_recorded'),
   lambingsRecorded: r.readNullable<int>('lambings_recorded'),
   lambsBorn: r.readNullable<int>('lambs_born'),

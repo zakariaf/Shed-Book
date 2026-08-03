@@ -744,6 +744,16 @@ enum TimeSource {
   static TimeSource fromKey(String k) =>
       TimeSource.values.firstWhere((s) => s.key == k,
           orElse: () => throw FormatException('Unknown time source', k));
+
+  /// 07 §1.5's three strings, verbatim. ON THE ENUM rather than on RecordedTime
+  /// because the CSV's §12.5 trailer line is built from TimeSource.values and a
+  /// writer has no instance to ask (09 §1.3). The exhaustive switch does not
+  /// weaken by moving — a fourth member is still a compile error here.
+  String get label => switch (this) {
+        TimeSource.autoCaptured => 'recorded automatically',
+        TimeSource.userEntered  => 'time entered by you',
+        TimeSource.userEdited   => 'time edited by you',
+      };
 }
 
 final class RecordedTime {
@@ -776,11 +786,10 @@ final class RecordedTime {
   bool get isEdited => source == TimeSource.userEdited;
 
   /// Never empty: the label is part of the value, by exhaustive switch.
-  String get provenanceLabel => switch (source) {
-        TimeSource.autoCaptured => 'recorded automatically',
-        TimeSource.userEntered  => 'time entered by you',
-        TimeSource.userEdited   => 'time edited by you',
-      };
+  /// DELEGATES to TimeSource.label (N21-T01) — one switch, on the enum. Two
+  /// copies of these three strings is two things to keep in step, and the
+  /// second stops being read the moment it stops being wrong.
+  String get provenanceLabel => source.label;
 
   /// The time it takes an entry to reach the app. Only meaningful because
   /// [capturedAt] is immutable; it is how spec §15's "within five minutes of

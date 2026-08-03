@@ -295,7 +295,7 @@ extension type const VocabTermId(int value) {}
 | `LocalDate` | `lib/domain/time/local_date.dart` | `extension type const LocalDate._(String iso)`; `LocalDate(y,m,d)`, `LocalDate.parse(String)` (strict, throws), `LocalDate.of(Instant)`; `.year/.month/.day/.iso`, `.plusDays`, `.daysUntil`, `.startOfDayLocal()`, `.compareTo` | 05 |
 | `PartialDate` | `lib/domain/time/partial_date.dart` | `extension type const PartialDate._(String iso)`; `PartialDate.parse`; `int get year`, `int? get month`, `LocalDate? get exactDate`. Never widened to a full date. | 05 |
 | `RecordedTime` | `lib/domain/time/recorded_time.dart` | `final class`; fields `effective`, `capturedAt`, `originalEffective?`, `source`; factories `RecordedTime.capture(Instant)`, `RecordedTime.entered({effective, now})`; `editedTo(Instant)`; `isEdited`, `provenanceLabel`, `entryLag` | 05 |
-| `TimeSource` | same file | `enum TimeSource { autoCaptured('auto'), userEntered('entered'), userEdited('edited') }` + `fromKey` | 05 |
+| `TimeSource` | same file | `enum TimeSource { autoCaptured('auto'), userEntered('entered'), userEdited('edited') }` + `fromKey` + **`String get label`** (N21-T01) | 05 |
 | `appNow()` | `lib/core/time/app_clock.dart` | `Instant appNow() => Instant(clock.now().millisecondsSinceEpoch);` — **the only wall-clock reader in the app** (R23) | 05 |
 | `checkLocalWallTimeExists` | `lib/domain/time/wall_time.dart` | `List<Warning> checkLocalWallTimeExists(int y,int mo,int d,int h,int mi)` | 05 |
 
@@ -860,7 +860,14 @@ is a breaking change to `test/features/`.
 
 Dotted `namespace.name`, all `lower_snake` (R54). The namespaces: `layer`, `net`, `time`, `rp3`,
 `stream`, `db`, `stat`, `a11y`, `gesture`, `token`, `theme`, `type`, `ui`, `main`, `dep`, `launch`,
-`copy`.
+`copy`, `media`, `export`.
+
+**A living list.** `export` arrived with N21-T01 and its two rows are the gate's fourth rule family —
+a *confinement*, which is neither "banned everywhere" nor "banned under a prefix" but *legal in one
+named file and nowhere else*, and its inverse. `export.csv_bytes` confines CRLF literals and the UTF-8
+BOM triple to `lib/data/csv_writer.dart`; `export.intl_in_writer` bans a locale-aware formatter inside
+the byte-format writers, which layer rule 3 permits everywhere else in `lib/data/`. A rule id whose
+namespace is not in this list is a rule id `gate_rules_test.dart`'s grammar assertion rejects.
 
 04's `snake_case` ids are renamed:
 

@@ -21,6 +21,26 @@ enum TimeSource {
     (TimeSource s) => s.key == k,
     orElse: () => throw FormatException('Unknown time source', k),
   );
+
+  /// `07 §1.5`'s three strings, verbatim.
+  ///
+  /// **ON THE ENUM RATHER THAN ON [RecordedTime]**, and that is the whole reason
+  /// it moved: the CSV's §12.5 trailer line is built from `TimeSource.values`
+  /// and a writer has no instance to ask (`09 §1.3`). A hand-typed list of three
+  /// labels in the writer is a list that goes stale the day a fourth source is
+  /// added — silently, in the one file nobody re-reads.
+  ///
+  /// The exhaustive switch does not weaken by moving: a fourth member is still a
+  /// compile error here, which is the property `05 §4.1` asks for.
+  ///
+  /// **Not the export value.** CSV carries the stable [key]; this is for screens
+  /// and for the trailer's own prose. Exporting the label in a data column
+  /// instead of the key is a named anti-pattern (`05 §4.3`).
+  String get label => switch (this) {
+    TimeSource.autoCaptured => 'recorded automatically',
+    TimeSource.userEntered => 'time entered by you',
+    TimeSource.userEdited => 'time edited by you',
+  };
 }
 
 /// An event time with its provenance attached — safety rule §12.5, held at the
@@ -96,11 +116,10 @@ final class RecordedTime {
   /// Screens only. CSV carries the stable [TimeSource.key]; the PDF carries a
   /// dagger and a footer legend; the JSON backup carries all four fields.
   /// Exporting this label instead of the key is a named anti-pattern (05 §4.3).
-  String get provenanceLabel => switch (source) {
-    TimeSource.autoCaptured => 'recorded automatically',
-    TimeSource.userEntered => 'time entered by you',
-    TimeSource.userEdited => 'time edited by you',
-  };
+  /// Delegates to [TimeSource.label] — **one switch, on the enum**. Two copies
+  /// of these three strings is two things to keep in step, and the second one
+  /// stops being read the moment it stops being wrong.
+  String get provenanceLabel => source.label;
 
   /// The time it takes an entry to reach the app — `capturedAt − effective`, so
   /// a deferred entry has a **positive** lag.

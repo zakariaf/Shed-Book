@@ -96,7 +96,23 @@ void main() {
     final AppDatabase db = testDatabase(seedOnCreate: false);
     await restoreFixture(db, 'flock_400_3seasons.json');
 
-    expect(await db.select(db.ewes).get(), hasLength(400));
+    // **400 ACTIVE, 401 ROWS.** The extra is `12 §11.5`'s culled ewe whose tag a
+    // live ewe reuses — the shape that makes `idx_ewe_tagdigits`' partial
+    // uniqueness meaningful, since that index covers active animals only. An
+    // assertion on the raw row count would have to be edited every time the
+    // fixture gains a shape; this one says what the flock IS.
+    final List<Ewe> all = await db.select(db.ewes).get();
+    expect(all.where((Ewe e) => e.status == 'active'), hasLength(400));
+    expect(
+      all.where((Ewe e) => e.status == 'culled'),
+      hasLength(1),
+      reason: 'the culled ewe is what makes the reused tag legal',
+    );
+    expect(
+      all.where((Ewe e) => e.tag == all.firstWhere((Ewe c) => c.status == 'culled').tag),
+      hasLength(2),
+      reason: 'a live ewe wears the culled ewe tag — one tag, two rows',
+    );
     expect(await db.select(db.seasons).get(), hasLength(3));
     expect(
       (await db.select(db.lambings).get()).length,

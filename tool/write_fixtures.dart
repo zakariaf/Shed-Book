@@ -38,10 +38,12 @@ import 'flock_generator.dart';
 /// produces it. The small one is pinned to the free tier's cap (§7.0 ruling 8)
 /// so N30's at-cap tests cannot end up asserting against the wrong side of the
 /// line.
-const Map<String, ({int ewes, int seasons, int seed})> _fixtures =
-    <String, ({int ewes, int seasons, int seed})>{
-      'flock_400_3seasons.json': (ewes: 400, seasons: 3, seed: 137),
-      'flock_15_at_cap.json': (ewes: 15, seasons: 1, seed: 41),
+const Map<String, ({int ewes, int seasons, int seed, bool culled})> _fixtures =
+    <String, ({int ewes, int seasons, int seed, bool culled})>{
+      'flock_400_3seasons.json': (ewes: 400, seasons: 3, seed: 137, culled: true),
+      // **NO CULLED ROW HERE.** This fixture's ewe count is the free tier's
+      // boundary and has to mean one thing — see `flockTables`' own comment.
+      'flock_15_at_cap.json': (ewes: 15, seasons: 1, seed: 41, culled: false),
     };
 
 void main(List<String> args) {
@@ -52,11 +54,13 @@ void main(List<String> args) {
 
   final ExportEnvelope envelope = seedEnvelope();
 
-  for (final MapEntry<String, ({int ewes, int seasons, int seed})> f in _fixtures.entries) {
+  for (final MapEntry<String, ({int ewes, int seasons, int seed, bool culled})> f
+      in _fixtures.entries) {
     final Map<String, Object?> tables = flockTables(
       ewes: f.value.ewes,
       seasons: f.value.seasons,
       seed: f.value.seed,
+      withCulledReusedTag: f.value.culled,
     );
 
     // THE CHECKSUM COVERS THE CANONICAL `tables` BYTES — the same call

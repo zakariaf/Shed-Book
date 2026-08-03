@@ -7,6 +7,12 @@
 // diff, which is most of what they are for.
 library;
 
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/data/backup_format.dart';
+import '../support/harness.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/flock_generator.dart';
@@ -95,5 +101,63 @@ void main() {
     final double mean = days.length / perDay.length;
 
     expect(peak, greaterThan(mean * 1.5), reason: 'there is a peak, not a plateau');
+  });
+
+  test('the generated flock restores, and twice with one seed is byte-identical', () async {
+    // **THE HALF THAT MATTERS: it goes through `RestoreService`.** A seed that
+    // wrote through repositories would be a second writer, tested by nothing —
+    // and the restore would go a year without being run outside its own unit
+    // tests. This is what makes 400-ewe profiling, the overflow matrix and the
+    // goldens possible at all.
+    final Map<String, Object?> first = flockTables(ewes: 30, seasons: 2, seed: 42);
+    final Map<String, Object?> second = flockTables(ewes: 30, seasons: 2, seed: 42);
+
+    // BYTE-IDENTICAL, which is what makes N23-T05's committed fixtures
+    // reviewable in a diff.
+    expect(canonicalJsonBytes(first), orderedEquals(canonicalJsonBytes(second)));
+
+    final Directory support = freshSupportDir();
+    final Uint8List body = canonicalJsonBytes(first);
+    final File backup = File('${support.path}/seed.json')
+      ..writeAsBytesSync(<int>[
+        ...utf8.encode(
+          headerPrefixJson(
+            BackupHeader(
+              schema: kSchemaVersion,
+              appVersion: '1.0.0',
+              exportedAtUtc: '2026-07-27T21:04:00.000Z',
+              exportedAtOffsetMinutes: 0,
+              exportedAtZoneAbbreviation: 'GMT',
+              counts: <String, int>{
+                for (final MapEntry<String, Object?> e in first.entries)
+                  e.key: (e.value! as List<Object?>).length,
+              },
+              media: const BackupMedia(included: false, count: 0, bytes: 0),
+            ),
+            fnv1a64Hex(body),
+            seedEnvelope(),
+          ),
+        ),
+        ...body,
+        ...utf8.encode('}\n'),
+      ]);
+
+    final AppDatabase restored = await restoreInto(support, backup);
+
+    // THE MARKS ONLY A RESTORE LEAVES: ids re-issued from 1 in insertion order,
+    // and no `seedFirstRun` season beyond the ones the file declares.
+    final List<Ewe> ewes = await restored.select(restored.ewes).get();
+    expect(ewes, hasLength(30));
+    expect(ewes.map((Ewe e) => e.id), containsAll(<int>[1, 2, 3]));
+    expect(
+      await restored.select(restored.seasons).get(),
+      hasLength(2),
+      reason: 'two declared seasons and no phantom third',
+    );
+
+    // AND A BARREN EWE IS A EWE WITH NO LAMBING, not an absent row.
+    final List<Lambing> lambings = await restored.select(restored.lambings).get();
+    expect(lambings.length, lessThan(ewes.length), reason: 'some are barren');
+    expect(lambings, isNotEmpty);
   });
 }

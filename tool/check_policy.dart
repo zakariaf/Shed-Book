@@ -565,12 +565,12 @@ final List<ConfinedPattern> _confinedPattern = <ConfinedPattern>[
   // byte-format writers, because a locale-aware formatter on a device set to
   // French emits a comma decimal and every column after the weight shifts.
   //
-  // N22 adds backup_format.dart to [under] and v1.1.0's PDF task adds
-  // pdf_writer.dart. One id, three files — R54 forbids giving one idea three.
+  // N22 added backup_format.dart; v1.1.0's PDF task adds pdf_writer.dart.
+  // One id, three files — R54 forbids giving one idea three.
   (
     'export.intl_in_writer',
     RegExp(r'package:intl|\bNumberFormat\b|\bDateFormat\b'),
-    <String>['lib/data/csv_writer.dart'],
+    <String>['lib/data/csv_writer.dart', 'lib/data/backup_format.dart'],
     <String>[],
     'a locale formatter shifts every column after the weight — 09 §2.5',
   ),

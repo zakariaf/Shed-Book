@@ -399,8 +399,9 @@ void main() {
     );
 
     expect(
-      (await repo.watchTreatments(TreatmentMode.countdown).first)
-          .map((TreatmentRow r) => r.productName),
+      (await repo.watchTreatments(TreatmentMode.countdown).first).map(
+        (TreatmentRow r) => r.productName,
+      ),
       <String>['Alamycin'],
     );
 
@@ -428,9 +429,7 @@ void main() {
       ],
     );
 
-    final List<TreatmentRow> countdown = await repo
-        .watchTreatments(TreatmentMode.countdown)
-        .first;
+    final List<TreatmentRow> countdown = await repo.watchTreatments(TreatmentMode.countdown).first;
     expect(countdown, hasLength(1), reason: 'one treatment, folded');
     expect(countdown.single.withdrawals, hasLength(2), reason: 'two targets, kept apart');
     expect(

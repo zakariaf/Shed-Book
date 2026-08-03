@@ -341,12 +341,11 @@ final class TreatmentRepository {
   /// streams it and [lastTreatment] awaits it, and two copies of the
   /// `not_applicable`-means-`days == null` reading is two places to get §12.1
   /// wrong.
-  Future<List<StoredWithdrawal>> _withdrawalsOf(TreatmentId treatment) async =>
-      _mapWithdrawals(
-        await (_db.select(_db.treatmentWithdrawals)
-              ..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value)))
-            .get(),
-      );
+  Future<List<StoredWithdrawal>> _withdrawalsOf(TreatmentId treatment) async => _mapWithdrawals(
+    await (_db.select(
+      _db.treatmentWithdrawals,
+    )..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value))).get(),
+  );
 
   static List<StoredWithdrawal> _mapWithdrawals(List<TreatmentWithdrawal> rows) =>
       <StoredWithdrawal>[
@@ -411,11 +410,10 @@ final class TreatmentRepository {
   /// `05 §6.9` says the same thing about `local_date` and for the same reason:
   /// a stored civil date is a record of the day as it was lived.
   Stream<List<StoredWithdrawal>> watchWithdrawals(TreatmentId treatment) =>
-      (_db.select(
-        _db.treatmentWithdrawals,
-      )..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value))).watch().map(
-        _mapWithdrawals,
-      );
+      (_db.select(_db.treatmentWithdrawals)
+            ..where(($TreatmentWithdrawalsTable t) => t.treatment.equals(treatment.value)))
+          .watch()
+          .map(_mapWithdrawals);
 
   /// The period recorded for one target, or [WithdrawalNotRecorded].
   ///

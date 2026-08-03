@@ -88,8 +88,7 @@ class TreatmentsScreen extends ConsumerWidget {
     final List<Widget> lines = mode == TreatmentMode.countdown
         ? _countdownLines(rows, now: now, today: today, locale: locale, l10n: l10n)
         : <Widget>[
-            for (final TreatmentRow row in rows)
-              _BookLine(row: row, locale: locale, l10n: l10n),
+            for (final TreatmentRow row in rows) _BookLine(row: row, locale: locale, l10n: l10n),
           ];
 
     return Scaffold(
@@ -216,7 +215,14 @@ class TreatmentsScreen extends ConsumerWidget {
     for (final TreatmentRow row in rows)
       for (final StoredWithdrawal w in row.withdrawals)
         if (w.clearDate case final LocalDate d when today.daysUntil(d) > 0)
-          _CountdownLine(row: row, withdrawal: w, clearDate: d, now: now, locale: locale, l10n: l10n),
+          _CountdownLine(
+            row: row,
+            withdrawal: w,
+            clearDate: d,
+            now: now,
+            locale: locale,
+            l10n: l10n,
+          ),
   ];
 
   /// Tap one of two: this opens the sheet, and a tag in it commits.
@@ -426,10 +432,7 @@ class _CountdownLine extends StatelessWidget {
             // off the same two columns that live beside each other for ever.
             clearsOn: ClearsOn(
               clearDate,
-              clearDateFor(
-                administeredAt: row.administeredAt,
-                days: withdrawal.days!,
-              ).elapsesAt,
+              clearDateFor(administeredAt: row.administeredAt, days: withdrawal.days!).elapsesAt,
               withdrawal.target,
             ),
             now: now,

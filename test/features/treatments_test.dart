@@ -397,7 +397,9 @@ void main() {
         ((await repo.recordTreatment(
                   TreatEwe(read),
                   productName: 'Footbath',
-                  withdrawals: <WithdrawalPeriod>[const WithdrawalNotApplicable(WithdrawalTarget.meat)],
+                  withdrawals: <WithdrawalPeriod>[
+                    const WithdrawalNotApplicable(WithdrawalTarget.meat),
+                  ],
                 ))
                 as WriteCommitted)
             .insertedId!;

@@ -774,6 +774,25 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String exportBannerHeadline({required String date}) {
+    return 'You have not exported since $date.';
+  }
+
+  @override
+  String get exportBannerNeverHeadline => 'You have not exported from this phone.';
+
+  @override
+  String exportBannerCount({required int count}) {
+    return '$count records since then. A lost phone is lost records unless you export.';
+  }
+
+  @override
+  String get exportBannerAct => 'EXPORT NOW';
+
+  @override
+  String get exportBannerDismiss => 'NOT THIS SEASON';
+
+  @override
   String get treatmentsTitle => 'TREATMENTS';
 
   @override

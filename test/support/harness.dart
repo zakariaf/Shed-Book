@@ -151,6 +151,12 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.penBoard: (seed: _seedHardPenBoard, build: _penBoard),
   RouteNames.treatments: (seed: _seedHardTreatments, build: _treatments),
   RouteNames.export: (seed: _seedHardTreatments, build: _export),
+  // **QUICK ENTRY WITH THE BANNER SHOWN** — a state, not a screen, and the one
+  // in which the reachability assertion is most likely to fail. Keyed on the
+  // banner's widget key rather than on a route name because it is not a route:
+  // `12 §6.4` names the variant and `overflow_matrix_test.dart`'s membership
+  // case allows it by shape.
+  'quick_entry.export_banner': (seed: _seedArmedBanner, build: _quickEntry),
 };
 
 /// A matrix cell: what to put in the database, then what to pump.
@@ -437,6 +443,18 @@ Widget _treatments(Map<String, int> _) => const TreatmentsScreen();
 /// every column at once. A screen whose numbers are all `1` proves nothing about
 /// a row at 200% text.
 Widget _export(Map<String, int> _) => const ExportScreen();
+
+/// The banner armed, and the hour NOT set — condition 6 is a wall-clock fact and
+/// the matrix runs at whatever hour the machine is at.
+///
+/// That is deliberate rather than sloppy: the cells that matter here are the
+/// LAYOUT ones, and a banner that does not render because the suite ran at 02:00
+/// would make eighteen cells pass having pumped nothing. So the matrix pins the
+/// hour through `withClock` in its own body — see the variant's note there.
+Future<Map<String, int>> _seedArmedBanner(AppDatabase db) async {
+  await armExportBanner(db);
+  return <String, int>{};
+}
 
 /// The text scales every variant is pumped at. 1.0, the Android 14+ default
 /// ceiling most users reach, and the 200% the platform allows.

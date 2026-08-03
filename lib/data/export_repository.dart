@@ -134,6 +134,40 @@ final class ExportRepository {
         ),
       );
 
+  /// How many records have been written since the last export.
+  ///
+  /// **THE BANNER'S CONDITION 2, AND IT IS NOT "HAS IT BEEN A WHILE".** A
+  /// shepherd who exported an hour ago and has recorded nothing since is told
+  /// nothing, however long ago it was — the prompt is about unexported records,
+  /// not about elapsed time. `null` means nothing has ever been exported, and
+  /// then every record counts.
+  ///
+  /// It counts on `created_at`, not on `occurred_at`: what matters is when the
+  /// row was WRITTEN relative to the export, and a lambing back-dated to
+  /// yesterday was still recorded after it.
+  Future<int> countRecordsSinceExport(SeasonId season, Instant? lastExportedAt) async {
+    final int since = lastExportedAt?.epochMillis ?? 0;
+    final QueryRow row = await _db
+        .customSelect(
+          _sinceExportSql,
+          variables: <Variable<Object>>[
+            Variable<int>(season.value),
+            Variable<int>(since),
+            Variable<int>(season.value),
+            Variable<int>(since),
+            Variable<int>(season.value),
+            Variable<int>(since),
+          ],
+          readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+            _db.lambings,
+            _db.lambs,
+            _db.treatments,
+          },
+        )
+        .getSingle();
+    return row.read<int>('n');
+  }
+
   static final int _countsSeasonPlaceholders = '?'.allMatches(_countsSql).length;
 
   /// 37 fields. `09 §3.1`.
@@ -747,4 +781,14 @@ SELECT
   -- share sheet. Fetching it here keeps the one-statement rule and means the
   -- name and the counts can never be one frame apart.
   (SELECT year FROM seasons WHERE id = ?)                      AS season_year
+''';
+
+/// Lambings, lambs and treatments written since an instant. **One statement**,
+/// like every other read on this path.
+const String _sinceExportSql = '''
+SELECT
+  (SELECT COUNT(*) FROM lambings l WHERE l.season = ? AND l.created_at > ?)
++ (SELECT COUNT(*) FROM lambs lb JOIN lambings l2 ON l2.id = lb.lambing
+    WHERE l2.season = ? AND lb.created_at > ?)
++ (SELECT COUNT(*) FROM treatments t WHERE t.season = ? AND t.created_at > ?) AS n
 ''';

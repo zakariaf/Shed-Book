@@ -1378,6 +1378,36 @@ abstract class AppLocalizations {
   /// **'{label}, {count} records'**
   String exportSemantics({required String label, required int count});
 
+  /// 07 16.3. It states a fact and asks nothing. There is no 'you should' and no 'we recommend' - copy.vet_advice bans the first and 12.2's origination line bans the app having an opinion about how often somebody ought to export.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not exported since {date}.'**
+  String exportBannerHeadline({required String date});
+
+  /// The same banner before there is any export to date. A blank date or the word 'never' in the dated sentence would both read as a bug.
+  ///
+  /// In en, this message translates to:
+  /// **'You have not exported from this phone.'**
+  String get exportBannerNeverHeadline;
+
+  /// The count is READ, never estimated. The second sentence is the qualified form of spec 7.9's warning: 'a lost phone is lost data' UNQUALIFIED is banned (CLAUDE.md), because it is only true if they have not exported - and this banner exists precisely to make that qualification actionable.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} records since then. A lost phone is lost records unless you export.'**
+  String exportBannerCount({required int count});
+
+  /// Pushes the Export screen and STARTS NO WORK. A banner action that begins a share is a banner that has decided for the shepherd which artefacts they wanted.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPORT NOW'**
+  String get exportBannerAct;
+
+  /// Writes export_prompt_dismissed_for_season and the banner never appears again this season. There is NO third 'later' action and no close X: not answering is already free, and a dismiss-for-now button would be a third decision at the one moment the app promised not to ask for any.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT THIS SEASON'**
+  String get exportBannerDismiss;
+
   /// The screen's heading, headingLevel 1.
   ///
   /// In en, this message translates to:

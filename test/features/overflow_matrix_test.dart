@@ -26,7 +26,7 @@ void main() {
 
     expect(
       cells,
-      126,
+      144,
       reason:
           'SIX variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
           'joined at N16-T09, the Lamb Card at N17-T05 Foster at N18-T05 the pen board at N19-T07 and treatments at N20-T07. '
@@ -49,11 +49,22 @@ void main() {
       RouteNames.penBoard,
       RouteNames.treatments,
       RouteNames.export,
+      // NOT A ROUTE — a STATE of Quick Entry, and `12 §6.4` names it as its own
+      // variant because the banner takes height from the screen with the
+      // tightest vertical budget in the app.
+      'quick_entry.export_banner',
     });
 
-    // Every key is a real route name — a variant keyed on a string that is not
-    // in RouteNames is a cell that pumps something the diagnostics log cannot
-    // name.
+    // Every key is a real route name **or a widget key naming a state of one**.
+    // A variant keyed on neither is a cell that pumps something the diagnostics
+    // log cannot name.
+    //
+    // The second form arrived with N21-T08: `12 §6.4` gives the export banner
+    // its own variant because it is a STATE of Quick Entry rather than a screen,
+    // and it is the state in which the reachability assertion is most likely to
+    // fail. It is allowed by SHAPE — a dotted key whose namespace is a route
+    // name — rather than by an allowlist entry, so a second such variant needs
+    // no edit here and a typo still fails.
     const Set<String> names = <String>{
       RouteNames.quickEntry,
       RouteNames.flock,
@@ -69,7 +80,11 @@ void main() {
       RouteNames.settings,
       RouteNames.noteSearch,
     };
-    expect(names.containsAll(kPumpableVariants.keys), isTrue);
+    for (final String key in kPumpableVariants.keys) {
+      final bool isRoute = names.contains(key);
+      final bool isStateOfARoute = key.contains('.') && names.contains(key.split('.').first);
+      expect(isRoute || isStateOfARoute, isTrue, reason: key);
+    }
   });
 
   for (final MapEntry<String, PumpableVariant> variant in kPumpableVariants.entries) {

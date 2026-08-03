@@ -65,6 +65,7 @@ import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.d
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
+import 'package:shed_book/features/quick_entry/widgets/export_banner.dart';
 import 'package:shed_book/features/quick_entry/widgets/recents_strip.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -194,6 +195,15 @@ class _QuickEntryPage extends ConsumerWidget {
                 height: _Grid.headerHeight,
               ),
 
+              // THE BANNER'S SLOT, above the record column and below the page
+              // header (`07 §16.2`). It renders here and nowhere else.
+              //
+              // **IT IS OUTSIDE THE `Expanded` BELOW**, which is the shrink
+              // order made structural: the record column is what gives when the
+              // banner takes height, and the keypad, the confirm bar and the two
+              // strips never shrink. `06 §8.2` sets that trade one level down —
+              // *"the match list above it gives up rows"* — and this is the same
+              // trade one level up.
               // The record column takes the remainder, and the remainder is what
               // gives. That is the design's own answer rather than an invention:
               // 06 §8.2 says of the keypad growing that "the match list above it
@@ -208,6 +218,22 @@ class _QuickEntryPage extends ConsumerWidget {
                     key: const Key('quick_entry.record_column'),
                     child: Column(
                       children: <Widget>[
+                        // THE BANNER'S SLOT: the top of the record column, which
+                        // is the reading surface above the tag readout
+                        // (`07 §16.2`) — and, structurally, the one part of this
+                        // screen that already scrolls.
+                        //
+                        // **INSIDE THE SCROLL VIEW AND NOT ABOVE IT**, and that
+                        // is measured rather than preferred. Placed above the
+                        // record column it takes height from a `Column` whose
+                        // other children are fixed, and at textScaler 2.0 on a
+                        // 375 × 667 device it overflowed by **665 pixels** —
+                        // there is no shrink order that survives that, because
+                        // the keypad, the confirm bar and the recents strip may
+                        // never give. Inside, it cannot take height from the
+                        // chrome at all: the banner scrolls, and the thumb
+                        // targets stay exactly where they were.
+                        const ExportBanner(),
                         for (int i = 0; i < 12; i++)
                           const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
                       ],
@@ -218,7 +244,18 @@ class _QuickEntryPage extends ConsumerWidget {
 
               // The deck's two strips. T06 fills them; the sizes are final now,
               // which is what makes frame 1 and frame 2 identical.
-              const InPensStrip(height: _Grid.stripHeight),
+              //
+              // **THE IN-PENS STRIP IS THE SECOND THING THAT GIVES**, and only
+              // when the export banner is up. `07 §16.2` fixes the shrink order
+              // — the filtered-match list loses a row, then this strip — and the
+              // keypad, the confirm bar and the recents strip never shrink.
+              //
+              // The `Flexible` stays from N21-T08's first attempt even though the
+              // banner no longer needs it: the record column reaches zero on a
+              // 375 × 667 device before anything is added, so a strip that
+              // cannot give is a strip that overflows the day anything else
+              // does. It costs nothing while nothing needs it.
+              const Flexible(child: InPensStrip(height: _Grid.stripHeight)),
               const RecentsStrip(height: _Grid.stripHeight),
 
               QuickEntryBottomBand(

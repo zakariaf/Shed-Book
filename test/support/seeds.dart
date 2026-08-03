@@ -342,3 +342,30 @@ Future<CareEventId> seedCareEvent(
       );
   return CareEventId(id);
 }
+
+/// Sets `app_settings` so all six of `07 §16.2`'s conditions hold.
+///
+/// **HERE AND NOT IN `harness.dart`** (`12 §5.3`): it writes rows, and every
+/// writer lives in this file. A seed in the harness is a seed that gets called
+/// from `pumpApp` by somebody who did not mean to.
+///
+/// It does **not** set the hour — condition 6 is a wall-clock fact and the
+/// caller pins it with `withClock`, because R23 makes `appNow()` the only clock
+/// reader and a seed that moved time would be a second one.
+Future<void> armExportBanner(AppDatabase db, {Instant? lastExportedAt}) async {
+  final SeasonId season = await _season(db);
+  final EweId ewe = await seedEwe(db, tag: '412');
+  // SOMETHING TO EXPORT. Condition 2 counts records written since the last
+  // export, so a seed that only sets the columns arms nothing.
+  await seedLambing(db, ewe);
+
+  await (db.update(db.appSettings)..where(($AppSettingsTable t) => t.id.equals(1))).write(
+    AppSettingsCompanion(
+      currentSeason: Value<int?>(season.value),
+      lastExportedAt: Value<Instant?>(lastExportedAt),
+      // NOT PROMPTED TODAY, and not dismissed for this season.
+      lastExportPromptedAt: const Value<Instant?>(null),
+      exportPromptDismissedForSeason: const Value<int?>(null),
+    ),
+  );
+}

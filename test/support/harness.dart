@@ -20,7 +20,7 @@
 //   the seven gateway fakes (12 §4.2) — each lands in the epic that writes its
 //   gateway, and extends shedContainer's override list in the SAME commit:
 //     FakeMediaStore · FakeCameraService · FakeVoiceRecorder      N15
-//     FakeShareService                                            N21
+//     FakeShareService                                            N21 — DONE, T06
 //     FakeNotificationScheduler                                   N24
 //     FakeWakelockController                                      N29
 //     FakePurchaseService (the store seam, R74)                   N30
@@ -69,6 +69,7 @@ import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
+import 'fake_share_service.dart';
 import 'seeds.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -477,13 +478,23 @@ final class Device {
 /// controller, because a fake controller tests the fake. A real in-memory SQLite
 /// database is a better fake than anything hand-written and cannot diverge from
 /// production.
-ProviderContainer shedContainer(AppDatabase db, {List<Override> overrides = const <Override>[]}) {
+ProviderContainer shedContainer(
+  AppDatabase db, {
+  List<Override> overrides = const <Override>[],
+  FakeShareService? share,
+}) {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
       // `overrideWith`, never the value form: databaseProvider is a
       // FutureProvider<AppDatabase>, and the value form takes an AsyncValue
       // rather than an AppDatabase — with an error message that does not say so.
       databaseProvider.overrideWith((_) async => db),
+      // N21-T06. **Always overridden, even when the test passes nothing**: the
+      // real gateway reaches `SharePlus.instance`, which fails on a missing
+      // platform channel in a widget test — and that reads as a flaky test
+      // rather than as an unmocked seam. §17's warning applies in reverse here:
+      // a parameter that overrides nothing is worse than no parameter.
+      shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
       ...overrides,
     ],
   );

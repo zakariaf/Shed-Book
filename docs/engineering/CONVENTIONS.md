@@ -860,7 +860,7 @@ is a breaking change to `test/features/`.
 
 Dotted `namespace.name`, all `lower_snake` (R54). The namespaces: `layer`, `net`, `time`, `rp3`,
 `stream`, `db`, `stat`, `a11y`, `gesture`, `token`, `theme`, `type`, `ui`, `main`, `dep`, `launch`,
-`copy`, `media`, `export`.
+`copy`, `media`, `export`, `share`.
 
 **A living list.** `export` arrived with N21-T01 and its two rows are the gate's fourth rule family —
 a *confinement*, which is neither "banned everywhere" nor "banned under a prefix" but *legal in one

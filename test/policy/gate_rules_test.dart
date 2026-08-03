@@ -437,6 +437,17 @@ final Map<String, Planted> firesOn = <String, Planted>{
         "your phone';",
   ),
 
+  // -- share, N21-T06 ------------------------------------------------------
+  'layer.plugin_share_plus': _at(
+    'lib/features/export/export_screen.dart',
+    "import 'package:share_plus/share_plus.dart';",
+  ),
+  'export.share_static': _at(
+    'lib/features/export/export_screen.dart',
+    'await Share.shareXFiles(files);',
+  ),
+  'share.from_data': _at('lib/data/backup_format.dart', 'final f = XFile.fromData(bytes);'),
+
   // -- export, N21-T01. The two CONFINEMENT rows, whose shape is neither
   // "banned everywhere" nor "banned under a prefix": a pattern legal in one
   // named file and nowhere else, and its inverse.
@@ -1780,7 +1791,7 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       // assertion the fourth one lands and the [exempt] key that references it
       // never matches, silently, for ever.
       final RegExp grammar = RegExp(
-        r'^(layer|net|time|rp3|stream|db|stat|a11y|gesture|token|theme|type|ui|main|dep|launch|copy|media|export)'
+        r'^(layer|net|time|rp3|stream|db|stat|a11y|gesture|token|theme|type|ui|main|dep|launch|copy|media|export|share)'
         r'\.[a-z0-9_]+$',
       );
       for (final String id in policyRuleIds) {

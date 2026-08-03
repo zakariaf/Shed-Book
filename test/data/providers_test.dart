@@ -196,6 +196,8 @@ void main() {
       'settleThresholdHoursProvider',
       // N20-T01 — §12.1 lives behind it
       'treatmentRepositoryProvider',
+      // N21-T06 — the one seam anything leaves the phone by
+      'shareServiceProvider',
     });
   });
 

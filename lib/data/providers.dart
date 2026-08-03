@@ -16,6 +16,7 @@
 //   lambingRepositoryProvider   N14-T02  Provider<LambingRepository>
 //   mediaStoreProvider          N15-T01  Provider<MediaStore>                 keepAlive
 //   cameraServiceProvider       N15-T02  Provider<CameraService>              keepAlive
+//   shareServiceProvider        N21-T06  Provider<ShareService>               keepAlive
 //   voiceRecorderProvider       N15-T03  Provider<VoiceRecorder>              keepAlive
 //   noteRepositoryProvider      N15-T04  FutureProvider<NoteRepository>       keepAlive
 //   vocabProvider               N16-T04  StreamProvider<List<VocabEntry>>     keepAlive
@@ -52,6 +53,7 @@ import 'package:shed_book/data/foster_repository.dart';
 import 'package:shed_book/data/camera_service.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
 import 'package:shed_book/data/treatment_repository.dart';
@@ -132,6 +134,15 @@ final FutureProvider<NoteRepository> noteRepositoryProvider = FutureProvider<Not
 );
 
 final Provider<MediaStore> mediaStoreProvider = Provider<MediaStore>((ref) => MediaStore());
+
+/// The one seam anything leaves the phone by.
+///
+/// **A plain `Provider`, keepAlive** (`CONVENTIONS §3.1`), not a
+/// `FutureProvider`: there is nothing to initialise, and an `AsyncValue` in
+/// front of it would be an await for a `const` construction.
+final Provider<ShareService> shareServiceProvider = Provider<ShareService>(
+  (ref) => const ShareService(),
+);
 
 final Provider<LambingRepository> lambingRepositoryProvider = Provider<LambingRepository>(
   (ref) => LambingRepository(db: ref.watch(databaseProvider).requireValue),

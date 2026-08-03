@@ -130,6 +130,18 @@ void main() {
       'WidgetsBinding.instance',
       'PlatformDispatcher.instance',
       'ServicesBinding.instance',
+      // A PLUGIN'S OWN SINGLETON, not one of ours, and it reaches exactly one
+      // file: `share_plus`'s current API is `SharePlus.instance.share(...)` and
+      // the static `Share.*` form it replaced is deprecated and takes no
+      // `sharePositionOrigin` (#80). R52 is about singletons WE declare — the
+      // rule exists because our own statics survive a torn-down container; a
+      // package's entry point is not that.
+      //
+      // Confined rather than allowed everywhere: `layer.plugin_share_plus`
+      // already refuses the import outside `lib/data/share_service.dart`, so
+      // this name cannot appear in a second file even if this list forgot to
+      // say so. (N21-T06)
+      'SharePlus.instance',
     ];
 
     for (final String path in _authoredDart('lib')) {

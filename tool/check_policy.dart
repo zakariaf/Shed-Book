@@ -506,6 +506,39 @@ typedef ConfinedPattern = (
 );
 
 final List<ConfinedPattern> _confinedPattern = <ConfinedPattern>[
+  // -- share, N21-T06. The gateway rule and the two banned APIs -----------
+  //
+  // `08 §1.2` catalogues `layer.plugin_share_plus` as one of nine confinement
+  // rows and this is the first task with a real file for it to point at. No
+  // plugin type crosses a gateway's boundary in either direction, so the import
+  // is legal in exactly one file.
+  (
+    'layer.plugin_share_plus',
+    RegExp(r'''import\s+['"]package:share_plus'''),
+    <String>['lib/'],
+    <String>['lib/data/share_service.dart'],
+    'share_plus lives behind ShareService — 08 §1.1',
+  ),
+  // The deprecated static API. It is not merely old: it takes no
+  // `sharePositionOrigin`, which the README says "may cause crashes or
+  // unresponsive UI" on iPad — the platform nobody tests on first.
+  (
+    'export.share_static',
+    RegExp(r'\bShare\.(share|shareXFiles|shareWithResult)\b'),
+    <String>['lib/'],
+    <String>[],
+    'the static Share.* API is deprecated and takes no origin — #80',
+  ),
+  // Bytes instead of a path. Decision #80: always a path. A blob has no name and
+  // no on-disk identity, and on Android it round-trips through a content
+  // provider some targets silently refuse.
+  (
+    'share.from_data',
+    RegExp(r'\bXFile\.fromData\b'),
+    <String>['lib/'],
+    <String>[],
+    'share a path, never bytes — #80',
+  ),
   // -- export -------------------------------------------------------------
   //
   // csv_writer.dart is the app's ONLY producer of CSV bytes (09 §2.1), and that

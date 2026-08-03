@@ -1072,7 +1072,9 @@
   "@exportCsvRow": {
     "description": "07 13.3 rows 1 and 2, as ONE message with the noun as a placeholder. The first draft spelled LAMB and EWE into two separate messages and l10n_bootstrap_test refused both: a domain noun in a message value is a noun a shepherd cannot rename, and these vary by county before they vary by country. The word CSV stays literal because a shepherd who is going to open the file in a spreadsheet needs to know that is what it is.",
     "placeholders": {
-      "term": { "type": "String" }
+      "term": {
+        "type": "String"
+      }
     }
   },
   "exportCsvTreatments": "CSV - ONE ROW PER TREATMENT",
@@ -1087,11 +1089,21 @@
   "@exportCounts": {
     "description": "The counts, READ and never estimated. No LIMIT, no sampling, no 'about 400' - a count the shepherd can compare against their own flock list is a count that has to be right. The two animal nouns are PLACEHOLDERS fed from Terminology (10 8.5): a shepherd who renamed ewe to gimmer sees gimmers here, and a literal noun in an ARB value is what l10n_bootstrap_test refuses. Treatment is not an animal class and stays a literal.",
     "placeholders": {
-      "eweCount": { "type": "int" },
-      "ewePlural": { "type": "String" },
-      "lambCount": { "type": "int" },
-      "lambPlural": { "type": "String" },
-      "treatments": { "type": "int" }
+      "eweCount": {
+        "type": "int"
+      },
+      "ewePlural": {
+        "type": "String"
+      },
+      "lambCount": {
+        "type": "int"
+      },
+      "lambPlural": {
+        "type": "String"
+      },
+      "treatments": {
+        "type": "int"
+      }
     }
   },
   "exportNeverExported": "Nothing has been exported from this phone yet.",
@@ -1102,7 +1114,9 @@
   "@exportLastExported": {
     "description": "The honest status line after an export. It is the date the SHARE SHEET reported, not the date the file was written: a file assembled and then dismissed did not leave the phone.",
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "exportBuilding": "Building...",
@@ -1113,22 +1127,30 @@
   "@exportFailed": {
     "description": "The failure line, in the row that failed. It names the artefact, because a shepherd with three rows needs to know which one - and it says nothing was sent, because the alternative is a shepherd who believes a file left the phone when it did not.",
     "placeholders": {
-      "artefact": { "type": "String" }
+      "artefact": {
+        "type": "String"
+      }
     }
   },
   "exportSemantics": "{label}, {count} records",
   "@exportSemantics": {
     "description": "The spoken form of one export row: what it produces and how much of it. The count is spoken because a screen reader user cannot glance at the number beside the label.",
     "placeholders": {
-      "label": { "type": "String" },
-      "count": { "type": "int" }
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
     }
   },
   "exportBannerHeadline": "You have not exported since {date}.",
   "@exportBannerHeadline": {
     "description": "07 16.3. It states a fact and asks nothing. There is no 'you should' and no 'we recommend' - copy.vet_advice bans the first and 12.2's origination line bans the app having an opinion about how often somebody ought to export.",
     "placeholders": {
-      "date": { "type": "String" }
+      "date": {
+        "type": "String"
+      }
     }
   },
   "exportBannerNeverHeadline": "You have not exported from this phone.",
@@ -1139,7 +1161,9 @@
   "@exportBannerCount": {
     "description": "The count is READ, never estimated. The second sentence is the qualified form of spec 7.9's warning: 'a lost phone is lost data' UNQUALIFIED is banned (CLAUDE.md), because it is only true if they have not exported - and this banner exists precisely to make that qualification actionable.",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "exportBannerAct": "EXPORT NOW",
@@ -1158,10 +1182,18 @@
   "@restoreRefusedNewerAppDetail": {
     "description": "The second line under restoreRefusedNewerApp. Named numbers, so a shepherd on the phone to a friend can say which build wrote the file. It NEVER replaces the sentence above it - a pair of version numbers with no sentence is a screen that has told somebody their records are unreachable without telling them what to do.",
     "placeholders": {
-      "foundFormat": { "type": "int" },
-      "foundSchema": { "type": "int" },
-      "readsFormat": { "type": "int" },
-      "readsSchema": { "type": "int" }
+      "foundFormat": {
+        "type": "int"
+      },
+      "foundSchema": {
+        "type": "int"
+      },
+      "readsFormat": {
+        "type": "int"
+      },
+      "readsSchema": {
+        "type": "int"
+      }
     }
   },
   "restoreRefusedNotOurs": "This is not a Shed Book backup file.",
@@ -1196,22 +1228,42 @@
   "@restoreBackupSummary": {
     "description": "04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.",
     "placeholders": {
-      "seasons": { "type": "int" },
-      "ewes": { "type": "int" },
-      "lambs": { "type": "int" },
-      "treatments": { "type": "int" },
-      "date": { "type": "String" },
-      "version": { "type": "String" }
+      "seasons": {
+        "type": "int"
+      },
+      "ewes": {
+        "type": "int"
+      },
+      "lambs": {
+        "type": "int"
+      },
+      "treatments": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      }
     }
   },
   "restoreLiveSummary": "{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.",
   "@restoreLiveSummary": {
     "description": "04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.",
     "placeholders": {
-      "seasons": { "type": "int" },
-      "ewes": { "type": "int" },
-      "lambs": { "type": "int" },
-      "treatments": { "type": "int" }
+      "seasons": {
+        "type": "int"
+      },
+      "ewes": {
+        "type": "int"
+      },
+      "lambs": {
+        "type": "int"
+      },
+      "treatments": {
+        "type": "int"
+      }
     }
   },
   "restoreDestruction": "Restoring will delete everything now on this phone and replace it with the backup. This cannot be undone from inside the app.",
@@ -1222,7 +1274,9 @@
   "@restoreMediaNotice": {
     "description": "04 7.3 statement 4 - WHAT THIS DOES NOT INCLUDE, said BEFORE the controls rather than after the restore. Media is records-only by decision 85, and a shepherd who learns that afterwards has been told too late to choose differently.",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "restoreStepOne": "I UNDERSTAND - CONTINUE",
@@ -1245,7 +1299,9 @@
   "@restoreDoneMedia": {
     "description": "04 7.6 verbatim, and one of the two places in the product where the app admits a limitation in full sentences rather than in a shortened label. It says where the photos ARE, not only that they are absent - a shepherd who reads 'not included' assumes they are gone.",
     "placeholders": {
-      "count": { "type": "int" }
+      "count": {
+        "type": "int"
+      }
     }
   },
   "treatmentsTitle": "TREATMENTS",
@@ -1336,5 +1392,38 @@
   "treatmentsUntagged": "UNTAGGED",
   "@treatmentsUntagged": {
     "description": "A treatment on a lamb with no tag yet, which is most lambs for most of their first week. Never a blank and never a generated number."
+  },
+  "flockEmpty": "No animals yet.",
+  "@flockEmpty": {
+    "description": "07 §3.2 Empty. The flock has no active ewes at all."
+  },
+  "flockFilteredEmpty": "No animals match these filters.",
+  "@flockFilteredEmpty": {
+    "description": "07 §3.2 Filtered-empty. Its own state: 'No animals yet' shown to a shepherd with 400 ewes and a filter on says their flock is gone."
+  },
+  "flockUnavailable": "The flock could not be read.",
+  "@flockUnavailable": {
+    "description": "07 §3.2 Error."
+  },
+  "flockRowSummary": "{seasons} seasons · {lambings} lambings",
+  "@flockRowSummary": {
+    "description": "The ewe row's summary line, assembled in Dart from ewe_summaries COUNTS (03 §5.13). A formatted string in the database would freeze the terminology overlay and the locale.",
+    "placeholders": {
+      "seasons": {
+        "type": "int"
+      },
+      "lambings": {
+        "type": "int"
+      }
+    }
+  },
+  "flockRowLabel": "Tag {tag}",
+  "@flockRowLabel": {
+    "description": "Semantics label for a flock row.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
   }
 }

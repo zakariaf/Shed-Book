@@ -942,3 +942,39 @@ AppDatabase testDatabase({bool seedOnCreate = true}) {
   addTearDown(db.close);
   return db;
 }
+
+/// Counts the SELECTs a piece of work actually issues.
+///
+/// **`07 §1.2`'s one-query rule is only a rule if something counts.** A test that
+/// asserts on ROW COUNT passes on an implementation that issues one statement per
+/// ewe — which is exactly the shape that is fine against six animals and makes
+/// the flock page unusable against four hundred. N26-T01's §4 asks for
+/// `db.executedStatements.length`; drift has no such getter, and
+/// `QueryInterceptor` is the API that does what the task means.
+///
+/// **SELECTs only.** Counting writes as well would make the number depend on
+/// whatever the seed did, and the rule is about reads.
+final class StatementCounter extends QueryInterceptor {
+  int selects = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    selects++;
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// A database that counts its own SELECTs.
+({AppDatabase db, StatementCounter counter}) countingDatabase({bool seedOnCreate = true}) {
+  final StatementCounter counter = StatementCounter();
+  final AppDatabase db = AppDatabase(
+    testConnection().interceptWith(counter),
+    seedOnCreate: seedOnCreate,
+  );
+  addTearDown(db.close);
+  return (db: db, counter: counter);
+}

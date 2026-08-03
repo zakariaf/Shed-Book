@@ -933,4 +933,23 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get treatmentsUntagged => 'UNTAGGED';
+
+  @override
+  String get flockEmpty => 'No animals yet.';
+
+  @override
+  String get flockFilteredEmpty => 'No animals match these filters.';
+
+  @override
+  String get flockUnavailable => 'The flock could not be read.';
+
+  @override
+  String flockRowSummary({required int seasons, required int lambings}) {
+    return '$seasons seasons · $lambings lambings';
+  }
+
+  @override
+  String flockRowLabel({required String tag}) {
+    return 'Tag $tag';
+  }
 }

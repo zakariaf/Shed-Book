@@ -1615,6 +1615,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNTAGGED'**
   String get treatmentsUntagged;
+
+  /// 07 §3.2 Empty. The flock has no active ewes at all.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals yet.'**
+  String get flockEmpty;
+
+  /// 07 §3.2 Filtered-empty. Its own state: 'No animals yet' shown to a shepherd with 400 ewes and a filter on says their flock is gone.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals match these filters.'**
+  String get flockFilteredEmpty;
+
+  /// 07 §3.2 Error.
+  ///
+  /// In en, this message translates to:
+  /// **'The flock could not be read.'**
+  String get flockUnavailable;
+
+  /// The ewe row's summary line, assembled in Dart from ewe_summaries COUNTS (03 §5.13). A formatted string in the database would freeze the terminology overlay and the locale.
+  ///
+  /// In en, this message translates to:
+  /// **'{seasons} seasons · {lambings} lambings'**
+  String flockRowSummary({required int seasons, required int lambings});
+
+  /// Semantics label for a flock row.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}'**
+  String flockRowLabel({required String tag});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

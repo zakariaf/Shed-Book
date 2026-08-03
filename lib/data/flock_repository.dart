@@ -28,6 +28,7 @@ import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 
 /// One row of either bucket of the deck.
 ///
@@ -350,3 +351,178 @@ WITH penned AS (
 )
 SELECT * FROM penned UNION ALL SELECT * FROM recents;
 ''';
+
+/// The flock filter set — `spec §7.7`'s five, as a value.
+///
+/// **A RECORD OF BOOLEANS, NOT AN ENUM.** The five are not mutually exclusive:
+/// *barren* and *not yet lambed* are different questions and a shepherd may want
+/// both at once. An enum would make the screen build a second statement the day
+/// somebody ticks two boxes, and `07 §1.2` allows one.
+final class FlockFilters {
+  const FlockFilters({
+    this.barren = false,
+    this.notYetLambed = false,
+    this.tripletBearing = false,
+    this.currentlyPenned = false,
+    this.underTreatment = false,
+  });
+
+  final bool barren;
+  final bool notYetLambed;
+  final bool tripletBearing;
+  final bool currentlyPenned;
+  final bool underTreatment;
+
+  bool get isEmpty =>
+      !barren && !notYetLambed && !tripletBearing && !currentlyPenned && !underTreatment;
+}
+
+/// One row of the flock list, as the statement returns it.
+///
+/// **COUNTS, NEVER A FORMATTED STRING** (`03 §5.13`). *"3 seasons · avg 2.0 ·
+/// assisted twice"* is assembled in Dart from these numbers with the terminology
+/// overlay and the locale applied; a formatted string in the database freezes
+/// both, and the shepherd who renames *ewe* to *yow* in Settings would find the
+/// old word still printed on every row.
+final class FlockRow {
+  const FlockRow({
+    required this.id,
+    required this.tag,
+    required this.tagDigits,
+    required this.seasonsRecorded,
+    required this.lambingsRecorded,
+    required this.lambsBorn,
+    required this.lambsBornAlive,
+    required this.assistedLambings,
+    required this.isPenned,
+    required this.underWithdrawal,
+    required this.hasWarning,
+  });
+
+  final EweId id;
+  final String tag;
+  final String tagDigits;
+
+  /// **NULLABLE, AND NEVER `?? 0`** (decision #58). `ewe_summaries` is a
+  /// `LEFT JOIN`, so a ewe with no summary row yet returns NULL — which means
+  /// *not computed*, not *zero*. Printing `0 seasons` for an animal whose
+  /// history simply has not been rolled up yet is the app inventing a fact.
+  final int? seasonsRecorded;
+  final int? lambingsRecorded;
+  final int? lambsBorn;
+  final int? lambsBornAlive;
+  final int? assistedLambings;
+
+  final bool isPenned;
+  final bool underWithdrawal;
+
+  /// Read from the `lambing_consistency` VIEW, which recomputes on read.
+  ///
+  /// **There is no `warning_count` column and there never will be** (decision
+  /// #54): a warning cannot be persisted because there is nowhere to persist it
+  /// that survives the record changing underneath it.
+  final bool hasWarning;
+}
+
+/// `07 §3.1`, printed there in full and copied here once.
+///
+/// **THE FILTERS ARE BOUND, NOT INTERPOLATED.** Each of the five is a `?` that
+/// is either 0 (the filter is off, so the clause is satisfied by every row) or 1
+/// (the clause narrows). One statement whatever the shepherd ticks — string
+/// concatenation would make it five statements' worth of shapes and a query plan
+/// SQLite has to re-prepare each time.
+const String _flockListSql = '''
+SELECT e.id, e.tag, e.tag_digits, e.status,
+       s.seasons_recorded, s.lambings_recorded, s.lambs_born, s.lambs_born_alive,
+       s.assisted_lambings,
+       EXISTS (SELECT 1 FROM pen_occupancies o
+                WHERE o.ewe = e.id AND o.exited_at IS NULL)          AS is_penned,
+       EXISTS (SELECT 1 FROM treatments t
+                 JOIN treatment_withdrawals w ON w.treatment = t.id
+                WHERE t.ewe = e.id AND t.voided_at IS NULL
+                  AND w.kind = 'days' AND w.clear_date >= ?)         AS under_withdrawal,
+       EXISTS (SELECT 1 FROM lambing_consistency lc
+                 JOIN lambings lg ON lg.id = lc.lambing_id
+                WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
+  FROM ewes e
+  LEFT JOIN ewe_summaries s ON s.ewe = e.id
+ WHERE e.status = 'active'
+   AND (? = 0 OR COALESCE(s.lambings_recorded, 0) = 0)
+   AND (? = 0 OR NOT EXISTS (SELECT 1 FROM lambings lg WHERE lg.ewe = e.id))
+   AND (? = 0 OR EXISTS (SELECT 1 FROM lambings lg
+                           JOIN lambs lb ON lb.lambing = lg.id
+                          WHERE lg.ewe = e.id
+                          GROUP BY lg.id HAVING COUNT(lb.id) >= 3))
+   AND (? = 0 OR EXISTS (SELECT 1 FROM pen_occupancies o
+                          WHERE o.ewe = e.id AND o.exited_at IS NULL))
+   AND (? = 0 OR EXISTS (SELECT 1 FROM treatments t
+                           JOIN treatment_withdrawals w ON w.treatment = t.id
+                          WHERE t.ewe = e.id AND t.voided_at IS NULL
+                            AND w.kind = 'days' AND w.clear_date >= ?))
+ ORDER BY e.tag_digits, e.tag;
+''';
+
+/// The flock, filtered — **one statement**, streamed.
+///
+/// `:today` is a `TEXT 'YYYY-MM-DD'` civil date computed in Dart from `appNow()`
+/// — SQL-side time is banned (decision #47) and `clear_date` is a TEXT civil date
+/// (decision #2), so the comparison is lexicographic and correct only because the
+/// format sorts.
+Stream<List<FlockRow>> watchFlockList(AppDatabase db, FlockFilters filters) => db
+    .customSelect(_flockListSql, variables: _flockVariables(filters), readsFrom: _flockReads(db))
+    .watch()
+    .map((List<QueryRow> rows) => rows.map(_toFlockRow).toList());
+
+/// The same statement, once. Used by the tests that count statements, and by
+/// anything that needs the list without a subscription.
+Future<List<FlockRow>> flockList(AppDatabase db, FlockFilters filters) async =>
+    (await db
+            .customSelect(
+              _flockListSql,
+              variables: _flockVariables(filters),
+              readsFrom: _flockReads(db),
+            )
+            .get())
+        .map(_toFlockRow)
+        .toList();
+
+List<Variable<Object>> _flockVariables(FlockFilters f) {
+  // COUNTED OFF THE STATEMENT, not remembered: one `?` for the withdrawal date
+  // in the SELECT list, then the five filter flags, then the withdrawal date
+  // again inside the fifth filter's subquery. Seven.
+  final String today = LocalDate.of(appNow()).iso;
+  return <Variable<Object>>[
+    Variable<String>(today),
+    Variable<int>(f.barren ? 1 : 0),
+    Variable<int>(f.notYetLambed ? 1 : 0),
+    Variable<int>(f.tripletBearing ? 1 : 0),
+    Variable<int>(f.currentlyPenned ? 1 : 0),
+    Variable<int>(f.underTreatment ? 1 : 0),
+    Variable<String>(today),
+  ];
+}
+
+Set<ResultSetImplementation<dynamic, dynamic>> _flockReads(AppDatabase db) =>
+    <ResultSetImplementation<dynamic, dynamic>>{
+      db.ewes,
+      db.eweSummaries,
+      db.penOccupancies,
+      db.treatments,
+      db.treatmentWithdrawals,
+      db.lambings,
+      db.lambs,
+    };
+
+FlockRow _toFlockRow(QueryRow r) => FlockRow(
+  id: EweId(r.read<int>('id')),
+  tag: r.read<String>('tag'),
+  tagDigits: r.read<String>('tag_digits'),
+  seasonsRecorded: r.readNullable<int>('seasons_recorded'),
+  lambingsRecorded: r.readNullable<int>('lambings_recorded'),
+  lambsBorn: r.readNullable<int>('lambs_born'),
+  lambsBornAlive: r.readNullable<int>('lambs_born_alive'),
+  assistedLambings: r.readNullable<int>('assisted_lambings'),
+  isPenned: r.read<int>('is_penned') == 1,
+  underWithdrawal: r.read<int>('under_withdrawal') == 1,
+  hasWarning: r.read<int>('has_warning') == 1,
+);

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 12 (2 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N31 |
 | **Size** | M |
 | **Was** | E30a, moved **before** the sweeps |
@@ -16,6 +17,23 @@
 Generate the upload key, wire release signing, create both store records, author the listing copy, and
 put the first signed build on a Play closed track and on TestFlight — **so Play's fourteen-day
 closed-test clock runs in parallel with N33's sweeps instead of after them**.
+
+## Release scope — P15
+
+**`v1.0.0`, and the calendar is now the binding constraint rather than the ordering argument.**
+
+Play's closed test needs **twelve testers opted in for fourteen continuous days** before production,
+and `13 §11` closes the release window on **31 January 2027**. Working backwards: `v1.0.0` submits to
+both stores around **mid-December 2026** — two review queues, at Christmas — so **this epic must merge
+by about November 2026**, and the ledger row `twelve_testers` is still open.
+
+**T02's listing describes `v1.0.0` and nothing else.** It is drafted while `v1.1.0` is a written plan,
+which is exactly when a listing acquires a feature the build does not have. **Reminders are the named
+risk**: they are in spec §7.6, they are the most screenshot-able thing in the backlog, and they are not
+in the binary. Neither is the flock-book PDF, nor note search, nor the season summary.
+
+The §3.1 offline wording is unaffected and stays verbatim — it is a statement about what the app
+*cannot* do, and `v1.0.0` can do even less of it.
 
 ## Why it sits here and not at the end
 

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 2 (3 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N05 |
 | **Size** | L |
 | **Was** | E05, plus the two `copy.*` gate rows and the authored term content |

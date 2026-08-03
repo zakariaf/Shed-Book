@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | cross-cutting, before 12 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N32 |
 | **Size** | L |
 | **Was** | E28, plus `goldens.yml` moved here from E30 |
@@ -30,6 +31,25 @@ from N13 onward — `00-README` §9's two parallel tracks, in as many words: *"t
 the ARB (every string goes through `app_en.arb` from the first one)."* N33 only verifies. If a sweep
 in this epic finds a missing `semanticLabel`, the fix is a one-line edit in the screen that omitted
 it — not a sweep that lowers its bar.
+
+## Release scope — P15
+
+**`v1.0.0`, whole — and none of it was deferred despite none of it being a feature.**
+
+**T01 is eleven variants, not fourteen.** Reminders, Season Summary and Note Search move to `v1.1.0`
+with their screens, so `v1.0.0`'s matrix is **11 × 18 = 198 cells** and `v1.1.0` grows it to fourteen
+and 252. The membership test is derived from the built screens rather than from a literal precisely so
+this cannot be silently wrong — a half-landed deferred screen fails that test loudly.
+
+**Why nothing here waits.** `v1.1.0` is built between February and May 2027, against a `main` that
+`13 §11` forbids releasing from. That is four months of development with **no way to ship a fix**, so
+every gate that normally catches a mistake before a shepherd does has to already exist: the eight
+goldens (T07), `goldens.yml` (T09), the four integration journeys (T08) and the geometric tap-target
+gate (T03).
+
+**`v1.1.0`'s regression armour has to ship before `v1.1.0` starts.** That is the whole argument, and
+it is the reason this epic is the one place in the split where "it is not a feature" is not a reason
+to move it.
 
 ## Why the epic sits here
 

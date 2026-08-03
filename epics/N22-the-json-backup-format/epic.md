@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 8 (2 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N21 |
 | **Size** | L |
 | **Was** | E19a — split from restore, which has a different risk profile |
@@ -26,6 +27,24 @@ here holding one top-level function and no class; N23-T01 adds the class beneath
 `00-PLAN-CRITIQUE.md` split E19 for one reason: *"two different risk profiles in one PR: a format
 (reviewable) and the app's most destructive code path (not)."* A reviewer reading this branch is reading
 an encoder and a parser. That is a job a person can actually do.
+
+## Release scope — P15
+
+**`v1.0.0`, whole — and the format must be whole with it.**
+
+**All 21 restorable tables are serialised, including `reminders` and `reminder_rules`, which no
+`v1.0.0` screen reads and which will be empty.** They are in the envelope, in the header's table list
+and in the canonical encoder's ordering exactly as if the screens existed.
+
+This is the single load-bearing constraint of the whole release split, and the reason is T03's own
+asymmetry: **the forward-compatibility contract carries an unknown *column* through `unknown_json`; it
+does not carry an unknown *table*.** A `v1.0.0` backup written without `reminders` and restored into
+`v1.1.0` would be a restore that has to invent a missing table — on the one code path where a bug
+loses five seasons, discovered by a shepherd, in June, on a new phone.
+
+Ship the format whole and there is no format change between the two releases at all: a backup written
+by `v1.0.0` restores into `v1.1.0` byte-for-byte unchanged, and N23-T07's export→import→export
+equality property holds **across** the boundary rather than up to it.
 
 ## Why the epic sits here
 

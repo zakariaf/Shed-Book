@@ -522,7 +522,57 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 10 | Is the target market ever a dairy flock? — **ruled 2026-08-01** | **Ship `WithdrawalTarget.milk` in the v1 schema.** The v1 UI may never write one. | `treatment_withdrawals` keeps `CHECK (target IN ('meat','milk'))` and its `{treatment, target}` unique key, so 0..n rows per treatment already express a second target at no cost. `WithdrawalMilkings` does **not** exist in v1 and nothing converts milkings to days. `09 §10` row 12 already says the `milk_*` columns ship in `treatments.csv` regardless. Ruling *no* would have meant deleting `milk` from the enum and the CHECK and re-admitting it later as a migration plus a re-read of every withdrawal surface — the asymmetry is the whole argument. |
 | 11 | Where does temperature appear at all? — **ruled 2026-08-01** | **Nowhere. Drop the setting.** No v1 table stores a temperature. | `app_settings.temperature_unit` and its `CHECK (temperature_unit IN ('c','f'))` do not exist in v1; nor does the Settings °C/°F row, nor `temperatureUnitProvider`. `MilliCelsius` **still ships** (`05 §5.2`) and costs nothing — it is not deleted, because the measured reason it exists is that storing temperature at 0.1 °C silently rewrites 89 of 201 °F entries. This is the only window in the project where dropping a column is free: migrations are forward-only and never destructive (#37), so before the first snapshot the column can simply never exist, and after it the column ships forever, unread. An unused setting is a 3am tax. |
 | 13 | Does a lamb kept as a breeding ewe become a `Ewe` row? — **ruled 2026-08-01** | **Yes.** `lambs.became_ewe`, nullable, in the v1 schema. | A nullable FK to `ewes(id)` with `onDelete: KeyAction.setNull`, plus a hand-written `@TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})` — SQLite creates no child-key index automatically (#31). It re-opens the cross-table tag rule at `03 §6`, whose sentence *"a lamb tagged 412 and an active ewe tagged 412 can coexist… v1 has no lamb→ewe promotion"* is only true while the answer is no: `03 §6` is amended in the same commit and **no cross-table trigger is added to paper over it**, by that section's own instruction. The partial unique index on active tags is unchanged — promotion writes a `ewes` row that takes its own tag through the same create-on-the-fly path every other ewe does. |
+| 19 | Does the whole remaining backlog ship as one release? — **ruled 2026-08-03** | **No. Two releases: `v1.0.0` before 1 February 2027, `v1.1.0` on 1 June 2027.** Twenty-six of ninety remaining tasks move; nothing is cut. Long form in §7.0c (**P15**); scope in [`docs/RELEASE-SCOPE.md`](../RELEASE-SCOPE.md). | `13 §11`'s freeze is the binding constraint, not effort: 1 Feb – 30 Apr is the only time of year the app is used, so a release that misses 31 January 2027 slips by a **year**. The freeze blocks releases and not work, so `v1.1.0` is built Feb–May 2027 and costs no calendar. Three things `v1.0.0` must build for a release it does not contain: the backup format ships **whole** (all 21 tables — `unknown_json` carries an unknown *column* forward, never an unknown *table*); **no notification channel is created**, so #63/#65's *ids frozen at release* freezes nothing; and `android/expected_permissions.txt` is `v1.0.0`'s strictly smaller set with the three `v1.1.0` adds named in the same file, because G1 asserts set equality and going red must be answerable from a file. Every epic header carries a `**Ships in**` row and `tool/validate_epics.py` fails while one disagrees with the scope table. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
+
+### 7.0c P15 — the two releases. RULED 2026-08-03 (the owner, after N20).
+
+**The question.** N00–N20 are merged and ninety tasks remain across N21–N34. `13 §11` freezes
+releases for **1 February – 30 April**, which is the only time of year this app is used, and the open
+window on the far side of today is **now until 31 January 2027**. Does the whole backlog ship as one
+release, or does the product ship twice?
+
+**The ruling: twice. `v1.0.0` before 1 February 2027; `v1.1.0` on 1 June 2027**, the first day after
+the freeze and May's staged-rollout window. Scope, task by task, is
+[`docs/RELEASE-SCOPE.md`](../RELEASE-SCOPE.md), which `tool/validate_epics.py` holds against
+thirty-five epic headers.
+
+**Why this is a calendar ruling and not a scope preference.** A release that misses 1 February does
+not slip by a month; it slips by a **year**, into a season whose shepherds have already chosen a
+notebook or a competitor. And the freeze blocks *releases*, not *work* — so February to May 2027 is
+four months of development that were going to be spent anyway, and `v1.1.0` costs no calendar at all
+as long as its regression armour ships first (§5.5 of the scope document: the goldens, `goldens.yml`,
+the four journeys and the geometric tap-target gate are all `v1.0.0`).
+
+**What moves:** reminders (N24, N25), Season Summary (N28), the two PDFs (N21-T04/T05), note search
+(N26-T05/T06), terminology editing and the two deletes (N29-T03/T06). **Twenty-six tasks of ninety.**
+
+**What does not, and the test that sorts them.** *If this is missing on the night of 3 March 2027,
+what happens?* If the answer is *a record is lost or cannot be got off the phone*, or *the app cannot
+be sold or installed*, it is `v1.0.0` — there is no server, no sync, no remote fix, and that night the
+app is frozen. Export, backup, restore, the unlock, the permission gates, signing and the ship gates
+are all in that class. **A deferral with no answer to *"what do they do instead"* is a cut, and would
+belong in spec §13 rather than here.**
+
+**Nothing is cut.** Every deferred item ships. Three consequences are load-bearing and are recorded
+where they will be read rather than only here:
+
+- **The backup format ships whole in `v1.0.0` — all 21 tables, `reminders` among them, empty.**
+  N22-T03's forward-compatibility contract carries an unknown *column* through `unknown_json`; it does
+  **not** carry an unknown *table*. Ship the format complete and a `v1.0.0` backup restores into
+  `v1.1.0` unchanged, and N23-T07's equality property holds across the boundary.
+- **`v1.0.0` creates no notification channel**, so #63/#65's *ids are frozen at release* freezes
+  nothing, and `v1.1.0` is the first release that fixes the eight. Deferring is strictly safer than
+  shipping here.
+- **`v1.0.0`'s permission set is strictly smaller** — no `POST_NOTIFICATIONS`,
+  `RECEIVE_BOOT_COMPLETED` or `SCHEDULE_EXACT_ALARM`. N31-T01 writes that set and, in the same file,
+  the three lines `v1.1.0` adds and the epic that adds them, because §3.2 is built on G1 going red
+  being answerable from a file rather than from memory.
+
+**The words.** An epic ships in **`v1.0.0`** or **`v1.1.0`** — the release tag, and no new vocabulary.
+**Never "v1"/"v2" for these two**: spec §7 and §13 already use those for *the product* and for *cut,
+maybe never*, so *"reminders are not in v1"* would say the opposite of what is true. `R1`/`R2` are
+unusable for the same reason — `CONVENTIONS.md` and `epics/README.md` spend them on rule ids.
 
 ### 7.0b P8 — the birth-type chooser. RULED 2026-08-02 (N16-T02a).
 
@@ -633,7 +683,7 @@ from the notes in three months. `test/policy/dependency_rulings_test.dart` and
    **RULED 2026-07-27 — Unique among active animals only, which makes the index on `ewes.tag` a partial unique index rather than a global one.**
 8. ~~**Cap shape: 15 ewes, one season, or both?** Recommendation: season-primary (the calmest possible gate, landing exactly where §7.7 says the value is), with the ewe cap as a secondary calm-UI gate. The spec offers both and calls it open; decide it once.~~ `product-shaped`
    **RULED 2026-07-27 — Season-primary with the ewe cap secondary; neither surfaces mid-entry and neither surfaces at all between 22:00 and 06:00.**
-9. **Does the app replace the paper record entirely, or sit alongside it for the first season?** (spec §17.2) This changes how hard the export has to work and whether records-only JSON backup is acceptable. `product-shaped`
+9. **Does the app replace the paper record entirely, or sit alongside it for the first season?** (spec §17.2) This changes how hard the export has to work and whether records-only JSON backup is acceptable. `product-shaped` — **bound but not answered by P15**: `v1.0.0` ships the three CSV shapes and no flock-book PDF, so for the 2027 season the honest answer is *alongside*, and the Export screen and the store listing say so in those words.
 10. ~~**Is the target market ever a dairy flock?** If yes, `WithdrawalTarget.milk` (and possibly milkings) must be in the **v1 schema** even if not in the v1 UI. Shipping the sealed type now is free; retrofitting is a migration.~~ `schema-shaped`
     **RULED 2026-08-01 — Ship the target. `treatment_withdrawals.target` keeps its `CHECK (target IN ('meat','milk'))` and `enum WithdrawalTarget { meat, milk }` keeps both members, because 0..n rows per treatment already express it and admitting `milk` later is a migration plus a re-read of every withdrawal surface; `WithdrawalMilkings` does not exist in v1 and nothing converts milkings to days.**
 11. ~~**Where does temperature appear at all?** Spec §7.10 has a °C/°F setting but §10's data model has no temperature field. Either the setting is vestigial (drop it — an unused setting is a 3am tax) or a lamb/ewe body-temperature field is missing. Decide before schema v1.~~ `schema-shaped`
@@ -646,9 +696,11 @@ from the notes in three months. `test/policy/dependency_rulings_test.dart` and
     **RULED 2026-08-01 — Five. `lambings.ease` keeps `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)` and `LambingEase` keeps its 1..5 validation, with point 5 documented as covering elective caesarean; five big buttons is the 3am-correct answer and the column is deliberately not a vocabulary foreign key, so widening the scale stays a migration somebody has to think about.**
 16. ~~**Is a printable PDF required to print *from inside the app*?** Only that justifies re-admitting `printing` and its `http` dependency behind a CI gate.~~ `dependency-shaped`
     **RULED 2026-08-01 — No in-app print dialog, so `printing` 5.15.0 stays out of the graph and delivery remains share sheet to the OS Print action; re-admitting it would hand every future contributor `PdfGoogleFonts` and `networkImage` as one-line network paths on the platform with no permission gate to stop them.**
-17. **Does the free tier cap reminders too?** 15 ewes fits inside the 56-slot iOS budget comfortably; 400 does not. The cap interacts with the notification architecture. `product-shaped`
+17. **Does the free tier cap reminders too?** 15 ewes fits inside the 56-slot iOS budget comfortably; 400 does not. The cap interacts with the notification architecture. `product-shaped` — **off `v1.0.0`'s critical path as of P15**: reminders ship in `v1.1.0`, so this expires with N24 rather than before the first release. It is not ruled and is not deleted.
 18. ~~**Voice note cap: 60 s or 120 s?**~~ Drives the storage budget. `dependency-shaped`
     **RULED 2026-08-01 — 60 seconds, because it is the lower storage figure (~240 KB against ~480 KB per note at AAC-LC mono 32 kbps) and the recoverable direction: raising a cap orphans nothing, lowering one makes existing recordings unreproducible.**
+19. ~~**Does the whole remaining backlog ship as one release?** Ninety tasks remain across N21–N34 and `13 §11` freezes releases for 1 February – 30 April, which is the only time of year the app is used. The open window closes on 31 January 2027 and there is no second one until June.~~ `product-shaped` — the P15 half is §7.0c.
+    **RULED 2026-08-03 — No. Two releases: `v1.0.0` before 1 February 2027 and `v1.1.0` on 1 June 2027, because a release that misses the season slips by a year rather than by a month, while the freeze blocks releases and not work — so the four months it defers into were going to be spent building anyway. Twenty-six of ninety tasks move (reminders, Season Summary, the two PDFs, note search, terminology editing, the two deletes); nothing is cut; the scope is `docs/RELEASE-SCOPE.md` and `tool/validate_epics.py` holds it against thirty-five epic headers.**
 
 ---
 

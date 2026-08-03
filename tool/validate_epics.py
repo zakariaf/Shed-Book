@@ -24,6 +24,13 @@ WHAT IT REFUSES
   6. a `Depends on` id that is not *earlier* than the task depending on it —
      epics are strictly sequential and one PR each, so a forward reference is
      a task that cannot be started when the plan says it starts
+  7. an `epic.md` with no `**Ships in**` row, one that reads anything other
+     than a release tag (`v1`, `v2`, `R1` and `R2` are all already spent —
+     P15 §0), one that disagrees with `docs/RELEASE-SCOPE.md` §3, or one that
+     defers itself with no row in that table. The last is the one worth having:
+     an epic quietly moving out of `v1.0.0` is invisible in a diff that touches
+     one directory, and `13 §11`'s freeze means a release that misses
+     1 February slips by a year
 
 WHAT IT WARNS ABOUT
 -------------------
@@ -56,6 +63,24 @@ from dataclasses import dataclass, field
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 EPICS_ROOT = os.path.join(REPO_ROOT, "epics")
 SKILLS_ROOT = os.path.join(REPO_ROOT, ".claude", "skills")
+RELEASE_SCOPE = os.path.join(REPO_ROOT, "docs", "RELEASE-SCOPE.md")
+
+# ---------------------------------------------------------------------------
+# P15 — the two releases (decision record §7.0c, ruled 2026-08-03).
+#
+# `docs/RELEASE-SCOPE.md` §3 is the table; every `epic.md` carries a
+# `**Ships in**` row; this is the one thing that stops the two from drifting.
+# Without it the split is a document, and a rule that is only a document has
+# been deleted whatever the prose says.
+#
+# The scope file is parsed rather than duplicated here. A second copy of the
+# table in this script would be a third thing to keep in step, which is the
+# failure it exists to prevent.
+# ---------------------------------------------------------------------------
+
+SHIPS_IN_ROW_RE = re.compile(r"^\|\s*\*\*Ships in\*\*\s*\|(.+?)\|\s*$", re.M)
+SCOPE_ROW_RE = re.compile(r"^\|\s*(N\d\d)[^|]*\|\s*`?(v1\.0\.0|v1\.1\.0|split)`?\s*\|", re.M)
+RELEASE_TAGS = ("v1.0.0", "v1.1.0")
 
 # ---------------------------------------------------------------------------
 # The twenty-four skills. Embedded as a constant so this script runs on a
@@ -419,6 +444,69 @@ def check_task_file(path: str, text: str, report: Report) -> dict:
     return facts
 
 
+def read_release_scope(report: Report) -> dict:
+    """`docs/RELEASE-SCOPE.md` §3, as {epic id: 'v1.0.0' | 'v1.1.0' | 'split'}.
+
+    A missing scope file is a WARNING and not a failure: this script runs on a
+    checkout with no `docs/` the same way it runs with no `.claude/`, and the
+    epic-side half of the check still holds without it.
+    """
+    if not os.path.isfile(RELEASE_SCOPE):
+        report.warn("docs/RELEASE-SCOPE.md", "scope.missing",
+                    "the release-scope document is absent; only the epic-side half of P15 is checked")
+        return {}
+    return dict(SCOPE_ROW_RE.findall(open(RELEASE_SCOPE).read()))
+
+
+def check_ships_in(path: str, text: str, epic_id: str, scope: dict, report: Report) -> None:
+    """P15: the epic header and the scope table say the same thing.
+
+    Three failures, and the third is the one worth having. An epic can be
+    unlabelled, it can disagree with the table, or it can quietly defer itself —
+    and the third is invisible in a diff that only touches one directory.
+    """
+    r = rel(path)
+    m = SHIPS_IN_ROW_RE.search(text)
+    if not m:
+        report.fail(r, "ships.missing",
+                    "the header table has no **Ships in** row (P15, docs/RELEASE-SCOPE.md)")
+        return
+
+    cell = m.group(1)
+    tags = [t for t in RELEASE_TAGS if t in cell]
+    is_split = "split" in cell.lower()
+
+    if is_split:
+        if len(tags) != 2:
+            report.fail(r, "ships.split_incomplete",
+                        "a split epic's **Ships in** row must name both `v1.0.0` and `v1.1.0` "
+                        "with the tasks in each")
+        declared = "split"
+    elif len(tags) == 1:
+        declared = tags[0]
+    else:
+        report.fail(r, "ships.unreadable",
+                    f"**Ships in** reads `{cell.strip()}`; it must be exactly one release tag, "
+                    "or `split` naming both — never `v1`, `v2`, `R1` or `R2` (P15 §0)")
+        return
+
+    if not scope:
+        return
+
+    recorded = scope.get(epic_id)
+    if recorded is None:
+        # A plain `v1.0.0` epic needs no row — the merged ones are covered by a
+        # range. Anything deferred or split MUST be in the table, because that
+        # is the only page anybody reads to find out what is in the release.
+        if declared != "v1.0.0":
+            report.fail(r, "ships.undeclared",
+                        f"this epic says `{declared}` but has no row in docs/RELEASE-SCOPE.md §3; "
+                        "an epic cannot defer itself in its own directory")
+    elif recorded != declared:
+        report.fail(r, "ships.disagrees",
+                    f"the header says `{declared}` and docs/RELEASE-SCOPE.md §3 says `{recorded}`")
+
+
 def check_epic_file(path: str, text: str, report: Report) -> list:
     r = rel(path)
     for heading in REQUIRED_EPIC_SECTIONS:
@@ -452,6 +540,8 @@ def main() -> int:
                 report.warn(".claude/skills", "skill.constant_only",
                             f"`{name}` is in this script's constant but not on disk")
 
+    release_scope = read_release_scope(report)
+
     epic_dirs = sorted(d for d in os.listdir(EPICS_ROOT)
                        if os.path.isdir(os.path.join(EPICS_ROOT, d)))
     if not epic_dirs:
@@ -477,7 +567,9 @@ def main() -> int:
             report.fail(rel(dpath), "epic.no_epic_md", "epic directory has no epic.md")
             referenced = []
         else:
-            referenced = check_epic_file(epic_md, open(epic_md).read(), report)
+            epic_text = open(epic_md).read()
+            referenced = check_epic_file(epic_md, epic_text, report)
+            check_ships_in(epic_md, epic_text, epic_id, release_scope, report)
 
         files = sorted(f for f in os.listdir(dpath) if f.endswith(".md") and f != "epic.md")
         present = []

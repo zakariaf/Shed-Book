@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 12, run at 2 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N01 |
 | **Size** | S |
 | **Was** | E29-T01, moved forward twenty-seven epics |

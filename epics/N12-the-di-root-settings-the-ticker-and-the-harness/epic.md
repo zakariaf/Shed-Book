@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 4 (3 of 3) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N11 |
 | **Size** | L |
 | **Was** | E09b, plus `SettingsRepository` pulled forward from E26 |

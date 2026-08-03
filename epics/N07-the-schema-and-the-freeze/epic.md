@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 3 (1 of 2) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N06 |
 | **Size** | XL |
 | **Was** | E06, re-cut from fourteen tasks to eight |

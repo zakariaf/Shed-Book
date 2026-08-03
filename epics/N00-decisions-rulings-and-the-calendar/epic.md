@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 0 |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | — |
 | **Size** | S |
 | **Was** | E00, plus the four calendar items the old plan left unowned |

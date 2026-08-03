@@ -91,6 +91,40 @@ no optimistic UI. `synchronous = FULL` on every connection.
   and labelled `(COUNTED)`** (`06 §12`'s `ShedChoiceRow` survives only for lambing ease 1–5). That is
   what makes §12.4 structural instead of procedural.
 
+## The two releases — `v1.0.0` and `v1.1.0`
+
+Here rather than in a skill because **every remaining task carries a release label**, and a task built
+into the wrong one is a task that either misses a season or delays it. Scope is
+`docs/RELEASE-SCOPE.md`; the ruling is decision-record §7.0c (**P15**, owner, 2026-08-03);
+`tool/validate_epics.py` fails while any epic header disagrees with the table.
+
+**`13 §11` freezes releases 1 Feb – 30 Apr** — the only time of year this app is used. The open window
+runs to **31 January 2027**, and a release that misses it slips by a **year**, not a month. So
+`v1.0.0` ships before 1 Feb 2027 and `v1.1.0` on **1 June 2027**, the first day the freeze and May's
+staged window are both over. The freeze blocks releases, not work: `v1.1.0` is built Feb–May 2027.
+
+**In `v1.1.0`:** reminders (N24, N25) · Season Summary (N28) · the two PDFs (N21-T04/T05) · note
+search (N26-T05/T06) · terminology editing and the two deletes (N29-T03/T06). **Nothing is cut** —
+everything ships, and each deferral names what covers it until June.
+
+**The test that sorts a task:** *if this is missing on the night of 3 March 2027, what happens?* A
+record lost, or unrecoverable from the phone, or the app unsellable → `v1.0.0`. There is no server, no
+sync, no remote fix, and that night the app is frozen. A deferral with no answer to *"what do they do
+instead"* is a cut, and belongs in spec §13 instead.
+
+**Three things `v1.0.0` must build for a release it does not contain:**
+
+- **The backup format ships whole — all 21 tables, `reminders` among them, empty.** `unknown_json`
+  carries an unknown **column** forward; it does not carry an unknown **table**. Whole format, and a
+  `v1.0.0` backup restores into `v1.1.0` unchanged.
+- **No notification channel is created**, so #63/#65's *ids frozen at release* freezes nothing.
+- **`android/expected_permissions.txt` is `v1.0.0`'s smaller set** — no `POST_NOTIFICATIONS`,
+  `RECEIVE_BOOT_COMPLETED`, `SCHEDULE_EXACT_ALARM` — with the three `v1.1.0` adds named in the same
+  file, because G1 going red must be answerable from a file rather than from memory.
+
+**Write the tag, never "v1"/"v2".** Spec §7 and §13 already spend those on *the product* and on *cut,
+maybe never*, so "reminders are not in v1" says the opposite of what is true. `R1`/`R2` are rule ids.
+
 ## Vocabulary — one word per concept
 
 Everywhere: prose, class names, ARB keys, column names, commit messages. Reasons in `CONVENTIONS.md`
@@ -112,6 +146,7 @@ Everywhere: prose, class names, ARB keys, column names, commit messages. Reasons
 | **the backup** (JSON) / **the snapshot** (`VACUUM INTO`, drift schema JSON) | dump; and never swap the two |
 | **reconcile** (the OS notification projection) · **the deck** (Quick Entry's two strips) | schedule, sync, refresh · picker, chooser |
 | **restore** (replace everything) · **export** (records off the phone) | import, merge — **there is no merge** · backup, when it means the action |
+| **`v1.0.0`** / **`v1.1.0`** (the two releases — write the tag) | v1, v2, R1, R2 for these — all four are already spent, on the product, on what is cut, and on rule ids |
 
 **Banned absolutely:** `draft`, `isDirty`, `save()`, `commit()`, `submit()`, `pending` (as a model
 state), `sync`, `synchronized`, `offline-first`, `flags`, `Error` as a failure-type name, "your data

@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 6 (2 of 5) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N15 |
 | **Size** | L |
 | **Was** | E13, plus the P8 ruling against `07 §5.4` and `12 §10.1` |

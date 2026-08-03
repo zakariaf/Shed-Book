@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 8 (1 of 3) |
+| **Ships in** | **split** — `v1.0.0` T01 T02 T03 T06 T07 T08 · `v1.1.0` T04 T05 (the two PDFs) |
 | **Depends on** | N20 |
 | **Size** | L |
 | **Was** | E18 |
@@ -28,6 +29,30 @@ which is overflow-matrix variant 14.
 The JSON backup is **not** here. It is N22, deliberately: the format has a checksum, a canonical
 encoder and a forward-compatibility contract, and bundling it with six other artefacts makes both
 unreviewable.
+
+## Release scope — P15
+
+**Six tasks ship in `v1.0.0`; T04 and T05 wait for `v1.1.0`.**
+
+| | |
+|---|---|
+| `v1.0.0` | **T01** `CsvWriter` · **T02** the three shapes and their frozen headers · **T03** the §12.1/§12.3/§12.5 trailers · **T06** `ShareService` · **T07** `ExportRepository` and the Export screen · **T08** the end-of-day banner |
+| `v1.1.0` | **T04** `pdf_writer.dart` · **T05** the flock book in two volumes and the medicine record |
+
+**Why the CSV half cannot wait.** It is the *only* route records leave the phone by, and `ShareService`
+is what makes N22's JSON backup deliverable at all. Spec §7.9 calls export a safety feature rather than
+a convenience, and `v1.0.0` ships into a season during which `13 §11` forbids fixing anything that is
+not data loss.
+
+**Why the PDF half can.** The medicine record ships as CSV in `v1.0.0`, with the same trailers, emitted
+by the writer's own frame; it opens and prints from any spreadsheet. §12.3 forbids presenting the app
+as a compliance record in **either** format, so the PDF is a nicer artefact and not a different claim.
+
+**And deferring it removes a dependency from the release that first argues offline purity in public.**
+`pdf` 3.13.0 leaves `v1.0.0`'s graph entirely — one fewer line in `tool/policy_allowlist.txt`'s
+`[dependencies]` section, one fewer package for G2 and G3, and a smaller binary against #127's budget.
+**T06 still adds `share_plus` 13.3.0**, whose zero-permission manifest merge G1 proves; that half of
+this epic's dependency note is unchanged.
 
 ## Why the epic sits here
 

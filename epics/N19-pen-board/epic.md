@@ -3,6 +3,7 @@
 | | |
 |---|---|
 | **`00-README` §9 step** | 6 (5 of 5) |
+| **Ships in** | `v1.0.0` |
 | **Depends on** | N18 |
 | **Size** | L |
 | **Was** | E16, closer task deleted |

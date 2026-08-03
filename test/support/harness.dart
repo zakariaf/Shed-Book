@@ -43,6 +43,9 @@
 library;
 
 import 'dart:io';
+import 'package:shed_book/data/restore_service.dart';
+import 'package:shed_book/data/backup_format.dart';
+import 'dart:convert';
 
 import 'package:clock/clock.dart';
 import 'package:drift/drift.dart';
@@ -550,6 +553,62 @@ MediaStore _memoryMediaStore() {
   final Directory dir = freshSupportDir();
   Future<Directory> resolve() async => dir;
   return MediaStore(supportDirectory: resolve, temporaryDirectory: resolve);
+}
+
+/// The harness wrapper around `04 §7.2`'s flow — staging file, validate, swap,
+/// reopen — returning the **reopened** database.
+///
+/// **THE ONLY RESTORE ENTRY POINT TESTS USE FOR THE WHOLE FLOW.**
+/// `restoreFixture` (N23-T05) is the other half: it loads a committed backup into
+/// an already-open in-memory database and never renames a file. Two entry points
+/// because they exercise two different halves, and mixing them is how a test
+/// that renames nothing claims to have proved the swap.
+///
+/// **`FakeNotificationScheduler` IS NOT A PARAMETER, AND THAT IS P15.** `09 §7.3`
+/// gives `RestoreService` a scheduler so a restore can cancel what the old
+/// database had scheduled. Reminders ship in `v1.1.0`, so there is nothing to
+/// cancel and no scheduler to fake — N24 adds both, here and in the service, in
+/// the commit that creates them.
+Future<AppDatabase> restoreInto(Directory support, File backup) async {
+  final Map<String, Object?> decoded =
+      jsonDecode(await backup.readAsString()) as Map<String, Object?>;
+
+  final BackupHeaderOutcome outcome = readBackupHeader(decoded);
+  expect(
+    outcome,
+    isA<BackupHeaderAccepted>(),
+    reason: 'the fixture is not readable by this build — check `schema` and `formatVersion`',
+  );
+
+  final Map<String, List<Map<String, Object?>>> tables = <String, List<Map<String, Object?>>>{
+    for (final MapEntry<String, Object?> e in (decoded['tables']! as Map<String, Object?>).entries)
+      e.key: <Map<String, Object?>>[
+        for (final Object? row in e.value! as List<Object?>) row! as Map<String, Object?>,
+      ],
+  };
+
+  final WriteOutcome result = await RestoreService(support).restore(
+    header: (outcome as BackupHeaderAccepted).header,
+    tables: tables,
+    openStaging: (File file) async {
+      file.parent.createSync(recursive: true);
+      return AppDatabase(NativeDatabase(file), seedOnCreate: false);
+    },
+  );
+  expect(
+    result,
+    isA<WriteCommitted>(),
+    reason: 'the restore aborted — the live database is untouched, which is the point',
+  );
+
+  // THE REOPENED DATABASE, from where the swap actually put it. Reopening the
+  // staging path instead would test a file the app will never read.
+  final AppDatabase reopened = AppDatabase(
+    NativeDatabase(File('${support.path}/$kLiveDatabaseName')),
+    seedOnCreate: false,
+  );
+  addTearDown(reopened.close);
+  return reopened;
 }
 
 /// A temp directory torn down with the test — what `restoreInto` restores into

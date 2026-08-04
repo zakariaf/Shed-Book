@@ -40,6 +40,31 @@ abstract final class Disclaimers {
   static const String strikeNotice =
       'Struck entries are included and marked struck. Nothing has been removed.';
 
+  /// **THE ONLY PERMITTED PUBLIC WORDING FOR THE OFFLINE CLAIM**, verbatim from
+  /// decision-record §3.1 and `docs/store/offline-honesty.md`.
+  ///
+  /// It lives here for the same reason [exportFooter] does — referenced, never
+  /// re-typed — and the reason is sharper: **only tiers 1 and 2 are claimable**.
+  /// No network code and no `INTERNET` permission, and no dependency *can* reach
+  /// a network from our process. Tier 3 — *no data leaves the device by any
+  /// route* — is **false**: the share sheet and the system photo picker are other
+  /// processes, and the CSV a shepherd AirDrops is the backup story this product
+  /// depends on.
+  ///
+  /// So the four-word claim about data never leaving the phone — the one the
+  /// gate row scans for, spelled nowhere in this repository outside that row —
+  /// is banned outright, and this sentence is what replaces it. (Thirty-second
+  /// time this project has failed its own gate inside the comment explaining
+  /// that gate: the row scans source text, comments included.) `test/policy/offline_wording_test.dart`
+  /// compares it to the decision record character for character; the About
+  /// section renders THIS const rather than a copy, so a softening in one place
+  /// cannot pass while the other still reads correctly.
+  static const String offlineStatement =
+      'Shed Book has no account, no server and no sync. The Android build ships '
+      'without the internet permission, so the app itself cannot connect to '
+      'anything. Your records only leave the phone when you deliberately export '
+      'and share them.';
+
   static const String withdrawalCaveat =
       'Withdrawal period as entered by you from the product label. '
       'Shed Book does not know any product and suggests no value. '

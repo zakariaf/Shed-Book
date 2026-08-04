@@ -138,6 +138,23 @@ class AppDatabase extends _$AppDatabase {
   /// looks like a working database until it does not.
   Future<void> walCheckpointTruncate() => customStatement('PRAGMA wal_checkpoint(TRUNCATE)');
 
+  /// **SQLITE'S OWN INTEGRITY CHECK, AND IT REPAIRS NOTHING.**
+  ///
+  /// `PRAGMA quick_check` returns the single row `ok` on a healthy file and one
+  /// row per problem otherwise. It is the cheap half of `integrity_check` —
+  /// index contents are not verified — which is the right trade for a button a
+  /// shepherd presses when something feels wrong: it answers in a second on a
+  /// four-hundred-ewe file rather than in a minute.
+  ///
+  /// **An app that silently repaired a records file would be the one thing worse
+  /// than one that could not read it**, because the shepherd would never learn
+  /// which night stopped being true. This reports; the honest next act is the
+  /// snapshot beside it.
+  Future<bool> quickCheck() async {
+    final List<QueryRow> rows = await customSelect('PRAGMA quick_check').get();
+    return rows.length == 1 && rows.single.data.values.first == 'ok';
+  }
+
   /// `VACUUM INTO` — **the snapshot**, and never *the backup* (`CONVENTIONS §5`
   /// keeps those two words apart because swapping them is how somebody restores
   /// the wrong thing).

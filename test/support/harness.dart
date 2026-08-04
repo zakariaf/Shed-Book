@@ -75,6 +75,7 @@ import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
+import 'package:shed_book/features/settings/settings_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
@@ -176,6 +177,11 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   // her. A card opened on an arbitrary fixture ewe would pump the empty state at
   // eighteen cells and prove nothing.
   RouteNames.eweCard: (seed: _seedHardEweCard, build: _eweCard),
+  // **NO SEEDER, LIKE FLOCK, AND FOR THE OPPOSITE REASON.** Flock needs volume;
+  // Settings needs none — its eleven sections render from `app_settings`, which
+  // the fixture already carries, and the one section whose height varies with
+  // data is Season, which the fixture's three seasons already stretch.
+  RouteNames.settings: (seed: _seedNothing, build: _settings),
   // **QUICK ENTRY WITH THE BANNER SHOWN** — a state, not a screen, and the one
   // in which the reachability assertion is most likely to fail. Keyed on the
   // banner's widget key rather than on a route name because it is not a route:
@@ -488,6 +494,8 @@ Future<Map<String, int>> _seedHardEweCard(AppDatabase db) async {
 }
 
 Widget _eweCard(Map<String, int> ids) => EweCardScreen(eweId: EweId(ids['ewe']!), tag: '412');
+
+Widget _settings(Map<String, int> _) => const SettingsScreen();
 
 /// **THE SAME SEED AS TREATMENTS, DELIBERATELY.** The Export screen renders
 /// counts, and the counts that can overflow a row are the large ones — the

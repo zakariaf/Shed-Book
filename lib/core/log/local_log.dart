@@ -53,6 +53,52 @@ final class LocalLog {
   @visibleForTesting
   List<String> get buffered => List<String>.unmodifiable(_buffered);
 
+  /// The live log file's path, for the share sheet.
+  ///
+  /// **A PATH, NEVER BYTES.** `share_plus` takes files, and handing it the
+  /// contents instead would mean holding a 256 KB string on the main isolate to
+  /// build a file the platform is about to read off disk anyway.
+  ///
+  /// `null` before [attachTo] — on a launch where the support directory could
+  /// not be created there is no log to send, and the Diagnostics row says so
+  /// rather than offering a share that fails in the system sheet.
+  String? get logFilePath => _dir == null ? null : _logFile.path;
+
+  /// The last [limit] records, newest **last**, exactly as they sit on disk.
+  ///
+  /// **ALREADY REDACTED, BECAUSE REDACTION HAPPENS ON THE WAY IN** (`13 §8.4`).
+  /// This is a read; it does not re-implement `Redact` and it must not — a
+  /// second redaction pass is a second answer to *what is a tag number*, and the
+  /// two would disagree the first time one of them was improved.
+  ///
+  /// Returns `const []` rather than throwing when there is nothing to read: a
+  /// diagnostics screen that crashes is the one screen that cannot.
+  List<String> recentRecords({int limit = 20}) {
+    try {
+      if (_dir == null) {
+        return List<String>.unmodifiable(
+          _buffered.length <= limit ? _buffered : _buffered.sublist(_buffered.length - limit),
+        );
+      }
+      final File live = _logFile;
+      if (!live.existsSync()) {
+        return const <String>[];
+      }
+      final List<String> lines = live
+          .readAsLinesSync()
+          .where((String l) => l.trim().isNotEmpty)
+          .toList();
+      return List<String>.unmodifiable(
+        lines.length <= limit ? lines : lines.sublist(lines.length - limit),
+      );
+    } on Object {
+      // The log swallows its own failures everywhere else in this file, and a
+      // read is no different: a diagnostics screen that cannot show the log must
+      // still show everything else.
+      return const <String>[];
+    }
+  }
+
   File get _logFile => File('${_dir!.path}/$logName');
   File get _lockFile => File('${_dir!.path}/$lockName');
 

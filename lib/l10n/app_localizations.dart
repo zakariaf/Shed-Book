@@ -1830,6 +1830,276 @@ abstract class AppLocalizations {
   /// **'{clauses}'**
   String eweCardSummarySemantics({required String clauses});
 
+  /// The page header. 07 §16's sticky 44 px header — read-only, never collapses, never parallaxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// The kilogram half of the units segmented line (indelible.md §8 screen 12). A DISPLAY choice only: the database stores grams and nothing is rewritten when it changes (#56).
+  ///
+  /// In en, this message translates to:
+  /// **'KG'**
+  String get settingsUnitsWeightKg;
+
+  /// The pound half. Rendered as pounds and ounces, because a shepherd who works in pounds does not think in tenths of one.
+  ///
+  /// In en, this message translates to:
+  /// **'LB'**
+  String get settingsUnitsWeightLb;
+
+  /// The spoken form of each segment. NO STATE WORD IN IT (10 §3.2 rule 2): the node carries `selected` and a screen reader announces the state itself, so 'Kilograms, selected' is the doubled announcement users report as noise.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight in {unit}'**
+  String settingsUnitsWeightSemantics({required String unit});
+
+  /// The spoken noun for kg. Written out because a screen reader reads 'KG' as two letters.
+  ///
+  /// In en, this message translates to:
+  /// **'kilograms'**
+  String get settingsUnitsWeightKgSpoken;
+
+  /// The spoken noun for lb. Written out because a screen reader reads 'LB' as two letters.
+  ///
+  /// In en, this message translates to:
+  /// **'pounds'**
+  String get settingsUnitsWeightLbSpoken;
+
+  /// R35's frozen palette id 'night'. The default: warm off-white ink on near-black. There is no light theme and no system-follow — the app is dark only, on both platforms.
+  ///
+  /// In en, this message translates to:
+  /// **'NIGHT'**
+  String get settingsPaletteNight;
+
+  /// R35's frozen palette id 'amber'. Shifts the ink warm for a shepherd who finds the default too cool under a head torch.
+  ///
+  /// In en, this message translates to:
+  /// **'AMBER'**
+  String get settingsPaletteAmber;
+
+  /// R35's frozen palette id 'red' — note the STORED key is 'red' and the label is two words. Red-shift for night vision: it overrides token values and nothing else, because nothing in this app was ever encoded by hue.
+  ///
+  /// In en, this message translates to:
+  /// **'DEEP RED'**
+  String get settingsPaletteDeepRed;
+
+  /// The spoken form of each palette choice. No state word in it (10 §3.2 rule 2): the node carries `selected` and announcing it twice is noise.
+  ///
+  /// In en, this message translates to:
+  /// **'{palette} palette'**
+  String settingsPaletteSemantics({required String palette});
+
+  /// Raises every ink to the top of its ramp. It is an ADDITION to the palette, not a fourth palette — which is why it is its own row and not a fourth word on the line above.
+  ///
+  /// In en, this message translates to:
+  /// **'HIGH CONTRAST'**
+  String get settingsHighContrast;
+
+  /// The spoken form when the setting is on. Written as a sentence rather than as a state word appended to a label, so a screen reader announces it once.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast on'**
+  String get settingsHighContrastOn;
+
+  /// The spoken form when the setting is off.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast off'**
+  String get settingsHighContrastOff;
+
+  /// The wakelock, for a phone propped on a gate while both hands are busy. Released on inactive as well as hidden (#79) — a phone that stays lit in a pocket is a flat battery at 05:00.
+  ///
+  /// In en, this message translates to:
+  /// **'KEEP SCREEN ON'**
+  String get settingsKeepScreenOn;
+
+  /// The spoken form when the wakelock is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on, on'**
+  String get settingsKeepScreenOnStateOn;
+
+  /// The spoken form when the wakelock is disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on, off'**
+  String get settingsKeepScreenOnStateOff;
+
+  /// R40. Moves exactly three things: the corner slab, the INDEX button and the keypad's bottom row. The spine, the margin cell and the record column do NOT mirror — a book's margin is on the left, and the digits stay where a phone keypad puts them because a shepherd who has used a phone knows where 5 is.
+  ///
+  /// In en, this message translates to:
+  /// **'LEFT-HANDED'**
+  String get settingsLeftHanded;
+
+  /// The spoken form when the mirror is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed, on'**
+  String get settingsLeftHandedStateOn;
+
+  /// The spoken form when the mirror is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed, off'**
+  String get settingsLeftHandedStateOff;
+
+  /// The current season row. The date arrives pre-formatted 'd MMM y' — a human-facing date is never all-numeric (R60), because 03/04 reads as a different day on two sides of an ocean.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} — started {date}'**
+  String settingsSeasonCurrent({required String label, required String date});
+
+  /// One row per season the shepherd can switch to. The label is theirs — seasons.label is a stored string, not a derived year.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}'**
+  String settingsSeasonSwitch({required String label});
+
+  /// The spoken form. It names the CONSEQUENCE — which season tonight's records land in — rather than the act, because 'switch' says nothing about what changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Write into {label}'**
+  String settingsSeasonSwitchSemantics({required Object label});
+
+  /// A season is the shepherd's first act, not the installer's: seedFirstRun deliberately writes none (#42). So a genuinely fresh notebook reads this, and it is a normal state rather than an error.
+  ///
+  /// In en, this message translates to:
+  /// **'No season started.'**
+  String get settingsSeasonNone;
+
+  /// 11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'The free notebook holds one season. Unlock to start another.'**
+  String get settingsSeasonCapRefused;
+
+  /// The app version, from kAppVersion — a --dart-define, so a build that forgot to set it reads 0.1.0 and says so rather than claiming a release number it does not have.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String settingsAboutVersion({required String version});
+
+  /// 13 §8.5's first diagnostics row. Counts come from the SAME whole-database count the export uses — a second implementation is a second answer to 'how many ewes are on this phone?'.
+  ///
+  /// In en, this message translates to:
+  /// **'{records} records · {ewes} animals'**
+  String settingsDiagnosticsCounts({required String records, required String ewes});
+
+  /// Runs SQLite's own integrity check. It reports what it found and repairs nothing — an app that silently 'fixed' a records file would be the one thing worse than one that could not read it.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK DATABASE'**
+  String get settingsDiagnosticsCheck;
+
+  /// Shares the diagnostics log through the system share sheet, as a file path. There is no telemetry and no analytics in this app, so this is the ONLY way a problem travels — and it travels because the shepherd sent it, deliberately.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE THE LOG'**
+  String get settingsDiagnosticsShareLog;
+
+  /// Shares a VACUUM INTO snapshot of the records file. The snapshot, never the backup — 09 §5 keeps those two words apart because swapping them is how somebody restores the wrong thing.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE A COPY OF THE FILE'**
+  String get settingsDiagnosticsShareSnapshot;
+
+  /// The heading over the log preview. 'Events', because that is what the log holds — 13 §8.4 keeps every value the shepherd typed out of it, so what is left is the shape of what happened and never its content.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {count} events'**
+  String settingsDiagnosticsRecent({required num count});
+
+  /// The log is empty or could not be read. A normal state on a fresh launch, and never an error — there is nothing wrong with a session in which nothing has gone wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recorded in this session yet.'**
+  String get settingsDiagnosticsNoLog;
+
+  /// SQLite's own integrity check passed. It says what was checked rather than 'OK', because a shepherd reading this is asking a specific question.
+  ///
+  /// In en, this message translates to:
+  /// **'The records file reads correctly.'**
+  String get settingsDiagnosticsIntact;
+
+  /// The integrity check failed. It reports and repairs NOTHING — an app that silently fixed a records file would be the one thing worse than one that could not read it — and the advice is the only action that cannot make things worse.
+  ///
+  /// In en, this message translates to:
+  /// **'The records file reported a problem. Save a copy of it before doing anything else.'**
+  String get settingsDiagnosticsDamaged;
+
+  /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get settingsSectionUnits;
+
+  /// 07 §14.3 section 2. The shepherd's own nouns for their animals. Editing is N29-T03 and ships in v1.1.0; the section renders its current words meanwhile.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminology'**
+  String get settingsSectionTerminology;
+
+  /// 07 §14.3 section 3. A row that opens the reminders editor. Reminders themselves are N24 and N25 and ship in v1.1.0.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get settingsSectionReminders;
+
+  /// 07 §14.3 section 4. Which season is current, and when it started.
+  ///
+  /// In en, this message translates to:
+  /// **'Season'**
+  String get settingsSectionSeason;
+
+  /// 07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Pens'**
+  String get settingsSectionPens;
+
+  /// 07 §14.3 section 6. The palette and high contrast. There is no light theme and no system-follow — the app is dark only.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsSectionAppearance;
+
+  /// 07 §14.3 section 7. The wakelock, for a phone propped on a gate at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on'**
+  String get settingsSectionKeepScreenOn;
+
+  /// 07 §14.3 section 8. Moves exactly three things — the slab, the INDEX button and the keypad's bottom row (R40). The spine, the margin and the record column do not mirror: a book's margin is on the left.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed'**
+  String get settingsSectionLeftHanded;
+
+  /// 07 §14.3 section 10. A copy of the records file and the app's own log — there is no telemetry and no analytics in this app, so this is the only way a problem travels.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsSectionDiagnostics;
+
+  /// 07 §14.3 section 11. Backup, restore and the two deletes. The deletes are N29-T06 and ship in v1.1.0.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get settingsSectionData;
+
+  /// 07 §14.3 section 12. The version, the licences, and the offline statement.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsSectionAbout;
+
+  /// 07 §14.2's error state. It names what could not be read rather than a fault — there is nothing the shepherd can do about a read failure except come back.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings could not be read.'**
+  String get settingsUnavailable;
+
   /// 07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set.
   ///
   /// In en, this message translates to:

@@ -96,16 +96,18 @@ void main() {
     // twelve land in a single commit for screens that do not exist.
     expect(
       '.push('.allMatches(declarations).length,
-      5,
+      6,
       reason:
           'lambingEntry (N16-T01), lambCard (N17-T01), foster (N18-T02), '
-          'export (N21), eweCard (N27-T01). Quick Entry is home: and is never pushed',
+          'export (N21), eweCard (N27-T01), settings (N29-T01). '
+          'Quick Entry is home: and is never pushed',
     );
     expect(declarations, contains('popToQuickEntry'));
     expect(declarations, contains('static Future<void> lambingEntry('));
     expect(declarations, contains('static Future<void> lambCard('));
     expect(declarations, contains('static Future<void> foster('));
     expect(declarations, contains('static Future<void> eweCard('));
+    expect(declarations, contains('static Future<void> settings('));
 
     // The arithmetic 12 §6.2 will assert at N33 — thirteen names minus twelve
     // helpers equals one — is still not written here, because it is still not
@@ -113,8 +115,8 @@ void main() {
     // Reminders, Season Summary and Note Search (docs/RELEASE-SCOPE.md §5.4).
     expect(
       RegExp(r'static Future<void> \w+\(').allMatches(declarations).length,
-      5,
-      reason: 'five screens exist to push to; N33-T01 asserts the final count',
+      6,
+      reason: 'six screens exist to push to; N33-T01 asserts the final count',
     );
   });
 

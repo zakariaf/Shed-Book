@@ -1116,6 +1116,159 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsUnitsWeightKg => 'KG';
+
+  @override
+  String get settingsUnitsWeightLb => 'LB';
+
+  @override
+  String settingsUnitsWeightSemantics({required String unit}) {
+    return 'Weight in $unit';
+  }
+
+  @override
+  String get settingsUnitsWeightKgSpoken => 'kilograms';
+
+  @override
+  String get settingsUnitsWeightLbSpoken => 'pounds';
+
+  @override
+  String get settingsPaletteNight => 'NIGHT';
+
+  @override
+  String get settingsPaletteAmber => 'AMBER';
+
+  @override
+  String get settingsPaletteDeepRed => 'DEEP RED';
+
+  @override
+  String settingsPaletteSemantics({required String palette}) {
+    return '$palette palette';
+  }
+
+  @override
+  String get settingsHighContrast => 'HIGH CONTRAST';
+
+  @override
+  String get settingsHighContrastOn => 'High contrast on';
+
+  @override
+  String get settingsHighContrastOff => 'High contrast off';
+
+  @override
+  String get settingsKeepScreenOn => 'KEEP SCREEN ON';
+
+  @override
+  String get settingsKeepScreenOnStateOn => 'Keep screen on, on';
+
+  @override
+  String get settingsKeepScreenOnStateOff => 'Keep screen on, off';
+
+  @override
+  String get settingsLeftHanded => 'LEFT-HANDED';
+
+  @override
+  String get settingsLeftHandedStateOn => 'Left-handed, on';
+
+  @override
+  String get settingsLeftHandedStateOff => 'Left-handed, off';
+
+  @override
+  String settingsSeasonCurrent({required String label, required String date}) {
+    return '$label — started $date';
+  }
+
+  @override
+  String settingsSeasonSwitch({required String label}) {
+    return '$label';
+  }
+
+  @override
+  String settingsSeasonSwitchSemantics({required Object label}) {
+    return 'Write into $label';
+  }
+
+  @override
+  String get settingsSeasonNone => 'No season started.';
+
+  @override
+  String get settingsSeasonCapRefused =>
+      'The free notebook holds one season. Unlock to start another.';
+
+  @override
+  String settingsAboutVersion({required String version}) {
+    return 'Version $version';
+  }
+
+  @override
+  String settingsDiagnosticsCounts({required String records, required String ewes}) {
+    return '$records records · $ewes animals';
+  }
+
+  @override
+  String get settingsDiagnosticsCheck => 'CHECK DATABASE';
+
+  @override
+  String get settingsDiagnosticsShareLog => 'SAVE THE LOG';
+
+  @override
+  String get settingsDiagnosticsShareSnapshot => 'SAVE A COPY OF THE FILE';
+
+  @override
+  String settingsDiagnosticsRecent({required num count}) {
+    return 'Last $count events';
+  }
+
+  @override
+  String get settingsDiagnosticsNoLog => 'Nothing recorded in this session yet.';
+
+  @override
+  String get settingsDiagnosticsIntact => 'The records file reads correctly.';
+
+  @override
+  String get settingsDiagnosticsDamaged =>
+      'The records file reported a problem. Save a copy of it before doing anything else.';
+
+  @override
+  String get settingsSectionUnits => 'Units';
+
+  @override
+  String get settingsSectionTerminology => 'Terminology';
+
+  @override
+  String get settingsSectionReminders => 'Reminders';
+
+  @override
+  String get settingsSectionSeason => 'Season';
+
+  @override
+  String get settingsSectionPens => 'Pens';
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get settingsSectionKeepScreenOn => 'Keep screen on';
+
+  @override
+  String get settingsSectionLeftHanded => 'Left-handed';
+
+  @override
+  String get settingsSectionDiagnostics => 'Diagnostics';
+
+  @override
+  String get settingsSectionData => 'Data';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get settingsUnavailable => 'Settings could not be read.';
+
+  @override
   String get eweCardActionLambing => 'LAMBING';
 
   @override

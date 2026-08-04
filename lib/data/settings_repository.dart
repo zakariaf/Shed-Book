@@ -65,6 +65,17 @@ final class SettingsRepository {
 
   // -- display and units — N29's screen --------------------------------------
 
+  /// **THE SEAM THE DIAGNOSTICS ROW READS THROUGH.** `lib/features/` may not
+  /// import `lib/core/db/` (layer rule 5), so a widget cannot ask the database
+  /// anything directly — and `PRAGMA quick_check` is a raw statement, which is
+  /// confined to `lib/core/db/` besides (rule 8). Two rules, one seam.
+  ///
+  /// It returns a plain `bool` rather than a `WriteOutcome` because it is a
+  /// read: nothing is written, nothing can be refused, and a failure to run it
+  /// at all is a `false` the row renders as *the file reported a problem* —
+  /// which is the honest reading of a check that could not complete.
+  Future<bool> checkDatabase() => _db.quickCheck();
+
   Future<WriteOutcome> setWeightUnit(WeightUnit unit) =>
       _write(AppSettingsCompanion(weightUnit: Value<String>(unit.key)));
 

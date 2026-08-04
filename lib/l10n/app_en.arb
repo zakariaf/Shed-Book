@@ -1607,6 +1607,199 @@
     "description": "The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).",
     "placeholders": {"clauses": {"type": "String", "example": "3 seasons. avg 2.0. assisted twice"}}
   },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "The page header. 07 §16's sticky 44 px header — read-only, never collapses, never parallaxes."
+  },
+  "settingsUnitsWeightKg": "KG",
+  "@settingsUnitsWeightKg": {
+    "description": "The kilogram half of the units segmented line (indelible.md §8 screen 12). A DISPLAY choice only: the database stores grams and nothing is rewritten when it changes (#56)."
+  },
+  "settingsUnitsWeightLb": "LB",
+  "@settingsUnitsWeightLb": {
+    "description": "The pound half. Rendered as pounds and ounces, because a shepherd who works in pounds does not think in tenths of one."
+  },
+  "settingsUnitsWeightSemantics": "Weight in {unit}",
+  "@settingsUnitsWeightSemantics": {
+    "description": "The spoken form of each segment. NO STATE WORD IN IT (10 §3.2 rule 2): the node carries `selected` and a screen reader announces the state itself, so 'Kilograms, selected' is the doubled announcement users report as noise.",
+    "placeholders": {"unit": {"type": "String", "example": "kilograms"}}
+  },
+  "settingsUnitsWeightKgSpoken": "kilograms",
+  "@settingsUnitsWeightKgSpoken": {
+    "description": "The spoken noun for kg. Written out because a screen reader reads 'KG' as two letters."
+  },
+  "settingsUnitsWeightLbSpoken": "pounds",
+  "@settingsUnitsWeightLbSpoken": {
+    "description": "The spoken noun for lb. Written out because a screen reader reads 'LB' as two letters."
+  },
+  "settingsPaletteNight": "NIGHT",
+  "@settingsPaletteNight": {
+    "description": "R35's frozen palette id 'night'. The default: warm off-white ink on near-black. There is no light theme and no system-follow — the app is dark only, on both platforms."
+  },
+  "settingsPaletteAmber": "AMBER",
+  "@settingsPaletteAmber": {
+    "description": "R35's frozen palette id 'amber'. Shifts the ink warm for a shepherd who finds the default too cool under a head torch."
+  },
+  "settingsPaletteDeepRed": "DEEP RED",
+  "@settingsPaletteDeepRed": {
+    "description": "R35's frozen palette id 'red' — note the STORED key is 'red' and the label is two words. Red-shift for night vision: it overrides token values and nothing else, because nothing in this app was ever encoded by hue."
+  },
+  "settingsPaletteSemantics": "{palette} palette",
+  "@settingsPaletteSemantics": {
+    "description": "The spoken form of each palette choice. No state word in it (10 §3.2 rule 2): the node carries `selected` and announcing it twice is noise.",
+    "placeholders": {"palette": {"type": "String", "example": "Night"}}
+  },
+  "settingsHighContrast": "HIGH CONTRAST",
+  "@settingsHighContrast": {
+    "description": "Raises every ink to the top of its ramp. It is an ADDITION to the palette, not a fourth palette — which is why it is its own row and not a fourth word on the line above."
+  },
+  "settingsHighContrastOn": "High contrast on",
+  "@settingsHighContrastOn": {
+    "description": "The spoken form when the setting is on. Written as a sentence rather than as a state word appended to a label, so a screen reader announces it once."
+  },
+  "settingsHighContrastOff": "High contrast off",
+  "@settingsHighContrastOff": {
+    "description": "The spoken form when the setting is off."
+  },
+  "settingsKeepScreenOn": "KEEP SCREEN ON",
+  "@settingsKeepScreenOn": {
+    "description": "The wakelock, for a phone propped on a gate while both hands are busy. Released on inactive as well as hidden (#79) — a phone that stays lit in a pocket is a flat battery at 05:00."
+  },
+  "settingsKeepScreenOnStateOn": "Keep screen on, on",
+  "@settingsKeepScreenOnStateOn": {
+    "description": "The spoken form when the wakelock is enabled."
+  },
+  "settingsKeepScreenOnStateOff": "Keep screen on, off",
+  "@settingsKeepScreenOnStateOff": {
+    "description": "The spoken form when the wakelock is disabled."
+  },
+  "settingsLeftHanded": "LEFT-HANDED",
+  "@settingsLeftHanded": {
+    "description": "R40. Moves exactly three things: the corner slab, the INDEX button and the keypad's bottom row. The spine, the margin cell and the record column do NOT mirror — a book's margin is on the left, and the digits stay where a phone keypad puts them because a shepherd who has used a phone knows where 5 is."
+  },
+  "settingsLeftHandedStateOn": "Left-handed, on",
+  "@settingsLeftHandedStateOn": {
+    "description": "The spoken form when the mirror is on."
+  },
+  "settingsLeftHandedStateOff": "Left-handed, off",
+  "@settingsLeftHandedStateOff": {
+    "description": "The spoken form when the mirror is off."
+  },
+  "settingsSeasonCurrent": "{label} — started {date}",
+  "@settingsSeasonCurrent": {
+    "description": "The current season row. The date arrives pre-formatted 'd MMM y' — a human-facing date is never all-numeric (R60), because 03/04 reads as a different day on two sides of an ocean.",
+    "placeholders": {
+      "label": {"type": "String", "example": "2026"},
+      "date": {"type": "String", "example": "1 Jan 2026"}
+    }
+  },
+  "settingsSeasonSwitch": "{label}",
+  "@settingsSeasonSwitch": {
+    "description": "One row per season the shepherd can switch to. The label is theirs — seasons.label is a stored string, not a derived year.",
+    "placeholders": {"label": {"type": "String", "example": "2025"}}
+  },
+  "settingsSeasonSwitchSemantics": "Write into {label}",
+  "@settingsSeasonSwitchSemantics": {
+    "description": "The spoken form. It names the CONSEQUENCE — which season tonight's records land in — rather than the act, because 'switch' says nothing about what changes."
+  },
+  "settingsSeasonNone": "No season started.",
+  "@settingsSeasonNone": {
+    "description": "A season is the shepherd's first act, not the installer's: seedFirstRun deliberately writes none (#42). So a genuinely fresh notebook reads this, and it is a normal state rather than an error."
+  },
+  "settingsSeasonCapRefused": "The free notebook holds one season. Unlock to start another.",
+  "@settingsSeasonCapRefused": {
+    "description": "11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe."
+  },
+  "settingsAboutVersion": "Version {version}",
+  "@settingsAboutVersion": {
+    "description": "The app version, from kAppVersion — a --dart-define, so a build that forgot to set it reads 0.1.0 and says so rather than claiming a release number it does not have.",
+    "placeholders": {"version": {"type": "String", "example": "1.0.0"}}
+  },
+  "settingsDiagnosticsCounts": "{records} records · {ewes} animals",
+  "@settingsDiagnosticsCounts": {
+    "description": "13 §8.5's first diagnostics row. Counts come from the SAME whole-database count the export uses — a second implementation is a second answer to 'how many ewes are on this phone?'.",
+    "placeholders": {
+      "records": {"type": "String", "example": "1,240"},
+      "ewes": {"type": "String", "example": "412"}
+    }
+  },
+  "settingsDiagnosticsCheck": "CHECK DATABASE",
+  "@settingsDiagnosticsCheck": {
+    "description": "Runs SQLite's own integrity check. It reports what it found and repairs nothing — an app that silently 'fixed' a records file would be the one thing worse than one that could not read it."
+  },
+  "settingsDiagnosticsShareLog": "SAVE THE LOG",
+  "@settingsDiagnosticsShareLog": {
+    "description": "Shares the diagnostics log through the system share sheet, as a file path. There is no telemetry and no analytics in this app, so this is the ONLY way a problem travels — and it travels because the shepherd sent it, deliberately."
+  },
+  "settingsDiagnosticsShareSnapshot": "SAVE A COPY OF THE FILE",
+  "@settingsDiagnosticsShareSnapshot": {
+    "description": "Shares a VACUUM INTO snapshot of the records file. The snapshot, never the backup — 09 §5 keeps those two words apart because swapping them is how somebody restores the wrong thing."
+  },
+  "settingsDiagnosticsRecent": "Last {count} events",
+  "@settingsDiagnosticsRecent": {
+    "description": "The heading over the log preview. 'Events', because that is what the log holds — 13 §8.4 keeps every value the shepherd typed out of it, so what is left is the shape of what happened and never its content.",
+    "placeholders": {"count": {"type": "num"}}
+  },
+  "settingsDiagnosticsNoLog": "Nothing recorded in this session yet.",
+  "@settingsDiagnosticsNoLog": {
+    "description": "The log is empty or could not be read. A normal state on a fresh launch, and never an error — there is nothing wrong with a session in which nothing has gone wrong."
+  },
+  "settingsDiagnosticsIntact": "The records file reads correctly.",
+  "@settingsDiagnosticsIntact": {
+    "description": "SQLite's own integrity check passed. It says what was checked rather than 'OK', because a shepherd reading this is asking a specific question."
+  },
+  "settingsDiagnosticsDamaged": "The records file reported a problem. Save a copy of it before doing anything else.",
+  "@settingsDiagnosticsDamaged": {
+    "description": "The integrity check failed. It reports and repairs NOTHING — an app that silently fixed a records file would be the one thing worse than one that could not read it — and the advice is the only action that cannot make things worse."
+  },
+  "settingsSectionUnits": "Units",
+  "@settingsSectionUnits": {
+    "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."
+  },
+  "settingsSectionTerminology": "Terminology",
+  "@settingsSectionTerminology": {
+    "description": "07 §14.3 section 2. The shepherd's own nouns for their animals. Editing is N29-T03 and ships in v1.1.0; the section renders its current words meanwhile."
+  },
+  "settingsSectionReminders": "Reminders",
+  "@settingsSectionReminders": {
+    "description": "07 §14.3 section 3. A row that opens the reminders editor. Reminders themselves are N24 and N25 and ship in v1.1.0."
+  },
+  "settingsSectionSeason": "Season",
+  "@settingsSectionSeason": {
+    "description": "07 §14.3 section 4. Which season is current, and when it started."
+  },
+  "settingsSectionPens": "Pens",
+  "@settingsSectionPens": {
+    "description": "07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold."
+  },
+  "settingsSectionAppearance": "Appearance",
+  "@settingsSectionAppearance": {
+    "description": "07 §14.3 section 6. The palette and high contrast. There is no light theme and no system-follow — the app is dark only."
+  },
+  "settingsSectionKeepScreenOn": "Keep screen on",
+  "@settingsSectionKeepScreenOn": {
+    "description": "07 §14.3 section 7. The wakelock, for a phone propped on a gate at 03:20."
+  },
+  "settingsSectionLeftHanded": "Left-handed",
+  "@settingsSectionLeftHanded": {
+    "description": "07 §14.3 section 8. Moves exactly three things — the slab, the INDEX button and the keypad's bottom row (R40). The spine, the margin and the record column do not mirror: a book's margin is on the left."
+  },
+  "settingsSectionDiagnostics": "Diagnostics",
+  "@settingsSectionDiagnostics": {
+    "description": "07 §14.3 section 10. A copy of the records file and the app's own log — there is no telemetry and no analytics in this app, so this is the only way a problem travels."
+  },
+  "settingsSectionData": "Data",
+  "@settingsSectionData": {
+    "description": "07 §14.3 section 11. Backup, restore and the two deletes. The deletes are N29-T06 and ship in v1.1.0."
+  },
+  "settingsSectionAbout": "About",
+  "@settingsSectionAbout": {
+    "description": "07 §14.3 section 12. The version, the licences, and the offline statement."
+  },
+  "settingsUnavailable": "Settings could not be read.",
+  "@settingsUnavailable": {
+    "description": "07 §14.2's error state. It names what could not be read rather than a fault — there is nothing the shepherd can do about a read failure except come back."
+  },
   "eweCardActionLambing": "LAMBING",
   "@eweCardActionLambing": {
     "description": "07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set."

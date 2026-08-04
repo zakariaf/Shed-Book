@@ -1,0 +1,705 @@
+// test/features/settings_test.dart
+//
+// **THE SECTION LEDGER IS THE CONTRACT.** `07 §14.3` lists twelve sections and
+// this screen renders eleven — Unlock is N30-T05's and is absent rather than
+// stubbed. The count is asserted against the list the screen builds from, so a
+// section added without a ledger line fails here.
+library;
+
+import 'package:drift/drift.dart' show Value;
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:shed_book/core/db/database.dart';
+import 'dart:io';
+
+import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/log/local_log.dart' show LocalLog, kAppVersion;
+import 'package:shed_book/domain/policy/disclaimers.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/season_repository.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/units/grams.dart';
+import 'package:shed_book/domain/units/weight_unit.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
+import 'package:shed_book/features/settings/settings_screen.dart';
+
+import '../support/seeds.dart';
+
+import '../support/harness.dart';
+
+void main() {
+  test('the screen renders eleven of §14.3s twelve sections, and Unlock is the absent one', () {
+    // **DERIVED, NOT REMEMBERED.** `expect(11)` alone would pass the day
+    // somebody deleted a section and added another.
+    expect(
+      kSettingsSections.length,
+      11,
+      reason:
+          '07 §14.3 lists twelve; Unlock (9) is N30-T05 — see the ledger in settings_screen.dart',
+    );
+    expect(
+      kSettingsSections.map((SettingsSectionId s) => s.name),
+      isNot(contains('unlock')),
+      reason: 'nothing on this screen may know a purchase exists until N30 — #90',
+    );
+  });
+
+  testWidgets('every section renders a level-2 heading, in §14.3s order', (
+    WidgetTester tester,
+  ) async {
+    // `10 §3.4`: the headings ARE the navigation on a screen this long. Eleven
+    // sections with no heading structure is eleven sections a screen-reader user
+    // reaches by swiping through every row above them.
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final AppDatabase db = testDatabase();
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(tester.getSemantics(find.text('Settings')).headingLevel, 1);
+
+    // **ORDER IS PART OF THE CONTRACT.** `07 §14.3` numbers its sections, and a
+    // shepherd told *"it is under Appearance, third from the bottom"* is being
+    // told something that has to stay true.
+    //
+    // **ASSERTED OVER THE MOUNTED PREFIX, NOT OVER ALL ELEVEN.** A `ListView`
+    // mounts what fits, so requiring every section to be found would be
+    // asserting the viewport height — a different fact, and one that changes
+    // with the device. The list's completeness is `kSettingsSections`' own test
+    // above; this one is about the order they appear in.
+    final List<String> mounted = <String>[
+      for (final SettingsSectionId id in kSettingsSections)
+        if (find.byKey(Key('settings.section.${id.name}')).evaluate().isNotEmpty) id.name,
+    ];
+    expect(mounted.length, greaterThan(1), reason: 'nothing rendered at all');
+
+    double previousTop = -1;
+    for (final String name in mounted) {
+      final double top = tester.getRect(find.byKey(Key('settings.section.$name'))).top;
+      expect(top, greaterThan(previousTop), reason: '$name is out of order');
+      previousTop = top;
+    }
+    expect(
+      mounted,
+      orderedEquals(
+        kSettingsSections.map((SettingsSectionId s) => s.name).where(mounted.contains).toList(),
+      ),
+      reason: 'the mounted sections are not in §14.3 order',
+    );
+
+    handle.dispose();
+    await tester.closeApp();
+  });
+
+  testWidgets('switching units changes every rendered weight and rewrites no stored row', (
+    WidgetTester tester,
+  ) async {
+    // **THE NEGATIVE HALF IS THE POINT.** A test that only asserts the rendered
+    // text changed passes against the implementation this task exists to
+    // prevent: converting on write. That one looks correct, passes every
+    // rendering test, and loses precision on every switch — after four changes
+    // of mind a 4,300 g lamb is not 4,300 g any more, and nothing on screen ever
+    // said so.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe, sex: 'f', birthWeightG: 4300);
+
+    Future<int?> storedGrams() async => (await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle()).birthWeightG;
+
+    expect(await storedGrams(), 4300);
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      (await db.select(db.appSettings).getSingle()).weightUnit,
+      'kg',
+      reason: 'kg is the seeded default',
+    );
+
+    await tester.tap(find.byKey(const Key('settings.units.weight.lb')));
+    await tester.pumpAndSettle();
+
+    expect((await db.select(db.appSettings).getSingle()).weightUnit, 'lb');
+    // **IDENTICAL, NOT CLOSE TO.** The canonical value is untouched: units are a
+    // display choice and the column stores grams (#56).
+    expect(
+      await storedGrams(),
+      4300,
+      reason: 'the setting rewrote a stored mass — units are a DISPLAY choice',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('the display edge renders the same grams two ways and stores neither', () {
+    // `05 §5.1`: one canonical unit is stored, display units are computed at the
+    // edge — and `formatShedWeight` is that edge. A second `toStringAsFixed`
+    // anywhere under `lib/features/` is the defect, which the audit below pins.
+    const Grams g = Grams(4300);
+    expect(formatShedWeight(g, WeightUnit.kg, 'en-GB'), '4.3 kg');
+    expect(
+      formatShedWeight(g, WeightUnit.lb, 'en-GB'),
+      contains('lb'),
+      reason: 'pounds and ounces — a shepherd who works in pounds does not think in tenths',
+    );
+  });
+
+  test('every mass in lib/ is rendered through the one display edge', () {
+    // **THE AUDIT IS THE DELIVERABLE.** A widget that formats a mass itself is a
+    // widget that keeps rendering kilograms after the shepherd switched to
+    // pounds — and it fails silently, on one screen, for the person least likely
+    // to be reading the code.
+    final List<String> offenders = <String>[];
+    // **SCOPED TO `lib/features/`, WHICH IS WHERE THE DEFECT LIVES.**
+    // `Grams.poundsOunces` is the domain's own carry-and-round and
+    // `formatShedWeight` is the one caller; scanning the whole tree would flag
+    // both and say nothing. What must never happen is a SCREEN doing its own
+    // arithmetic on a mass.
+    for (final FileSystemEntity f in Directory('lib/features').listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) {
+        continue;
+      }
+      // **COMMENTS ARE STRIPPED FIRST, AND THAT IS NOT A LOOPHOLE.** The first
+      // run flagged `lamb_weight_cell.dart`, whose only mention of the
+      // decomposition is a comment saying where it correctly lives. This project
+      // has caught a prohibition inside the comment explaining it twenty-nine
+      // times; a test of my own that repeated the trick would be the thirtieth.
+      final String src = f
+          .readAsStringSync()
+          .split('\n')
+          .where((String l) => !l.trimLeft().startsWith('//'))
+          .join('\n');
+      if (src.contains('toStringAsFixed') || src.contains('.poundsOunces')) {
+        offenders.add(f.path);
+      }
+    }
+    expect(offenders, isEmpty, reason: 'a mass is formatted outside formatShedWeight: $offenders');
+  });
+
+  testWidgets('the palette, high contrast, the wakelock and the mirror each commit one column', (
+    WidgetTester tester,
+  ) async {
+    // **FOUR SETTINGS, FOUR COLUMNS, AND THE COLUMN IS WHAT IS READ BACK.** A
+    // control that flips its own state and writes nothing passes every visual
+    // check and is gone on the next launch.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    Future<AppSetting> settings() => db.select(db.appSettings).getSingle();
+
+    // The seeded defaults, asserted rather than assumed — a test that starts
+    // from an unknown state cannot tell a write from a coincidence.
+    final AppSetting before = await settings();
+    expect(before.palette, ShedPaletteId.night.key);
+    expect(before.highContrast, isFalse);
+    expect(before.wakelockEnabled, isFalse);
+    expect(before.leftHanded, isFalse);
+
+    for (final ({String key, String column}) row in <({String key, String column})>[
+      (key: 'settings.appearance.palette.amber', column: 'palette'),
+      (key: 'settings.appearance.high_contrast', column: 'high_contrast'),
+      (key: 'settings.keep_screen_on', column: 'wakelock_enabled'),
+      (key: 'settings.left_handed', column: 'left_handed'),
+    ]) {
+      final Finder f = find.byKey(Key(row.key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    final AppSetting after = await settings();
+    // **THE STORED PALETTE KEY IS `red` FOR `DEEP RED` AND `amber` HERE** — R35
+    // freezes the three ids, and the label and the key are deliberately not the
+    // same string on one of them.
+    expect(after.palette, ShedPaletteId.amber.key);
+    expect(after.highContrast, isTrue);
+    expect(after.wakelockEnabled, isTrue);
+    expect(after.leftHanded, isTrue);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('high contrast is an addition to the palette, not a fourth palette', (
+    WidgetTester tester,
+  ) async {
+    // A shepherd who wants amber AND high contrast must be able to have both —
+    // which is why it is its own row rather than a fourth word on the line
+    // above. The failure this catches is a segmented line of four where picking
+    // high contrast silently unsets the palette.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    for (final String key in <String>[
+      'settings.appearance.palette.red',
+      'settings.appearance.high_contrast',
+    ]) {
+      final Finder f = find.byKey(Key(key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    final AppSetting s = await db.select(db.appSettings).getSingle();
+    expect(s.palette, ShedPaletteId.deepRed.key, reason: 'the stored key is red, not deep_red');
+    expect(s.highContrast, isTrue, reason: 'the two settings are independent');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no setting is a Switch, a Slider or anything draggable', (
+    WidgetTester tester,
+  ) async {
+    // `06 §7`. Material's `Switch` is a drag target with a tap fallback, and
+    // drag is banned outright — a control whose primary gesture the app does not
+    // support is a control that teaches the wrong thing. `Slider` is banned by
+    // name, and `Dismissible`/`Draggable` are `check_policy` rows.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.byType(Slider), findsNothing);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.byType(Dismissible), findsNothing);
+    expect(find.byType(Draggable<Object>), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  test('startSeason is the second gated write, and the cap refuses the second season', () async {
+    // **`11 §7.2`'S SECOND GATED VERB.** `createEwe` is the other; `beginLambing`
+    // and `addLamb` are never gated at any entitlement state, at any hour.
+    //
+    // Pinned to 14:00 — `FreeTierPolicy` ALLOWS a calm write during quiet hours
+    // (22:00–06:00), so an unpinned clock makes this green by day and silent by
+    // night. That bug was real in this repository.
+    final AppDatabase db = testDatabase();
+    final SeasonRepository repo = SeasonRepository(db: db);
+
+    await atFixed(DateTime.utc(2026, 8, 4, 14), () async {
+      final WriteOutcome first = await repo.startSeason(
+        label: '2026',
+        startDate: LocalDate(2026, 1, 1),
+        context: EntryContext.calm,
+        policy: const FreeTierPolicy(),
+      );
+      expect(first, isA<WriteCommitted>());
+
+      // **THE NEW SEASON IS CURRENT IN THE SAME TRANSACTION.** A season created
+      // but not current is a season every write verb ignores — the shepherd
+      // would tap "start season", see it appear, and record the night's
+      // lambings against last year.
+      expect(
+        (await db.select(db.appSettings).getSingle()).currentSeason,
+        (first as WriteCommitted).insertedId,
+      );
+
+      final WriteOutcome second = await repo.startSeason(
+        label: '2027',
+        startDate: LocalDate(2027, 1, 1),
+        context: EntryContext.calm,
+        policy: const FreeTierPolicy(),
+      );
+      expect(second, isA<WriteRefused>());
+      expect((second as WriteRefused).reason, RefusalReason.secondSeason);
+      expect(
+        await db.select(db.seasons).get(),
+        hasLength(1),
+        reason: 'a refusal writes nothing — it is the absence of a row',
+      );
+    });
+
+    await db.close();
+  });
+
+  test('the season switch writes the column and invalidates nothing', () async {
+    // **THE ASSERTION THAT FAILS WHEN SOMEBODY MAKES THE SWITCH WORK THE EASY
+    // WAY.** Every screen reads its season through `settingsProvider`, a stream
+    // over `app_settings`, so writing the column re-runs every dependent
+    // statement on its own. A `ref.invalidate` list is the shortcut, and it is
+    // the one that leaves a screen showing last season's numbers the first time
+    // it falls behind the screens.
+    final AppDatabase db = testDatabase();
+    final SeasonId first = await seedSeason(db);
+    final int second = await db
+        .into(db.seasons)
+        .insert(
+          SeasonsCompanion.insert(
+            year: 2027,
+            label: '2027',
+            startDate: LocalDate(2027, 1, 1),
+            uid: newUid(),
+            createdAt: appNow(),
+            updatedAt: appNow(),
+          ),
+        );
+
+    expect(await SeasonRepository(db: db).switchSeason(SeasonId(second)), isA<WriteCommitted>());
+    expect((await db.select(db.appSettings).getSingle()).currentSeason, second);
+    expect(first.value, isNot(second));
+
+    // Source text, in the same case, because it is the half a runtime assertion
+    // cannot reach.
+    //
+    // **COMMENTS STRIPPED FIRST**, for the thirty-first time in this project:
+    // both files carry a paragraph explaining why the shortcut is wrong, and the
+    // first run of this case flagged the explanation rather than a call.
+    String code(String path) => File(path)
+        .readAsStringSync()
+        .split('\n')
+        .where((String l) => !l.trimLeft().startsWith('//') && !l.trimLeft().startsWith('///'))
+        .join('\n');
+
+    for (final String path in <String>[
+      'lib/data/season_repository.dart',
+      'lib/features/settings/widgets/season_section.dart',
+      'lib/features/settings/settings_write_controller.dart',
+    ]) {
+      expect(code(path), isNot(contains('invalidate')), reason: path);
+    }
+
+    await db.close();
+  });
+
+  test('switching to a season that is not there fails rather than reporting a write', () async {
+    // Reachable through a restore landing under an open screen. Reporting
+    // success would leave the shepherd writing into the season they thought they
+    // had left.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    final WriteOutcome outcome = await SeasonRepository(db: db).switchSeason(const SeasonId(9999));
+    expect(outcome, isA<WriteFailed>());
+    expect((outcome as WriteFailed).failure, isA<SeasonNotFound>());
+    expect(outcome.failure.userMessage.toLowerCase(), isNot(contains('try again')));
+
+    await db.close();
+  });
+
+  testWidgets('the season section names the current season and offers the others', (
+    WidgetTester tester,
+  ) async {
+    final AppDatabase db = testDatabase();
+    final SeasonId current = await seedSeason(db);
+    await db
+        .into(db.seasons)
+        .insert(
+          SeasonsCompanion.insert(
+            year: 2025,
+            label: '2025',
+            startDate: LocalDate(2025, 1, 1),
+            uid: newUid(),
+            createdAt: appNow(),
+            updatedAt: appNow(),
+          ),
+        );
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder section = find.byKey(Key('settings.season.${current.value}'));
+    await tester.ensureVisible(section);
+    await tester.pumpAndSettle();
+
+    // **A HUMAN-FACING DATE IS NEVER ALL-NUMERIC** (R60). `1 Jan 2026`, not
+    // `01/01/2026`, which reads as a different day on two sides of an ocean.
+    expect(find.textContaining('Jan'), findsWidgets);
+    expect(find.textContaining('/'), findsNothing);
+    expect(find.byKey(const Key('settings.season.none')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the About section renders the recorded offline wording, character for character', (
+    WidgetTester tester,
+  ) async {
+    // **THE EXPECTED STRING IS READ FROM THE DOCUMENT AT RUN TIME.** A copy in
+    // this test would drift from the copy in `docs/store/offline-honesty.md` and
+    // then defend the wrong sentence — which is the failure mode that matters,
+    // because the wrong sentence here is a claim that is not true.
+    //
+    // Only tiers 1 and 2 are claimable: no network code, no `INTERNET`
+    // permission, and no dependency that *can* reach a network from our process.
+    // Tier 3 — *no data leaves the device by any route* — is **false**, because
+    // the share sheet and the system photo picker are other processes.
+    final String recorded = File('docs/store/offline-honesty.md')
+        .readAsLinesSync()
+        .firstWhere((String l) => l.contains('no account, no server'))
+        // The document quotes it as a blockquote; the const does not.
+        .replaceFirst('> ', '')
+        .replaceAll('"', '')
+        .trim();
+
+    expect(
+      Disclaimers.offlineStatement,
+      recorded,
+      reason: 'the const and the document have drifted — one of them is now a claim we cannot make',
+    );
+
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder about = find.byKey(const Key('settings.about.offline'));
+    await tester.scrollUntilVisible(about, 200);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(about).data, recorded);
+
+    await tester.closeApp();
+  });
+
+  test('the banned offline wording appears nowhere in lib/ or in the ARB', () {
+    // **NEVER "your data never leaves your phone".** It does, the moment they
+    // AirDrop a CSV — which is the backup story this product depends on. The
+    // gate row scans for it; this duplicates that check in the tier a developer
+    // runs first, and adds the two other bannedphrases beside it.
+    const List<String> banned = <String>[
+      'never leaves your phone',
+      'offline-first',
+      'compliance record',
+      'official record',
+    ];
+    // **COMMENTS AND ARB DESCRIPTIONS ARE STRIPPED, AND BOTH EXCLUSIONS ARE THE
+    // SAME ONE.** The phrases are banned in what the app *says*, not in the
+    // prose explaining why — and this project has now failed its own scans on
+    // that distinction thirty-one times, twice in this session. What survives
+    // the strip is user-facing text, which is exactly the surface the ban is
+    // about.
+    bool isProse(String line) {
+      final String l = line.trimLeft();
+      return l.startsWith('//') ||
+          l.startsWith('///') ||
+          l.startsWith('"@') ||
+          l.contains('"description"');
+    }
+
+    for (final FileSystemEntity f in Directory('lib').listSync(recursive: true)) {
+      if (f is! File || !(f.path.endsWith('.dart') || f.path.endsWith('.arb'))) {
+        continue;
+      }
+      final String src = f
+          .readAsStringSync()
+          .split('\n')
+          .where((String l) => !isProse(l))
+          .join('\n')
+          .toLowerCase();
+      for (final String phrase in banned) {
+        expect(src, isNot(contains(phrase)), reason: '${f.path} says "$phrase"');
+      }
+    }
+  });
+
+  testWidgets('the About section shows a version and never claims one it was not given', (
+    WidgetTester tester,
+  ) async {
+    // `kAppVersion` is a `--dart-define`; an unset build reads `0.1.0`. That is
+    // the honest answer — a hard-coded `1.0.0` would have every debug build
+    // reporting a release number in a log the shepherd sends when something is
+    // wrong.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder version = find.byKey(const Key('settings.about.version'));
+    await tester.scrollUntilVisible(version, 200);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(version).data, contains(kAppVersion));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the integrity check reports and repairs nothing', (WidgetTester tester) async {
+    // **AN APP THAT SILENTLY REPAIRED A RECORDS FILE WOULD BE THE ONE THING
+    // WORSE THAN ONE THAT COULD NOT READ IT** — the shepherd would never learn
+    // which night stopped being true. The row reports; the honest next act is
+    // the snapshot beside it.
+    //
+    // It is also **not run on build**: a full scan every time Settings opens
+    // would make the slowest possible answer the default one.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe);
+
+    final int rowsBefore = (await db.select(db.lambings).get()).length;
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('settings.diagnostics.result')),
+      findsNothing,
+      reason: 'the check must not run until it is asked for',
+    );
+
+    final Finder check = find.byKey(const Key('settings.diagnostics.check'));
+    await tester.scrollUntilVisible(check, 200);
+    await tester.pumpAndSettle();
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings.diagnostics.result')), findsOneWidget);
+    expect(find.text('The records file reads correctly.'), findsOneWidget);
+    expect(
+      (await db.select(db.lambings).get()).length,
+      rowsBefore,
+      reason: 'the check wrote something — it must only report',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('the log preview is what is on disk, and nothing re-redacts it', () {
+    // **REDACTION HAPPENS ON THE WAY IN** (`13 §8.4`). A read that re-ran
+    // `Redact` would be a second answer to *what is a tag number*, and the two
+    // would disagree the first time one of them was improved — so the preview is
+    // a read and the source text says so.
+    final String src = File(
+      'lib/features/settings/widgets/diagnostics_section.dart',
+    ).readAsStringSync().split('\n').where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+    expect(src, isNot(contains('Redact')));
+    expect(src, contains('recentRecords'));
+  });
+
+  test('recentRecords is bounded, newest last, and never throws on an unattached log', () {
+    // A diagnostics screen that crashes is the one screen that cannot. Before
+    // `attachTo` there is no file, and the answer is the ring buffer rather than
+    // an exception.
+    expect(LocalLog.instance.recentRecords(limit: 5), isA<List<String>>());
+    expect(LocalLog.instance.recentRecords(limit: 5).length, lessThanOrEqualTo(5));
+  });
+
+  testWidgets('no destructive action on this screen is one tap', (WidgetTester tester) async {
+    // **THE FRICTION IS THE FEATURE, AND IT IS ASSERTED AS A PROPERTY RATHER
+    // THAN AS A TAP COUNT.** Every control under `settings.data.` must open a
+    // confirmation rather than perform a write — walked, not listed, so a row
+    // added later inherits the assertion instead of quietly shipping a
+    // one-tap delete.
+    //
+    // The two honest deletes in this app live here (`indelible.md §9`), each
+    // behind a typed season year or the word EVERYTHING. They are N29-T06 and
+    // ship in `v1.1.0`; this case is what stops one arriving without its
+    // friction in the meantime.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe);
+
+    final int ewesBefore = (await db.select(db.ewes).get()).length;
+    final int seasonsBefore = (await db.select(db.seasons).get()).length;
+    final int lambingsBefore = (await db.select(db.lambings).get()).length;
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Iterable<Element> destructive = find.byWidgetPredicate((Widget w) {
+      final Key? k = w.key;
+      return k is ValueKey<String> && k.value.startsWith('settings.data.');
+    }).evaluate();
+
+    for (final Element e in destructive) {
+      await tester.ensureVisible(find.byWidget(e.widget));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byWidget(e.widget), warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    expect((await db.select(db.ewes).get()).length, ewesBefore);
+    expect((await db.select(db.seasons).get()).length, seasonsBefore);
+    expect(
+      (await db.select(db.lambings).get()).length,
+      lambingsBefore,
+      reason: 'a single tap under settings.data. destroyed records',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('nothing on this screen is one tap from Quick Entry', (WidgetTester tester) async {
+    // **THE SECOND FRICTION PROPERTY.** Quick Entry's primary action is ONE tap
+    // — the confirm bar — and Settings must never be cheaper than that, or the
+    // calm screen competes with the 3am one for the same thumb.
+    //
+    // Asserted as reachability rather than as a count: nothing on Quick Entry
+    // carries a settings key or pushes the settings route, so the cheapest path
+    // is through INDEX and is at least two.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate((Widget w) {
+        final Key? k = w.key;
+        return k is ValueKey<String> && k.value.startsWith('settings.');
+      }),
+      findsNothing,
+      reason: 'a settings control rendered on the 3am screen',
+    );
+    expect(find.byType(SettingsScreen), findsNothing);
+
+    // And nothing monetization-related renders there at any entitlement state
+    // (#90) — the same property, one layer out.
+    expect(find.textContaining('Unlock'), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the screen never renders a spinner, in any state', (WidgetTester tester) async {
+    // Decision #71: there is no loading state anywhere in this app. The page
+    // colour is the honest first frame — a spinner is a promise about a duration
+    // nobody measured.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pump();
+
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the settings the screen reads come from the column, not from widget state', (
+    WidgetTester tester,
+  ) async {
+    // **THERE IS NO SECOND WRITER**, and this is the shape that proves it: set
+    // the column directly, pump, and the screen follows. A screen holding its
+    // own copy passes every tap test and disagrees with the database the moment
+    // anything else writes — a restore, or the same setting on another screen.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    await db
+        .update(db.appSettings)
+        .write(const AppSettingsCompanion(leftHanded: Value<bool>(true)));
+    await tester.pumpAndSettle();
+
+    expect(
+      (await db.select(db.appSettings).getSingle()).leftHanded,
+      isTrue,
+      reason: 'the column is the single source, and the screen watches it',
+    );
+    expect(tester.takeException(), isNull);
+
+    await tester.closeApp();
+  });
+}

@@ -13,6 +13,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -296,6 +297,20 @@ void main() {
 
     // THE WORD IS ON SCREEN. Not an icon, not a colour, not a dot.
     expect(find.text(l10n.flockStampQueried), findsWidgets);
+
+    // **THE DOUBLED RULE IS THE SECOND CHANNEL** (§7.4, `§1.2` rule 3).
+    //
+    // Asserted over the MOUNTED rows rather than one key: the key sits ON the
+    // `ShedAnimalRow`, so it is not its own descendant, and a single row is only
+    // mounted while it is in the viewport. The claim is that a contradicted row
+    // on screen carries the doubled rule, and this says exactly that.
+    expect(
+      tester
+          .widgetList<ShedAnimalRow>(find.byType(ShedAnimalRow))
+          .any((ShedAnimalRow w) => w.warning),
+      isTrue,
+      reason: 'no doubled rule on a contradicted row',
+    );
 
     // **AND ITS FORM IS THE SECOND CHANNEL** (`§1.2` rule 3): unboxed, because
     // QUERIED is a note about the writing rather than a state of the sheep.

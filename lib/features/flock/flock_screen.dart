@@ -199,6 +199,9 @@ class FlockScreen extends ConsumerWidget {
     // summary.
     summary: _summary(l10n, r),
     height: ShedAnimalRowHeight.tall,
+    // §7.4's Warning state: the doubled rule is the channel that survives
+    // grayscale, the `QUERIED` stamp is the word. Two channels, neither colour.
+    warning: r.hasWarning && !r.removedFromFlock,
     // **§12.4's BADGE IS A WORD, AND `07 §3.4` SAYS "icon + count".** There is no
     // icon set in this system — *"every action is a word"* (`indelible.md §1.3`),
     // and `ShedStatusBadge` is *"a stamp set in words, not an icon-plus-word"*

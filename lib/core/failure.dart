@@ -121,6 +121,19 @@ final class NoCurrentSeason extends ShedFailure {
       'Start a season first.';
 }
 
+/// The season a caller asked to switch to is not there.
+///
+/// Its own type for the same reason [EweNotFound] is: *"try again"* finds the
+/// same absence. Reachable through a restore landing under an open screen.
+final class SeasonNotFound extends ShedFailure {
+  const SeasonNotFound();
+
+  @override
+  String get userMessage =>
+      'That season is no longer in this notebook, so nothing was changed. '
+      'Go back to Settings and pick one again.';
+}
+
 final class UnexpectedFailure extends ShedFailure {
   const UnexpectedFailure(this.error, this.stack);
 

@@ -12,7 +12,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'dart:io';
 
+import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/season_repository.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/units/grams.dart';
@@ -268,6 +275,150 @@ void main() {
     expect(find.byType(Checkbox), findsNothing);
     expect(find.byType(Dismissible), findsNothing);
     expect(find.byType(Draggable<Object>), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  test('startSeason is the second gated write, and the cap refuses the second season', () async {
+    // **`11 §7.2`'S SECOND GATED VERB.** `createEwe` is the other; `beginLambing`
+    // and `addLamb` are never gated at any entitlement state, at any hour.
+    //
+    // Pinned to 14:00 — `FreeTierPolicy` ALLOWS a calm write during quiet hours
+    // (22:00–06:00), so an unpinned clock makes this green by day and silent by
+    // night. That bug was real in this repository.
+    final AppDatabase db = testDatabase();
+    final SeasonRepository repo = SeasonRepository(db: db);
+
+    await atFixed(DateTime.utc(2026, 8, 4, 14), () async {
+      final WriteOutcome first = await repo.startSeason(
+        label: '2026',
+        startDate: LocalDate(2026, 1, 1),
+        context: EntryContext.calm,
+        policy: const FreeTierPolicy(),
+      );
+      expect(first, isA<WriteCommitted>());
+
+      // **THE NEW SEASON IS CURRENT IN THE SAME TRANSACTION.** A season created
+      // but not current is a season every write verb ignores — the shepherd
+      // would tap "start season", see it appear, and record the night's
+      // lambings against last year.
+      expect(
+        (await db.select(db.appSettings).getSingle()).currentSeason,
+        (first as WriteCommitted).insertedId,
+      );
+
+      final WriteOutcome second = await repo.startSeason(
+        label: '2027',
+        startDate: LocalDate(2027, 1, 1),
+        context: EntryContext.calm,
+        policy: const FreeTierPolicy(),
+      );
+      expect(second, isA<WriteRefused>());
+      expect((second as WriteRefused).reason, RefusalReason.secondSeason);
+      expect(
+        await db.select(db.seasons).get(),
+        hasLength(1),
+        reason: 'a refusal writes nothing — it is the absence of a row',
+      );
+    });
+
+    await db.close();
+  });
+
+  test('the season switch writes the column and invalidates nothing', () async {
+    // **THE ASSERTION THAT FAILS WHEN SOMEBODY MAKES THE SWITCH WORK THE EASY
+    // WAY.** Every screen reads its season through `settingsProvider`, a stream
+    // over `app_settings`, so writing the column re-runs every dependent
+    // statement on its own. A `ref.invalidate` list is the shortcut, and it is
+    // the one that leaves a screen showing last season's numbers the first time
+    // it falls behind the screens.
+    final AppDatabase db = testDatabase();
+    final SeasonId first = await seedSeason(db);
+    final int second = await db
+        .into(db.seasons)
+        .insert(
+          SeasonsCompanion.insert(
+            year: 2027,
+            label: '2027',
+            startDate: LocalDate(2027, 1, 1),
+            uid: newUid(),
+            createdAt: appNow(),
+            updatedAt: appNow(),
+          ),
+        );
+
+    expect(await SeasonRepository(db: db).switchSeason(SeasonId(second)), isA<WriteCommitted>());
+    expect((await db.select(db.appSettings).getSingle()).currentSeason, second);
+    expect(first.value, isNot(second));
+
+    // Source text, in the same case, because it is the half a runtime assertion
+    // cannot reach.
+    //
+    // **COMMENTS STRIPPED FIRST**, for the thirty-first time in this project:
+    // both files carry a paragraph explaining why the shortcut is wrong, and the
+    // first run of this case flagged the explanation rather than a call.
+    String code(String path) => File(path)
+        .readAsStringSync()
+        .split('\n')
+        .where((String l) => !l.trimLeft().startsWith('//') && !l.trimLeft().startsWith('///'))
+        .join('\n');
+
+    for (final String path in <String>[
+      'lib/data/season_repository.dart',
+      'lib/features/settings/widgets/season_section.dart',
+      'lib/features/settings/settings_write_controller.dart',
+    ]) {
+      expect(code(path), isNot(contains('invalidate')), reason: path);
+    }
+
+    await db.close();
+  });
+
+  test('switching to a season that is not there fails rather than reporting a write', () async {
+    // Reachable through a restore landing under an open screen. Reporting
+    // success would leave the shepherd writing into the season they thought they
+    // had left.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    final WriteOutcome outcome = await SeasonRepository(db: db).switchSeason(const SeasonId(9999));
+    expect(outcome, isA<WriteFailed>());
+    expect((outcome as WriteFailed).failure, isA<SeasonNotFound>());
+    expect(outcome.failure.userMessage.toLowerCase(), isNot(contains('try again')));
+
+    await db.close();
+  });
+
+  testWidgets('the season section names the current season and offers the others', (
+    WidgetTester tester,
+  ) async {
+    final AppDatabase db = testDatabase();
+    final SeasonId current = await seedSeason(db);
+    await db
+        .into(db.seasons)
+        .insert(
+          SeasonsCompanion.insert(
+            year: 2025,
+            label: '2025',
+            startDate: LocalDate(2025, 1, 1),
+            uid: newUid(),
+            createdAt: appNow(),
+            updatedAt: appNow(),
+          ),
+        );
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder section = find.byKey(Key('settings.season.${current.value}'));
+    await tester.ensureVisible(section);
+    await tester.pumpAndSettle();
+
+    // **A HUMAN-FACING DATE IS NEVER ALL-NUMERIC** (R60). `1 Jan 2026`, not
+    // `01/01/2026`, which reads as a different day on two sides of an ocean.
+    expect(find.textContaining('Jan'), findsWidgets);
+    expect(find.textContaining('/'), findsNothing);
+    expect(find.byKey(const Key('settings.season.none')), findsNothing);
 
     await tester.closeApp();
   });

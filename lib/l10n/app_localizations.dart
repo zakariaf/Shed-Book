@@ -1944,6 +1944,36 @@ abstract class AppLocalizations {
   /// **'Left-handed, off'**
   String get settingsLeftHandedStateOff;
 
+  /// The current season row. The date arrives pre-formatted 'd MMM y' — a human-facing date is never all-numeric (R60), because 03/04 reads as a different day on two sides of an ocean.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} — started {date}'**
+  String settingsSeasonCurrent({required String label, required String date});
+
+  /// One row per season the shepherd can switch to. The label is theirs — seasons.label is a stored string, not a derived year.
+  ///
+  /// In en, this message translates to:
+  /// **'{label}'**
+  String settingsSeasonSwitch({required String label});
+
+  /// The spoken form. It names the CONSEQUENCE — which season tonight's records land in — rather than the act, because 'switch' says nothing about what changes.
+  ///
+  /// In en, this message translates to:
+  /// **'Write into {label}'**
+  String settingsSeasonSwitchSemantics({required Object label});
+
+  /// A season is the shepherd's first act, not the installer's: seedFirstRun deliberately writes none (#42). So a genuinely fresh notebook reads this, and it is a normal state rather than an error.
+  ///
+  /// In en, this message translates to:
+  /// **'No season started.'**
+  String get settingsSeasonNone;
+
+  /// 11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'The free notebook holds one season. Unlock to start another.'**
+  String get settingsSeasonCapRefused;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

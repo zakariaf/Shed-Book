@@ -35,6 +35,7 @@ import 'package:shed_book/data/models.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/settings/settings_write_controller.dart';
 import 'package:shed_book/features/settings/widgets/appearance_section.dart';
+import 'package:shed_book/features/settings/widgets/season_section.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
 import 'package:shed_book/features/settings/widgets/units_section.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -137,6 +138,7 @@ class SettingsScreen extends ConsumerWidget {
     // `temperature_unit` column and a segmented line for one would be a setting
     // for a value that does not exist.
     SettingsSectionId.units => const <Widget>[UnitsSection()],
+    SettingsSectionId.season => const <Widget>[SeasonSection()],
     SettingsSectionId.appearance => const <Widget>[
       PaletteSection(),
       // **HIGH CONTRAST IS ITS OWN ROW.** It raises every ink to the top of its

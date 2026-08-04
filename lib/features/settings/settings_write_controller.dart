@@ -10,6 +10,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/units/weight_unit.dart';
 
 /// `final` because [WriteController] is `base`.
@@ -34,8 +36,30 @@ final class SettingsWriteController extends WriteController {
   Future<void> setTurnOutThresholdHours(int hours) =>
       guard(() => ref.read(settingsRepositoryProvider).setTurnOutThresholdHours(hours));
 
-  Future<void> setCurrentSeason(SeasonId? season) =>
-      guard(() => ref.read(settingsRepositoryProvider).setCurrentSeason(season));
+  /// **THE SEASON SWITCH GOES THROUGH `SeasonRepository`, NOT
+  /// `SettingsRepository`.** Both could own `app_settings.current_season` —
+  /// `03 §5.14` gives the column to the season repository, and N12-T02 wrote a
+  /// settings verb for it because the row is `app_settings`. Ruled at N29-T05:
+  /// switching is a season-shaped act with a season-shaped rule (the target has
+  /// to exist), and `SettingsRepository` cannot check that without reaching into
+  /// a table `§2.13` does not give it. Nothing calls the settings verb from a
+  /// screen any more.
+  Future<void> switchSeason(SeasonId season) =>
+      guard(() => ref.read(seasonRepositoryProvider).switchSeason(season));
+
+  /// **THE SECOND AND LAST GATED WRITE** (`11 §7.2`). `EntryContext.calm`,
+  /// because starting a season is daylight work — it is the one other place the
+  /// free tier may honestly refuse.
+  Future<void> startSeason({required String label, required LocalDate startDate}) => guard(
+    () => ref
+        .read(seasonRepositoryProvider)
+        .startSeason(
+          label: label,
+          startDate: startDate,
+          context: EntryContext.calm,
+          policy: ref.read(freeTierPolicyProvider),
+        ),
+  );
 }
 
 /// `.autoDispose`, always, for a write controller (`CONVENTIONS §3.4`).

@@ -1177,6 +1177,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsLeftHandedStateOff => 'Left-handed, off';
 
   @override
+  String settingsSeasonCurrent({required String label, required String date}) {
+    return '$label — started $date';
+  }
+
+  @override
+  String settingsSeasonSwitch({required String label}) {
+    return '$label';
+  }
+
+  @override
+  String settingsSeasonSwitchSemantics({required Object label}) {
+    return 'Write into $label';
+  }
+
+  @override
+  String get settingsSeasonNone => 'No season started.';
+
+  @override
+  String get settingsSeasonCapRefused =>
+      'The free notebook holds one season. Unlock to start another.';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

@@ -1685,6 +1685,31 @@
   "@settingsLeftHandedStateOff": {
     "description": "The spoken form when the mirror is off."
   },
+  "settingsSeasonCurrent": "{label} — started {date}",
+  "@settingsSeasonCurrent": {
+    "description": "The current season row. The date arrives pre-formatted 'd MMM y' — a human-facing date is never all-numeric (R60), because 03/04 reads as a different day on two sides of an ocean.",
+    "placeholders": {
+      "label": {"type": "String", "example": "2026"},
+      "date": {"type": "String", "example": "1 Jan 2026"}
+    }
+  },
+  "settingsSeasonSwitch": "{label}",
+  "@settingsSeasonSwitch": {
+    "description": "One row per season the shepherd can switch to. The label is theirs — seasons.label is a stored string, not a derived year.",
+    "placeholders": {"label": {"type": "String", "example": "2025"}}
+  },
+  "settingsSeasonSwitchSemantics": "Write into {label}",
+  "@settingsSeasonSwitchSemantics": {
+    "description": "The spoken form. It names the CONSEQUENCE — which season tonight's records land in — rather than the act, because 'switch' says nothing about what changes."
+  },
+  "settingsSeasonNone": "No season started.",
+  "@settingsSeasonNone": {
+    "description": "A season is the shepherd's first act, not the installer's: seedFirstRun deliberately writes none (#42). So a genuinely fresh notebook reads this, and it is a normal state rather than an error."
+  },
+  "settingsSeasonCapRefused": "The free notebook holds one season. Unlock to start another.",
+  "@settingsSeasonCapRefused": {
+    "description": "11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

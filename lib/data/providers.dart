@@ -24,6 +24,7 @@
 //   fosterRepositoryProvider    N18-T02  Provider<FosterRepository>
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
 //   seasonRepositoryProvider    N27-T06  Provider<SeasonRepository>   (N28's file, one verb early)
+//   seasonsProvider             N29-T05  StreamProvider<List<Season>>
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
@@ -45,6 +46,7 @@
 // A PROVIDER WHOSE BODY THROWS UnimplementedError IS NOT A PLACEHOLDER; IT IS A
 // LIE THAT COMPILES. If you need one to make something else build, the thing you
 // are building belongs in the later epic too.
+import 'package:drift/drift.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/db/connection.dart';
 import 'package:shed_book/core/db/database.dart';
@@ -215,6 +217,20 @@ final Provider<FosterRepository> fosterRepositoryProvider = Provider<FosterRepos
 /// table (§2.13) and R42 puts *barren* on it, so the Flock screen's barren
 /// filter had nothing that could ever write a row to match. One write verb now;
 /// N28 adds the summary reads to the same file.
+/// Every season, oldest first, as a stream.
+///
+/// **A LIST, NOT A COUNT.** Settings renders one row per season so the shepherd
+/// can switch between them, and `seasons` is a table of two or three rows on a
+/// real notebook — a count would need a second read the moment anything wanted
+/// to name one.
+final StreamProvider<List<Season>> seasonsProvider = StreamProvider<List<Season>>((ref) async* {
+  final AppDatabase db = await ref.watch(databaseProvider.future);
+  yield* (db.select(db.seasons)..orderBy(<OrderClauseGenerator<$SeasonsTable>>[
+        ($SeasonsTable t) => OrderingTerm(expression: t.startDate),
+      ]))
+      .watch();
+});
+
 final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepository>(
   (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),
 );

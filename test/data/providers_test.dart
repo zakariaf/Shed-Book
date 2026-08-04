@@ -184,6 +184,8 @@ void main() {
       // ever write a row to match — a control that can never match anything. One
       // write verb now; N28 adds the summary reads to the same file.
       'seasonRepositoryProvider',
+      // N29-T05 — the list Settings renders one row per.
+      'seasonsProvider',
       // N15-T01, N15-T02
       'mediaStoreProvider',
       'cameraServiceProvider',

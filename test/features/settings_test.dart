@@ -26,6 +26,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/units/weight_unit.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
 
 import '../support/seeds.dart';
@@ -582,6 +583,81 @@ void main() {
     // an exception.
     expect(LocalLog.instance.recentRecords(limit: 5), isA<List<String>>());
     expect(LocalLog.instance.recentRecords(limit: 5).length, lessThanOrEqualTo(5));
+  });
+
+  testWidgets('no destructive action on this screen is one tap', (WidgetTester tester) async {
+    // **THE FRICTION IS THE FEATURE, AND IT IS ASSERTED AS A PROPERTY RATHER
+    // THAN AS A TAP COUNT.** Every control under `settings.data.` must open a
+    // confirmation rather than perform a write — walked, not listed, so a row
+    // added later inherits the assertion instead of quietly shipping a
+    // one-tap delete.
+    //
+    // The two honest deletes in this app live here (`indelible.md §9`), each
+    // behind a typed season year or the word EVERYTHING. They are N29-T06 and
+    // ship in `v1.1.0`; this case is what stops one arriving without its
+    // friction in the meantime.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe);
+
+    final int ewesBefore = (await db.select(db.ewes).get()).length;
+    final int seasonsBefore = (await db.select(db.seasons).get()).length;
+    final int lambingsBefore = (await db.select(db.lambings).get()).length;
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Iterable<Element> destructive = find.byWidgetPredicate((Widget w) {
+      final Key? k = w.key;
+      return k is ValueKey<String> && k.value.startsWith('settings.data.');
+    }).evaluate();
+
+    for (final Element e in destructive) {
+      await tester.ensureVisible(find.byWidget(e.widget));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byWidget(e.widget), warnIfMissed: false);
+      await tester.pumpAndSettle();
+    }
+
+    expect((await db.select(db.ewes).get()).length, ewesBefore);
+    expect((await db.select(db.seasons).get()).length, seasonsBefore);
+    expect(
+      (await db.select(db.lambings).get()).length,
+      lambingsBefore,
+      reason: 'a single tap under settings.data. destroyed records',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('nothing on this screen is one tap from Quick Entry', (WidgetTester tester) async {
+    // **THE SECOND FRICTION PROPERTY.** Quick Entry's primary action is ONE tap
+    // — the confirm bar — and Settings must never be cheaper than that, or the
+    // calm screen competes with the 3am one for the same thumb.
+    //
+    // Asserted as reachability rather than as a count: nothing on Quick Entry
+    // carries a settings key or pushes the settings route, so the cheapest path
+    // is through INDEX and is at least two.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const QuickEntryScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byWidgetPredicate((Widget w) {
+        final Key? k = w.key;
+        return k is ValueKey<String> && k.value.startsWith('settings.');
+      }),
+      findsNothing,
+      reason: 'a settings control rendered on the 3am screen',
+    );
+    expect(find.byType(SettingsScreen), findsNothing);
+
+    // And nothing monetization-related renders there at any entitlement state
+    // (#90) — the same property, one layer out.
+    expect(find.textContaining('Unlock'), findsNothing);
+
+    await tester.closeApp();
   });
 
   testWidgets('the screen never renders a spinner, in any state', (WidgetTester tester) async {

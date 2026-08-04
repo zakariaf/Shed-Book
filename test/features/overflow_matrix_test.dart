@@ -26,11 +26,11 @@ void main() {
 
     expect(
       cells,
-      180,
+      198,
       reason:
-          'TEN variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
+          'ELEVEN variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
           'joined at N16-T09, the Lamb Card at N17-T05, Foster at N18-T05, the pen board at N19-T07, '
-          'treatments at N20-T07, export and its banner at N21-T08, and FLOCK at N26-T07, and the EWE CARD at N27-T07. '
+          'treatments at N20-T07, export and its banner at N21-T08, and FLOCK at N26-T07, and the EWE CARD at N27-T07, and SETTINGS at N29-T08. '
           'It becomes 252 over fourteen variants at N33-T01, which is also where '
           "12 §6.2's length assertion belongs — writing it here would assert a future",
     );
@@ -55,6 +55,7 @@ void main() {
       // when it lands, which is the point of deriving it.
       RouteNames.flock,
       RouteNames.eweCard,
+      RouteNames.settings,
       // NOT A ROUTE — a STATE of Quick Entry, and `12 §6.4` names it as its own
       // variant because the banner takes height from the screen with the
       // tightest vertical budget in the app.

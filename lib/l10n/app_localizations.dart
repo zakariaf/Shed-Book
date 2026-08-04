@@ -2028,6 +2028,54 @@ abstract class AppLocalizations {
   /// **'The records file reported a problem. Save a copy of it before doing anything else.'**
   String get settingsDiagnosticsDamaged;
 
+  /// The Unlock button's label while a bounded store call is in flight. It replaces the label rather than adding a spinner — ui.spinner bans CircularProgressIndicator under lib/features/, and a spinner is a promise about a duration nobody measured. The call is bounded at ten seconds by the seam.
+  ///
+  /// In en, this message translates to:
+  /// **'CONTACTING THE STORE'**
+  String get unlockContactingStore;
+
+  /// Android's slow payment instruments (cash, bank transfer) and Apple's Ask to Buy family-approval hold. Nobody else in the app can tell the shepherd this is happening, which is why the state exists. It says DAYS, honestly — a screen implying minutes would have them come back and tap again.
+  ///
+  /// In en, this message translates to:
+  /// **'Your payment is being confirmed. This can take a few days.'**
+  String get unlockAwaitingPayment;
+
+  /// A shed has no signal most of the time the store is asked, so this is the NORMAL case rather than a fault — which is why StoreUnreachable is not a ShedFailure and this never renders through showFailure(). The second sentence is the point: it says what still works.
+  ///
+  /// In en, this message translates to:
+  /// **'The store did not answer. Everything else in Shed Book works without it.'**
+  String get unlockStoreUnreachable;
+
+  /// Either the store reported itself unavailable or the product id resolved to nothing. Two causes, one honest sentence: the app cannot tell them apart and must not guess which one to blame.
+  ///
+  /// In en, this message translates to:
+  /// **'This unlock is not available on your store account yet.'**
+  String get unlockProductNotFound;
+
+  /// The shepherd backed out of the store's own sheet. It states the ONLY thing they might be uncertain about; there is no 'try again' because the button they just left is still there.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing was charged.'**
+  String get unlockUserCancelled;
+
+  /// The store reported a failure. It says nothing was charged because that is the question, and it never says the app is broken — an entitlement is never revoked, so somebody who already paid still owns the unlock.
+  ///
+  /// In en, this message translates to:
+  /// **'The store could not complete that. Nothing was charged.'**
+  String get unlockStoreError;
+
+  /// The unlocked section's one word. No date, no receipt, no product name — the row records THAT the app is unlocked and nothing about how (11 §4.1), because none of it changes what the shepherd may do and each is a fact about their payment method in a file they may hand to a vet.
+  ///
+  /// In en, this message translates to:
+  /// **'UNLOCKED'**
+  String get unlockUnlocked;
+
+  /// Mandatory, and it sits ABOVE Unlock (11 §6.4): Apple requires it, and a shepherd who reinstalled must be able to get back what they own without paying twice — so the route to it must not be below the thing that charges them. 'Purchases' is the one permitted use of that word in this product (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'RESTORE PURCHASES'**
+  String get unlockRestore;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

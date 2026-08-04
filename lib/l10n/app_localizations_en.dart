@@ -1233,6 +1233,31 @@ class AppLocalizationsEn extends AppLocalizations {
       'The records file reported a problem. Save a copy of it before doing anything else.';
 
   @override
+  String get unlockContactingStore => 'CONTACTING THE STORE';
+
+  @override
+  String get unlockAwaitingPayment => 'Your payment is being confirmed. This can take a few days.';
+
+  @override
+  String get unlockStoreUnreachable =>
+      'The store did not answer. Everything else in Shed Book works without it.';
+
+  @override
+  String get unlockProductNotFound => 'This unlock is not available on your store account yet.';
+
+  @override
+  String get unlockUserCancelled => 'Nothing was charged.';
+
+  @override
+  String get unlockStoreError => 'The store could not complete that. Nothing was charged.';
+
+  @override
+  String get unlockUnlocked => 'UNLOCKED';
+
+  @override
+  String get unlockRestore => 'RESTORE PURCHASES';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

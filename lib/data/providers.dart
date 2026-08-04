@@ -25,6 +25,7 @@
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
 //   seasonRepositoryProvider    N27-T06  Provider<SeasonRepository>   (N28's file, one verb early)
 //   seasonsProvider             N29-T05  StreamProvider<List<Season>>
+//   purchaseServiceProvider     N30-T01  Provider<PurchaseService>            keepAlive
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
@@ -64,6 +65,7 @@ import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/data/purchase_service.dart';
 import 'package:shed_book/data/season_repository.dart';
 import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
@@ -230,6 +232,22 @@ final StreamProvider<List<Season>> seasonsProvider = StreamProvider<List<Season>
       ]))
       .watch();
 });
+
+/// The store seam.
+///
+/// **A PLAIN `Provider`, AND THAT IS WHAT KEEPS #90 TRUE ONCE T04 PUTS THIS ON
+/// THE QUICK ENTRY PATH.** Constructing a `PurchaseService` starts nothing:
+/// subscribing to the plugin's stream is what initialises the Android billing
+/// client, and that happens in `attach()`, which no shed screen calls.
+/// `FakePurchaseService`'s call list is the tripwire that proves it.
+///
+/// keepAlive (R74): `detach()` cancels the plugin subscription and deliberately
+/// does not close the fan-out, so a later `attach()` must find the same instance.
+///
+/// `lib/main.dart` and `lib/app.dart` may not name it — `launch.store_call`.
+final Provider<PurchaseService> purchaseServiceProvider = Provider<PurchaseService>(
+  (ref) => PurchaseService(),
+);
 
 final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepository>(
   (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),

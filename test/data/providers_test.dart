@@ -186,6 +186,8 @@ void main() {
       'seasonRepositoryProvider',
       // N29-T05 — the list Settings renders one row per.
       'seasonsProvider',
+      // N30-T01 — the store seam. Constructing it starts nothing; `attach()` does.
+      'purchaseServiceProvider',
       // N15-T01, N15-T02
       'mediaStoreProvider',
       'cameraServiceProvider',

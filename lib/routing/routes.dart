@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/export/export_screen.dart';
+import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
@@ -160,6 +161,12 @@ abstract final class Routes {
   static Future<void> foster(BuildContext context, LambId id) => Navigator.of(
     context,
   ).push(route(RouteNames.foster, (BuildContext _) => FosterScreen(lambId: id)));
+
+  /// N27-T01's screen — the one `02 §8.1` printed as the shape every other
+  /// helper copies, which is why it is the last of them to compile.
+  static Future<void> eweCard(BuildContext context, EweId id) => Navigator.of(
+    context,
+  ).push(route(RouteNames.eweCard, (BuildContext _) => EweCardScreen(eweId: id)));
 
   /// **No argument.** The Export screen is scoped to the current season, which
   /// it reads for itself — passing a season id would be a second answer to a

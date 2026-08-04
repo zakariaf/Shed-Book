@@ -1706,6 +1706,18 @@ abstract class AppLocalizations {
   /// **'STRUCK — {count}'**
   String flockStruckDivider({required int count});
 
+  /// 07 §4.2's empty state. A new animal with no history is a normal state, not an error — the shepherd added her a minute ago. The noun is deliberately absent: the tag is already the page heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recorded yet.'**
+  String get eweCardEmpty;
+
+  /// 07 §4.2's error state. It says what could not be read rather than naming a fault, because there is nothing the shepherd can do about a read failure at 03:20 except come back.
+  ///
+  /// In en, this message translates to:
+  /// **'Her records could not be read.'**
+  String get eweCardUnavailable;
+
   /// indelible.md §8 Screen 1: 'Quick-add is the corner slab.' The largest target in the system, bottom-right, mirrored to bottom-left when left_handed is set. The noun is fed from termEweSingular (10 §8.5) because it varies by county — a shepherd who calls them gimmers reads GIMMER here.
   ///
   /// In en, this message translates to:

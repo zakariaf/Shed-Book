@@ -998,6 +998,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get eweCardEmpty => 'Nothing recorded yet.';
+
+  @override
+  String get eweCardUnavailable => 'Her records could not be read.';
+
+  @override
   String flockAddSlab({required String term}) {
     return '+ $term';
   }

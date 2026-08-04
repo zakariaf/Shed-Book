@@ -31,6 +31,7 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/domain/time/recorded_time.dart';
 
 /// One row of either bucket of the deck.
 ///
@@ -327,6 +328,48 @@ final class FlockRepository {
     return const WriteCommitted();
   });
 
+  /// **HER WHOLE HISTORY, AND THE FAN-IN HAPPENS IN SQL.**
+  ///
+  /// Seven `watch()` streams merged in Dart is the build-breaking defect
+  /// decision #12 names, and this is the screen where it looks unavoidable: a
+  /// merged view renders a foster whose lambing has not arrived yet — a history
+  /// that never existed in the database. drift#3338 is open and its maintainer
+  /// calls the torn emission working as intended.
+  ///
+  /// **`readsFrom:` IS EIGHT TABLES, NOT SEVEN.** The arms name seven; the
+  /// `foster` arm joins `lambs` for `lb.birth_dam` and the `care` arm joins it
+  /// too. Miss `lambs` and a lamb row written anywhere else never re-runs this
+  /// statement — the failure presents as *"the app is stale"*, never as an error.
+  ///
+  /// **`.distinct` over a `List` does nothing unless [TimelineRow] has a real
+  /// `==`**, which is why that class hand-writes one over every field.
+  Stream<List<TimelineRow>> watchEweTimeline(EweId ewe) => _db
+      .customSelect(
+        _eweTimelineSql,
+        // **TEN BINDINGS OF ONE ID, AND THE COUNT IS DERIVED FROM THE
+        // STATEMENT** rather than written as a literal list: the `care` arm
+        // binds twice and the `foster` arm three times, so a hand-written list
+        // is a number that goes stale the first time an arm gains a leg. The
+        // first draft passed one and sqlite3 said *"Expected 10 parameters, got
+        // 1"* — which is the good failure, but only because the driver counts.
+        variables: <Variable<Object>>[
+          for (int i = 0; i < '?'.allMatches(_eweTimelineSql).length; i++) Variable<int>(ewe.value),
+        ],
+        readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+          _db.lambings,
+          _db.treatments,
+          _db.careEvents,
+          _db.lambs,
+          _db.fosterEvents,
+          _db.eweObservations,
+          _db.penOccupancies,
+          _db.notes,
+        },
+      )
+      .watch()
+      .map((List<QueryRow> rows) => rows.map(_toTimelineRow).toList())
+      .distinct(_sameTimeline);
+
   /// `getSingle()`, not `getSingleOrNull()`: the table has `CHECK (id = 1)` and
   /// `seedFirstRun` seeds the row in `onCreate`, so it can never find nothing.
   /// A null branch here would have to guess an entitlement.
@@ -395,6 +438,137 @@ bool _sameList(List<DeckEntry>? a, List<DeckEntry> b) {
     }
   }
   return true;
+}
+
+/// The seven `UNION ALL` arms of `07 §4.1`, in the order they are written there.
+///
+/// **The stored key IS the SQL literal in each arm's first column**, so the two
+/// are readable off each other — `CONVENTIONS §2.9`'s convention applied to a
+/// literal that lives in a statement rather than in a `CHECK`.
+enum TimelineKind {
+  lambing('lambing'),
+  treatment('treatment'),
+  care('care'),
+  foster('foster'),
+  observed('observed'),
+  penned('penned'),
+  note('note');
+
+  const TimelineKind(this.key);
+
+  final String key;
+
+  /// Throws rather than falling back. Every value in this column is written by
+  /// the statement three files away, so an unknown one means the statement and
+  /// this enum have drifted apart — which is exactly the failure a silent
+  /// fallback would hide until a row rendered as the wrong kind of event.
+  static TimelineKind fromKey(String key) => TimelineKind.values.firstWhere(
+    (TimelineKind k) => k.key == key,
+    orElse: () => throw FormatException('Unknown timeline kind', key),
+  );
+}
+
+/// One row of her history — columns, never a formatted string.
+@immutable
+final class TimelineRow {
+  const TimelineRow({
+    required this.kind,
+    required this.ref,
+    required this.at,
+    required this.capturedAt,
+    required this.timeSource,
+    required this.struck,
+    this.originalEffective,
+    this.season,
+    this.struckAt,
+  });
+
+  final TimelineKind kind;
+
+  /// **THE ROW ID WITHIN ITS OWN TABLE, NOT A GLOBAL KEY.** Lambing 7 and note 7
+  /// are both `ref: 7`. Anything keyed on a row — a widget key, a `ValueKey`, a
+  /// `Map` — is keyed on the **pair** `(kind, ref)`; a `Map<int, TimelineRow>`
+  /// on this screen silently drops rows.
+  ///
+  /// It stays a bare `int` inside the row and is wrapped into `LambingId` /
+  /// `TreatmentId` / … at the one tap handler that navigates (R33).
+  final int ref;
+
+  /// `occurred_at` / `administered_at` / `entered_at` / `effective_at` — the
+  /// event instant, whatever its own table calls it.
+  final Instant at;
+
+  /// The §12.5 quad, all four columns, on **every** arm. R37 ordered the four
+  /// tables that lacked it to gain it before the first snapshot, precisely so
+  /// this screen could promise a provenance label on every row.
+  final Instant capturedAt;
+  final Instant? originalEffective;
+  final TimeSource timeSource;
+
+  /// `NOT NULL` on six arms; nullable on `note` (`03 §5.12`).
+  final SeasonId? season;
+
+  /// **P1, AND NOTHING ON THIS SCREEN FILTERS ON IT.** `indelible.md §8` screen
+  /// 2 is explicit that a struck entry staying visible *"is the whole point of
+  /// year two"* — an evening with a shoebox shows you the crossings-out too.
+  final bool struck;
+  final Instant? struckAt;
+
+  /// The §12.5 value, **reconstructed** — never a second switch over
+  /// `time_source`.
+  ///
+  /// The quad comes back as four raw values and this rebuilds the value type, so
+  /// the label comes from `05 §4.1`'s exhaustive switch rather than from a
+  /// second one in a widget. `RecordedTime` has no public generative
+  /// constructor: the `userEdited` arm goes through `.entered(…).editedTo(at)`,
+  /// which is the only spelling that puts `originalEffective` back where it
+  /// belongs. Rendering a label from `time_source` directly would be a second
+  /// implementation of a §12.5 mechanism, and `05 §4.4` exists because an empty
+  /// label must be unrepresentable.
+  RecordedTime get recorded => switch (timeSource) {
+    TimeSource.autoCaptured => RecordedTime.capture(at),
+    TimeSource.userEntered => RecordedTime.entered(effective: at, now: capturedAt),
+    // `originalEffective!` is safe because the schema pairs them:
+    // `CHECK ((time_source = 'edited') = (original_effective IS NOT NULL))`.
+    // A `?? at` here would make the label true and uninformative — it would say
+    // the time was edited and lose what it was edited from.
+    TimeSource.userEdited => RecordedTime.entered(
+      effective: originalEffective!,
+      now: capturedAt,
+    ).editedTo(at),
+  };
+
+  /// **HAND-WRITTEN, AND `.distinct` DOES NOTHING WITHOUT IT.** `List` equality
+  /// is identity, and `freezed` is banned (#16 — drift is the only generator),
+  /// so every field is compared here. Without this, drift re-emits on **any**
+  /// write to any of the eight tables and the card visibly re-lays-out while it
+  /// is being read (`01 §4.4`).
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is TimelineRow &&
+          other.kind == kind &&
+          other.ref == ref &&
+          other.at == at &&
+          other.capturedAt == capturedAt &&
+          other.originalEffective == originalEffective &&
+          other.timeSource == timeSource &&
+          other.season == season &&
+          other.struck == struck &&
+          other.struckAt == struckAt;
+
+  @override
+  int get hashCode => Object.hash(
+    kind,
+    ref,
+    at,
+    capturedAt,
+    originalEffective,
+    timeSource,
+    season,
+    struck,
+    struckAt,
+  );
 }
 
 /// `07 §5.2`'s statement, verbatim.
@@ -801,3 +975,149 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   unrecordedWithdrawal: r.read<int>('unrecorded_withdrawal') == 1,
   hasWarning: r.read<int>('has_warning') == 1,
 );
+
+/// `07 §4.1`'s statement, arm for arm — **plus P1's `struck` / `struck_at` in
+/// the same position on every one of them.**
+///
+/// `mixin Identified` carries those two on all sixteen tables (N07-T02); `§4.1`'s
+/// published statement predates the ruling and does not list them; and
+/// `indelible.md §8` screen 2 is explicit that a struck entry staying visible
+/// *"is the whole point of year two"*. **Nothing here filters on them.**
+///
+/// **THE RESULT NAMES COME FROM THE LEFT-MOST `SELECT`**, so the outer
+/// `ORDER BY at DESC` reads the first arm's aliases. Naming a column differently
+/// in a later arm compiles and sorts the wrong thing.
+///
+/// **THERE IS NO `LIMIT` AND THERE MUST NOT BE ONE.** A ewe's whole life over
+/// five seasons is ~80 rows across indexed tables, sub-millisecond. A `LIMIT 50`
+/// with a *load more* affordance costs a tap and a decision at the one moment
+/// the product promises neither.
+///
+/// **THE PARAMETER IS BOUND ONCE PER `?`, POSITIONALLY.** `customSelect` takes
+/// variables in order, so the same `EweId` is passed as many times as the
+/// statement asks rather than named once — drift's raw path has no
+/// named-parameter form, and inventing one would mean interpolating an id into
+/// SQL. The caller counts the `?`s in this string, which is why no arm can add a
+/// leg and leave the binding list behind.
+const String _eweTimelineSql = '''
+SELECT 'lambing' AS kind, lg.id AS ref, lg.occurred_at AS at,
+       lg.captured_at AS captured_at, lg.original_effective AS original_effective,
+       lg.time_source AS time_source, lg.season AS season,
+       lg.struck AS struck, lg.struck_at AS struck_at
+  FROM lambings lg WHERE lg.ewe = ?
+
+-- **`treatments` IS THE ONE ARM WITH NO `struck` COLUMN, AND THAT IS NOT AN
+-- OVERSIGHT.** It carries `Identified` without `Struckable`, because decision
+-- #69 gives it `voided_at` instead: a treatment is **voided**, and the medicine
+-- book keeps the row *"struck through, still carrying the figure it was saved
+-- with"*. Two words, one rendering — so the void is projected into this
+-- statement's strike columns, which is what makes the timeline able to draw one
+-- rule through one kind of row.
+--
+-- The mapping lives here, in the arm, rather than in Dart: a `TimelineRow` with
+-- both a `struck` and a `voidedAt` would make every renderer choose between them
+-- and one of them would eventually choose wrong.
+UNION ALL
+SELECT 'treatment', t.id, t.administered_at,
+       t.captured_at, t.original_effective, t.time_source, t.season,
+       t.voided_at IS NOT NULL, t.voided_at
+  FROM treatments t WHERE t.ewe = ?
+
+-- `care_events` HAS NO `ewe` COLUMN. `03 §5.6`'s CHECK is exactly one of
+-- (lambing, lamb), so her care events are reached through her lambings AND
+-- through the lambs she bore. Writing only the lambing half silently loses every
+-- navel-dip recorded on a lamb.
+UNION ALL
+SELECT 'care', c.id, c.occurred_at,
+       c.captured_at, c.original_effective, c.time_source, c.season,
+       c.struck, c.struck_at
+  FROM care_events c
+  LEFT JOIN lambings lg2 ON lg2.id = c.lambing
+  LEFT JOIN lambs   lb2  ON lb2.id = c.lamb
+ WHERE lg2.ewe = ? OR lb2.birth_dam = ?
+
+-- `foster_events` HAS ONE `rearing_dam` AND AN OUTCOME — there is no `from_ewe`.
+-- *"She lost a lamb to a foster"* is the PREVIOUS rearing dam, which is the
+-- `LAG` of that column over the lamb's own event order. The third leg is the
+-- FIRST foster off a lamb she bore, and dropping it loses exactly the event a
+-- shepherd opens the card to find.
+--
+-- Window functions have existed since SQLite 3.25 and decision-record §5.1
+-- bundles 3.5.0 — safe BECAUSE we bundle the engine, not because the device
+-- happens to have one.
+UNION ALL
+SELECT 'foster', f.id, f.effective_at,
+       f.captured_at, f.original_effective, f.time_source, f.season,
+       f.struck, f.struck_at
+  FROM (SELECT fe.*,
+               LAG(fe.rearing_dam) OVER (PARTITION BY fe.lamb
+                                         ORDER BY fe.effective_at, fe.id) AS prev_dam,
+               lb.birth_dam AS lamb_birth_dam
+          FROM foster_events fe JOIN lambs lb ON lb.id = fe.lamb) f
+ WHERE f.rearing_dam = ?
+    OR f.prev_dam = ?
+    OR (f.prev_dam IS NULL AND f.lamb_birth_dam = ?)
+
+UNION ALL
+SELECT 'observed', o.id, o.occurred_at,
+       o.captured_at, o.original_effective, o.time_source, o.season,
+       o.struck, o.struck_at
+  FROM ewe_observations o WHERE o.ewe = ?
+
+UNION ALL
+SELECT 'penned', p.id, p.entered_at,
+       p.captured_at, p.original_effective, p.time_source, p.season,
+       p.struck, p.struck_at
+  FROM pen_occupancies p WHERE p.ewe = ?
+
+-- `notes.occurred_at` IS NOT `created_at`, AND THAT IS WHY R37 ADDED THE COLUMN.
+-- A note typed at 07:00 about something at 03:20 sorts on 03:20. `notes.season`
+-- is the one nullable one (`03 §5.12`).
+UNION ALL
+SELECT 'note', n.id, n.occurred_at,
+       n.captured_at, n.original_effective, n.time_source, n.season,
+       n.struck, n.struck_at
+  FROM notes n WHERE n.ewe = ?
+
+ ORDER BY at DESC;
+''';
+
+TimelineRow _toTimelineRow(QueryRow r) => TimelineRow(
+  kind: TimelineKind.fromKey(r.read<String>('kind')),
+  ref: r.read<int>('ref'),
+  at: Instant(r.read<int>('at')),
+  capturedAt: Instant(r.read<int>('captured_at')),
+  originalEffective: switch (r.readNullable<int>('original_effective')) {
+    final int ms => Instant(ms),
+    // **AN EXHAUSTIVE SWITCH RATHER THAN A COALESCE**, because the two states
+    // are different facts: absent means nothing was edited, and there is no
+    // instant that could stand in for that.
+    null => null,
+  },
+  timeSource: TimeSource.fromKey(r.read<String>('time_source')),
+  season: switch (r.readNullable<int>('season')) {
+    final int id => SeasonId(id),
+    null => null,
+  },
+  struck: r.read<bool>('struck'),
+  struckAt: switch (r.readNullable<int>('struck_at')) {
+    final int ms => Instant(ms),
+    null => null,
+  },
+);
+
+/// Element-wise, for the same reason [_sameList] is written out rather than
+/// taken from `package:collection`: making that dependency direct is a
+/// `pubspec.yaml` and allowlist change for four lines. [TimelineRow] has a real
+/// `==`, so this is exactly what `ListEquality` would do.
+bool _sameTimeline(List<TimelineRow> a, List<TimelineRow> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}

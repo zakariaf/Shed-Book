@@ -1,4 +1,25 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- THE TWO REMOVALS, AND NEITHER IS COSMETIC.
+
+         INTERNET is merged by com.google.android.datatransport:transport-backend-cct,
+         a compile-scope dependency of Play Billing 8.0.0 — Google's Cloud CCT
+         telemetry transport. Billing's own manifest declares only BILLING; the
+         telemetry rides in on a transitive edge that no README mentions. Removing
+         it is what makes decision-record §3.1's sentence true: the app itself
+         cannot connect to anything. Only tiers 1 and 2 are claimable — the share
+         sheet is another process, and a CSV a shepherd AirDrops does leave the
+         phone.
+
+         POST_NOTIFICATIONS is merged by flutter_local_notifications, a dependency
+         since N00-T03. v1.0.0 creates no notification channel and never asks for
+         the permission; reminders are v1.1.0. A permission declared for a feature
+         that does not exist is a line in the Play listing a shepherd can read and
+         a promise the app does not keep. N24 deletes this second line. -->
+    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" tools:node="remove" />
+
     <application
         android:label="shed_book"
         android:name="${applicationName}"

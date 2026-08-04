@@ -6,7 +6,16 @@ plugins {
 
 android {
     namespace = "com.shedbook.shedbook"
-    compileSdk = flutter.compileSdkVersion
+    // **EXPLICIT, NOT `flutter.compileSdkVersion`.** The Flutter-supplied
+    // properties move with the SDK, so a toolchain bump could change what the
+    // shipped artefact targets without a line in any diff — and `targetSdk` is
+    // what decides which runtime behaviours apply on somebody else's phone in
+    // April. Decision-record §5 is the only source of a version number in this
+    // project; these three are pinned here and nowhere else.
+    //
+    // 36 is what `flutter_local_notifications` 22.2.0 itself compiles against
+    // (read off the installed package, not its README).
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -25,8 +34,12 @@ android {
         applicationId = "com.shedbook.shedbook"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        // **24, WHICH IS WHO CAN INSTALL THE APP.** It is the floor
+        // `flutter_local_notifications` 22.2.0 declares, and raising it silently
+        // is the one Gradle change that removes users rather than adding
+        // behaviour.
+        minSdk = 24
+        targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

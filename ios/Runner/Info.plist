@@ -49,6 +49,28 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- THE THREE USAGE STRINGS (08 §8.4, verbatim).
+
+	     A shepherd reads these at the moment a system dialog interrupts them,
+	     one-handed, and the only useful content is WHAT THIS IS FOR. Three
+	     sentences, en_GB, each naming the feature the permission serves: no
+	     "we may", no "should", no second sentence, no marketing.
+
+	     They are also App Store review metadata. A missing one is a rejection;
+	     a vague one is a review question. -->
+	<key>NSCameraUsageDescription</key>
+	<string>Shed Book uses the camera so you can attach a photo to a lambing record.</string>
+	<!-- PHPickerViewController needs no authorisation on iOS 14+, so this string
+	     exists FOR REVIEW, NOT FOR A PROMPT — App Store policy requires it
+	     regardless, and its absence is a rejection for a dialog that never
+	     appears. -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Shed Book lets you attach a photo you have already taken to a lambing record.</string>
+	<!-- The voice NOTE, and not voice tag entry — that is cut from v1
+	     (08 §10.2). A string that promised dictation would be describing a
+	     feature the app does not have, to a reviewer who will look for it. -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Shed Book records voice notes you attach to a lambing record.</string>
 	<key>UIUserInterfaceStyle</key>
 	<string>Dark</string>
 	<key>UILaunchStoryboardName</key>

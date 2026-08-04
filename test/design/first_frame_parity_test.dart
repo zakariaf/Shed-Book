@@ -23,7 +23,6 @@ const String _stylesV31 = 'android/app/src/main/res/values-v31/styles.xml';
 const String _manifest = 'android/app/src/main/AndroidManifest.xml';
 const String _launchStoryboard = 'ios/Runner/Base.lproj/LaunchScreen.storyboard';
 const String _mainStoryboard = 'ios/Runner/Base.lproj/Main.storyboard';
-const String _plist = 'ios/Runner/Info.plist';
 
 /// The root view's `backgroundColor` as (red, green, blue) floats.
 ///
@@ -176,10 +175,27 @@ void main() {
       expect(manifest, contains('<application'));
       expect(manifest, contains('.MainActivity'));
       expect(manifest, contains('@style/LaunchTheme'));
+      // **THE NAME MUST APPEAR, AND IT MUST APPEAR ONLY AS A REMOVAL.**
+      //
+      // This case asserted the string was absent entirely, which was right while
+      // nothing had written a removal directive — and wrong the moment N31-T01
+      // did. `tools:node="remove"` names the permission in order to delete it
+      // from the merged manifest: absence of the string means the merger puts
+      // INTERNET back, which is the opposite of what the assertion wanted.
+      //
+      // What survives is the property it was reaching for: the app never
+      // **declares** it. Merged in by Play Billing's telemetry transport on a
+      // transitive edge no README mentions, and removed here — which is what
+      // makes decision-record §3.1's sentence true.
       expect(
         manifest,
-        isNot(contains('android.permission.INTERNET')),
-        reason: 'G1: the shipped app has no internet permission',
+        contains('android:name="android.permission.INTERNET" tools:node="remove"'),
+        reason: 'G1: the shipped app has no internet permission — the removal is how',
+      );
+      expect(
+        RegExp(r'android\.permission\.INTERNET').allMatches(manifest).length,
+        1,
+        reason: 'INTERNET appears once, as the removal, and never as a declaration',
       );
     });
   });
@@ -204,28 +220,12 @@ void main() {
       }
     });
 
-    test('Info.plist pins the dark appearance and names both storyboards', () {
-      // UILaunchStoryboardName and UIMainStoryboardFile are DIFFERENT KEYS
-      // NAMING DIFFERENT STORYBOARDS, and losing either is a flash rather than a
-      // crash.
-      final String plist = File(_plist).readAsStringSync();
-
-      expect(plist, contains('<key>UIUserInterfaceStyle</key>'));
-      expect(
-        RegExp(r'<key>UIUserInterfaceStyle</key>\s*<string>Dark</string>').hasMatch(plist),
-        isTrue,
-        reason: 'the app follows the system appearance and can go light',
-      );
-      expect(plist, contains('<key>UILaunchStoryboardName</key>'));
-      expect(plist, contains('<key>UIMainStoryboardFile</key>'));
-    });
-
-    test('Info.plist carries no ATS exception', () {
-      // G5's text half, and the gate job greps for it too. An app with no
-      // network code does not need one, and its presence would be a claim that
-      // something wants to talk.
-      expect(File(_plist).readAsStringSync(), isNot(contains('NSAppTransportSecurity')));
-    });
+    // **THE TWO `Info.plist` POLICY CASES MOVED TO
+    // `test/policy/ios_config_test.dart` AT N31-T04.** This file is for the
+    // FIRST FRAME — the page colour and the two storyboards — and a plist policy
+    // living inside a design test is a policy the next person deletes while
+    // tidying a colour assertion. Moved, not duplicated: two copies of an
+    // assertion is one copy that stops being true.
 
     test('the template launch image is gone', () {
       // The generated storyboard centres a LaunchImage on white. Leaving it

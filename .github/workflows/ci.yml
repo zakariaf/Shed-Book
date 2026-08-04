@@ -204,3 +204,79 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: always()
         with: { name: coverage, path: coverage/lcov.info }
+
+  # ---------------------------------------------------------------------------
+  # G1 and G4 — THE TWO GATES THAT READ A BUILT ARTEFACT RATHER THAN SOURCE.
+  #
+  # `check_policy.dart` is the one SOURCE-scanning gate (decision #10). This job
+  # exists because the permission set is not a fact about source at all: it is
+  # what the manifest merger produced after every dependency's manifest was
+  # folded in, and G0 proved that is not predictable from any README — Play
+  # Billing's own manifest declares BILLING and nothing else, while INTERNET and
+  # ACCESS_NETWORK_STATE arrive on a transitive edge from its telemetry
+  # transport.
+  #
+  # `needs: [gate, codegen, test]` — an artefact is worth inspecting only once
+  # the source it was built from has passed. `timeout-minutes: 30` because a
+  # release bundle on a cold runner is the slowest thing in this file and a hung
+  # Gradle daemon must fail rather than idle.
+  # ---------------------------------------------------------------------------
+  android:
+    runs-on: ubuntu-latest
+    needs: [gate, codegen, test]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
+        with: { distribution: temurin, java-version: '17' }
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+      - run: flutter pub get
+
+      - name: Build release bundle
+        run: |
+          flutter build appbundle --release \
+            --build-number=${{ github.run_number }} \
+            --dart-define=APP_VERSION=ci --dart-define=APP_BUILD=${{ github.run_number }} \
+            --obfuscate --split-debug-info=build/symbols/android
+
+      # **PINNED, AND `latest/download/bundletool-all.jar` DOES NOT EXIST.**
+      # `13 §4.3`'s published form fetches an unversioned asset name; GitHub's
+      # release assets carry the version in the filename, so the URL 404s into an
+      # HTML page, `curl -sSL` follows the redirect and writes it, and `java -jar`
+      # reports *"Invalid or corrupt jarfile"* — which reads as a broken runner
+      # rather than as a wrong URL. Watched failing on the pull request that
+      # added this job.
+      #
+      # 1.18.3 is the version decision-record §3.3 recorded G0 running against.
+      # **An unpinned tool is an unpinned gate**: G1 asserts exact set equality,
+      # so a bundletool whose dump format moved would change the answer without
+      # anything in this repository changing.
+      - name: Fetch bundletool
+        env:
+          BUNDLETOOL_VERSION: '1.18.3'
+        run: |
+          curl -fsSL -o bundletool.jar \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          # A jar is a zip. Checked here rather than left to `java -jar`, so a
+          # bad download names itself.
+          file bundletool.jar | grep -q 'Zip archive' || {
+            echo "::error::bundletool.jar is not an archive — the download returned something else."
+            exit 2; }
+
+      - name: G1 — the shipped permission set is exactly the expected set
+        run: bash tool/assert_permissions.sh
+
+      # **`if: always()` IS G4, NOT TIDINESS.** The merger report is the ONLY
+      # artefact that names which dependency contributed a permission, and the
+      # run you need it from is the run that just went red. Uploading it only on
+      # success would archive it exactly when nobody needs it.
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: android-${{ github.run_number }}
+          path: |
+            build/app/outputs/bundle/release/app-release.aab
+            build/app/outputs/logs/manifest-merger-release-report.txt
+            build/symbols/android
+            merged-manifest.xml

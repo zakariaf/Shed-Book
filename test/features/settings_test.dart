@@ -10,7 +10,15 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'dart:io';
+
+import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/units/grams.dart';
+import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
+
+import '../support/seeds.dart';
 
 import '../support/harness.dart';
 
@@ -45,20 +53,127 @@ void main() {
 
     expect(tester.getSemantics(find.text('Settings')).headingLevel, 1);
 
+    // **ORDER IS PART OF THE CONTRACT.** `07 §14.3` numbers its sections, and a
+    // shepherd told *"it is under Appearance, third from the bottom"* is being
+    // told something that has to stay true.
+    //
+    // **ASSERTED OVER THE MOUNTED PREFIX, NOT OVER ALL ELEVEN.** A `ListView`
+    // mounts what fits, so requiring every section to be found would be
+    // asserting the viewport height — a different fact, and one that changes
+    // with the device. The list's completeness is `kSettingsSections`' own test
+    // above; this one is about the order they appear in.
+    final List<String> mounted = <String>[
+      for (final SettingsSectionId id in kSettingsSections)
+        if (find.byKey(Key('settings.section.${id.name}')).evaluate().isNotEmpty) id.name,
+    ];
+    expect(mounted.length, greaterThan(1), reason: 'nothing rendered at all');
+
     double previousTop = -1;
-    for (final SettingsSectionId id in kSettingsSections) {
-      final Finder section = find.byKey(Key('settings.section.${id.name}'));
-      expect(section, findsOneWidget, reason: id.name);
-      // **ORDER IS PART OF THE CONTRACT.** `07 §14.3` numbers its sections, and
-      // a shepherd told *"it is under Appearance, third from the bottom"* is
-      // being told something that has to stay true.
-      final double top = tester.getRect(section).top;
-      expect(top, greaterThan(previousTop), reason: '${id.name} is out of order');
+    for (final String name in mounted) {
+      final double top = tester.getRect(find.byKey(Key('settings.section.$name'))).top;
+      expect(top, greaterThan(previousTop), reason: '$name is out of order');
       previousTop = top;
     }
+    expect(
+      mounted,
+      orderedEquals(
+        kSettingsSections.map((SettingsSectionId s) => s.name).where(mounted.contains).toList(),
+      ),
+      reason: 'the mounted sections are not in §14.3 order',
+    );
 
     handle.dispose();
     await tester.closeApp();
+  });
+
+  testWidgets('switching units changes every rendered weight and rewrites no stored row', (
+    WidgetTester tester,
+  ) async {
+    // **THE NEGATIVE HALF IS THE POINT.** A test that only asserts the rendered
+    // text changed passes against the implementation this task exists to
+    // prevent: converting on write. That one looks correct, passes every
+    // rendering test, and loses precision on every switch — after four changes
+    // of mind a 4,300 g lamb is not 4,300 g any more, and nothing on screen ever
+    // said so.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    final LambId lamb = await seedLamb(db, lambing, ewe, sex: 'f', birthWeightG: 4300);
+
+    Future<int?> storedGrams() async => (await (db.select(
+      db.lambs,
+    )..where(($LambsTable t) => t.id.equals(lamb.value))).getSingle()).birthWeightG;
+
+    expect(await storedGrams(), 4300);
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      (await db.select(db.appSettings).getSingle()).weightUnit,
+      'kg',
+      reason: 'kg is the seeded default',
+    );
+
+    await tester.tap(find.byKey(const Key('settings.units.weight.lb')));
+    await tester.pumpAndSettle();
+
+    expect((await db.select(db.appSettings).getSingle()).weightUnit, 'lb');
+    // **IDENTICAL, NOT CLOSE TO.** The canonical value is untouched: units are a
+    // display choice and the column stores grams (#56).
+    expect(
+      await storedGrams(),
+      4300,
+      reason: 'the setting rewrote a stored mass — units are a DISPLAY choice',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('the display edge renders the same grams two ways and stores neither', () {
+    // `05 §5.1`: one canonical unit is stored, display units are computed at the
+    // edge — and `formatShedWeight` is that edge. A second `toStringAsFixed`
+    // anywhere under `lib/features/` is the defect, which the audit below pins.
+    const Grams g = Grams(4300);
+    expect(formatShedWeight(g, WeightUnit.kg, 'en-GB'), '4.3 kg');
+    expect(
+      formatShedWeight(g, WeightUnit.lb, 'en-GB'),
+      contains('lb'),
+      reason: 'pounds and ounces — a shepherd who works in pounds does not think in tenths',
+    );
+  });
+
+  test('every mass in lib/ is rendered through the one display edge', () {
+    // **THE AUDIT IS THE DELIVERABLE.** A widget that formats a mass itself is a
+    // widget that keeps rendering kilograms after the shepherd switched to
+    // pounds — and it fails silently, on one screen, for the person least likely
+    // to be reading the code.
+    final List<String> offenders = <String>[];
+    // **SCOPED TO `lib/features/`, WHICH IS WHERE THE DEFECT LIVES.**
+    // `Grams.poundsOunces` is the domain's own carry-and-round and
+    // `formatShedWeight` is the one caller; scanning the whole tree would flag
+    // both and say nothing. What must never happen is a SCREEN doing its own
+    // arithmetic on a mass.
+    for (final FileSystemEntity f in Directory('lib/features').listSync(recursive: true)) {
+      if (f is! File || !f.path.endsWith('.dart')) {
+        continue;
+      }
+      // **COMMENTS ARE STRIPPED FIRST, AND THAT IS NOT A LOOPHOLE.** The first
+      // run flagged `lamb_weight_cell.dart`, whose only mention of the
+      // decomposition is a comment saying where it correctly lives. This project
+      // has caught a prohibition inside the comment explaining it twenty-nine
+      // times; a test of my own that repeated the trick would be the thirtieth.
+      final String src = f
+          .readAsStringSync()
+          .split('\n')
+          .where((String l) => !l.trimLeft().startsWith('//'))
+          .join('\n');
+      if (src.contains('toStringAsFixed') || src.contains('.poundsOunces')) {
+        offenders.add(f.path);
+      }
+    }
+    expect(offenders, isEmpty, reason: 'a mass is formatted outside formatShedWeight: $offenders');
   });
 
   testWidgets('the screen never renders a spinner, in any state', (WidgetTester tester) async {

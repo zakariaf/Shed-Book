@@ -1119,6 +1119,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsTitle => 'Settings';
 
   @override
+  String get settingsUnitsWeightKg => 'KG';
+
+  @override
+  String get settingsUnitsWeightLb => 'LB';
+
+  @override
+  String settingsUnitsWeightSemantics({required String unit}) {
+    return 'Weight in $unit';
+  }
+
+  @override
+  String get settingsUnitsWeightKgSpoken => 'kilograms';
+
+  @override
+  String get settingsUnitsWeightLbSpoken => 'pounds';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

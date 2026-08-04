@@ -1611,6 +1611,27 @@
   "@settingsTitle": {
     "description": "The page header. 07 §16's sticky 44 px header — read-only, never collapses, never parallaxes."
   },
+  "settingsUnitsWeightKg": "KG",
+  "@settingsUnitsWeightKg": {
+    "description": "The kilogram half of the units segmented line (indelible.md §8 screen 12). A DISPLAY choice only: the database stores grams and nothing is rewritten when it changes (#56)."
+  },
+  "settingsUnitsWeightLb": "LB",
+  "@settingsUnitsWeightLb": {
+    "description": "The pound half. Rendered as pounds and ounces, because a shepherd who works in pounds does not think in tenths of one."
+  },
+  "settingsUnitsWeightSemantics": "Weight in {unit}",
+  "@settingsUnitsWeightSemantics": {
+    "description": "The spoken form of each segment. NO STATE WORD IN IT (10 §3.2 rule 2): the node carries `selected` and a screen reader announces the state itself, so 'Kilograms, selected' is the doubled announcement users report as noise.",
+    "placeholders": {"unit": {"type": "String", "example": "kilograms"}}
+  },
+  "settingsUnitsWeightKgSpoken": "kilograms",
+  "@settingsUnitsWeightKgSpoken": {
+    "description": "The spoken noun for kg. Written out because a screen reader reads 'KG' as two letters."
+  },
+  "settingsUnitsWeightLbSpoken": "pounds",
+  "@settingsUnitsWeightLbSpoken": {
+    "description": "The spoken noun for lb. Written out because a screen reader reads 'LB' as two letters."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

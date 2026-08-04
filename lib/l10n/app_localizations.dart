@@ -1836,6 +1836,36 @@ abstract class AppLocalizations {
   /// **'Settings'**
   String get settingsTitle;
 
+  /// The kilogram half of the units segmented line (indelible.md §8 screen 12). A DISPLAY choice only: the database stores grams and nothing is rewritten when it changes (#56).
+  ///
+  /// In en, this message translates to:
+  /// **'KG'**
+  String get settingsUnitsWeightKg;
+
+  /// The pound half. Rendered as pounds and ounces, because a shepherd who works in pounds does not think in tenths of one.
+  ///
+  /// In en, this message translates to:
+  /// **'LB'**
+  String get settingsUnitsWeightLb;
+
+  /// The spoken form of each segment. NO STATE WORD IN IT (10 §3.2 rule 2): the node carries `selected` and a screen reader announces the state itself, so 'Kilograms, selected' is the doubled announcement users report as noise.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight in {unit}'**
+  String settingsUnitsWeightSemantics({required String unit});
+
+  /// The spoken noun for kg. Written out because a screen reader reads 'KG' as two letters.
+  ///
+  /// In en, this message translates to:
+  /// **'kilograms'**
+  String get settingsUnitsWeightKgSpoken;
+
+  /// The spoken noun for lb. Written out because a screen reader reads 'LB' as two letters.
+  ///
+  /// In en, this message translates to:
+  /// **'pounds'**
+  String get settingsUnitsWeightLbSpoken;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

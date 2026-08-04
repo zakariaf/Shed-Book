@@ -34,6 +34,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/models.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
+import 'package:shed_book/features/settings/widgets/units_section.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// The sections this screen renders, in `07 §14.3`'s order.
@@ -114,14 +115,28 @@ class SettingsScreen extends ConsumerWidget {
         SettingsSection(
           key: Key('settings.section.${id.name}'),
           title: _title(l10n, id),
-          // **THE BODIES ARRIVE WITH THEIR OWN TASKS.** T01 lands the frame: the
-          // ledger, the eleven headings and the four states §14.2 permits. A
+          // **THE BODIES ARRIVE WITH THEIR OWN TASKS.** T01 landed the frame:
+          // the ledger, the eleven headings and the four states §14.2 permits. A
           // section rendered with a placeholder control would be a control that
           // writes nothing while looking like it does.
-          rows: const <Widget>[],
+          rows: _rows(id),
         ),
     ],
   );
+
+  /// What each section holds today.
+  ///
+  /// **AN EMPTY LIST IS A SECTION WHOSE TASK HAS NOT LANDED**, not a section
+  /// with nothing to say — and it renders as a heading with a rule under it,
+  /// which is honest: the setting exists and is not yet reachable here.
+  List<Widget> _rows(SettingsSectionId id) => switch (id) {
+    // **NO TEMPERATURE CONTROL BESIDE IT, AND THAT IS RULED.** §7.0 row 11: no
+    // `v1.0.0` table stores a temperature, so `AppSettings` carries no
+    // `temperature_unit` column and a segmented line for one would be a setting
+    // for a value that does not exist.
+    SettingsSectionId.units => const <Widget>[UnitsSection()],
+    _ => const <Widget>[],
+  };
 
   /// Exhaustive, no `default:` — a twelfth section must fail to compile here
   /// rather than render with no title.

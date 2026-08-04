@@ -13,6 +13,8 @@ import 'package:shed_book/core/db/database.dart';
 import 'dart:io';
 
 import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/log/local_log.dart' show kAppVersion;
+import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/ui/formatters.dart';
@@ -419,6 +421,104 @@ void main() {
     expect(find.textContaining('Jan'), findsWidgets);
     expect(find.textContaining('/'), findsNothing);
     expect(find.byKey(const Key('settings.season.none')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the About section renders the recorded offline wording, character for character', (
+    WidgetTester tester,
+  ) async {
+    // **THE EXPECTED STRING IS READ FROM THE DOCUMENT AT RUN TIME.** A copy in
+    // this test would drift from the copy in `docs/store/offline-honesty.md` and
+    // then defend the wrong sentence — which is the failure mode that matters,
+    // because the wrong sentence here is a claim that is not true.
+    //
+    // Only tiers 1 and 2 are claimable: no network code, no `INTERNET`
+    // permission, and no dependency that *can* reach a network from our process.
+    // Tier 3 — *no data leaves the device by any route* — is **false**, because
+    // the share sheet and the system photo picker are other processes.
+    final String recorded = File('docs/store/offline-honesty.md')
+        .readAsLinesSync()
+        .firstWhere((String l) => l.contains('no account, no server'))
+        // The document quotes it as a blockquote; the const does not.
+        .replaceFirst('> ', '')
+        .replaceAll('"', '')
+        .trim();
+
+    expect(
+      Disclaimers.offlineStatement,
+      recorded,
+      reason: 'the const and the document have drifted — one of them is now a claim we cannot make',
+    );
+
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder about = find.byKey(const Key('settings.about.offline'));
+    await tester.scrollUntilVisible(about, 200);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(about).data, recorded);
+
+    await tester.closeApp();
+  });
+
+  test('the banned offline wording appears nowhere in lib/ or in the ARB', () {
+    // **NEVER "your data never leaves your phone".** It does, the moment they
+    // AirDrop a CSV — which is the backup story this product depends on. The
+    // gate row scans for it; this duplicates that check in the tier a developer
+    // runs first, and adds the two other bannedphrases beside it.
+    const List<String> banned = <String>[
+      'never leaves your phone',
+      'offline-first',
+      'compliance record',
+      'official record',
+    ];
+    // **COMMENTS AND ARB DESCRIPTIONS ARE STRIPPED, AND BOTH EXCLUSIONS ARE THE
+    // SAME ONE.** The phrases are banned in what the app *says*, not in the
+    // prose explaining why — and this project has now failed its own scans on
+    // that distinction thirty-one times, twice in this session. What survives
+    // the strip is user-facing text, which is exactly the surface the ban is
+    // about.
+    bool isProse(String line) {
+      final String l = line.trimLeft();
+      return l.startsWith('//') ||
+          l.startsWith('///') ||
+          l.startsWith('"@') ||
+          l.contains('"description"');
+    }
+
+    for (final FileSystemEntity f in Directory('lib').listSync(recursive: true)) {
+      if (f is! File || !(f.path.endsWith('.dart') || f.path.endsWith('.arb'))) {
+        continue;
+      }
+      final String src = f
+          .readAsStringSync()
+          .split('\n')
+          .where((String l) => !isProse(l))
+          .join('\n')
+          .toLowerCase();
+      for (final String phrase in banned) {
+        expect(src, isNot(contains(phrase)), reason: '${f.path} says "$phrase"');
+      }
+    }
+  });
+
+  testWidgets('the About section shows a version and never claims one it was not given', (
+    WidgetTester tester,
+  ) async {
+    // `kAppVersion` is a `--dart-define`; an unset build reads `0.1.0`. That is
+    // the honest answer — a hard-coded `1.0.0` would have every debug build
+    // reporting a release number in a log the shepherd sends when something is
+    // wrong.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final Finder version = find.byKey(const Key('settings.about.version'));
+    await tester.scrollUntilVisible(version, 200);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(version).data, contains(kAppVersion));
 
     await tester.closeApp();
   });

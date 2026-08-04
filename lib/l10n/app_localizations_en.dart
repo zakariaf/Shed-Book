@@ -1199,6 +1199,25 @@ class AppLocalizationsEn extends AppLocalizations {
       'The free notebook holds one season. Unlock to start another.';
 
   @override
+  String settingsAboutVersion({required String version}) {
+    return 'Version $version';
+  }
+
+  @override
+  String settingsDiagnosticsCounts({required String records, required String ewes}) {
+    return '$records records · $ewes animals';
+  }
+
+  @override
+  String get settingsDiagnosticsCheck => 'CHECK DATABASE';
+
+  @override
+  String get settingsDiagnosticsShareLog => 'SAVE THE LOG';
+
+  @override
+  String get settingsDiagnosticsShareSnapshot => 'SAVE A COPY OF THE FILE';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

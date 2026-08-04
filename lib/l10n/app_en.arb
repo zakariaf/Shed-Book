@@ -1710,6 +1710,31 @@
   "@settingsSeasonCapRefused": {
     "description": "11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe."
   },
+  "settingsAboutVersion": "Version {version}",
+  "@settingsAboutVersion": {
+    "description": "The app version, from kAppVersion — a --dart-define, so a build that forgot to set it reads 0.1.0 and says so rather than claiming a release number it does not have.",
+    "placeholders": {"version": {"type": "String", "example": "1.0.0"}}
+  },
+  "settingsDiagnosticsCounts": "{records} records · {ewes} animals",
+  "@settingsDiagnosticsCounts": {
+    "description": "13 §8.5's first diagnostics row. Counts come from the SAME whole-database count the export uses — a second implementation is a second answer to 'how many ewes are on this phone?'.",
+    "placeholders": {
+      "records": {"type": "String", "example": "1,240"},
+      "ewes": {"type": "String", "example": "412"}
+    }
+  },
+  "settingsDiagnosticsCheck": "CHECK DATABASE",
+  "@settingsDiagnosticsCheck": {
+    "description": "Runs SQLite's own integrity check. It reports what it found and repairs nothing — an app that silently 'fixed' a records file would be the one thing worse than one that could not read it."
+  },
+  "settingsDiagnosticsShareLog": "SAVE THE LOG",
+  "@settingsDiagnosticsShareLog": {
+    "description": "Shares the diagnostics log through the system share sheet, as a file path. There is no telemetry and no analytics in this app, so this is the ONLY way a problem travels — and it travels because the shepherd sent it, deliberately."
+  },
+  "settingsDiagnosticsShareSnapshot": "SAVE A COPY OF THE FILE",
+  "@settingsDiagnosticsShareSnapshot": {
+    "description": "Shares a VACUUM INTO snapshot of the records file. The snapshot, never the backup — 09 §5 keeps those two words apart because swapping them is how somebody restores the wrong thing."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

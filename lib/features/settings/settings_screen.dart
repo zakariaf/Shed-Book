@@ -35,6 +35,7 @@ import 'package:shed_book/data/models.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/settings/settings_write_controller.dart';
 import 'package:shed_book/features/settings/widgets/appearance_section.dart';
+import 'package:shed_book/features/settings/widgets/about_section.dart';
 import 'package:shed_book/features/settings/widgets/season_section.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
 import 'package:shed_book/features/settings/widgets/units_section.dart';
@@ -139,6 +140,11 @@ class SettingsScreen extends ConsumerWidget {
     // for a value that does not exist.
     SettingsSectionId.units => const <Widget>[UnitsSection()],
     SettingsSectionId.season => const <Widget>[SeasonSection()],
+    // **DIAGNOSTICS AND ABOUT SIT OUTSIDE THE ERROR PANEL** (`07 §14.2`). They
+    // are the two sections a shepherd needs *when something is wrong* — a
+    // Diagnostics row that disappears because the settings row could not be read
+    // is a diagnostics row that works only when nothing needs diagnosing.
+    SettingsSectionId.about => const <Widget>[AboutSection()],
     SettingsSectionId.appearance => const <Widget>[
       PaletteSection(),
       // **HIGH CONTRAST IS ITS OWN ROW.** It raises every ink to the top of its

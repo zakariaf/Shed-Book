@@ -1974,6 +1974,36 @@ abstract class AppLocalizations {
   /// **'The free notebook holds one season. Unlock to start another.'**
   String get settingsSeasonCapRefused;
 
+  /// The app version, from kAppVersion — a --dart-define, so a build that forgot to set it reads 0.1.0 and says so rather than claiming a release number it does not have.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String settingsAboutVersion({required String version});
+
+  /// 13 §8.5's first diagnostics row. Counts come from the SAME whole-database count the export uses — a second implementation is a second answer to 'how many ewes are on this phone?'.
+  ///
+  /// In en, this message translates to:
+  /// **'{records} records · {ewes} animals'**
+  String settingsDiagnosticsCounts({required String records, required String ewes});
+
+  /// Runs SQLite's own integrity check. It reports what it found and repairs nothing — an app that silently 'fixed' a records file would be the one thing worse than one that could not read it.
+  ///
+  /// In en, this message translates to:
+  /// **'CHECK DATABASE'**
+  String get settingsDiagnosticsCheck;
+
+  /// Shares the diagnostics log through the system share sheet, as a file path. There is no telemetry and no analytics in this app, so this is the ONLY way a problem travels — and it travels because the shepherd sent it, deliberately.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE THE LOG'**
+  String get settingsDiagnosticsShareLog;
+
+  /// Shares a VACUUM INTO snapshot of the records file. The snapshot, never the backup — 09 §5 keeps those two words apart because swapping them is how somebody restores the wrong thing.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE A COPY OF THE FILE'**
+  String get settingsDiagnosticsShareSnapshot;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

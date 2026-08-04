@@ -14,7 +14,9 @@ import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
+import 'package:shed_book/features/flock/widgets/earlier_animal_note.dart';
 import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
+import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -43,6 +45,22 @@ class EweCardScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
+            // **UNDER THE HEADER AND ABOVE THE SUMMARY LINE** (`07 §4.2`). It
+            // qualifies *who this card is about*, so it cannot come after the
+            // history it qualifies — a reader who meets the timeline first has
+            // already begun attributing it to one animal.
+            EarlierAnimalNote(
+              eweId: eweId,
+              tag: tag,
+              // **THE EARLIER CARD DOES NOT DISCLOSE BACK.** The relationship is
+              // directional: she is finished, and telling a reader of a closed
+              // record that a different animal has her number later is noise at
+              // the moment they are trying to read one history. That falls out of
+              // the statement rather than out of this call — it returns only
+              // animals whose status is not active.
+              onOpen: (EweId earlier, String earlierTag) =>
+                  Routes.eweCard(context, earlier, tag: earlierTag),
+            ),
             EweSummaryLine(eweId: eweId, tag: tag),
             Expanded(child: _timeline(context, ref, t, l10n)),
           ],

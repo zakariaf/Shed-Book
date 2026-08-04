@@ -365,6 +365,60 @@ final class FlockRepository {
           )
           .distinct();
 
+  /// **THE ANIMALS WHO HELD THIS TAG BEFORE HER.**
+  ///
+  /// Tags are unique among **active** animals only (§7.0 ruling 7), so a reused
+  /// tag is a normal, expected state rather than an error — and one a shepherd
+  /// must be told about, because without the disclosure the ruling silently
+  /// merges two ewes' histories in the reader's head.
+  ///
+  /// **MATCHED ON `tag`, THE EXACT STRING, NEVER ON `tag_digits`.** The
+  /// projection is *never shown* (`CONVENTIONS §5.1`) and matching on it would
+  /// disclose `412` and `412A` as the same animal — a claim the shepherd did not
+  /// make. Fuzzy matching is `rankTagMatches`' job on a search box; a disclosure
+  /// states a fact.
+  ///
+  /// **THE RELATIONSHIP IS DIRECTIONAL AND IT IS NOT SYMMETRIC.** This returns
+  /// the animals who came *before* [excluding]. The earlier animal's own card
+  /// discloses nothing: she is finished, and telling a reader of a closed record
+  /// that a different animal has her number later is noise at the moment they
+  /// are trying to read one history. Implementing this with one symmetric query
+  /// is the obvious shortcut and it is wrong.
+  ///
+  /// **A SINGLE-ROW-SHAPED LOOKUP, WHICH `07 §1.2` PERMITS** beside the content
+  /// statement — never a second content statement, and never merged with the
+  /// timeline in Dart.
+  Stream<List<EarlierAnimal>> watchEarlierAnimalsWithTag(String tag, {required EweId excluding}) =>
+      _db
+          .customSelect(
+            _earlierAnimalsSql,
+            variables: <Variable<Object>>[Variable<String>(tag), Variable<int>(excluding.value)],
+            readsFrom: <ResultSetImplementation<dynamic, dynamic>>{
+              _db.ewes,
+              _db.lambings,
+              _db.treatments,
+              _db.eweObservations,
+              _db.notes,
+            },
+          )
+          .watch()
+          .map(
+            (List<QueryRow> rows) => <EarlierAnimal>[
+              for (final QueryRow r in rows)
+                EarlierAnimal(
+                  eweId: EweId(r.read<int>('id')),
+                  tag: r.read<String>('tag'),
+                  status: EweStatus.fromKey(r.read<String>('status')),
+                  recordCount: r.read<int>('record_count'),
+                  lastRecordedAt: switch (r.readNullable<int>('last_recorded_at')) {
+                    final int ms => Instant(ms),
+                    null => null,
+                  },
+                ),
+            ],
+          )
+          .distinct(_sameEarlier);
+
   /// **HER WHOLE HISTORY, AND THE FAN-IN HAPPENS IN SQL.**
   ///
   /// Seven `watch()` streams merged in Dart is the build-breaking defect
@@ -1089,6 +1143,94 @@ final class EweSummaryCounts {
   int get hashCode =>
       Object.hash(seasonsRecorded, lambingsRecorded, lambsBorn, assistedLambings, scoredLambings);
 }
+
+/// A non-active animal who held this tag before.
+///
+/// **THERE IS NO `culledOn` FIELD, AND ITS ABSENCE IS THE FINDING.** `07 §4.2`
+/// prints *"An earlier 412 was culled on 12 Aug 2025"*, which needs the date her
+/// status changed — and **R41 rules there is no status-history table**:
+/// `ewes.status` is a mutable column with `updated_at` moving. `updated_at` is a
+/// **row-lifecycle** fact; it moves when anyone edits her breed, her EID or her
+/// date of birth. Rendering it as *"culled on"* would present a maintenance
+/// timestamp as an event time, which is precisely the laundering §12.5 exists to
+/// prevent — an event time carries its provenance and `updated_at` has none.
+///
+/// So the disclosure states two things it can honestly produce: her **status
+/// word**, which is the current value of a mutable column and is true now, and
+/// the **last recorded event** on her record, which is a real event time with
+/// its own provenance quad. `07 §4.2` is amended in the same commit.
+@immutable
+final class EarlierAnimal {
+  const EarlierAnimal({
+    required this.eweId,
+    required this.tag,
+    required this.status,
+    required this.recordCount,
+    this.lastRecordedAt,
+  });
+
+  final EweId eweId;
+  final String tag;
+
+  /// One of `sold`, `dead`, `culled` — **never `active`**, because an active
+  /// animal holding this tag is what the partial unique index makes impossible.
+  /// `barren` is not one of the four: R42 puts that on `ewe_seasons.status`, and
+  /// a disclosure saying *"an earlier 412 was barren"* would be confusing two
+  /// columns and two facts.
+  final EweStatus status;
+
+  final int recordCount;
+
+  /// `null` when nothing was ever recorded about her — a ewe created and culled
+  /// with no history is unusual but storable, and the disclosure then names her
+  /// without a date rather than inventing one.
+  final Instant? lastRecordedAt;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EarlierAnimal &&
+          other.eweId == eweId &&
+          other.tag == tag &&
+          other.status == status &&
+          other.recordCount == recordCount &&
+          other.lastRecordedAt == lastRecordedAt;
+
+  @override
+  int get hashCode => Object.hash(eweId, tag, status, recordCount, lastRecordedAt);
+}
+
+bool _sameEarlier(List<EarlierAnimal> a, List<EarlierAnimal> b) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (int i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/// **NEWEST FIRST, AND ONE ROW EACH.** Nothing stops a tag being reused twice
+/// over ten seasons — the partial unique index only constrains the *active* set
+/// — so this returns a list and the screen renders a row per animal. A joined
+/// sentence would read *"An earlier 412 and another earlier 412"*, which is not
+/// a sentence anybody wants at 9am.
+const String _earlierAnimalsSql = '''
+WITH events AS (
+  SELECT ewe, occurred_at AS at FROM lambings
+  UNION ALL SELECT ewe, administered_at FROM treatments WHERE ewe IS NOT NULL
+  UNION ALL SELECT ewe, occurred_at FROM ewe_observations
+  UNION ALL SELECT ewe, occurred_at FROM notes WHERE ewe IS NOT NULL
+)
+SELECT e.id AS id, e.tag AS tag, e.status AS status,
+       (SELECT COUNT(*) FROM events v WHERE v.ewe = e.id)  AS record_count,
+       (SELECT MAX(v.at) FROM events v WHERE v.ewe = e.id) AS last_recorded_at
+  FROM ewes e
+ WHERE e.tag = ? AND e.id <> ? AND e.status <> 'active'
+ ORDER BY last_recorded_at DESC, e.id DESC;
+''';
 
 /// `07 §4.1`'s statement, arm for arm — **plus P1's `struck` / `struck_at` in
 /// the same position on every one of them.**

@@ -1607,6 +1607,40 @@
     "description": "The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).",
     "placeholders": {"clauses": {"type": "String", "example": "3 seasons. avg 2.0. assisted twice"}}
   },
+  "eweCardEarlierAnimal": "An earlier {tag} is on record — {status}, last recorded {date}. Separate record.",
+  "@eweCardEarlierAnimal": {
+    "description": "Shown on a ewe card when a NON-ACTIVE animal holds the same tag. Tags are unique among active animals only (decision-record §7.0 ruling 7), so this is a normal expected state and must not read as an error. {date} is the date of the most recent EVENT on the earlier animal's record, pre-formatted 'd MMM y' — NOT the date her status changed, which this app does not store (R41): updated_at is a row-lifecycle fact and rendering it as an event time is the laundering §12.5 exists to prevent. {status} is the current value of a mutable column and is true now, stated WITHOUT a date for the same reason.",
+    "placeholders": {
+      "tag": {"type": "String", "example": "412"},
+      "status": {"type": "String", "example": "culled"},
+      "date": {"type": "String", "example": "12 Aug 2025"}
+    }
+  },
+  "eweCardEarlierAnimalUndated": "An earlier {tag} is on record — {status}. Separate record.",
+  "@eweCardEarlierAnimalUndated": {
+    "description": "The same disclosure for an earlier animal with no recorded events at all. A ewe created and removed with no history is unusual but storable, and naming her without a date is honest where inventing one would not be.",
+    "placeholders": {
+      "tag": {"type": "String", "example": "412"},
+      "status": {"type": "String", "example": "culled"}
+    }
+  },
+  "eweCardEarlierAnimalOpen": "Open the earlier {tag}",
+  "@eweCardEarlierAnimalOpen": {
+    "description": "The action beside the disclosure. Pushes that animal's own card. 64 x 64 minimum, like every target in this system.",
+    "placeholders": {"tag": {"type": "String", "example": "412"}}
+  },
+  "eweStatusSold": "sold",
+  "@eweStatusSold": {
+    "description": "ewes.status = 'sold', for prose. Lower case because it appears mid-sentence in the reused-tag disclosure; the boxed stamp form is upper case and lives on the row."
+  },
+  "eweStatusDead": "died",
+  "@eweStatusDead": {
+    "description": "ewes.status = 'dead', for prose. 'died' rather than 'dead' because the sentence reads 'An earlier 412 is on record — died, last recorded ...'."
+  },
+  "eweStatusCulled": "culled",
+  "@eweStatusCulled": {
+    "description": "ewes.status = 'culled', for prose. Culling is what releases a tag (03 §6 item 4), which is why this is the common case of the disclosure."
+  },
   "eweCardEmpty": "Nothing recorded yet.",
   "@eweCardEmpty": {
     "description": "07 §4.2's empty state. A new animal with no history is a normal state, not an error — the shepherd added her a minute ago. The noun is deliberately absent: the tag is already the page heading."

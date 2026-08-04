@@ -23,8 +23,11 @@ import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/domain/ewe_status.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/data/providers.dart';
@@ -973,6 +976,174 @@ void main() {
 
     handle.dispose();
     await tester.closeApp();
+  });
+
+  testWidgets('a reused tag discloses the earlier animal and links to it', (
+    WidgetTester tester,
+  ) async {
+    // **THE ANCHOR, AND THE TAG IS REUSED THROUGH THE REAL PATH** — created,
+    // lambed, culled, created again. The second create is one the partial unique
+    // index would have refused a moment earlier, which is what makes this a
+    // genuine reuse rather than two rows that happen to share a string.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = _repo(db);
+
+    final WriteOutcome first = await repo.createEwe(tag: '412', context: EntryContext.calm);
+    final EweId earlier = EweId((first as WriteCommitted).insertedId!);
+    await seedLambing(db, earlier, occurredAt: Instant.fromDateTime(DateTime.utc(2025, 8, 12, 4)));
+
+    expect(
+      await repo.createEwe(tag: '412', context: EntryContext.calm),
+      isA<WriteFailed>(),
+      reason: 'while she is active the tag is hers',
+    );
+    expect(await repo.setStatus(earlier, EweStatus.culled), isA<WriteCommitted>());
+
+    final WriteOutcome second = await repo.createEwe(tag: '412', context: EntryContext.calm);
+    final EweId current = EweId((second as WriteCommitted).insertedId!);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: current, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    // 1 — IT RENDERS, unconditionally. Not behind a toggle, not on a long press.
+    expect(find.byKey(const Key('ewe_card.earlier_animal')), findsOneWidget);
+
+    // 2 — IT NAMES A DATE DRAWN FROM ONE OF HER OWN RECORDS. `updated_at` moved
+    // when she was culled, seconds ago; the date shown is her lambing's, in
+    // August. A disclosure built on `updated_at` would read *today*.
+    final String expected = formatShedDate(
+      LocalDate.of(Instant.fromDateTime(DateTime.utc(2025, 8, 12, 4))),
+      'en-GB',
+    );
+    expect(find.textContaining(expected), findsOneWidget);
+    expect(find.textContaining('culled'), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  test('the disclosure is directional — the earlier card does not point back', () async {
+    // **IMPLEMENTING THIS WITH ONE SYMMETRIC QUERY IS THE OBVIOUS SHORTCUT AND
+    // IT IS WRONG.** She is finished; telling a reader of a closed record that a
+    // different animal has her number later is noise at the moment they are
+    // trying to read one history.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = _repo(db);
+
+    final EweId earlier = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+    await repo.setStatus(earlier, EweStatus.culled);
+    final EweId current = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+
+    expect(
+      await repo.watchEarlierAnimalsWithTag('412', excluding: current).first,
+      hasLength(1),
+      reason: 'the new card discloses the earlier animal',
+    );
+    expect(
+      await repo.watchEarlierAnimalsWithTag('412', excluding: earlier).first,
+      isEmpty,
+      reason: 'the earlier card discloses nothing — the active one is not disclosed',
+    );
+
+    await db.close();
+  });
+
+  test('the match is on the tag exactly as typed, never on tag_digits', () async {
+    // `03 §5.2`: the tag is stored exactly as typed and never normalised.
+    // `tag_digits` is a projection that is NEVER SHOWN, and matching on it would
+    // disclose `412` and `B412` as the same animal — a claim the shepherd did
+    // not make.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = _repo(db);
+
+    final EweId other = EweId(
+      ((await repo.createEwe(tag: 'B412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+    await repo.setStatus(other, EweStatus.culled);
+    final EweId current = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+
+    expect(
+      await repo.watchEarlierAnimalsWithTag('412', excluding: current).first,
+      isEmpty,
+      reason: 'B412 is a different tag on a different animal',
+    );
+
+    await db.close();
+  });
+
+  test('two earlier animals are two rows, newest first', () async {
+    // Nothing stops a tag being reused twice over ten seasons — the partial
+    // unique index only constrains the ACTIVE set. A joined sentence would read
+    // *"An earlier 412 and another earlier 412"*, which is why the widget renders
+    // one row each.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = _repo(db);
+
+    final List<EweId> past = <EweId>[];
+    for (final int year in <int>[2023, 2024]) {
+      final EweId e = EweId(
+        ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+            .insertedId!,
+      );
+      await seedLambing(db, e, occurredAt: Instant.fromDateTime(DateTime.utc(year, 3, 2)));
+      await repo.setStatus(e, EweStatus.culled);
+      past.add(e);
+    }
+    final EweId current = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+
+    final List<EarlierAnimal> earlier = await repo
+        .watchEarlierAnimalsWithTag('412', excluding: current)
+        .first;
+    expect(earlier, hasLength(2));
+    expect(earlier.first.eweId.value, past.last.value, reason: 'newest first');
+    expect(earlier.every((EarlierAnimal a) => a.status == EweStatus.culled), isTrue);
+
+    await db.close();
+  });
+
+  test('an earlier animal with no records at all is disclosed without a date', () async {
+    // A ewe created and removed with no history is unusual but storable, and
+    // naming her without a date is honest where inventing one would not be.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = _repo(db);
+
+    final EweId earlier = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+    await repo.setStatus(earlier, EweStatus.sold);
+    final EweId current = EweId(
+      ((await repo.createEwe(tag: '412', context: EntryContext.calm)) as WriteCommitted)
+          .insertedId!,
+    );
+
+    final EarlierAnimal a =
+        (await repo.watchEarlierAnimalsWithTag('412', excluding: current).first).single;
+    expect(a.lastRecordedAt, isNull);
+    expect(a.recordCount, 0);
+    expect(a.status, EweStatus.sold);
+
+    await db.close();
   });
 
   testWidgets('popping the card leaves eweTimelineProvider with no listeners', (

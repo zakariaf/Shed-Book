@@ -34,7 +34,7 @@ import 'package:shed_book/domain/ids.dart';
 /// build. `FlockRow` already sits on the other side of that seam for the same
 /// reason, and the export is what makes the split invisible to a screen.
 export 'package:shed_book/data/flock_repository.dart'
-    show EweSummaryCounts, TimelineKind, TimelineRow;
+    show EarlierAnimal, EweSummaryCounts, TimelineKind, TimelineRow;
 
 /// Her whole history, one statement, most recent first.
 ///
@@ -160,3 +160,26 @@ EweSummaryFacts eweSummaryFacts(
     lastObservationYear: newestObservation?.year,
   );
 }
+
+/// The animals who held this card's tag before her.
+///
+/// **KEYED ON THE TAG, NOT ON THE EWE, AND THAT IS DELIBERATE.** The screen
+/// already holds the tag — it is what the shepherd tapped to get here — so
+/// keying on it avoids a lookup whose only purpose would be to read back a
+/// string the caller already has. The ewe id is what the query EXCLUDES.
+///
+/// `07 §1.2` permits a single-row-shaped lookup beside the content statement.
+/// What it does not permit is merging this with the timeline in Dart: they are
+/// two independent widgets watching two independent providers, which is the
+/// shape §1.2 explicitly allows.
+final AutoDisposeStreamProviderFamily<List<EarlierAnimal>, ({EweId ewe, String tag})>
+earlierAnimalsProvider = StreamProvider.autoDispose
+    .family<List<EarlierAnimal>, ({EweId ewe, String tag})>((
+      ref,
+      ({EweId ewe, String tag}) key,
+    ) async* {
+      await ref.watch(databaseProvider.future);
+      yield* ref
+          .read(flockRepositoryProvider)
+          .watchEarlierAnimalsWithTag(key.tag, excluding: key.ewe);
+    });

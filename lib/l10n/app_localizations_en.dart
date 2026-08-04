@@ -1116,6 +1116,30 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String eweCardEarlierAnimal({required String tag, required String status, required String date}) {
+    return 'An earlier $tag is on record — $status, last recorded $date. Separate record.';
+  }
+
+  @override
+  String eweCardEarlierAnimalUndated({required String tag, required String status}) {
+    return 'An earlier $tag is on record — $status. Separate record.';
+  }
+
+  @override
+  String eweCardEarlierAnimalOpen({required String tag}) {
+    return 'Open the earlier $tag';
+  }
+
+  @override
+  String get eweStatusSold => 'sold';
+
+  @override
+  String get eweStatusDead => 'died';
+
+  @override
+  String get eweStatusCulled => 'culled';
+
+  @override
   String get eweCardEmpty => 'Nothing recorded yet.';
 
   @override

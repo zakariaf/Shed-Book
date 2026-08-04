@@ -45,6 +45,10 @@ void main() {
       StorageWriteFailed() => 'StorageWriteFailed',
       StorageReadOnly() => 'StorageReadOnly',
       MediaWriteFailed() => 'MediaWriteFailed',
+      // Added by ruling N4, and this switch is what forced the edit — it
+      // stopped compiling the moment the variant landed, which is what the
+      // comment above promises.
+      TagAlreadyInUse() => 'TagAlreadyInUse',
       UnexpectedFailure() => 'UnexpectedFailure',
     };
     expect(named, 'DiskFull');

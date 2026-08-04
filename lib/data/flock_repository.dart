@@ -23,6 +23,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -242,6 +243,38 @@ final class FlockRepository {
         // that ships. 11 §7.2: "the counts AS THEY WOULD BE AFTER THE WRITE".
         // Backwards, you either refuse ewe #15 or let #16 through — and the free
         // tier's boundary is the one number a paying user notices.
+        // **RULING N4 — CHECKED HERE, NOT CAUGHT FROM THE DRIVER.**
+        // `03 §6`'s partial unique index refuses a second LIVE `412`, and a raw
+        // `SqliteException` reaching the screen is a crash at 03:20 rather than
+        // a refusal. The first fix caught the exception in this file and
+        // `one_failure_mapping_site_test` failed it, correctly: there is ONE
+        // failure-mapping site and it maps DRIVER failures — disk full, corrupt,
+        // read-only. A constraint violation is not a driver failure, it is a
+        // domain outcome, and routing it through `shedFailureFrom` would mean
+        // either dropping the tag from the message or calling every constraint
+        // violation a tag conflict.
+        //
+        // **AND CHECK-THEN-INSERT IS NOT A RACE HERE.** One process, one writer,
+        // `synchronous = FULL`, and this runs inside the same transaction as the
+        // insert — so nothing can take the tag between the two statements. The
+        // index stays as the mechanism; this is the app answering honestly
+        // before it hits it.
+        //
+        // On `tag`, the exact string: `412` and `B412` are different tags with
+        // the same digits and BOTH may be live. That ambiguity is what
+        // `duplicateActiveTag` warns about and never blocks (`07 §3.3`); this
+        // refuses only the identical case.
+        final bool taken =
+            await (_db.select(_db.ewes)..where(
+                  ($EwesTable t) =>
+                      t.tag.equals(tag) & t.status.equals('active') & t.struck.equals(false),
+                ))
+                .getSingleOrNull() !=
+            null;
+        if (taken) {
+          return WriteFailed(TagAlreadyInUse(tag));
+        }
+
         final CapDecision decision = _policy.decide(
           context: context,
           now: now,

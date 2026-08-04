@@ -11,7 +11,10 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/domain/free_tier.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
@@ -370,6 +373,48 @@ void main() {
     expect(find.text(l10n.flockStruckDivider(count: removed)), findsOneWidget);
 
     await tester.closeApp();
+  });
+
+  test('a second live tag is refused with advice that is not "try again"', () async {
+    // **RULING N4.** `00-README §10` has carried this contradiction since the doc
+    // set shipped, and both sentences turn out to be true about different cases:
+    //
+    //   `07 §3.3`  `duplicateActiveTag` *"never blocks the create"*
+    //   `03 §6`    `UNIQUE ON ewes (tag) WHERE status = 'active' AND struck = 0`
+    //
+    // The index is on `tag`, the exact string — so `412` and `B412` are both
+    // storable: same digits, ranked together by the keypad, genuinely ambiguous.
+    // THAT is what the warning is for and it never blocks, as §12.4 requires. A
+    // second live `412` is identical rather than ambiguous, and makes *"what did
+    // 412 do last year?"* unanswerable — the question the product exists to
+    // answer — so it is refused.
+    //
+    // Writing this found a real crash: the raw `SqliteException` escaped, so
+    // adding a duplicate tag would have crashed rather than refused.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+
+    expect(await repo.createEwe(tag: '412', context: EntryContext.calm), isA<WriteCommitted>());
+    expect(
+      await repo.createEwe(tag: 'B412', context: EntryContext.calm),
+      isA<WriteCommitted>(),
+      reason: 'a different tag with the same digits — the index permits it',
+    );
+
+    final WriteOutcome again = await repo.createEwe(tag: '412', context: EntryContext.calm);
+    expect(again, isA<WriteFailed>());
+
+    // **THE ADVICE IS THE ASSERTION.** `UnexpectedFailure` says *"Try again"*,
+    // and trying again fails identically — the same reason `WriteRefused` exists
+    // apart from `WriteFailed`. A generic failure here would pass a type check
+    // and still tell a shepherd to do something that cannot work.
+    final ShedFailure failure = (again as WriteFailed).failure;
+    expect(failure, isA<TagAlreadyInUse>());
+    expect(failure.userMessage, contains('412'));
+    expect(failure.userMessage.toLowerCase(), isNot(contains('try again')));
+
+    await db.close();
   });
 
   testWidgets('the screen renders a row per active ewe', (WidgetTester tester) async {

@@ -89,6 +89,12 @@ final class LambingRepository {
             EweTouchesCompanion.insert(ewe: Value<int>(ewe.value), touchedAt: now),
           );
 
+      // **INSIDE THE TRANSACTION, NOT BESIDE IT** (`01 §4.2`). Two transactions
+      // means a window in which the lambing exists and the summary does not —
+      // and the premise of this whole write path is *"assume the phone dies"*,
+      // so that window is a card that is wrong forever with no error anywhere.
+      await writeEweSummary(_db, ewe, now);
+
       // N24-T04 writes the colostrum and navel reminder ROWS here, inside this
       // same transaction (decision #63). The OS projection is reconciled AFTER
       // the transaction returns, never inside it — a platform channel round
@@ -137,16 +143,26 @@ final class LambingRepository {
   Future<WriteOutcome> setEase(LambingId id, LambingEase ease) async {
     try {
       final Instant now = appNow(); // ONE instant per mutation
-      final int rows =
-          await (_db.update(
-            _db.lambings,
-          )..where(($LambingsTable t) => t.id.equals(id.value))).write(
-            LambingsCompanion(ease: Value<int?>(ease.code), updatedAt: Value<Instant>(now)),
-          );
-      // R53 — the default empty `warnings`. There is nothing to warn about: the
-      // ordinal was validated into existence by `LambingEase` and the row either
-      // exists or it does not.
-      return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+      // **A TRANSACTION NOW, BECAUSE THE SUMMARY MOVES WITH IT.** An ease score
+      // changes `scored_lambings` and may change `assisted_lambings`, and the
+      // two are stored as a pair so the coverage clause can be honest. A summary
+      // written beside this update rather than inside it is a window in which
+      // the score exists and the count does not.
+      return await _db.transaction(() async {
+        final int rows =
+            await (_db.update(
+              _db.lambings,
+            )..where(($LambingsTable t) => t.id.equals(id.value))).write(
+              LambingsCompanion(ease: Value<int?>(ease.code), updatedAt: Value<Instant>(now)),
+            );
+        if (rows > 0) {
+          await writeEweSummary(_db, EweId(await _eweOfLambing(id)), now);
+        }
+        // R53 — the default empty `warnings`. There is nothing to warn about:
+        // the ordinal was validated into existence by `LambingEase` and the row
+        // either exists or it does not.
+        return WriteCommitted(insertedId: rows > 0 ? id.value : null);
+      });
     } on Object catch (e) {
       return WriteFailed(shedFailureFrom(e));
     }
@@ -635,6 +651,13 @@ final class LambingRepository {
     }
   }
 
+  /// The ewe a lambing belongs to. One lookup, inside the caller's transaction —
+  /// the summary recompute needs the ewe and a `LambingId` is what the screen
+  /// holds.
+  Future<int> _eweOfLambing(LambingId id) async => (await (_db.select(
+    _db.lambings,
+  )..where(($LambingsTable t) => t.id.equals(id.value))).getSingle()).ewe;
+
   Future<SeasonId> _seasonOfLambing(LambingId id) async {
     final Lambing row = await (_db.select(
       _db.lambings,
@@ -669,6 +692,8 @@ final class LambingRepository {
               updatedAt: now,
             ),
           );
+      // `lambs_born` and `lambs_born_alive` move together, in this transaction.
+      await writeEweSummary(_db, EweId(parent.ewe), now);
       return LambId(id);
     });
   }
@@ -1239,3 +1264,49 @@ LambCardData _foldLambCard(List<QueryRow> rows) {
     ],
   );
 }
+
+/// **RECOMPUTE ONE EWE'S SUMMARY FROM HER OWN ROWS, INSIDE THE TRANSACTION THAT
+/// INVALIDATED IT.**
+///
+/// A top-level function rather than a method, because `FosterRepository` needs
+/// the same body and a repository calling another repository's verb inside its
+/// own transaction couples two writer boundaries. Both files call this with the
+/// database they already have a transaction open on.
+///
+/// **RECOMPUTE, NEVER INCREMENT.** A `+1` is faster and is wrong within one
+/// night: an undo hard-deletes the lambing (`07 §15.1`), and a decrement missed
+/// anywhere leaves the count permanently high with nothing to notice it. A full
+/// recompute is idempotent, survives being called twice, and makes the
+/// incremental path and the rebuild verb **the same body** — which is the only
+/// reason the rebuild can be trusted after a restore.
+///
+/// **`now` IS THE CALLER'S.** `01 §4.2`: one `appNow()` per mutation. A second
+/// clock read here writes a `rebuilt_at` later than the event that caused it,
+/// which is harmless right up until somebody orders anything by it.
+///
+/// **THE SQL ITSELF LIVES ON `AppDatabase`**, because the raw-statement verb is
+/// confined to `lib/core/db/` by layer rule 8 — the same reason the restore's
+/// two pragmas live there. Twenty-seventh time this project has failed its own
+/// gate on a comment explaining the rule the gate enforces: the row scans source
+/// text, so the verb is described here rather than spelled.
+Future<void> writeEweSummary(AppDatabase db, EweId ewe, Instant now) =>
+    db.rebuildEweSummary(ewe.value, now);
+
+/// Every ewe with a summary that could be stale — which after a restore is every
+/// ewe in the flock, because `ewe_summaries` is **excluded from the backup**
+/// (`09 §6`, §7.9) and a restored database therefore has an empty summary table
+/// and every card reads *"No seasons recorded"* until this runs.
+///
+/// **NOT A REASON TO PUT THE TABLE IN THE BACKUP.** `09 §7.9` names it as the
+/// exclusion that *"would fail loudest: it is rebuilt after restore with a fresh
+/// `rebuilt_at`"*, and N23-T07's export → import → export equality property goes
+/// red the moment it ships in the file.
+///
+/// It is also the one honest answer to *"the counts look wrong"* — because the
+/// body is the same recompute the incremental path uses, running it twice
+/// changes nothing.
+Future<void> rebuildAllEweSummaries(AppDatabase db, Instant now) => db.transaction(() async {
+  for (final Ewe ewe in await db.select(db.ewes).get()) {
+    await writeEweSummary(db, EweId(ewe.id), now);
+  }
+});

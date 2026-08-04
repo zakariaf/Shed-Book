@@ -21,6 +21,8 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/seed/first_run.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/data/lambing_repository.dart' show rebuildAllEweSummaries;
 import 'package:shed_book/core/log/local_log.dart';
 import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -464,6 +466,23 @@ final class RestoreService {
       await target
           .into(target.entitlements)
           .insertOnConflictUpdate(const EntitlementsCompanion(id: Value<int>(1)));
+
+      // **`ewe_summaries` IS EXCLUDED FROM THE BACKUP, SO IT COMES BACK EMPTY**
+      // (`09 §6`, §7.9). Without this every card on a restored phone reads *"No
+      // seasons recorded"* against an animal with six years of history — the
+      // retention feature, silently blank, on the one day the shepherd most
+      // needs to trust the restore.
+      //
+      // **PUTTING THE TABLE IN THE BACKUP IS NOT THE FIX.** `09 §7.9` names it
+      // as the exclusion that *"would fail loudest: it is rebuilt after restore
+      // with a fresh `rebuilt_at`"*, and N23-T07's export → import → export
+      // equality property goes red the moment it ships in the file.
+      //
+      // It runs inside the import transaction rather than after the swap: the
+      // recompute reads only rows this transaction has already written, and a
+      // rebuild that ran after the swap would be a second failure point on the
+      // one code path where a half-finished state is unrecoverable.
+      await rebuildAllEweSummaries(target, appNow());
 
       // **`seedFirstRun` ONLY WHEN THE BACKUP HAS NO SEASON**, and at the END of
       // the same transaction. Every event table's `season` is `NOT NULL`, so a

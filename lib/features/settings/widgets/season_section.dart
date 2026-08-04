@@ -62,7 +62,11 @@ final class SeasonSection extends ConsumerWidget {
         children: <Widget>[
           for (final Season season in seasons)
             Padding(
-              padding: EdgeInsets.only(bottom: t.gapMin / 2),
+              // **`gapMin`, NOT HALF — R86.** These season buttons switch which
+              // season a night's records are written into, and they were 8 pt
+              // apart: the exact middle of the forbidden band, on the one
+              // control in Settings where the wrong tap misfiles a season.
+              padding: EdgeInsets.only(bottom: t.gapMin),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: ShedWordButton(

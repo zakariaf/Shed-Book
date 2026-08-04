@@ -7,7 +7,7 @@
 // dependency allowlist and the offline contract to do what `dart:ui` already
 // does. See 06 §3.5.
 import 'dart:math' as math;
-import 'dart:ui' show Color;
+import 'dart:ui' show Color, Rect;
 
 import 'package:shed_book/core/ui/tokens.dart';
 
@@ -68,3 +68,36 @@ double peakStatusLuminance(ShedPalette p) => <Color>[
 /// brighter than the native launch colour"* rather than as an equality, so it
 /// keeps meaning something if the two ever diverge again.
 const Color launchSurface = Color(0xFF0A0A0B);
+
+/// Edge-to-edge distance between two target rects; `0` if they touch or overlap.
+///
+/// **THE DIAGONAL CASE IS WHY THIS IS NOT `hypot`, AND GETTING IT WRONG SWITCHES
+/// THE RULE OFF FOR EXACTLY THE CONTROL IT MATTERS MOST FOR.** Two keypad keys
+/// offset by one row and one column are separated by a full key on each axis, and
+/// no thumb can land between them. Euclidean distance makes every diagonal pair
+/// look further apart than it is, so a grid — the one place a mis-tap costs a
+/// wrong tag — would pass a rule it was never measured against.
+///
+/// The larger axis gap is the honest number: two rects are adjacent only in the
+/// direction where they are close, and the rule is about a thumb crossing a
+/// boundary rather than about the shortest line between two corners.
+///
+/// `06 §6.3` calls this and declares it nowhere. Added at N33-T03.
+double gapBetween(Rect a, Rect b) {
+  final double dx = math.max(0, math.max(a.left - b.right, b.left - a.right));
+  final double dy = math.max(0, math.max(a.top - b.bottom, b.top - a.bottom));
+  return math.max(dx, dy);
+}
+
+/// Whether two rects are close enough on **both** axes for the separation rule
+/// to have anything to say about them.
+///
+/// **Not an optimisation — this IS the definition of *adjacent* the rule uses.**
+/// The pair loop is O(n²) and a `Wrap`-heavy screen makes it the slowest thing
+/// in the suite, but skipping distant pairs is not a shortcut: two targets a
+/// screen apart are not separated *badly*, they are not neighbours at all.
+bool couldBeAdjacent(Rect a, Rect b, double gapMin) {
+  final double dx = math.max(0, math.max(a.left - b.right, b.left - a.right));
+  final double dy = math.max(0, math.max(a.top - b.bottom, b.top - a.bottom));
+  return dx <= gapMin && dy <= gapMin;
+}

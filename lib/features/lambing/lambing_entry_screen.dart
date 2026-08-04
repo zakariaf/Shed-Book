@@ -197,7 +197,20 @@ class _Regions extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            // **`bottom: gapMin`, AND IT IS R86 THAT PUT IT THERE.** N33-T03's
+            // geometric sweep measured **6 pt** between the `+ lamb` slab and
+            // the first lamb row — the tally row is 94 tall because the tally
+            // column is, the slab inside it is `tapHero` 88, and the six left
+            // over landed under the slab. Six is the middle of the band the
+            // separation rule forbids, and this is the one pair on this screen
+            // where a mis-tap adds a lamb that was never born.
+            //
+            // A gap rather than stretching the slab to 94: `06 §6.1`'s sizes are
+            // the tap scale, and a target sized by whatever its neighbour
+            // happened to measure is a target that changes size when the tally
+            // does. The 16 pt also says something true — the tally is about the
+            // lambing, the rows below it are the lambs.
+            padding: EdgeInsets.only(left: t.gapMin, right: t.gapMin, bottom: t.gapMin),
             child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
           ),
           // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the

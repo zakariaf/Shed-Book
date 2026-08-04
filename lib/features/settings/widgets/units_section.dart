@@ -43,8 +43,13 @@ final class UnitsSection extends ConsumerWidget {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
       child: Wrap(
-        spacing: t.gapMin / 2,
-        runSpacing: t.gapMin / 2,
+        // **`gapMin`, NOT HALF OF IT — R86.** These were 8, which is the exact
+        // middle of the band the separation rule forbids: touching is legal,
+        // 16 is legal, and 8 is a thumb landing between two settings and
+        // getting whichever one the hit test reached first. Six Settings cells
+        // of N33-T03's geometric sweep said so.
+        spacing: t.gapMin,
+        runSpacing: t.gapMin,
         children: <Widget>[
           for (final ({WeightUnit unit, String label, String spoken}) choice
               in <({WeightUnit unit, String label, String spoken})>[

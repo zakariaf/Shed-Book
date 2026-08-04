@@ -2173,3 +2173,47 @@ provenance quad. Writing on open and updating on close would make the second wri
 which is the shape this project exists to avoid. Dismissing the sheet still writes the event with both
 fields null: the shepherd pressed COLOSTRUM, so they gave colostrum, and the sheet asks for detail
 rather than for permission.
+
+### R86 — P9 ruled: tap separation is 0 or ≥ 16 pt, and the 8 px controls are re-spaced
+
+`00-README` §8 step 19 and decision **#100** both say **≥ 16 pt** between any two targets, and
+`06 §6.1` publishes it as the `gapMin` token. `indelible.md` **§9**'s 3am compliance table said
+*"8–12px minimum gaps between adjacent targets"*, and three components were built on 8: the keypad
+(§7.2), the ease group (§7.9) and the stepper (§7.8). `00-PLAN.md` §2 cited the sentence as §4.5; it
+is in §9.
+
+**Ruling, 2026-08-04 (N33-T03). 16 pt wins, and the gate's two legal values are `0` or `≥ gapMin`.**
+
+1. **Decision #100 outranks a visual direction.** `06 §1` fixes what a direction may change and the
+   interaction floor is not on the list. `06 §6.1` gives the measured argument: Parhi, Karlson &
+   Bederson's 9.2/9.6 mm is the *ideal-conditions optimum for a bare, warm, dry thumb*, not a margin
+   over it, and 8 px is ≈1.3 mm on a wet screen through a glove.
+2. **The published assertion already forbade it.** `06 §6.3`'s gate reads
+   `anyOf(equals(0.0), greaterThanOrEqualTo(16.0))` — touching is legal, ≥ 16 is legal, and 8 sits in
+   the band between. The ruling adopts a constraint the design system had already published rather
+   than inventing one.
+3. **The arithmetic decides it, and gap 0 is the only value that works.** The ease group at 16 px is
+   `64 × 5 + 16 × 4 = 384` in 361 px available; the keypad is `117 × 3 + 16 × 2 = 383` plus 24 px of
+   sheet padding = 407 in a 393 px viewport. Gap 0 is `indelible.md` §7.3's own idiom — *"rows share
+   edges; there is no top border and no gap — the ruling is continuous, like a ledger"* — and it makes
+   both controls **larger**: the keypad key goes 117 → 123 and the ease button 64 → 72.
+
+**The gate is `test/design/tap_target_test.dart`'s 66-run geometric sweep**, reading `t.gapMin` off
+the pumped tree — never a typed `16.0`, because the whole value of a ruling is that changing it
+changes one place. Two refinements the first run earned, both narrowing what *adjacent* means rather
+than what the number is:
+
+- **Only reachable targets are compared.** `07 §16.2` puts the export banner inside the record
+  column's scroll view; its actions lay below the `ClipRect`, and `getRect` reports an unclipped
+  layout rect for a target no thumb can reach. Hit-testing is the honest test of *can this be pressed
+  where it is*, and it catches `06 §6.2` rule 2's silently-undroppable target for free.
+- **Only targets sharing a scroll context are compared.** The corner slab floats over a scrolling
+  list, and every gap between 0 and one row height occurs as it scrolls — so a static rule can never
+  be satisfied there, at any number. Same scrollable is a gap a designer chose; an overlay against
+  the row beneath it is where the list happened to stop, and the overlay is opaque and on top, so the
+  tap it receives is never ambiguous.
+
+**Files:** `docs/design/indelible.md` §4.5, §7.2, §7.8, §7.9, §9 · `epics/00-PLAN.md` §2 (P9 struck)
+· `test/design/wcag.dart` (`gapBetween`, `couldBeAdjacent`) · `test/design/tap_target_test.dart` ·
+`test/design/gate_inventory_test.dart` · and the four `lib/` sites the sweep found at 8 pt or less:
+`units_section.dart`, `appearance_section.dart`, `season_section.dart`, `lambing_entry_screen.dart`.

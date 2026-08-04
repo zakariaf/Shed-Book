@@ -95,7 +95,15 @@ void main() {
     // earns it; every other gate file here is still per-widget, and a second one
     // reaching for the table would be a sweep arriving without a task behind it.
     for (final String name in _filesInDesign()) {
-      if (name == 'semantics_gate_test.dart') {
+      // **AMENDED AGAIN AT N33-T03: TWO FILES NOW, AND EXACTLY TWO.**
+      // `tap_target_test.dart` gained the geometric sweep — the gate that
+      // measures the app's most important button, because
+      // `MinimumTapTargetGuideline` skips any node touching the view boundary
+      // and `07 §20.1` puts every primary action in a full-bleed bottom bar.
+      // The two sweeps are the two tasks that earned them; a third file
+      // reaching for the table would be a sweep arriving without a task behind
+      // it.
+      if (name == 'semantics_gate_test.dart' || name == 'tap_target_test.dart') {
         continue;
       }
       final String body = File(

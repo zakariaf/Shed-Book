@@ -5,8 +5,11 @@
 // overflowed. That is the failure a 3am screen cannot have, because the thing
 // that overflows is the thing the thumb was aiming at.
 //
-// It is 18 cells today and 252 at N33-T01. The count is DERIVED from the same
-// lists the loops iterate, so the assertion and the loops can never disagree.
+// **198 CELLS — `v1.0.0` COMPLETE.** `12 §6.1`'s 252 is the finished product's
+// fourteen variants; three of those are `v1.1.0` screens that do not exist in
+// this build. The count is DERIVED from the same lists the loops iterate, so
+// the assertion and the loops can never disagree, and it moves on its own the
+// day a fourteenth variant lands.
 library;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -28,12 +31,51 @@ void main() {
       cells,
       198,
       reason:
-          'ELEVEN variants x 3 devices x 3 scales x 2 bold states — Lambing Entry '
-          'joined at N16-T09, the Lamb Card at N17-T05, Foster at N18-T05, the pen board at N19-T07, '
-          'treatments at N20-T07, export and its banner at N21-T08, and FLOCK at N26-T07, and the EWE CARD at N27-T07, and SETTINGS at N29-T08. '
-          'It becomes 252 over fourteen variants at N33-T01, which is also where '
-          "12 §6.2's length assertion belongs — writing it here would assert a future",
+          'ELEVEN variants x 3 devices x 3 scales x 2 bold states. `12 §6.1` says '
+          'fourteen and 252; three of those fourteen are `v1.1.0` screens that do '
+          'not exist here, and the case below names them. When they land this '
+          'number moves without anybody editing it, which is R58',
     );
+  });
+
+  test('the routes with no variant are exactly the three `v1.1.0` screens', () {
+    // **THE ABSENCE IS ASSERTED, NOT ASSUMED.** A route left out of the matrix
+    // is eighteen cells that never run, and nothing else in the suite would
+    // notice: the membership case below checks that every KEY is a route, which
+    // says nothing about a route with no key.
+    //
+    // Derived from the screens that exist rather than from a list of names, so
+    // building `RemindersScreen` and forgetting its variant fails HERE, in the
+    // file whose job is covering every screen.
+    const Set<String> declared = <String>{
+      RouteNames.quickEntry,
+      RouteNames.flock,
+      RouteNames.eweCard,
+      RouteNames.lambingEntry,
+      RouteNames.lambCard,
+      RouteNames.foster,
+      RouteNames.penBoard,
+      RouteNames.treatments,
+      RouteNames.reminders,
+      RouteNames.seasonSummary,
+      RouteNames.export,
+      RouteNames.settings,
+      RouteNames.noteSearch,
+    };
+    expect(declared, hasLength(13), reason: 'RouteNames declares 13 (02 §8.1)');
+
+    final Set<String> covered = kPumpableVariants.keys
+        .map((String k) => k.contains('.') ? k.split('.').first : k)
+        .toSet();
+
+    expect(declared.difference(covered), <String>{
+      // `docs/RELEASE-SCOPE.md`, ruling P15. Each is a route name that exists so
+      // the diagnostics log and `ModalRoute.withName` keep working across both
+      // releases — not a screen that was skipped.
+      RouteNames.reminders, // N24, N25
+      RouteNames.seasonSummary, // N28
+      RouteNames.noteSearch, // N26-T05/T06
+    }, reason: 'a route with no variant is eighteen cells nobody runs');
   });
 
   test('kPumpableVariants covers exactly the screens that exist today', () {

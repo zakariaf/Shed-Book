@@ -839,6 +839,8 @@ The 3am test is a set of prose claims: legible at 18 pt, 60 pt targets, one thum
 
 **14 × 3 devices × 3 text scales × 2 bold-text states = 252.** The arithmetic follows the variant list; it is not a remembered number (R58). Decision #114's 216 was 12 × 18 and predates variants 13 and 14.
 
+**In `v1.0.0` the table has eleven rows and the matrix is 198 cells** — amended at N33-T01, and it is the release boundary, not a reduction. Variants **9, 10 and 13** are `v1.1.0` screens (`docs/RELEASE-SCOPE.md`, ruling P15) and no screen stands behind them in this build; a variant pumping a screen that does not exist is eighteen cells that pass having rendered nothing. The rule above is what makes this safe to state: the count is derived, so it returns to 252 on its own when the three land. What was **added** rather than removed is `overflow_matrix_test.dart`'s assertion that the routes with no variant are *exactly* those three — the failure mode of a shrinking matrix is a screen quietly left out, and that assertion is the thing that catches it.
+
 ### 6.2 The test
 
 **The table lives in `test/support/harness.dart`, not in this file.** Four files iterate it — the overflow matrix here, `semantics_gate_test.dart` and `tap_target_test.dart` (§7.4), `contrast_test.dart` (§7.6) — and a table copied four times is four tables that stop agreeing the first time a screen is added. `kPumpableVariants` is declared once, beside `Device`, and its self-check below is the only place the count is derived rather than remembered.

@@ -124,25 +124,23 @@ T atFixed<T>(DateTime instant, T Function() body) => withClock(Clock.fixed(insta
 /// **THE TABLE LIVES HERE BECAUSE FOUR FILES ITERATE IT.** A table copied four
 /// times is four tables that stop agreeing the first time a screen is added.
 ///
-/// **One entry today, and the membership is DERIVED rather than asserted.**
-/// N13-T07 lands `quick_entry` because that is the only screen that exists; each
-/// screen epic adds its own row in the commit that adds the screen:
+/// **ELEVEN ENTRIES, AND THAT IS `v1.0.0` COMPLETE — the ledger is closed.**
+/// N13-T07 landed `quick_entry` alone and carried a list naming the epic that
+/// would add each remaining row. Every row that list promised for `v1.0.0` has
+/// landed, so the list is deleted here at N33-T01: a ledger that still promises
+/// a future edit is a ledger somebody acts on twice.
 ///
-///   flock · ewe_card                                      N26, N27
-///   lambing_entry                                         N16
-///   lamb_card                                             N17
-///   foster                                                N18
-///   pen_board                                             N19
-///   treatments                                            N20
-///   reminders                                             N24
-///   season_summary                                        N28
-///   export                                                N21
-///   settings                                              N29
-///   note_search                                           N25
+/// **THREE ROUTES HAVE NO ENTRY, AND ALL THREE ARE `v1.1.0`** — `reminders`
+/// (N24, N25), `season_summary` (N28) and `note_search` (N26-T05/T06), per
+/// `docs/RELEASE-SCOPE.md`. There is no screen behind any of them in this build,
+/// and a variant pumping a screen that does not exist is eighteen cells that
+/// pass having rendered nothing. `overflow_matrix_test.dart` asserts that the
+/// absent set is **exactly** those three, so the day one is built and its
+/// variant is forgotten, the matrix says which.
 ///
-/// At fourteen the matrix is 252 cells (`12 §6.1`) and `12 §6.2`'s
-/// `expect(kPumpableVariants.length, 14)` becomes true — **in N33-T01, not
-/// here.** Writing that assertion today would be asserting a future.
+/// `12 §6.1`'s 252 is the number for the finished product — fourteen variants.
+/// This build is **eleven × 18 = 198**, and the arithmetic is derived from the
+/// same four lists the loops iterate, so it moves on its own when the three land.
 ///
 /// The builders take no arguments and seed nothing: a cell pumps the screen and
 /// looks for overflow, and the data it needs comes from `seeds.dart` until

@@ -1555,6 +1555,22 @@ arithmetic must follow the variant list, not a remembered number. 12 must carry 
 the decision record's 216 is superseded with the reason stated.
 **Files:** 12 (new), and a one-line note in 01/06 wherever 216 is quoted.
 
+> **AMENDED 2026-08-04 (N33-T01), and it is the release boundary rather than a
+> change of mind.** 252 over 14 is the **finished product**, and three of those
+> fourteen — `reminders` (N24, N25), `season_summary` (N28), `note_search`
+> (N26-T05/T06) — are `v1.1.0` per `docs/RELEASE-SCOPE.md` and ruling **P15**.
+> No screen stands behind them in `v1.0.0`, and a variant pumping a screen that
+> does not exist is eighteen cells that pass having rendered nothing — the exact
+> failure the matrix is for.
+>
+> `v1.0.0` is therefore **eleven variants and 198 cells**, and this rule is
+> unchanged by that: *the arithmetic follows the variant list.* Nothing was
+> weakened, because `overflow_matrix_test.dart` now also asserts that the routes
+> with **no** variant are exactly those three — so a `v1.1.0` screen that is
+> built and whose variant is forgotten fails in the file whose job is covering
+> every screen, rather than shrinking the matrix quietly. That assertion did not
+> exist while the count was a promise about the future.
+
 ### R59 — Widget key format
 
 01 writes `Key('birthType.twin')`; 02, 05 and 07 write `pen_board.turn_out.3`, `treatment.save`,

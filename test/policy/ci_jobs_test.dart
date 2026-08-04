@@ -79,13 +79,55 @@ void main() {
       reason: 'codegen lands with N08-T06',
     );
 
-    // android is still deliberately absent — it lands in N31, because there is
-    // no platform artefact to build yet.
+    // **INVERTED AT N31-T03, WHICH IS THE TASK THAT LANDED IT.** The case used
+    // to assert `android:` was ABSENT, and that was right while there was no
+    // platform artefact to build — the same shape `codegen` above went through.
+    // The pair is what stops the job being removed in a tidy-up with a green
+    // suite.
     expect(
       lines.any((String l) => l == '  android:'),
-      isFalse,
-      reason: '  android: is red for reasons no task before N31 can fix',
+      isTrue,
+      reason: 'the android job lands with N31-T03',
     );
+  });
+
+  test('the android job blocks on the three jobs above it and archives G4', () {
+    // **`needs: [gate, codegen, test]`** — an artefact is worth inspecting only
+    // once the source it was built from has passed. Building a bundle from
+    // source that fails the gate wastes twenty minutes to tell you something the
+    // gate said in fifty seconds.
+    final List<String> block = jobBlock(lines, 'android');
+    expect(block.join('\n'), contains('needs: [gate, codegen, test]'));
+    expect(block.join('\n'), contains('timeout-minutes: 30'));
+
+    // **G1 RUNS THE SCRIPT RATHER THAN INLINING IT.** `release.yml` (N34) runs
+    // the same gate, and two copies of a permission comparison is one copy that
+    // goes stale on the release path — which is the path nobody watches until a
+    // release.
+    expect(block.join('\n'), contains('bash tool/assert_permissions.sh'));
+
+    // **`if: always()` IS G4, NOT TIDINESS.** The merger report is the only
+    // artefact that names which dependency contributed a permission, and the run
+    // you need it from is the run that just went red.
+    final int upload = block.indexWhere((String l) => l.contains('upload-artifact'));
+    expect(upload, greaterThan(0), reason: 'the android job archives nothing');
+    expect(
+      block.skip(upload).take(3).join('\n'),
+      contains('if: always()'),
+      reason: 'the report would be archived exactly when nobody needs it',
+    );
+    expect(block.join('\n'), contains('manifest-merger-release-report.txt'));
+  });
+
+  test('the release bundle is obfuscated and splits its debug symbols', () {
+    // A release built without `--obfuscate` ships readable Dart, and one built
+    // without `--split-debug-info` cannot have a stack trace symbolicated later
+    // — and there is no crash reporter in this app, so the symbols are the only
+    // route from a shepherd's screenshot to a line number.
+    final String block = jobBlock(lines, 'android').join('\n');
+    expect(block, contains('--obfuscate'));
+    expect(block, contains('--split-debug-info=build/symbols/android'));
+    expect(block, contains('build/symbols/android'), reason: 'the symbols are not archived');
   });
 
   test('the test job installs libsqlite3-dev before it runs any test', () {

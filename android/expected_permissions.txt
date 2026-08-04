@@ -40,10 +40,17 @@
 #   android.permission.RECEIVE_BOOT_COMPLETED  <- N24; reminders survive a reboot
 #   android.permission.SCHEDULE_EXACT_ALARM    <- N24; user-granted, NEVER USE_EXACT_ALARM
 #
+# **THE PROVENANCE TAIL IS A `#` COMMENT, NOT THE `<-` DECISION-RECORD §3.3
+# USES.** That section is a RECORD — prose a human reads — and this file is an
+# INPUT: `tool/assert_permissions.sh` strips `#` to the end of line and diffs
+# what is left against `bundletool`'s output. A `<-` tail survives the strip and
+# diffs a sentence against a permission name, which is red on the first run for
+# a reason that has nothing to do with permissions.
+#
 # Each line below names the manifest the merger attributed it to.
 
-android.permission.VIBRATE                 <- flutter_local_notifications 22.2.0 (merged)
-android.permission.RECORD_AUDIO            <- record_android, via record 7.1.1 (merged)
-com.android.vending.BILLING                <- com.android.billingclient:billing:8.0.0 (merged)
-com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION <- androidx.core:core:1.18.0 (merged)
-android.permission.ACCESS_NETWORK_STATE    <- transport-backend-cct:3.1.8 (merged)
+android.permission.VIBRATE                 # flutter_local_notifications 22.2.0 (merged)
+android.permission.RECORD_AUDIO            # record_android, via record 7.1.1 (merged)
+com.android.vending.BILLING                # com.android.billingclient:billing:8.0.0 (merged)
+com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION # androidx.core:core:1.18.0 (merged)
+android.permission.ACCESS_NETWORK_STATE    # transport-backend-cct:3.1.8 (merged)

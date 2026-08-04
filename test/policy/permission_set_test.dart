@@ -16,14 +16,22 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
-/// The permission names in a file, ignoring comments and the `<- attributed to`
-/// tail each line carries.
-Set<String> _namesIn(String path) => File(path)
+/// The permission names in the expected file, normalised **exactly the way
+/// `tool/assert_permissions.sh` normalises them**: strip `#` to end of line,
+/// strip trailing whitespace, drop the empties.
+///
+/// **THE TWO NORMALISATIONS ARE THE SAME OR THE GATE IS NOT TESTING THE GATE.**
+/// If this parser were more forgiving than the script's, a line the script
+/// rejects would pass here and G1 would go red on CI for a reason no local test
+/// could reproduce.
+Set<String> normalisedNames(String path) => File(path)
     .readAsLinesSync()
+    .map((String l) => l.replaceAll(RegExp('#.*'), '').trimRight())
+    .where((String l) => l.trim().isNotEmpty)
     .map((String l) => l.trim())
-    .where((String l) => l.isNotEmpty && !l.startsWith('#'))
-    .map((String l) => l.split(RegExp(r'\s+')).first)
     .toSet();
+
+Set<String> _namesIn(String path) => normalisedNames(path);
 
 void main() {
   test('expected_permissions.txt matches the G0 record exactly', () {
@@ -108,6 +116,50 @@ void main() {
     expect(active, isNot(contains('android.permission.POST_NOTIFICATIONS')));
   });
 
+  test('the file and the script normalise it the same way', () {
+    // **THE NORMALISATION CONTRACT, AND IT IS THE HALF THAT FAILS ON CI
+    // ONLY.** `tool/assert_permissions.sh` strips `#` to end of line, strips
+    // trailing whitespace and drops the empties. If this file's parser were more
+    // forgiving, a line the script rejects would pass here and G1 would go red on
+    // a runner for a reason no local test could reproduce.
+    //
+    // Asserted by reading the script's own three transformations out of it, so
+    // the two cannot drift without one of them saying so.
+    final String script = File('tool/assert_permissions.sh').readAsStringSync();
+    expect(script, contains("sed 's/#.*//'"));
+    expect(script, contains("sed 's/[[:space:]]*\$//'"));
+    expect(script, contains("grep -v '^\$'"));
+
+    // And every normalised line is a bare permission name: no whitespace, no
+    // `#`, nothing the diff would see as a difference.
+    for (final String name in normalisedNames('android/expected_permissions.txt')) {
+      expect(name, isNot(contains('#')), reason: name);
+      expect(name.trim(), name, reason: 'untrimmed: "$name"');
+      expect(name, isNot(contains(' ')), reason: 'whitespace survived: "$name"');
+      expect(name, matches(RegExp(r'^[A-Za-z0-9_.]+$')), reason: name);
+    }
+  });
+
+  test('the gate cannot be run into a false green', () {
+    // **EXIT 2 IS "THE GATE COULD NOT RUN", AND IT IS STILL A FAILURE.** A
+    // missing `bundletool` that reported success would let a permission ship
+    // unseen — which is the one failure mode a gate has that is worse than not
+    // existing.
+    final String script = File('tool/assert_permissions.sh').readAsStringSync();
+    expect('exit 2'.allMatches(script).length, greaterThanOrEqualTo(3));
+    expect(script, contains('set -euo pipefail'));
+
+    // An empty grep under `pipefail` dies silently mid-pipe. The capture-then-
+    // decide shape is what turns *"no uses-permission elements at all"* into a
+    // named failure.
+    expect(script, contains('[ -s actual-permissions.txt ]'));
+
+    // **DO NOT FILTER ON THE SUBSTRING "permission".** `com.android.vending.BILLING`
+    // does not contain it, and it is the one entry a careless filter drops in
+    // silence.
+    expect(script, contains("grep '^uses-permission'"));
+  });
+
   test('every declared permission names the manifest it was attributed to', () {
     // A permission with no attribution is a permission nobody can decide about:
     // the question *"can we remove this?"* is unanswerable without knowing which
@@ -117,7 +169,7 @@ void main() {
             .readAsLinesSync()
             .map((String l) => l.trim())
             .where((String l) => l.isNotEmpty && !l.startsWith('#'))) {
-      expect(line, contains('<-'), reason: 'unattributed: $line');
+      expect(line, contains('#'), reason: 'unattributed: $line');
     }
   });
 }

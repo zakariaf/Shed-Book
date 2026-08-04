@@ -25,6 +25,7 @@ import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/tag_match.dart';
@@ -293,6 +294,39 @@ final class FlockRepository {
         };
       });
 
+  /// **THE TAG IS RELEASED BY THE SAME STATEMENT THAT CULLS HER**, and nothing
+  /// else happens.
+  ///
+  /// `03 §6` item 4, verbatim: *"`UPDATE ewes SET status = 'culled'` drops the
+  /// row out of the partial index in the same statement. Nothing else needs to
+  /// happen."* So this does not clear the tag, does not write a history row and
+  /// does not touch `ewe_touches` — a culled ewe's last handling is still a fact
+  /// about the night it happened.
+  ///
+  /// **R41: no undo verb, and the reason is not laziness.** There is no
+  /// `ewe_status_events` table, because the previous value is recoverable from
+  /// the record's own context — an animal with lambings this season who is
+  /// suddenly `culled` was `active` a moment ago, and that is legible from the
+  /// card without a row to say so. `CLAUDE.md`'s corollary — *a table without the
+  /// provenance quad has no edit verb* — is why this is a **set**, not an edit.
+  ///
+  /// It is a `WriteOutcome` like every other verb even though the cap cannot
+  /// reach it: a verb whose return type says *this one cannot be refused* is a
+  /// verb the day somebody adds a reason it can.
+  Future<WriteOutcome> setStatus(EweId ewe, EweStatus status) => _db.transaction(() async {
+    final Instant now = appNow(); // ONE instant per mutation
+    final int rows = await (_db.update(_db.ewes)..where(($EwesTable t) => t.id.equals(ewe.value)))
+        .write(EwesCompanion(status: Value<String>(status.key), updatedAt: Value<Instant>(now)));
+    // **ZERO ROWS IS A FAILURE, NOT A QUIET SUCCESS.** An id that matches nothing
+    // means the caller is holding a ewe that is not there — a restore landed
+    // under the screen, or the id came from stale state. Returning
+    // `WriteCommitted` would print a receipt for a write that did not happen.
+    if (rows == 0) {
+      return WriteFailed(const EweNotFound());
+    }
+    return const WriteCommitted();
+  });
+
   /// `getSingle()`, not `getSingleOrNull()`: the table has `CHECK (id = 1)` and
   /// `seedFirstRun` seeds the row in `onCreate`, so it can never find nothing.
   /// A null branch here would have to guess an entitlement.
@@ -503,7 +537,7 @@ final class FlockRow {
   /// `indelible.md §6` draws exactly this line: a **boxed** stamp talks about the
   /// animal, an **unboxed** one talks about the writing, and *"you must be able to
   /// tell from ten feet"* which. `CULLED` is the sheep; `STRUCK` is the entry.
-  final String status;
+  final EweStatus status;
 
   /// **THE RECORD WAS STRUCK** — `ewes.struck`, the real column, not a synonym
   /// for culled.
@@ -522,7 +556,7 @@ final class FlockRow {
   /// It is also what makes §7.0 ruling 7 legible: tags are unique among active,
   /// unstruck animals only, so `2003` is in this list twice and the removed one
   /// is the reason that is legal rather than a bug.
-  bool get removedFromFlock => struck || status != 'active';
+  bool get removedFromFlock => struck || status != EweStatus.active;
 
   /// **NULLABLE, AND NEVER `?? 0`** (decision #58). `ewe_summaries` is a
   /// `LEFT JOIN`, so a ewe with no summary row yet returns NULL — which means
@@ -749,7 +783,10 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   id: EweId(r.read<int>('id')),
   tag: r.read<String>('tag'),
   tagDigits: r.read<String>('tag_digits'),
-  status: r.read<String>('status'),
+  // **THROUGH `fromKey`, WHICH THROWS.** The column carries a `CHECK`, so an
+  // unknown key here means the file was written by something that is not this
+  // app — and a `?? EweStatus.active` would put a culled ewe back in the flock.
+  status: EweStatus.fromKey(r.read<String>('status')),
   struck: r.read<bool>('struck'),
   seasonsRecorded: r.readNullable<int>('seasons_recorded'),
   lambingsRecorded: r.readNullable<int>('lambings_recorded'),

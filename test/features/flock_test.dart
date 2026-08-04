@@ -8,6 +8,9 @@
 // a file that has nothing to do with fixtures.
 library;
 
+import 'dart:io';
+
+import 'package:drift/drift.dart' show QueryRow, Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/db/uid.dart';
@@ -20,7 +23,9 @@ import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_corner_slab.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
+import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -40,6 +45,33 @@ Future<int> _currentlyPenned(AppDatabase db) async =>
             )
             .getSingle())
         .read<int>('n');
+
+/// `indelible.md §4.5`'s thumb band, measured from the **bottom edge of the
+/// viewport**. Nothing required to complete an event sits above it.
+const double _thumbBand = 320;
+
+/// Taps the pad's digit keys in order. The app has no system keyboard and no
+/// `TextField` on a numeric path (decision #57), so this is how a tag is typed —
+/// and a test that reached for `enterText` would be testing a control that does
+/// not exist on this screen.
+Future<void> _type(WidgetTester tester, String digits) async {
+  for (final String d in digits.split('')) {
+    await _press(tester, Key('quick_entry.keypad.digit_$d'));
+  }
+}
+
+/// **`ensureVisible` FIRST, ALWAYS, AND IT IS NOT CEREMONY.** The pad folds into
+/// a 60% sheet, so a key can be laid out below the fold — and `tap()` on a key
+/// that is off-screen misses, warns, and **does not fail**. That silence
+/// recorded `2` instead of `200` in `lambing_entry_test.dart` before its
+/// assertion caught it; here it produced a create of the wrong tag.
+Future<void> _press(WidgetTester tester, Key key) async {
+  final Finder f = find.byKey(key);
+  await tester.ensureVisible(f);
+  await tester.pumpAndSettle();
+  await tester.tap(f);
+  await tester.pumpAndSettle();
+}
 
 void main() {
   test('the filter set narrows 400 ewes to currently penned in one statement', () async {
@@ -135,7 +167,11 @@ void main() {
     // line (boxed = the animal, unboxed = the writing) and `idx_ewe_tagdigits`
     // is partial on both conditions rather than one.
     final FlockRow gone = sameTag.firstWhere((FlockRow r) => r.removedFromFlock);
-    expect(gone.status, 'culled');
+    // **THE TYPE, NOT THE STRING.** `FlockRow.status` became `EweStatus` at
+    // N26-T04, so a stored key can no longer reach a screen unparsed — and this
+    // assertion is what says the row carries the animal's state rather than a
+    // byte that happens to spell it.
+    expect(gone.status, EweStatus.culled);
     expect(gone.struck, isFalse, reason: 'culled is not struck — two facts, two fields');
 
     // **AT THE BOTTOM**, which is the half a `struck` flag alone does not give.
@@ -468,6 +504,296 @@ void main() {
     });
 
     await db.close();
+  });
+
+  test('add a ewe uses createEwe with EntryContext.calm and can return BlockedByCap', () async {
+    // **THE ANCHOR.** The at-cap fixture is exactly fifteen ewes in one season,
+    // which is `kFreeEweCap` — so the sixteenth is the first write the free tier
+    // may refuse, and this is the one screen where it may.
+    //
+    // **THE REFUSAL IS THE ABSENCE OF A ROW, NOT A MESSAGE ABOUT ONE.** The
+    // count is asserted on both sides of the call; a `WriteRefused` that had
+    // already inserted would pass a type check and lose the boundary.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_15_at_cap.json');
+    final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+
+    final int before = await _activeEwes(db);
+    expect(before, kFreeEweCap, reason: 'the fixture IS the boundary — 12 §11.5');
+
+    await atFixed(DateTime.utc(2026, 3, 14, 11), () async {
+      final WriteOutcome refused = await repo.createEwe(tag: '9001', context: EntryContext.calm);
+      expect(refused, isA<WriteRefused>());
+      expect((refused as WriteRefused).reason, RefusalReason.eweCap);
+      expect(await _activeEwes(db), before, reason: 'a refusal writes nothing');
+    });
+
+    // **22:30 ALLOWS, PERMANENTLY, AND THAT IS NOT A BUG.** `07 §19.3` rule 2
+    // and `11 §7.4` say it out loud: *"do not 'fix' it"* by deferring the
+    // refusal to the morning. The row is real and carries `over_free_cap`, which
+    // `11 §8.1` is explicit is **not a warning** — no badge, no colour, never in
+    // a receipt. It clears on unlock; nothing is revoked.
+    await atFixed(DateTime.utc(2026, 3, 14, 22, 30), () async {
+      final WriteOutcome committed = await repo.createEwe(tag: '9002', context: EntryContext.calm);
+      expect(committed, isA<WriteCommitted>());
+      final Ewe added = (await db.select(db.ewes).get()).firstWhere((Ewe e) => e.tag == '9002');
+      expect(added.overFreeCap, isTrue);
+      expect(await _activeEwes(db), before + 1);
+    });
+
+    await db.close();
+  });
+
+  test('setStatus culled releases the tag in the same statement', () async {
+    // `03 §6` item 4, verbatim: *"`UPDATE ewes SET status = 'culled'` drops the
+    // row out of the partial index in the same statement. Nothing else needs to
+    // happen."* So the assertion is that the SECOND create succeeds — and that
+    // it is a genuinely new animal, not the old row reused.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+
+    final WriteOutcome first = await repo.createEwe(tag: '412', context: EntryContext.calm);
+    final int oldId = (first as WriteCommitted).insertedId!;
+
+    expect(
+      await repo.createEwe(tag: '412', context: EntryContext.calm),
+      isA<WriteFailed>(),
+      reason: 'while she is active the tag is hers — ruling N4',
+    );
+
+    expect(await repo.setStatus(EweId(oldId), EweStatus.culled), isA<WriteCommitted>());
+
+    final WriteOutcome second = await repo.createEwe(tag: '412', context: EntryContext.calm);
+    expect(second, isA<WriteCommitted>());
+    final int newId = (second as WriteCommitted).insertedId!;
+    expect(newId, isNot(oldId), reason: 'a new animal wearing an old tag, not the old row edited');
+
+    // **BOTH ROWS SURVIVE, AND THAT IS THE PRODUCT.** *"What did 412 do last
+    // year?"* has two answers here and the app owes the shepherd both — the
+    // culled one is what N27-T05's reused-tag disclosure is built on.
+    expect((await db.select(db.ewes).get()).where((Ewe e) => e.tag == '412'), hasLength(2));
+
+    await db.close();
+  });
+
+  test('setStatus writes updated_at, creates no history row and clears no tag', () async {
+    // **R41: `ewes.status` IS A MUTABLE COLUMN AND HAS NO UNDO VERB**, because
+    // the previous value is recoverable from the record's own context rather
+    // than because a history row exists. If one ever does exist, this fails —
+    // and it should, because a table with history is a table with an edit verb.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+    final EweId ewe = await seedEwe(db, tag: '77');
+
+    final Ewe before = (await db.select(db.ewes).get()).single;
+
+    await atFixed(DateTime.utc(2026, 4, 1, 9), () async {
+      expect(await repo.setStatus(ewe, EweStatus.sold), isA<WriteCommitted>());
+    });
+
+    final Ewe after = (await db.select(db.ewes).get()).single;
+    expect(after.status, EweStatus.sold.key);
+    expect(after.tag, before.tag, reason: 'the tag is not cleared — 03 §6 item 4');
+    expect(after.updatedAt, isNot(before.updatedAt));
+
+    // No `ewe_status_events`. Asserted against the schema rather than against a
+    // Dart symbol, because the defect this catches is somebody adding the table.
+    final List<String> tables =
+        (await db.customSelect("SELECT name FROM sqlite_master WHERE type = 'table'").get())
+            .map((QueryRow r) => r.read<String>('name'))
+            .toList();
+    expect(tables, isNot(contains('ewe_status_events')));
+
+    await db.close();
+  });
+
+  test('setStatus on an id that matches nothing fails rather than reporting a write', () async {
+    // An id that matches no row means the caller is holding a ewe that is not
+    // there — a restore landed under the screen. `WriteCommitted` would print a
+    // receipt for a write that did not happen.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+
+    final WriteOutcome outcome = await repo.setStatus(const EweId(9999), EweStatus.culled);
+    expect(outcome, isA<WriteFailed>());
+    expect((outcome as WriteFailed).failure, isA<EweNotFound>());
+    expect(outcome.failure.userMessage.toLowerCase(), isNot(contains('try again')));
+
+    await db.close();
+  });
+
+  testWidgets('the confirm bar reads OPEN when an active ewe wears the tag and CREATE when '
+      'only a culled one does', (WidgetTester tester) async {
+    // **RULING N4, AS GEOMETRY RATHER THAN PROSE.** §12.4's ladder is
+    // *unrepresentable → unconstructible → unpersistable → source test →
+    // documented*, and a duplicate-tag rule that lives only in a paragraph has
+    // dropped to the bottom. What holds it here is that the bar's LABEL is
+    // derived from the match state, so `Create 412` is unreachable while an
+    // active 412 exists — there is no create to block, which is why `07 §3.3`'s
+    // *"never blocks the create"* is true and vacuous rather than contradicted.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId live = await seedEwe(db, tag: '412');
+    final EweId gone = await seedEwe(db, tag: '77');
+    await FlockRepository(db: db, policy: const FreeTierPolicy()).setStatus(gone, EweStatus.culled);
+    expect(live.value, isNotNull);
+
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('flock.add_slab')));
+    await tester.pumpAndSettle();
+
+    await _type(tester, '412');
+    expect(
+      find.text('Open 412'),
+      findsOneWidget,
+      reason: 'an active 412 exists, so the outcome is to open her',
+    );
+    expect(find.text('Create 412'), findsNothing);
+    // The collision is also STATED, in words, in the pixels under the field.
+    expect(find.byKey(const Key('flock.add.duplicate')), findsOneWidget);
+
+    // A tag held only by a culled animal is FREE (`03 §6` item 4), and raises
+    // nothing at all — no warning, no strip, no hesitation.
+    await _press(tester, const Key('quick_entry.keypad.new_tag'));
+    await _type(tester, '77');
+    expect(find.text('Create 77'), findsOneWidget);
+    expect(find.byKey(const Key('flock.add.duplicate')), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a double tap on confirm creates one ewe, and closing without confirming '
+      'writes nothing', (WidgetTester tester) async {
+    // Two properties in one pump because the harness permits one `pumpApp` per
+    // test, and both are assertions about the SAME sheet's write behaviour.
+    //
+    // The double tap is `guard()`'s job — *"a UX safety feature wearing
+    // architecture's clothes"*: a cold thumb on capacitive glass through a bag
+    // double-fires, and without the guard the second fire is a second ewe.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    // 1 — OPENED AND CLOSED. There is no draft (`07 §15.5`), so this is the
+    // absence of one rather than the discarding of one.
+    await tester.tap(find.byKey(const Key('flock.add_slab')));
+    await tester.pumpAndSettle();
+    await _type(tester, '501');
+    final Finder close = find.text('CLOSE');
+    await tester.ensureVisible(close);
+    await tester.pumpAndSettle();
+    await tester.tap(close);
+    await tester.pumpAndSettle();
+    expect(await _activeEwes(db), 0, reason: 'closing the sheet writes nothing');
+
+    // 2 — DOUBLE-TAPPED CONFIRM.
+    await tester.tap(find.byKey(const Key('flock.add_slab')));
+    await tester.pumpAndSettle();
+    await _type(tester, '502');
+    final Finder confirm = find.byKey(const Key('flock.add.confirm'));
+    await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
+    // **TWO TAPS WITH NO PUMP BETWEEN THEM**, which is what a double-fire is: a
+    // pump between them would let the first write complete, and the second tap
+    // would then be a legitimate second write rather than a double tap.
+    await tester.tap(confirm);
+    await tester.tap(confirm);
+    await tester.pumpAndSettle();
+
+    expect(await _activeEwes(db), 1, reason: 'guard() refuses to run concurrently');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the sheet renders no placeholder, no dialog and no drag handle', (
+    WidgetTester tester,
+  ) async {
+    // Three prohibitions that share one pump because they share one widget tree.
+    //
+    //   * `indelible.md §7.12` — *"in the dark, a grey placeholder is
+    //     indistinguishable from an entered value."* The hint is above the line.
+    //   * #92 and `07 §19.2` — the refusal is a row, never a modal.
+    //   * `indelible.md §7.14` — *"a handle that cannot be dragged is a lie."*
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('flock.add_slab')));
+    await tester.pumpAndSettle();
+
+    for (final TextField f in tester.widgetList<TextField>(find.byType(TextField))) {
+      expect(f.decoration?.hintText, isNull);
+    }
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(Dialog), findsNothing);
+
+    final BottomSheet sheet = tester.widget<BottomSheet>(find.byType(BottomSheet));
+    expect(sheet.enableDrag, isFalse);
+    expect(sheet.showDragHandle ?? false, isFalse);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('the slab is 160 by 140, sits in the bottom 320 px, and mirrors when '
+      'left_handed is set', (WidgetTester tester) async {
+    // `indelible.md §7.1` and §4.5. **The reach band is an ABSOLUTE distance
+    // from the bottom, never a fraction of the height** — asserted at the
+    // smallest supported device, which is where a fraction would pass and a
+    // distance fails.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    await db
+        .update(db.appSettings)
+        .write(const AppSettingsCompanion(leftHanded: Value<bool>(true)));
+
+    await tester.pumpApp(const FlockScreen(), db: db, device: Device.small);
+    await tester.pumpAndSettle();
+
+    final Rect slab = tester.getRect(find.byKey(const Key('flock.add_slab')));
+    expect(slab.width, ShedCornerSlab.width);
+    expect(slab.height, ShedCornerSlab.height);
+
+    final double fromBottom = Device.small.size.height - slab.bottom;
+    expect(
+      fromBottom + slab.height,
+      lessThanOrEqualTo(_thumbBand),
+      reason: 'nothing required to record an event sits above 320 px from the bottom',
+    );
+
+    // **MIRRORED, AND READ RATHER THAN RE-DERIVED** (R40). Left-handed puts it
+    // in the left half; the spine, the margin cell and the record column do not
+    // move.
+    expect(slab.left, lessThan(Device.small.size.width / 2));
+
+    await tester.closeApp();
+  });
+
+  testWidgets('nothing in the flock feature watches the entitlement', (WidgetTester tester) async {
+    // Decision #90. The VERB consults `FreeTierPolicy` inside the repository, so
+    // the widget never needs the entitlement at all — and a widget that watches
+    // it is a paywall flash waiting to happen. Asserted on the source text,
+    // because a widget that reads it on one code path only would pump green.
+    final String screen = File('lib/features/flock/flock_screen.dart').readAsStringSync();
+    final String sheet = File('lib/features/flock/widgets/add_ewe_sheet.dart').readAsStringSync();
+    for (final String source in <String>[screen, sheet]) {
+      expect(source, isNot(contains('entitlementProvider')));
+      expect(source, isNot(contains('purchaseServiceProvider')));
+    }
+
+    // And the refusal copy names no figure. `copy.currency_literal` is the gate
+    // row; this is the same assertion over the strings this task authored.
+    final String arb = File('lib/l10n/app_en.arb').readAsStringSync();
+    for (final String line in arb.split('\n').where((String l) => l.contains('flockAdd'))) {
+      expect(RegExp(r'[£$€]\s?\d').hasMatch(line), isFalse, reason: line);
+    }
   });
 
   testWidgets('the screen renders a row per active ewe', (WidgetTester tester) async {

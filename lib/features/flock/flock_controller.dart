@@ -9,9 +9,11 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/domain/time/instant.dart';
-import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/providers.dart';
 
 export 'package:shed_book/data/flock_repository.dart' show FlockFilter, FlockFilters, FlockRow;
@@ -61,27 +63,39 @@ flockFilterCountsProvider = Provider.autoDispose<FlockFilterCounts?>((ref) {
   );
 });
 
-/// Creating a ewe from the Flock screen.
+/// Creating a ewe from the Flock screen, and setting her status.
 ///
 /// **`EntryContext.calm`, AND THAT IS THE POINT OF THE TASK.** This is the one
 /// place the cap may honestly speak: daylight work, nobody holding a lamb. Quick
 /// Entry passes `liveEntry`, where a refusal is unreachable by construction —
 /// *"a shepherd mid-lambing is never told to pay"* (#91).
-final class FlockWriteController extends AutoDisposeAsyncNotifier<void> {
-  @override
-  Future<void> build() async {}
-
+///
+/// **EVERY VERB THROUGH `guard()`**, which is the double-tap defence: a cold
+/// thumb on capacitive glass through a bag double-fires, and without it the
+/// second fire is a second ewe. The outcome arrives as *state* — these are event
+/// verbs returning `Future<void>`, never a value the caller reads back.
+///
+/// `final` because [WriteController] is `base`.
+final class FlockWriteController extends WriteController {
   /// **THROUGH THE PROVIDER, NOT A CONSTRUCTOR.** `lib/features/` may not import
   /// `lib/core/db/` (`layer.features`), and the first draft built a
   /// `FlockRepository` here from a raw `AppDatabase` — which the gate refused. A
   /// feature does not get to know a database exists; `flockRepositoryProvider`
   /// is the seam, and it already carries the policy this needs.
-  Future<WriteOutcome> createEwe(String tag) async =>
-      ref.read(flockRepositoryProvider).createEwe(tag: tag, context: EntryContext.calm);
+  Future<void> createEwe(String tag) => guard(
+    () => ref.read(flockRepositoryProvider).createEwe(tag: tag, context: EntryContext.calm),
+  );
+
+  /// R41 — a **set**, not an edit, and there is no undo verb for it. It is
+  /// guarded like every other write because culling is destructive: a double tap
+  /// must write one status change, not two.
+  Future<void> setStatus(EweId ewe, EweStatus status) =>
+      guard(() => ref.read(flockRepositoryProvider).setStatus(ewe, status));
 }
 
-final AutoDisposeAsyncNotifierProvider<FlockWriteController, void> flockWriteControllerProvider =
-    AsyncNotifierProvider.autoDispose<FlockWriteController, void>(FlockWriteController.new);
+/// `.autoDispose`, always, for a write controller (`CONVENTIONS §3.4`).
+final AutoDisposeNotifierProvider<FlockWriteController, WriteState> flockWriteControllerProvider =
+    NotifierProvider.autoDispose<FlockWriteController, WriteState>(FlockWriteController.new);
 
 /// The five counts, all five present or it does not compile.
 final class FlockFilterCounts {

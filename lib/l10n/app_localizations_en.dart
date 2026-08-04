@@ -996,4 +996,38 @@ class AppLocalizationsEn extends AppLocalizations {
   String flockStruckDivider({required int count}) {
     return 'STRUCK — $count';
   }
+
+  @override
+  String flockAddSlab({required String term}) {
+    return '+ $term';
+  }
+
+  @override
+  String flockAddHeading({required String term}) {
+    return 'Add a $term';
+  }
+
+  @override
+  String get flockAddFieldLabel => 'Tag';
+
+  @override
+  String flockAddDuplicateTag({required String tag, required String term}) {
+    return '$tag is already on an active $term.';
+  }
+
+  @override
+  String flockAddConfirmCreate({required String tag}) {
+    return 'Create $tag';
+  }
+
+  @override
+  String flockAddConfirmOpen({required String tag}) {
+    return 'Open $tag';
+  }
+
+  @override
+  String get flockAddClose => 'CLOSE';
+
+  @override
+  String get flockAddCloseHint => 'Close this sheet. Nothing is written until you confirm.';
 }

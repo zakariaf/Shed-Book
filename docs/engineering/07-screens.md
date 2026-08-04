@@ -234,6 +234,15 @@ Consequently **four of the five §7.7 filters narrow the `WHERE`; `under treatme
 
 **Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as ~~a 60 pt amber strip under the field~~ **the query mark and underline ruled at N16-T06** (see §6.3's amendment: Indelible has no status palette, so there is no amber to build a strip from). It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
 
+> **Amended — ruling N4 (N26-T04), and what "never blocks" turns out to mean.** This paragraph and `03 §6`'s partial unique index `ON ewes (tag) WHERE status = 'active' AND struck = 0` were carried by `00-README` §10 as an open contradiction. **Both sentences are true, about different cases**, because the index is on `tag`, the *exact string*:
+>
+> - `412` and `B412` are **different tags with the same digits**, both storable, both ranked together by the pad. That is the genuinely ambiguous case, it is what `duplicateActiveTag` is for, and it never blocks anything.
+> - A **second live `412`** is not ambiguous, it is identical, and it makes *"what did 412 do last year?"* — the question the product exists to answer — unanswerable. It is refused, as `TagAlreadyInUse`, checked inside the create's own transaction so the shepherd gets a sentence naming the tag rather than a crash from the index.
+>
+> The resolution is **geometry, not prose**: the add sheet's confirm bar takes its label from the match state, so it reads `Open 412` while an active 412 exists and `Create 412` only when the tag is free. There is no create to block, which is what keeps §12.4 at *unconstructible* rather than dropping it to *documented*.
+>
+> ~~"navigates to Unlock"~~ **does not land in N26.** Unlock is a **Settings section**, not one of the thirteen `RouteNames`, and Settings is N29; the over-cap refusal renders as a row through `showCapRow` (decision #92 — no modal, no interstitial, no navigation). The pixels are N30-T05's.
+
 ### 3.4 §12 on this screen
 
 Only §12.4: a small persistent badge on any row whose records carry warnings, so a contradiction found at 3am is still findable at 9am. The badge is a WORD, never colour alone — see ruling N3 below.

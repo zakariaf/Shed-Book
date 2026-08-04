@@ -44,6 +44,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/ui/components/shed_corner_slab.dart';
 import 'package:shed_book/core/ui/components/shed_keypad.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/failure.dart';
@@ -81,8 +82,11 @@ class _Grid {
   static const double bandHeight = 152;
   static const double indexWidth = 96;
   static const double indexHeight = 64;
-  static const double slabWidth = 160;
-  static const double slabHeight = 140;
+  // **READ OFF THE COMPONENT, NOT COPIED.** N26-T04 needed the same slab on the
+  // Flock screen, and `indelible.md §7.1`'s 160 × 140 written in two files is a
+  // contract that will disagree with itself the first time one of them moves.
+  static const double slabWidth = ShedCornerSlab.width;
+  static const double slabHeight = ShedCornerSlab.height;
   static const double stripHeight = 96;
 }
 

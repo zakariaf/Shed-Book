@@ -12,11 +12,25 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_corner_slab.dart';
 import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
+import 'package:shed_book/core/ui/feedback.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
+// `AppSetting` arrives through `lib/data/models.dart` — `layer.features` forbids
+// a feature importing `lib/core/db/`, and the re-export is the seam that exists
+// so a screen never has to know a database does.
+import 'package:shed_book/data/models.dart';
+import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
+import 'package:shed_book/features/flock/widgets/add_ewe_sheet.dart';
 import 'package:shed_book/features/flock/widgets/flock_filter_line.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -30,31 +44,116 @@ class FlockScreen extends ConsumerWidget {
     final FlockFilters filters = ref.watch(flockFilterProvider);
     final AsyncValue<List<FlockRow>> rows = ref.watch(flockListProvider(filters));
 
+    // **REGISTERED UNCONDITIONALLY, AT THE TOP OF `build`** (`02 §4.3`).
+    // `ref.listen` inside an `if` is a listener that exists on some frames and
+    // not others, so the outcome of a write started on one frame lands on a
+    // frame that is not listening.
+    ref.listen<WriteState>(flockWriteControllerProvider, (WriteState? _, WriteState next) {
+      if (next case WriteDone(outcome: final WriteOutcome outcome)) {
+        // NO `default:`. `WriteOutcome` is sealed with three variants
+        // (`CONVENTIONS §2.4`); the day a fourth appears this must fail to
+        // compile rather than swallow it.
+        switch (outcome) {
+          case WriteCommitted():
+            // **P2: THE CONFIRMATION IS THE COMMITTED ROW.** The new ewe appears
+            // in the list because `watchFlockList` declares `ewes` in
+            // `readsFrom` — there is nothing to announce and nothing to dismiss.
+            break;
+          case WriteFailed(failure: final ShedFailure failure):
+            showFailure(context, failure.userMessage);
+          case WriteRefused(reason: final RefusalReason reason):
+            // **A ROW, NEVER A DIALOG, AND NEVER A NAVIGATION** (#92,
+            // `07 §19.2`). `07 §3.3` also says the over-cap create *"navigates
+            // to Unlock"* — that half cannot land here: Unlock is a **Settings
+            // section**, not one of the thirteen `RouteNames`, and Settings is
+            // N29. `showCapRow` has its two guards today and its pixels at
+            // N30-T05.
+            //
+            // `onShedScreen: false` because Flock is not one of the five. It is
+            // stated rather than assumed: the guard lives in `showCapRow` so
+            // that the thirteenth call site cannot forget it.
+            showCapRow(context, reason, onShedScreen: false);
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: t.surfaceBase,
       body: SafeArea(
-        child: Column(
+        // **THE SLAB IS A FIXED LAYER, NOT A LIST CHILD.** `indelible.md §7.1`
+        // puts it in the corner and §4.5 puts it in the thumb band, 0–320 px
+        // from the bottom — an affordance that scrolls away is an affordance
+        // that is not in the thumb band on most frames.
+        child: Stack(
           children: <Widget>[
-            // **THE LINE PRINTS ITS COUNTS OR RESERVES ITS HEIGHT.** Never a
-            // count of 0 for a filter whose statement has not returned — that is
-            // #58 in the one place a shepherd would act on it, by not tapping a
-            // filter that looks empty and is not.
-            switch (ref.watch(flockFilterCountsProvider)) {
-              final FlockFilterCounts counts => FlockFilterLine(
-                filters: filters,
-                counts: counts,
-                total: switch (rows) {
-                  AsyncData<List<FlockRow>>(value: final List<FlockRow> l) => l.length,
-                  _ => null,
+            Column(
+              children: <Widget>[
+                // **THE LINE PRINTS ITS COUNTS OR RESERVES ITS HEIGHT.** Never a
+                // count of 0 for a filter whose statement has not returned — that is
+                // #58 in the one place a shepherd would act on it, by not tapping a
+                // filter that looks empty and is not.
+                switch (ref.watch(flockFilterCountsProvider)) {
+                  final FlockFilterCounts counts => FlockFilterLine(
+                    filters: filters,
+                    counts: counts,
+                    total: switch (rows) {
+                      AsyncData<List<FlockRow>>(value: final List<FlockRow> l) => l.length,
+                      _ => null,
+                    },
+                    onToggle: (FlockFilter f) => ref.read(flockFilterProvider.notifier).toggle(f),
+                    onClear: () => ref.read(flockFilterProvider.notifier).clear(),
+                  ),
+                  // The grid does not move while it waits (`indelible.md §3.6`).
+                  null => SizedBox(height: t.tapMin),
                 },
-                onToggle: (FlockFilter f) => ref.read(flockFilterProvider.notifier).toggle(f),
-                onClear: () => ref.read(flockFilterProvider.notifier).clear(),
-              ),
-              // The grid does not move while it waits (`indelible.md §3.6`).
-              null => SizedBox(height: t.tapMin),
-            },
-            Expanded(child: _body(context, l10n, filters, rows)),
+                Expanded(child: _body(context, l10n, filters, rows)),
+              ],
+            ),
+            // **MIRRORED BY `app_settings.left_handed`, WHICH IS READ AND NEVER
+            // RE-DERIVED** (R40). Exactly three things move — the slab, `INDEX`
+            // and the keypad's bottom row — and the spine, the margin cell and
+            // the record column do not.
+            Positioned(
+              bottom: t.gapMin,
+              right: _leftHanded(ref) ? null : t.gapMin,
+              left: _leftHanded(ref) ? t.gapMin : null,
+              child: _addSlab(context, l10n),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// `app_settings.left_handed`. **Absent settings are right-handed**, which is
+  /// the column's own `withDefault(false)` rather than a guess made here.
+  bool _leftHanded(WidgetRef ref) => switch (ref.watch(settingsProvider)) {
+    AsyncData<AppSetting>(value: final AppSetting s) => s.leftHanded,
+    _ => false,
+  };
+
+  /// `+ EWE` — `indelible.md §7.1`'s corner slab, the largest target in the app.
+  ///
+  /// It opens the one overlay this app has. It does **not** write: the sheet's
+  /// confirm bar does, through the same `createEwe` verb Quick Entry calls, with
+  /// `EntryContext.calm` — the one context in which the cap may honestly refuse,
+  /// because this is daylight work and nobody is holding a lamb.
+  Widget _addSlab(BuildContext context, AppLocalizations l10n) {
+    return ShedCornerSlab(
+      key: const Key('flock.add_slab'),
+      label: l10n.flockAddSlab(term: l10n.termEweSingular.toUpperCase()),
+      semanticLabel: l10n.flockAddSlab(term: l10n.termEweSingular.toUpperCase()),
+      onTap: () => showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.flockAddClose,
+        dismissSemanticLabel: l10n.flockAddCloseHint,
+        barrierLabel: l10n.flockAddHeading(term: l10n.termEweSingular),
+        fillsViewport: true,
+        child: AddEweSheet(
+          // N27 pushes the ewe card from here. There is no route helper for a
+          // screen that does not exist yet (critique S2), and a `TODO` in a
+          // callback is a screen nobody wires.
+          onOpenExisting: (EweId _) => Navigator.of(context).pop(),
         ),
       ),
     );

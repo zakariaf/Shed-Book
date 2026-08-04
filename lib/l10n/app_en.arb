@@ -1500,5 +1500,65 @@
         "type": "int"
       }
     }
+  },
+  "flockAddSlab": "+ {term}",
+  "@flockAddSlab": {
+    "description": "indelible.md §8 Screen 1: 'Quick-add is the corner slab.' The largest target in the system, bottom-right, mirrored to bottom-left when left_handed is set. The noun is fed from termEweSingular (10 §8.5) because it varies by county — a shepherd who calls them gimmers reads GIMMER here.",
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "flockAddHeading": "Add a {term}",
+  "@flockAddHeading": {
+    "description": "The add sheet's heading, and its modal barrier label. 'Add', not 'New' — the shepherd is adding an animal that already exists in the field to a notebook that does not yet know her.",
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "flockAddFieldLabel": "Tag",
+  "@flockAddFieldLabel": {
+    "description": "The label ABOVE the line, because indelible.md §7.12 forbids placeholder text inside a field: in the dark a grey placeholder is indistinguishable from an entered value."
+  },
+  "flockAddDuplicateTag": "{tag} is already on an active {term}.",
+  "@flockAddDuplicateTag": {
+    "description": "WarningCode.duplicateActiveTag's value, constructed in the UI and never persisted (decision #54 — there is no warnings column). It states the collision; the confirm bar reading OPEN rather than CREATE is what makes the create unreachable. Ruling N4.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      },
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "flockAddConfirmCreate": "Create {tag}",
+  "@flockAddConfirmCreate": {
+    "description": "06 §12: a confirm bar is 'labelled with the outcome'. Reachable only when no active animal wears this exact tag — a tag held only by a culled, sold or dead one is free (03 §6 item 4).",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "flockAddConfirmOpen": "Open {tag}",
+  "@flockAddConfirmOpen": {
+    "description": "What the bar reads when an active animal already wears this exact tag. Ruling N4: there is no create to block, so 07 §3.3's 'never blocks the create' is true and vacuous.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "flockAddClose": "CLOSE",
+  "@flockAddClose": {
+    "description": "indelible.md §7.14's 88 x 64 dismiss word. Not 'Cancel' — 07 §15.5: there is no draft state, so 'Cancel' is not a verb."
+  },
+  "flockAddCloseHint": "Close this sheet. Nothing is written until you confirm.",
+  "@flockAddCloseHint": {
+    "description": "The dismiss control's semantic label. It says what closing costs, which is nothing, because there is no draft to discard."
   }
 }

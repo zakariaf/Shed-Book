@@ -1705,6 +1705,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'STRUCK — {count}'**
   String flockStruckDivider({required int count});
+
+  /// indelible.md §8 Screen 1: 'Quick-add is the corner slab.' The largest target in the system, bottom-right, mirrored to bottom-left when left_handed is set. The noun is fed from termEweSingular (10 §8.5) because it varies by county — a shepherd who calls them gimmers reads GIMMER here.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {term}'**
+  String flockAddSlab({required String term});
+
+  /// The add sheet's heading, and its modal barrier label. 'Add', not 'New' — the shepherd is adding an animal that already exists in the field to a notebook that does not yet know her.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a {term}'**
+  String flockAddHeading({required String term});
+
+  /// The label ABOVE the line, because indelible.md §7.12 forbids placeholder text inside a field: in the dark a grey placeholder is indistinguishable from an entered value.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get flockAddFieldLabel;
+
+  /// WarningCode.duplicateActiveTag's value, constructed in the UI and never persisted (decision #54 — there is no warnings column). It states the collision; the confirm bar reading OPEN rather than CREATE is what makes the create unreachable. Ruling N4.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} is already on an active {term}.'**
+  String flockAddDuplicateTag({required String tag, required String term});
+
+  /// 06 §12: a confirm bar is 'labelled with the outcome'. Reachable only when no active animal wears this exact tag — a tag held only by a culled, sold or dead one is free (03 §6 item 4).
+  ///
+  /// In en, this message translates to:
+  /// **'Create {tag}'**
+  String flockAddConfirmCreate({required String tag});
+
+  /// What the bar reads when an active animal already wears this exact tag. Ruling N4: there is no create to block, so 07 §3.3's 'never blocks the create' is true and vacuous.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {tag}'**
+  String flockAddConfirmOpen({required String tag});
+
+  /// indelible.md §7.14's 88 x 64 dismiss word. Not 'Cancel' — 07 §15.5: there is no draft state, so 'Cancel' is not a verb.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get flockAddClose;
+
+  /// The dismiss control's semantic label. It says what closing costs, which is nothing, because there is no draft to discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Close this sheet. Nothing is written until you confirm.'**
+  String get flockAddCloseHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

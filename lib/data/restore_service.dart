@@ -440,6 +440,30 @@ final class RestoreService {
       //
       // (It is simply absent from `_order`, which is the strongest form: there
       // is no branch to get wrong.)
+      //
+      // **BUT THE ROW STILL HAS TO EXIST, AND IT DID NOT.** Staging is opened
+      // with `seedOnCreate: false`, so `seedFirstRun` — the one writer of this
+      // row — runs only on the seasonless arm below, which is almost never. Every
+      // restored database therefore came back with an EMPTY `entitlements`
+      // table, and `FlockRepository._readUnlocked` reads it with `getSingle()`
+      // because `CHECK (id = 1)` says it cannot find nothing. The first create
+      // after any restore threw `Bad state: No element`.
+      //
+      // Nothing above caught it: `foreign_key_check` passes, `quick_check`
+      // passes, and every per-table count matches — `counts` counts what the
+      // FILE holds, and the file correctly holds no entitlement. It surfaced
+      // from N26-T04's at-cap anchor, one layer further out again.
+      //
+      // **LOCKED, WHICH IS THE SAFE DIRECTION OF THE TWO.** #88's sentence is
+      // *"restoring your neighbour's backup must not unlock your app"*, and this
+      // holds it. The other direction — a paying shepherd who restores their own
+      // backup and finds the app locked — is real and is **N30's**: the live
+      // device's entitlement has to be carried across the swap, which needs the
+      // live database that this method does not hold. Raised in the pull request
+      // rather than improvised here.
+      await target
+          .into(target.entitlements)
+          .insertOnConflictUpdate(const EntitlementsCompanion(id: Value<int>(1)));
 
       // **`seedFirstRun` ONLY WHEN THE BACKUP HAS NO SEASON**, and at the END of
       // the same transaction. Every event table's `season` is `NOT NULL`, so a

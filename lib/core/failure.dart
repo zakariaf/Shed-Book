@@ -89,6 +89,22 @@ final class TagAlreadyInUse extends ShedFailure {
       'Cull or sell that one first, or use a different tag.';
 }
 
+/// **THE UPDATE MATCHED NO ROW.** Its own type for the same reason
+/// [TagAlreadyInUse] is: *"Try again"* is wrong advice, because trying again
+/// finds the same nothing.
+///
+/// It is reachable through exactly one route in normal use — a restore landing
+/// under an open screen — so the message names that rather than blaming the
+/// shepherd for a state they did not create.
+final class EweNotFound extends ShedFailure {
+  const EweNotFound();
+
+  @override
+  String get userMessage =>
+      'That animal is no longer in this notebook, so nothing was changed. '
+      'Go back to the flock and open her again.';
+}
+
 final class UnexpectedFailure extends ShedFailure {
   const UnexpectedFailure(this.error, this.stack);
 

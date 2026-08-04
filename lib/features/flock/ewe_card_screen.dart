@@ -14,12 +14,18 @@ import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
+import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class EweCardScreen extends ConsumerWidget {
-  const EweCardScreen({required this.eweId, super.key});
+  const EweCardScreen({required this.eweId, required this.tag, super.key});
 
   final EweId eweId;
+
+  /// **PASSED IN, NOT LOOKED UP.** The tag is what the shepherd tapped to get
+  /// here, so it is already known — a second statement to re-read it would put a
+  /// frame between opening the card and knowing whose it is.
+  final String tag;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -29,6 +35,23 @@ class EweCardScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: t.surfaceBase,
       body: SafeArea(
+        // **THE SUMMARY LINE IS FIRST, ABOVE THE TIMELINE.** Spec §7.7: it is
+        // *"visible before anything else"*, and that is a widget-order fact
+        // rather than a comment — `07 §4.2`'s frame 1 reserves its height so the
+        // page does not shift when the counts land.
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            EweSummaryLine(eweId: eweId, tag: tag),
+            Expanded(child: _timeline(context, ref, t, l10n)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _timeline(BuildContext context, WidgetRef ref, ShedTokens t, AppLocalizations l10n) =>
+      SizedBox.expand(
         // **EVERY ARM WRITTEN OUT** (`02 §4.5`), and read as an exhaustive
         // switch rather than through the accessors that flatten the three states
         // into two. The trailing `_` is loading and Dart's exhaustiveness
@@ -67,7 +90,5 @@ class EweCardScreen extends ConsumerWidget {
           // progress.
           _ => const SizedBox.expand(),
         },
-      ),
-    );
-  }
+      );
 }

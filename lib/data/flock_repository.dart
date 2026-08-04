@@ -328,6 +328,42 @@ final class FlockRepository {
     return const WriteCommitted();
   });
 
+  /// The four counts behind the summary line.
+  ///
+  /// **A SINGLE-ROW LOOKUP, WHICH `07 §1.2` PERMITS ALONGSIDE THE CONTENT
+  /// STATEMENT** — it is the one-query rule's own exception, and the reason is
+  /// that the summary line *"must never wait for an aggregate"* (`07 §4.1`).
+  ///
+  /// **`null` IS A REAL STATE, NOT AN ERROR.** A ewe created ten seconds ago has
+  /// no `ewe_summaries` row until T03 writes one, and *"No seasons recorded"* is
+  /// the honest thing to print — never a row of zeroes, which would assert
+  /// something false about a live animal.
+  ///
+  /// It stores **counts only — never a percentage, never a formatted string**
+  /// (`03 §5.13`). The obvious performance fix — `UPDATE ewe_summaries SET line`
+  /// at write time — is the defect: a stored string freezes the terminology, the
+  /// locale and the units at write time and is wrong the moment a record is
+  /// corrected.
+  /// **THE CACHE ROW DOES NOT CROSS THE BOUNDARY.** `lib/data/models.dart`'s
+  /// `show` list says in as many words that *"EweSummary and EweTouch are cache
+  /// rows; nothing outside `lib/data/` has a reason to see one"* — so this
+  /// projects the five counts into a value type and the drift row stays here.
+  Stream<EweSummaryCounts?> watchEweSummary(EweId ewe) =>
+      (_db.select(_db.eweSummaries)..where(($EweSummariesTable t) => t.ewe.equals(ewe.value)))
+          .watchSingleOrNull()
+          .map(
+            (EweSummary? r) => r == null
+                ? null
+                : EweSummaryCounts(
+                    seasonsRecorded: r.seasonsRecorded,
+                    lambingsRecorded: r.lambingsRecorded,
+                    lambsBorn: r.lambsBorn,
+                    assistedLambings: r.assistedLambings,
+                    scoredLambings: r.scoredLambings,
+                  ),
+          )
+          .distinct();
+
   /// **HER WHOLE HISTORY, AND THE FAN-IN HAPPENS IN SQL.**
   ///
   /// Seven `watch()` streams merged in Dart is the build-breaking defect
@@ -481,6 +517,8 @@ final class TimelineRow {
     this.originalEffective,
     this.season,
     this.struckAt,
+    this.detail,
+    this.seasonYear,
   });
 
   final TimelineKind kind;
@@ -513,6 +551,24 @@ final class TimelineRow {
   /// year two"* — an evening with a shoebox shows you the crossings-out too.
   final bool struck;
   final Instant? struckAt;
+
+  /// **ONE WORD FROM THE ARM'S OWN TABLE, AND IT IS NEVER A SENTENCE.** The
+  /// observation's `vocab_terms` key, the treatment's product name, the care
+  /// kind, the foster outcome, the pen label, the note body. `null` on the
+  /// `lambing` arm, which has nothing of its own to say that the tally does not
+  /// already say.
+  ///
+  /// It is a **key or a stored value**, never a rendered label: `obs_prolapse`,
+  /// not *"Prolapse"*. The presentation edge resolves it through the terminology
+  /// overlay, because `lib/data/` may not reach `AppLocalizations` and a label
+  /// frozen at read time would be wrong the moment the shepherd renamed it.
+  final String? detail;
+
+  /// **THE YEAR OF THE SEASON, NOT THE YEAR OF THE INSTANT.** A season is a
+  /// stored foreign key; an observation recorded at 01:30 on the clocks-back
+  /// night belongs to the season it was filed under, whatever the wall clock did
+  /// that night. `null` only on a note with no season (`03 §5.12`).
+  final int? seasonYear;
 
   /// The §12.5 value, **reconstructed** — never a second switch over
   /// `time_source`.
@@ -555,7 +611,9 @@ final class TimelineRow {
           other.timeSource == timeSource &&
           other.season == season &&
           other.struck == struck &&
-          other.struckAt == struckAt;
+          other.struckAt == struckAt &&
+          other.detail == detail &&
+          other.seasonYear == seasonYear;
 
   @override
   int get hashCode => Object.hash(
@@ -568,6 +626,8 @@ final class TimelineRow {
     season,
     struck,
     struckAt,
+    detail,
+    seasonYear,
   );
 }
 
@@ -976,6 +1036,46 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   hasWarning: r.read<int>('has_warning') == 1,
 );
 
+/// The five counts the summary line is assembled from, and **nothing else**.
+///
+/// `03 §5.13`: `ewe_summaries` *"stores counts only — never a percentage, never
+/// a formatted string"*. This type is that sentence in Dart — there is nowhere
+/// on it to put a rendered line, so the obvious performance fix is not merely
+/// discouraged, it is unrepresentable.
+///
+/// Value equality because `.distinct()` compares row to row, and identity `==`
+/// would make the de-duplication an expensive way of always returning false.
+@immutable
+final class EweSummaryCounts {
+  const EweSummaryCounts({
+    required this.seasonsRecorded,
+    required this.lambingsRecorded,
+    required this.lambsBorn,
+    required this.assistedLambings,
+    required this.scoredLambings,
+  });
+
+  final int seasonsRecorded;
+  final int lambingsRecorded;
+  final int lambsBorn;
+  final int assistedLambings;
+  final int scoredLambings;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is EweSummaryCounts &&
+          other.seasonsRecorded == seasonsRecorded &&
+          other.lambingsRecorded == lambingsRecorded &&
+          other.lambsBorn == lambsBorn &&
+          other.assistedLambings == assistedLambings &&
+          other.scoredLambings == scoredLambings;
+
+  @override
+  int get hashCode =>
+      Object.hash(seasonsRecorded, lambingsRecorded, lambsBorn, assistedLambings, scoredLambings);
+}
+
 /// `07 §4.1`'s statement, arm for arm — **plus P1's `struck` / `struck_at` in
 /// the same position on every one of them.**
 ///
@@ -1003,8 +1103,10 @@ const String _eweTimelineSql = '''
 SELECT 'lambing' AS kind, lg.id AS ref, lg.occurred_at AS at,
        lg.captured_at AS captured_at, lg.original_effective AS original_effective,
        lg.time_source AS time_source, lg.season AS season,
-       lg.struck AS struck, lg.struck_at AS struck_at
-  FROM lambings lg WHERE lg.ewe = ?
+       lg.struck AS struck, lg.struck_at AS struck_at,
+       NULL AS detail, s.year AS season_year
+  FROM lambings lg LEFT JOIN seasons s ON s.id = lg.season
+ WHERE lg.ewe = ?
 
 -- **`treatments` IS THE ONE ARM WITH NO `struck` COLUMN, AND THAT IS NOT AN
 -- OVERSIGHT.** It carries `Identified` without `Struckable`, because decision
@@ -1020,8 +1122,10 @@ SELECT 'lambing' AS kind, lg.id AS ref, lg.occurred_at AS at,
 UNION ALL
 SELECT 'treatment', t.id, t.administered_at,
        t.captured_at, t.original_effective, t.time_source, t.season,
-       t.voided_at IS NOT NULL, t.voided_at
-  FROM treatments t WHERE t.ewe = ?
+       t.voided_at IS NOT NULL, t.voided_at,
+       t.product_name, s.year
+  FROM treatments t LEFT JOIN seasons s ON s.id = t.season
+ WHERE t.ewe = ?
 
 -- `care_events` HAS NO `ewe` COLUMN. `03 §5.6`'s CHECK is exactly one of
 -- (lambing, lamb), so her care events are reached through her lambings AND
@@ -1030,10 +1134,12 @@ SELECT 'treatment', t.id, t.administered_at,
 UNION ALL
 SELECT 'care', c.id, c.occurred_at,
        c.captured_at, c.original_effective, c.time_source, c.season,
-       c.struck, c.struck_at
+       c.struck, c.struck_at,
+       c.kind, s.year
   FROM care_events c
   LEFT JOIN lambings lg2 ON lg2.id = c.lambing
   LEFT JOIN lambs   lb2  ON lb2.id = c.lamb
+  LEFT JOIN seasons s    ON s.id = c.season
  WHERE lg2.ewe = ? OR lb2.birth_dam = ?
 
 -- `foster_events` HAS ONE `rearing_dam` AND AN OUTCOME — there is no `from_ewe`.
@@ -1048,12 +1154,14 @@ SELECT 'care', c.id, c.occurred_at,
 UNION ALL
 SELECT 'foster', f.id, f.effective_at,
        f.captured_at, f.original_effective, f.time_source, f.season,
-       f.struck, f.struck_at
+       f.struck, f.struck_at,
+       f.outcome, s.year
   FROM (SELECT fe.*,
                LAG(fe.rearing_dam) OVER (PARTITION BY fe.lamb
                                          ORDER BY fe.effective_at, fe.id) AS prev_dam,
                lb.birth_dam AS lamb_birth_dam
           FROM foster_events fe JOIN lambs lb ON lb.id = fe.lamb) f
+  LEFT JOIN seasons s ON s.id = f.season
  WHERE f.rearing_dam = ?
     OR f.prev_dam = ?
     OR (f.prev_dam IS NULL AND f.lamb_birth_dam = ?)
@@ -1061,14 +1169,20 @@ SELECT 'foster', f.id, f.effective_at,
 UNION ALL
 SELECT 'observed', o.id, o.occurred_at,
        o.captured_at, o.original_effective, o.time_source, o.season,
-       o.struck, o.struck_at
-  FROM ewe_observations o WHERE o.ewe = ?
+       o.struck, o.struck_at,
+       o.kind, s.year
+  FROM ewe_observations o LEFT JOIN seasons s ON s.id = o.season
+ WHERE o.ewe = ?
 
 UNION ALL
 SELECT 'penned', p.id, p.entered_at,
        p.captured_at, p.original_effective, p.time_source, p.season,
-       p.struck, p.struck_at
-  FROM pen_occupancies p WHERE p.ewe = ?
+       p.struck, p.struck_at,
+       pn.label, s.year
+  FROM pen_occupancies p
+  LEFT JOIN pens    pn ON pn.id = p.pen
+  LEFT JOIN seasons s  ON s.id = p.season
+ WHERE p.ewe = ?
 
 -- `notes.occurred_at` IS NOT `created_at`, AND THAT IS WHY R37 ADDED THE COLUMN.
 -- A note typed at 07:00 about something at 03:20 sorts on 03:20. `notes.season`
@@ -1076,8 +1190,10 @@ SELECT 'penned', p.id, p.entered_at,
 UNION ALL
 SELECT 'note', n.id, n.occurred_at,
        n.captured_at, n.original_effective, n.time_source, n.season,
-       n.struck, n.struck_at
-  FROM notes n WHERE n.ewe = ?
+       n.struck, n.struck_at,
+       n.body, s.year
+  FROM notes n LEFT JOIN seasons s ON s.id = n.season
+ WHERE n.ewe = ?
 
  ORDER BY at DESC;
 ''';
@@ -1104,6 +1220,8 @@ TimelineRow _toTimelineRow(QueryRow r) => TimelineRow(
     final int ms => Instant(ms),
     null => null,
   },
+  detail: r.readNullable<String>('detail'),
+  seasonYear: r.readNullable<int>('season_year'),
 );
 
 /// Element-wise, for the same reason [_sameList] is written out rather than

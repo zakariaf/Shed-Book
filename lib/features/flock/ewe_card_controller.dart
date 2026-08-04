@@ -21,6 +21,7 @@
 // controller, which `§4.4` rule 1 forbids outright.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
@@ -32,7 +33,8 @@ import 'package:shed_book/domain/ids.dart';
 /// repository method returning a type declared under `lib/features/` does not
 /// build. `FlockRow` already sits on the other side of that seam for the same
 /// reason, and the export is what makes the split invisible to a screen.
-export 'package:shed_book/data/flock_repository.dart' show TimelineKind, TimelineRow;
+export 'package:shed_book/data/flock_repository.dart'
+    show EweSummaryCounts, TimelineKind, TimelineRow;
 
 /// Her whole history, one statement, most recent first.
 ///
@@ -53,3 +55,108 @@ final AutoDisposeStreamProviderFamily<List<TimelineRow>, EweId> eweTimelineProvi
       await ref.watch(databaseProvider.future);
       yield* ref.read(flockRepositoryProvider).watchEweTimeline(eweId);
     });
+
+/// The four counts behind the summary line, straight off `ewe_summaries`.
+///
+/// **A SINGLE-ROW LOOKUP RATHER THAN A SECOND CONTENT STATEMENT** — `07 §1.2`
+/// permits exactly this beside the timeline, because the line *"must never wait
+/// for an aggregate"*.
+final AutoDisposeStreamProviderFamily<EweSummaryCounts?, EweId> eweSummaryProvider = StreamProvider
+    .autoDispose
+    .family<EweSummaryCounts?, EweId>((ref, EweId eweId) async* {
+      await ref.watch(databaseProvider.future);
+      yield* ref.read(flockRepositoryProvider).watchEweSummary(eweId);
+    });
+
+/// The four clauses **as numbers**. Nothing here formats, and nothing here reads
+/// a clock, a locale or a `Terminology` — that is the widget's half.
+///
+/// The split is deliberate: the arithmetic is testable without a widget tree and
+/// the wording is testable without arithmetic.
+@immutable
+final class EweSummaryFacts {
+  const EweSummaryFacts({
+    required this.seasonsRecorded,
+    required this.lambingsRecorded,
+    required this.assistedLambings,
+    required this.scoredLambings,
+    this.averageLitterSize,
+    this.lastObservationKind,
+    this.lastObservationYear,
+  });
+
+  final int seasonsRecorded;
+  final int lambingsRecorded;
+  final int assistedLambings;
+  final int scoredLambings;
+
+  /// **`null` MEANS NOT COMPUTABLE, AND IT IS NEVER `0.0`** (`05 §6.5`). A ewe
+  /// with one lambing and no lambs recorded yet is a common, transient state —
+  /// the row is created on screen entry (#11) — and `avg 0.0` would be the app
+  /// asserting something false about a live animal. The clause is dropped.
+  final double? averageLitterSize;
+
+  /// A `vocab_terms` key, e.g. `obs_prolapse`. **Resolved at the presentation
+  /// edge**, never here: `lib/features/` may reach `AppLocalizations`, and this
+  /// class is the arithmetic half.
+  final String? lastObservationKind;
+  final int? lastObservationYear;
+
+  /// `05 §6.7`: **coverage is ALWAYS reported when it is partial.** A blank ease
+  /// leaves both sides of the assisted count — reading it as *unassisted*
+  /// deflates the number and is the silent inference §12.4 forbids.
+  bool get assistedCoverageIsPartial => scoredLambings < lambingsRecorded;
+
+  /// `null` when no lambing carries an ease score at all — `notComputable`,
+  /// **not** `0`. The clause is absent rather than zero.
+  bool get assistedIsComputable => scoredLambings > 0;
+}
+
+/// The one place the arithmetic lives.
+///
+/// **`newestObservation` COMES FROM THE TIMELINE THE SCREEN IS ALREADY
+/// WATCHING**, not from a second statement and not from a new column.
+/// `ewe_summaries` stores `last_observation_season` — a season foreign key, not
+/// a kind — so the *"prolapsed 2025"* clause has no column behind it and adding
+/// one would be a migration.
+///
+/// Two consequences fall out of that column set, and they are not a conflict:
+///
+///   * the **Flock row** has only `last_observation_season`, so it honestly
+///     renders **three** clauses — which is what `indelible.md §7.4` draws;
+///   * the **card** has the timeline, so it renders **four** — which is what
+///     `§8` screen 2 draws.
+EweSummaryFacts eweSummaryFacts(
+  EweSummaryCounts? summary, {
+  ({String kind, int year})? newestObservation,
+}) {
+  if (summary == null) {
+    // **NOT A ROW OF ZEROES.** No row means nothing has been summarised yet, and
+    // every count here is *not recorded* rather than *none*. The widget prints
+    // "No seasons recorded"; a zeroed average would print `avg 0.0`.
+    return EweSummaryFacts(
+      seasonsRecorded: 0,
+      lambingsRecorded: 0,
+      assistedLambings: 0,
+      scoredLambings: 0,
+      lastObservationKind: newestObservation?.kind,
+      lastObservationYear: newestObservation?.year,
+    );
+  }
+
+  return EweSummaryFacts(
+    seasonsRecorded: summary.seasonsRecorded,
+    lambingsRecorded: summary.lambingsRecorded,
+    assistedLambings: summary.assistedLambings,
+    scoredLambings: summary.scoredLambings,
+    // **DIVIDED BY LAMBINGS, NOT BY SEASONS** (`05 §6.5`: litter size is
+    // `lambsBorn ÷ ewesLambed`, aggregated by birth dam). A ewe with three
+    // recorded seasons and two lambings has an average over 2 — dividing by
+    // seasons deflates it, and there is no note on the card saying so.
+    averageLitterSize: summary.lambingsRecorded == 0
+        ? null
+        : summary.lambsBorn / summary.lambingsRecorded,
+    lastObservationKind: newestObservation?.kind,
+    lastObservationYear: newestObservation?.year,
+  );
+}

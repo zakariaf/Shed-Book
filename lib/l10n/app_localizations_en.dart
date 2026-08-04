@@ -998,6 +998,56 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String eweCardTitle({required String singularTerm, required String tag}) {
+    return '$singularTerm $tag';
+  }
+
+  @override
+  String eweCardSummarySeasons({required num count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seasons',
+      one: '1 season',
+      zero: 'No seasons recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eweCardSummaryAverage({required String average}) {
+    return 'avg $average';
+  }
+
+  @override
+  String eweCardSummaryAssisted({required num count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'assisted $count times',
+      two: 'assisted twice',
+      one: 'assisted once',
+      zero: 'never assisted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eweCardSummaryAssistedCoverage({required num scored}) {
+    return 'of $scored scored';
+  }
+
+  @override
+  String eweCardSummaryObservation({required String observation, required String year}) {
+    return '$observation $year';
+  }
+
+  @override
+  String eweCardSummarySemantics({required String clauses}) {
+    return '$clauses';
+  }
+
+  @override
   String get eweCardEmpty => 'Nothing recorded yet.';
 
   @override

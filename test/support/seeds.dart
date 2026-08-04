@@ -525,3 +525,46 @@ Future<FosterEventId> seedFosterEvent(
       );
   return FosterEventId(id);
 }
+
+/// One `ewe_summaries` row — the counts the card's summary line is assembled
+/// from.
+///
+/// **COUNTS ONLY. THERE IS NOWHERE TO PUT A RENDERED LINE AND THAT IS THE
+/// POINT** (`03 §5.13`): a stored string freezes the terminology, the locale and
+/// the units at write time and is wrong the moment a record is corrected.
+///
+/// It is a **cache** — rebuildable, excluded from the backup, and normally
+/// written by the repositories inside the transactions that invalidate it
+/// (N27-T03). This helper exists so the wording can be tested at every count
+/// combination without driving nine writes to reach each one.
+Future<void> seedEweSummary(
+  AppDatabase db,
+  EweId ewe, {
+  required int seasons,
+  required int lambings,
+  required int lambsBorn,
+  required int assisted,
+  required int scored,
+  int? lambsBornAlive,
+  SeasonId? lastObservationSeason,
+}) async {
+  await db
+      .into(db.eweSummaries)
+      .insertOnConflictUpdate(
+        EweSummariesCompanion.insert(
+          ewe: Value<int>(ewe.value),
+          seasonsRecorded: seasons,
+          lambingsRecorded: lambings,
+          lambsBorn: lambsBorn,
+          // **DEFAULTS TO `lambsBorn`, NOT TO ZERO.** A seeder whose born-alive
+          // count silently trailed its born count would make every card in the
+          // suite look like a disaster, and `?? 0` near a count is the shape
+          // decision #58 exists to refuse.
+          lambsBornAlive: lambsBornAlive ?? lambsBorn,
+          assistedLambings: assisted,
+          scoredLambings: scored,
+          lastObservationSeason: Value<int?>(lastObservationSeason?.value),
+          rebuiltAt: appNow(),
+        ),
+      );
+}

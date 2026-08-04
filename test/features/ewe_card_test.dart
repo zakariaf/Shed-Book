@@ -19,7 +19,14 @@ import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
+import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
+import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/domain/terminology/animal_class.dart';
+import 'package:shed_book/domain/terminology/term_label.dart';
+import 'package:shed_book/domain/terminology/terminology.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:drift/drift.dart' show QueryRow;
 import 'package:flutter/material.dart';
 
 import '../support/harness.dart';
@@ -424,6 +431,221 @@ void main() {
     }
   });
 
+  testWidgets(
+    'the summary line is assembled in Dart from ewe_summaries counts, not read as a stored string',
+    (WidgetTester tester) async {
+      // **THE ANCHOR, AND IT IS THREE CLAIMS.** The line renders from counts; a
+      // stored string could not re-render under a different terminology without
+      // a write; and there is no column to store one in.
+      final AppDatabase db = testDatabase();
+      await seedSeason(db);
+      final EweId ewe = await seedEwe(db, tag: '412');
+      await seedEweSummary(db, ewe, seasons: 3, lambings: 3, lambsBorn: 6, assisted: 2, scored: 3);
+
+      await tester.pumpApp(
+        EweCardScreen(eweId: ewe, tag: '412'),
+        db: db,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('3 seasons · avg 2.0 · assisted twice'), findsOneWidget);
+      expect(find.text('ewe 412'), findsOneWidget);
+
+      // **NO TEXT COLUMN ON `ewe_summaries`.** Asserted against the live schema
+      // rather than against the table class, so nobody can add one and make the
+      // clause above easy.
+      final List<QueryRow> columns = await db
+          .customSelect("SELECT name, type FROM pragma_table_info('ewe_summaries')")
+          .get();
+      expect(
+        columns.where((QueryRow c) => c.read<String>('type').toUpperCase().contains('TEXT')),
+        isEmpty,
+        reason: '03 §5.13: counts only — never a percentage, never a formatted string',
+      );
+
+      await tester.closeApp();
+    },
+  );
+
+  testWidgets('renaming the animal changes the title with no database write', (
+    WidgetTester tester,
+  ) async {
+    // **WHAT A STORED STRING STRUCTURALLY CANNOT DO.** The same seeded row, a
+    // different overlay, a different heading — and the row is untouched, which
+    // the count assertion afterwards proves.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedEweSummary(db, ewe, seasons: 1, lambings: 1, lambsBorn: 2, assisted: 0, scored: 1);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+      overrides: <Override>[
+        terminologyProvider.overrideWithValue(
+          const Terminology(<AnimalClass, TermLabel>{}, <AnimalClass, TermLabel>{
+            AnimalClass.ewe: TermLabel('gimmer', 'gimmers'),
+          }),
+        ),
+      ],
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('gimmer 412'), findsOneWidget);
+    expect(find.text('ewe 412'), findsNothing);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a ewe with no summary row reads No seasons recorded and does not throw', (
+    WidgetTester tester,
+  ) async {
+    // `watchSingleOrNull` returning null — every ewe, for the first ten seconds
+    // of her life, because the row is created on screen entry (#11) and T03 is
+    // what starts writing summaries.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('No seasons recorded'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.closeApp();
+  });
+
+  test('the average divides by lambings recorded, not by seasons recorded', () {
+    // `05 §6.5`: litter size is lambs born over ewes lambed, aggregated by birth
+    // dam. Three seasons, two lambings, four lambs is `avg 2.0` — dividing by
+    // seasons gives 1.3 and there is no note on the card saying so.
+    final EweSummaryFacts facts = eweSummaryFacts(
+      const EweSummaryCounts(
+        seasonsRecorded: 3,
+        lambingsRecorded: 2,
+        lambsBorn: 4,
+        assistedLambings: 0,
+        scoredLambings: 2,
+      ),
+    );
+    expect(facts.averageLitterSize, 2.0);
+  });
+
+  test('a lambing with no lambs yet has no average — notComputable, never 0.0', () {
+    // `05 §6.5`. The row is created on screen entry, so a ewe with one lambing
+    // and no lambs is a live, ordinary state — and `avg 0.0` would be the app
+    // asserting something false about her.
+    expect(
+      eweSummaryFacts(
+        const EweSummaryCounts(
+          seasonsRecorded: 1,
+          lambingsRecorded: 0,
+          lambsBorn: 0,
+          assistedLambings: 0,
+          scoredLambings: 0,
+        ),
+      ).averageLitterSize,
+      isNull,
+    );
+  });
+
+  test('partial ease coverage is stated, and an unscored lambing is not unassisted', () {
+    // `05 §6.7`, both halves. Three lambings, two scored, one assisted: the
+    // count is over the SCORED ones and the coverage says so. Reading the blank
+    // ease as unassisted would make it one-in-three and nothing on screen would
+    // say the third was never scored.
+    final EweSummaryFacts facts = eweSummaryFacts(
+      const EweSummaryCounts(
+        seasonsRecorded: 1,
+        lambingsRecorded: 3,
+        lambsBorn: 5,
+        assistedLambings: 1,
+        scoredLambings: 2,
+      ),
+    );
+    expect(facts.assistedCoverageIsPartial, isTrue);
+    expect(facts.assistedIsComputable, isTrue);
+    expect(facts.scoredLambings, 2);
+  });
+
+  test('no lambing has an ease score, so the assisted clause is absent rather than zero', () {
+    expect(
+      eweSummaryFacts(
+        const EweSummaryCounts(
+          seasonsRecorded: 1,
+          lambingsRecorded: 2,
+          lambsBorn: 3,
+          assistedLambings: 0,
+          scoredLambings: 0,
+        ),
+      ).assistedIsComputable,
+      isFalse,
+    );
+  });
+
+  testWidgets('the summary line is one semantics node and the title is a level-1 heading', (
+    WidgetTester tester,
+  ) async {
+    // `10 §3.4`. Four sibling `Text`s is four rotor stops in front of the one
+    // line the whole screen exists to deliver — and the middle dot a sighted
+    // reader uses as a separator is swallowed by a screen reader, so the spoken
+    // form joins on a full stop instead.
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedEweSummary(db, ewe, seasons: 3, lambings: 3, lambsBorn: 6, assisted: 2, scored: 3);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('3 seasons. avg 2.0. assisted twice'), findsOneWidget);
+    expect(
+      tester.getSemantics(find.text('ewe 412')).headingLevel,
+      1,
+      reason: 'the tag is the page heading — one flick to the retention feature',
+    );
+
+    handle.dispose();
+    await tester.closeApp();
+  });
+
+  testWidgets('the line wraps rather than truncating at 200% text with bold', (
+    WidgetTester tester,
+  ) async {
+    // `10 §5`: a user's own words are never ellipsised, and the whole line is
+    // the payload. The matrix covers the overflow; this fails with a readable
+    // message about the reason.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedEweSummary(db, ewe, seasons: 3, lambings: 3, lambsBorn: 6, assisted: 2, scored: 3);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+      device: Device.small,
+      textScale: 2.0,
+      boldText: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    for (final Text t in tester.widgetList<Text>(find.byType(Text))) {
+      expect(t.maxLines, isNull, reason: 'a user\'s own words are never truncated: "${t.data}"');
+      expect(t.overflow, isNot(TextOverflow.ellipsis), reason: t.data ?? '');
+    }
+
+    await tester.closeApp();
+  });
+
   testWidgets('popping the card leaves eweTimelineProvider with no listeners', (
     WidgetTester tester,
   ) async {
@@ -435,7 +657,10 @@ void main() {
     final EweId ewe = await seedEwe(db, tag: '412');
     await seedLambing(db, ewe);
 
-    await tester.pumpApp(EweCardScreen(eweId: ewe), db: db);
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('ewe_card.timeline')), findsOneWidget);
 

@@ -38,6 +38,31 @@ final class Terminology {
     }
     return _defaults[c]!;
   }
+
+  /// The shepherd's override for [c], or `null` if they have not set one.
+  ///
+  /// **THE PRESENTATION-EDGE FORM OF [labelFor], AND IT EXISTS BECAUSE THE
+  /// DEFAULTS ARE NOT WIRED YET.** `terminologyProvider` is
+  /// `const Terminology({}, {})` until N29, so `labelFor` ends in
+  /// `_defaults[c]!` and **throws** — `lambing_entry_screen.dart` records the
+  /// same trap and works around it by reading the `term*Singular` ARB messages
+  /// directly. That workaround needs a way to ask *"has the shepherd renamed
+  /// this?"* without falling through to a map that is empty, and this is it.
+  ///
+  /// It applies the same both-halves rule as [labelFor]: a row with a blank
+  /// plural is ignored rather than stored-and-rendered, because **a plural is
+  /// never derived by appending an s** (`10 §8.5`) — the shepherd typed one
+  /// word and guessing the other is safety rule 4.
+  ///
+  /// N29 fills `_defaults` from the ARB, after which every caller can go back to
+  /// [labelFor]. Until then this is the only non-throwing route.
+  TermLabel? overrideFor(AnimalClass c) {
+    final TermLabel? o = _overrides[c];
+    if (o != null && o.singular.trim().isNotEmpty && o.plural.trim().isNotEmpty) {
+      return o;
+    }
+    return null;
+  }
 }
 
 /// The outcome of checking one proposed override.

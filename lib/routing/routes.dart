@@ -164,9 +164,18 @@ abstract final class Routes {
 
   /// N27-T01's screen — the one `02 §8.1` printed as the shape every other
   /// helper copies, which is why it is the last of them to compile.
-  static Future<void> eweCard(BuildContext context, EweId id) => Navigator.of(
-    context,
-  ).push(route(RouteNames.eweCard, (BuildContext _) => EweCardScreen(eweId: id)));
+  ///
+  /// **THE TAG TRAVELS WITH THE ID, AND THAT IS A DEVIATION FROM §8.1'S PRINTED
+  /// BODY, RECORDED HERE.** Every other helper takes an id alone. This one also
+  /// takes the tag, because the tag is what the shepherd tapped to get here and
+  /// the card's heading is the first thing on the page — re-reading it through a
+  /// second statement would put a frame between opening the card and knowing
+  /// whose it is. It is not a second source of truth: nothing is written from
+  /// it, and the summary line's counts still come from the database.
+  static Future<void> eweCard(BuildContext context, EweId id, {required String tag}) =>
+      Navigator.of(
+        context,
+      ).push(route(RouteNames.eweCard, (BuildContext _) => EweCardScreen(eweId: id, tag: tag)));
 
   /// **No argument.** The Export screen is scoped to the current season, which
   /// it reads for itself — passing a season id would be a second answer to a

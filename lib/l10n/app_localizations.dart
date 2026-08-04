@@ -1706,6 +1706,48 @@ abstract class AppLocalizations {
   /// **'STRUCK — {count}'**
   String flockStruckDivider({required int count});
 
+  /// The card's headingLevel 1 title. {singularTerm} is a USER-EDITABLE noun from the terminology overlay (ewe/gimmer/theave/...). Never derive the plural by appending an s (10 §8.5) — both forms come from TermLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{singularTerm} {tag}'**
+  String eweCardTitle({required String singularTerm, required String tag});
+
+  /// Clause 1 of the ewe card summary line (spec §7.7). A count of seasons in which this animal has a recorded lambing. Never a judgement. The =0 case is what a ewe created ten seconds ago reads, because ewe_summaries has no row for her yet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No seasons recorded} =1{1 season} other{{count} seasons}}'**
+  String eweCardSummarySeasons({required num count});
+
+  /// Clause 2. Average litter size for THIS animal: lambs born divided by her recorded lambings (05 §6.5) — never divided by seasons. {average} arrives pre-formatted to one decimal by lib/core/ui/formatters.dart, never formatted inside this message (10 §8.4 rule 4). Omitted entirely when not computable; never rendered as 0.0.
+  ///
+  /// In en, this message translates to:
+  /// **'avg {average}'**
+  String eweCardSummaryAverage({required String average});
+
+  /// Clause 3. Lambings with a recorded ease of 2 or more (05 §6.7). The =1 and =2 cases are explicit because 'assisted 2 times' is not English. Unscored lambings are excluded from both sides and are named by eweCardSummaryAssistedCoverage; a blank ease is NEVER read as unassisted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{never assisted} =1{assisted once} =2{assisted twice} other{assisted {count} times}}'**
+  String eweCardSummaryAssisted({required num count});
+
+  /// Appended to clause 3 only when some lambings have no ease score. 05 §6.7: coverage is always reported when it is partial, because a blank ease read as unassisted deflates the number.
+  ///
+  /// In en, this message translates to:
+  /// **'of {scored} scored'**
+  String eweCardSummaryAssistedCoverage({required num scored});
+
+  /// Clause 4. The most recent recorded observation and the year of the season it was recorded in — e.g. 'prolapsed 2025'. {observation} is the USER-EDITABLE vocab_terms label for an ewe_observation key; never hard-code it and never translate it. It states WHAT WAS OBSERVED, never a consequence: 'prolapsed 2025' is a record, 'prolapse risk' is a diagnosis (§12.2).
+  ///
+  /// In en, this message translates to:
+  /// **'{observation} {year}'**
+  String eweCardSummaryObservation({required String observation, required String year});
+
+  /// The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).
+  ///
+  /// In en, this message translates to:
+  /// **'{clauses}'**
+  String eweCardSummarySemantics({required String clauses});
+
   /// 07 §4.2's empty state. A new animal with no history is a normal state, not an error — the shepherd added her a minute ago. The noun is deliberately absent: the tag is already the page heading.
   ///
   /// In en, this message translates to:

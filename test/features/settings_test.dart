@@ -13,7 +13,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'dart:io';
 
 import 'package:shed_book/core/db/uid.dart';
-import 'package:shed_book/core/log/local_log.dart' show kAppVersion;
+import 'package:shed_book/core/log/local_log.dart' show LocalLog, kAppVersion;
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/time/app_clock.dart';
@@ -521,6 +521,67 @@ void main() {
     expect(tester.widget<Text>(version).data, contains(kAppVersion));
 
     await tester.closeApp();
+  });
+
+  testWidgets('the integrity check reports and repairs nothing', (WidgetTester tester) async {
+    // **AN APP THAT SILENTLY REPAIRED A RECORDS FILE WOULD BE THE ONE THING
+    // WORSE THAN ONE THAT COULD NOT READ IT** — the shepherd would never learn
+    // which night stopped being true. The row reports; the honest next act is
+    // the snapshot beside it.
+    //
+    // It is also **not run on build**: a full scan every time Settings opens
+    // would make the slowest possible answer the default one.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe);
+
+    final int rowsBefore = (await db.select(db.lambings).get()).length;
+
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('settings.diagnostics.result')),
+      findsNothing,
+      reason: 'the check must not run until it is asked for',
+    );
+
+    final Finder check = find.byKey(const Key('settings.diagnostics.check'));
+    await tester.scrollUntilVisible(check, 200);
+    await tester.pumpAndSettle();
+    await tester.tap(check);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('settings.diagnostics.result')), findsOneWidget);
+    expect(find.text('The records file reads correctly.'), findsOneWidget);
+    expect(
+      (await db.select(db.lambings).get()).length,
+      rowsBefore,
+      reason: 'the check wrote something — it must only report',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('the log preview is what is on disk, and nothing re-redacts it', () {
+    // **REDACTION HAPPENS ON THE WAY IN** (`13 §8.4`). A read that re-ran
+    // `Redact` would be a second answer to *what is a tag number*, and the two
+    // would disagree the first time one of them was improved — so the preview is
+    // a read and the source text says so.
+    final String src = File(
+      'lib/features/settings/widgets/diagnostics_section.dart',
+    ).readAsStringSync().split('\n').where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+    expect(src, isNot(contains('Redact')));
+    expect(src, contains('recentRecords'));
+  });
+
+  test('recentRecords is bounded, newest last, and never throws on an unattached log', () {
+    // A diagnostics screen that crashes is the one screen that cannot. Before
+    // `attachTo` there is no file, and the answer is the ring buffer rather than
+    // an exception.
+    expect(LocalLog.instance.recentRecords(limit: 5), isA<List<String>>());
+    expect(LocalLog.instance.recentRecords(limit: 5).length, lessThanOrEqualTo(5));
   });
 
   testWidgets('the screen never renders a spinner, in any state', (WidgetTester tester) async {

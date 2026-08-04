@@ -1218,6 +1218,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsDiagnosticsShareSnapshot => 'SAVE A COPY OF THE FILE';
 
   @override
+  String settingsDiagnosticsRecent({required num count}) {
+    return 'Last $count events';
+  }
+
+  @override
+  String get settingsDiagnosticsNoLog => 'Nothing recorded in this session yet.';
+
+  @override
+  String get settingsDiagnosticsIntact => 'The records file reads correctly.';
+
+  @override
+  String get settingsDiagnosticsDamaged =>
+      'The records file reported a problem. Save a copy of it before doing anything else.';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

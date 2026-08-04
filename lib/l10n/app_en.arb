@@ -1735,6 +1735,23 @@
   "@settingsDiagnosticsShareSnapshot": {
     "description": "Shares a VACUUM INTO snapshot of the records file. The snapshot, never the backup — 09 §5 keeps those two words apart because swapping them is how somebody restores the wrong thing."
   },
+  "settingsDiagnosticsRecent": "Last {count} events",
+  "@settingsDiagnosticsRecent": {
+    "description": "The heading over the log preview. 'Events', because that is what the log holds — 13 §8.4 keeps every value the shepherd typed out of it, so what is left is the shape of what happened and never its content.",
+    "placeholders": {"count": {"type": "num"}}
+  },
+  "settingsDiagnosticsNoLog": "Nothing recorded in this session yet.",
+  "@settingsDiagnosticsNoLog": {
+    "description": "The log is empty or could not be read. A normal state on a fresh launch, and never an error — there is nothing wrong with a session in which nothing has gone wrong."
+  },
+  "settingsDiagnosticsIntact": "The records file reads correctly.",
+  "@settingsDiagnosticsIntact": {
+    "description": "SQLite's own integrity check passed. It says what was checked rather than 'OK', because a shepherd reading this is asking a specific question."
+  },
+  "settingsDiagnosticsDamaged": "The records file reported a problem. Save a copy of it before doing anything else.",
+  "@settingsDiagnosticsDamaged": {
+    "description": "The integrity check failed. It reports and repairs NOTHING — an app that silently fixed a records file would be the one thing worse than one that could not read it — and the advice is the only action that cannot make things worse."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

@@ -2004,6 +2004,30 @@ abstract class AppLocalizations {
   /// **'SAVE A COPY OF THE FILE'**
   String get settingsDiagnosticsShareSnapshot;
 
+  /// The heading over the log preview. 'Events', because that is what the log holds — 13 §8.4 keeps every value the shepherd typed out of it, so what is left is the shape of what happened and never its content.
+  ///
+  /// In en, this message translates to:
+  /// **'Last {count} events'**
+  String settingsDiagnosticsRecent({required num count});
+
+  /// The log is empty or could not be read. A normal state on a fresh launch, and never an error — there is nothing wrong with a session in which nothing has gone wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recorded in this session yet.'**
+  String get settingsDiagnosticsNoLog;
+
+  /// SQLite's own integrity check passed. It says what was checked rather than 'OK', because a shepherd reading this is asking a specific question.
+  ///
+  /// In en, this message translates to:
+  /// **'The records file reads correctly.'**
+  String get settingsDiagnosticsIntact;
+
+  /// The integrity check failed. It reports and repairs NOTHING — an app that silently fixed a records file would be the one thing worse than one that could not read it — and the advice is the only action that cannot make things worse.
+  ///
+  /// In en, this message translates to:
+  /// **'The records file reported a problem. Save a copy of it before doing anything else.'**
+  String get settingsDiagnosticsDamaged;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

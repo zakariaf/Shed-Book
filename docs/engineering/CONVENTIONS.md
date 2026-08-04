@@ -251,7 +251,17 @@ The corresponding `_mayImport` entries:
 ```
 
 `lib/data/** → lib/domain/validation/**` is a *path-pair* ban, not a layer ban; it is its own rule row
-`layer.data_no_validation`.
+`layer.data_no_validation`, `db.entitlement_revoke` (N30-T02 — `unlocked: Value(false)` under
+`lib/data/`; an entitlement is never revoked, `11 §12.2`) and `ui.monetization_surface` (N30-T05).
+
+> **`ui.monetization_surface` matches the PROVIDERS, not `ShedBanner`, and the first draft had it the
+> other way round.** `11 §12.1` describes the surface as the banner on a shed screen — but `ShedBanner`
+> is the **shared** component and Quick Entry's own export banner is built from it legitimately
+> (`12 §6.4` gives that state its own matrix variant), so banning the component would have banned the
+> export prompt, which is a safety feature. What identifies monetization is the **data**:
+> `entitlementProvider`, `purchaseServiceProvider`, `unlockControllerProvider`. Scoped to
+> `lib/features/quick_entry/`, and a screen that merely *watches* one is the shape that ships — it
+> renders nothing today and flashes a paywall on the first slow frame after somebody adds a row to it.
 
 ---
 
@@ -896,9 +906,20 @@ Rows this file adds that no document had as a row: `ui.spinner`
 (`CircularProgressIndicator` under `lib/features/`), `ui.show_dialog` (`showDialog(` outside the two
 allowlisted destructive files), `copy.currency_literal` (a currency symbol followed by a digit under
 `lib/` or `assets/`), `db.save_verb` (`save\w*\(` under `lib/data/`),
-`layer.data_no_validation`.
+`layer.data_no_validation`, `db.entitlement_revoke` (N30-T02 — `unlocked: Value(false)` under
+`lib/data/`; an entitlement is never revoked, `11 §12.2`) and `ui.monetization_surface` (N30-T05).
 
-`tool/policy_allowlist.txt`'s `[exempt]` section has exactly **four** lines on day one (R56):
+> **`ui.monetization_surface` matches the PROVIDERS, not `ShedBanner`, and the first draft had it the
+> other way round.** `11 §12.1` describes the surface as the banner on a shed screen — but `ShedBanner`
+> is the **shared** component and Quick Entry's own export banner is built from it legitimately
+> (`12 §6.4` gives that state its own matrix variant), so banning the component would have banned the
+> export prompt, which is a safety feature. What identifies monetization is the **data**:
+> `entitlementProvider`, `purchaseServiceProvider`, `unlockControllerProvider`. Scoped to
+> `lib/features/quick_entry/`, and a screen that merely *watches* one is the shape that ships — it
+> renders nothing today and flashes a paywall on the first slow frame after somebody adds a row to it.
+
+`tool/policy_allowlist.txt`'s `[exempt]` section had exactly **four** lines on day one and has **five**
+since 2026-08-04 (R56, amended; decision-record §7.0d):
 
 ```
 lib/core/time/app_clock.dart       :: time.dart_clock

@@ -2076,6 +2076,36 @@ abstract class AppLocalizations {
   /// **'RESTORE PURCHASES'**
   String get unlockRestore;
 
+  /// 07 §19.2's row, verbatim. It states FACTS — what this version is, what it covers, and the two counts — and asks for nothing. It renders identically at 3 ewes and at 22 (#92: always present, in the same pixels), so a shepherd never learns that its appearance means they are near a line. NO PRICE IN THIS MESSAGE: the price is the store's own localised string and arrives through the action label, never as a literal (copy.currency_literal).
+  ///
+  /// In en, this message translates to:
+  /// **'Free version · covers this season · {ewes} of {cap} {term}'**
+  String upgradeRowFree({required num ewes, required num cap, required String term});
+
+  /// The row's primary action. 'Unlock', never purchase, buy or subscribe (CONVENTIONS §5.1) — one non-consumable, bought once, and the word says what the shepherd gets rather than what they do.
+  ///
+  /// In en, this message translates to:
+  /// **'UNLOCK'**
+  String get upgradeRowUnlock;
+
+  /// The spoken form. It names the app because a screen reader user arriving on this row from the rotor has no visual context for a bare 'unlock'.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Shed Book'**
+  String get upgradeRowUnlockSemantics;
+
+  /// 11 §7.3's RefusalReason.eweCap message. The cap is a PLACEHOLDER so the number is never typed twice — kFreeEweCap is the source, and a literal here would go stale the day it moves. It names no price and carries no currency symbol.
+  ///
+  /// In en, this message translates to:
+  /// **'The free notebook holds {cap} {term} in a season. Unlock to add more.'**
+  String capRefusedEweCap({required num cap, required String term});
+
+  /// 11 §7.3's RefusalReason.secondSeason message. Season-primary: when both caps are over, this is the one that speaks (§7.0 ruling 8).
+  ///
+  /// In en, this message translates to:
+  /// **'The free notebook holds one season. Unlock to start another.'**
+  String get capRefusedSecondSeason;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:
@@ -2123,6 +2153,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Left-handed'**
   String get settingsSectionLeftHanded;
+
+  /// 07 §14.3 section 9. 'Unlock', never Purchase, Buy, Subscribe or Upgrade (CONVENTIONS §5.1) — one non-consumable, bought once, and the word names what the shepherd gets.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get settingsSectionUnlock;
 
   /// 07 §14.3 section 10. A copy of the records file and the app's own log — there is no telemetry and no analytics in this app, so this is the only way a problem travels.
   ///

@@ -15,6 +15,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/ui/feedback.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -71,7 +72,13 @@ class EweCardScreen extends ConsumerWidget {
             // Not reachable from this card — nothing here is a gated verb — and
             // stated rather than assumed, because `showCapRow` carries the guard
             // that would matter if one ever were.
-            showCapRow(context, reason, onShedScreen: false);
+            showCapRow(
+              context,
+              reason,
+              onShedScreen: false,
+              now: appNow(),
+              copyFor: (RefusalReason r) => capRefusalCopy(context, ref, r),
+            );
         }
       }
     });

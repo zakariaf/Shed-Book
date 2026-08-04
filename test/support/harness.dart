@@ -82,6 +82,7 @@ import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'fake_purchase_service.dart';
 import 'fake_share_service.dart';
 import 'seeds.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -570,6 +571,7 @@ ProviderContainer shedContainer(
   AppDatabase db, {
   List<Override> overrides = const <Override>[],
   FakeShareService? share,
+  FakePurchaseService? purchases,
 }) {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
@@ -583,6 +585,19 @@ ProviderContainer shedContainer(
       // rather than as an unmocked seam. §17's warning applies in reverse here:
       // a parameter that overrides nothing is worse than no parameter.
       shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
+      // **N30-T01'S LEDGER LINE, CROSSED OFF AT N30-T05 — AND ALWAYS OVERRIDDEN,
+      // EVEN WHEN THE TEST PASSES NOTHING.** The real `PurchaseService` reaches
+      // `InAppPurchase.instance` and bounds its calls at ten seconds; under
+      // `flutter_test` the platform channel never answers, so the timer is still
+      // pending when the test body ends and the binding fails with *"A Timer is
+      // still pending"* — naming the ticker, or the screen, or whatever ran
+      // next. `settings_test.dart` failed exactly that way the moment the Unlock
+      // section started calling `openSection()` on mount.
+      //
+      // A fake that must be asked for is a fake somebody forgets on the
+      // thirteenth test, and this one is also the tripwire for #90: its `calls`
+      // list is how a shed screen quietly touching the store is caught.
+      purchaseServiceProvider.overrideWithValue(purchases ?? FakePurchaseService()),
       // N21-T07. **A REAL `MediaStore` WITH INJECTED RESOLVERS**, not a fake —
       // `12 §4.1`'s *a fake is a real implementation* taken literally, and the
       // shape `media_store_test.dart` already uses. The `path_provider` method

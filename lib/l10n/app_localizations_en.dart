@@ -1258,6 +1258,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlockRestore => 'RESTORE PURCHASES';
 
   @override
+  String upgradeRowFree({required num ewes, required num cap, required String term}) {
+    return 'Free version · covers this season · $ewes of $cap $term';
+  }
+
+  @override
+  String get upgradeRowUnlock => 'UNLOCK';
+
+  @override
+  String get upgradeRowUnlockSemantics => 'Unlock Shed Book';
+
+  @override
+  String capRefusedEweCap({required num cap, required String term}) {
+    return 'The free notebook holds $cap $term in a season. Unlock to add more.';
+  }
+
+  @override
+  String get capRefusedSecondSeason =>
+      'The free notebook holds one season. Unlock to start another.';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override
@@ -1280,6 +1300,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSectionLeftHanded => 'Left-handed';
+
+  @override
+  String get settingsSectionUnlock => 'Unlock';
 
   @override
   String get settingsSectionDiagnostics => 'Diagnostics';

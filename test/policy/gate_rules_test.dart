@@ -198,6 +198,14 @@ final Map<String, Planted> firesOn = <String, Planted>{
   // asked, so *"the store did not confirm"* is the normal case, and an app that
   // downgraded on it would take the unlock away from a shepherd in a barn at
   // 03:20 for a network they never had.
+  // **THE `firesOn` ENTRY AS WELL AS THE DESIGN GROUP'S.** The two inventories
+  // ask different questions — *does this design row have a planting* and *has
+  // every rule in the table been seen to fire* — and a rule proved in one but
+  // not the other is a rule nobody has watched fail.
+  'ui.monetization_surface': _at(
+    'lib/features/quick_entry/quick_entry_screen.dart',
+    'final u = ref.watch(entitlementProvider);',
+  ),
   'db.entitlement_revoke': _at(
     'lib/data/entitlement_repository.dart',
     'final c = EntitlementsCompanion(unlocked: const Value<bool>(false));',
@@ -1144,20 +1152,27 @@ http             # via timezone AND via package_info_plus. Two regular edges.
       'ui.show_dialog': 'void f() => showDialog(context: c, builder: b);',
     };
 
-    /// Two rows are scoped narrower than `lib/` and need their own path.
+    /// The rows scoped narrower than `lib/`, each needing its own path.
     const Map<String, String> scopedPath = <String, String>{
       'token.color_scheme_read': 'lib/features/flock/flock_screen.dart',
       'token.color_scheme_read_ui': 'lib/core/ui/components/shed_pen_tile.dart',
       'theme.deprecated_scheme_role': 'lib/core/ui/theme.dart',
       'ui.spinner': 'lib/features/flock/flock_screen.dart',
+      // **SCOPED TO THE 3AM SCREEN, WHICH IS THE WHOLE RULE.** #90: nothing
+      // monetization-related renders there at any entitlement state — and a
+      // screen that merely WATCHES the entitlement is the shape that ships,
+      // because it renders nothing today and flashes a paywall on the first slow
+      // frame after somebody adds a row to it.
+      'ui.monetization_surface': 'lib/features/quick_entry/quick_entry_screen.dart',
     };
 
-    /// The body each narrowly-scoped row needs, since the three do not share one.
+    /// The body each narrowly-scoped row needs, since they do not share one.
     const Map<String, String> scopedBody = <String, String>{
       'token.color_scheme_read': 'final c = Theme.of(context).colorScheme;',
       'token.color_scheme_read_ui': 'final c = Theme.of(context).colorScheme;',
       'theme.deprecated_scheme_role': 'const s = ColorScheme(background: c);',
       'ui.spinner': 'Widget b() => CircularProgressIndicator();',
+      'ui.monetization_surface': 'final u = ref.watch(entitlementProvider);',
     };
 
     test('design.raw_hex, design.magic_size, design.banned_gesture, design.snackbar, '

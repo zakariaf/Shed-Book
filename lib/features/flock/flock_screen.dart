@@ -13,6 +13,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_corner_slab.dart';
@@ -32,6 +33,8 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
 import 'package:shed_book/features/flock/widgets/add_ewe_sheet.dart';
 import 'package:shed_book/features/flock/widgets/flock_filter_line.dart';
+import 'package:shed_book/features/flock/widgets/upgrade_row.dart';
+import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class FlockScreen extends ConsumerWidget {
@@ -72,7 +75,13 @@ class FlockScreen extends ConsumerWidget {
             // `onShedScreen: false` because Flock is not one of the five. It is
             // stated rather than assumed: the guard lives in `showCapRow` so
             // that the thirteenth call site cannot forget it.
-            showCapRow(context, reason, onShedScreen: false);
+            showCapRow(
+              context,
+              reason,
+              onShedScreen: false,
+              now: appNow(),
+              copyFor: (RefusalReason r) => capRefusalCopy(context, ref, r),
+            );
         }
       }
     });
@@ -106,6 +115,21 @@ class FlockScreen extends ConsumerWidget {
                   // The grid does not move while it waits (`indelible.md §3.6`).
                   null => SizedBox(height: t.tapMin),
                 },
+                // **UPGRADE ROW 1, PINNED TO THE TOP** (`07 §19.2`), above the list
+                // and outside the scroll — a row that scrolled away would be
+                // present only sometimes, and #92's whole point is that it is
+                // present always, in the same pixels, at 3 ewes or at 15.
+                //
+                // **THE FLOCK SCREEN IS NOT ONE OF THE FIVE SHED SCREENS**, which is
+                // why the row is legal here at all. The widget carries its own
+                // quiet-hours and entitlement guards regardless.
+                UpgradeRow(
+                  eweCount: switch (rows) {
+                    AsyncData<List<FlockRow>>(value: final List<FlockRow> l) => l.length,
+                    _ => 0,
+                  },
+                  onUnlock: () => Routes.settings(context).ignore(),
+                ),
                 Expanded(child: _body(context, l10n, filters, rows)),
               ],
             ),

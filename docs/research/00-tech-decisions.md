@@ -525,6 +525,48 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 19 | Does the whole remaining backlog ship as one release? — **ruled 2026-08-03** | **No. Two releases: `v1.0.0` before 1 February 2027, `v1.1.0` on 1 June 2027.** Twenty-six of ninety remaining tasks move; nothing is cut. Long form in §7.0c (**P15**); scope in [`docs/RELEASE-SCOPE.md`](../RELEASE-SCOPE.md). | `13 §11`'s freeze is the binding constraint, not effort: 1 Feb – 30 Apr is the only time of year the app is used, so a release that misses 31 January 2027 slips by a **year**. The freeze blocks releases and not work, so `v1.1.0` is built Feb–May 2027 and costs no calendar. Three things `v1.0.0` must build for a release it does not contain: the backup format ships **whole** (all 21 tables — `unknown_json` carries an unknown *column* forward, never an unknown *table*); **no notification channel is created**, so #63/#65's *ids frozen at release* freezes nothing; and `android/expected_permissions.txt` is `v1.0.0`'s strictly smaller set with the three `v1.1.0` adds named in the same file, because G1 asserts set equality and going red must be answerable from a file. Every epic header carries a `**Ships in**` row and `tool/validate_epics.py` fails while one disagrees with the scope table. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
 
+### 7.0e `last_unlock_prompted_at`, and the migration `v1.0.0` does not make. RULED 2026-08-04 (N30-T05).
+
+**The question.** `11 §2` flags `app_settings.last_unlock_prompted_at` on R40's precedent — a nullable
+`INTEGER` instant a screen needs and `03` did not declare — and says in bold that it **must land before
+the first schema snapshot**. It did not. `03 §5.13` declares fourteen `AppSettings` columns and this is
+not one of them; no task in N00–N29 adds it; `kSchemaVersion` is `1` and `from1To2` is still N08-T01's
+commented-out stub.
+
+It exists for exactly one rule, `11 §8` constraint 4: when a calm-UI action returns `WriteRefused`, the
+app may navigate to Settings ▸ Unlock **once per civil day** — the tap was user-initiated, so the
+navigation is a response rather than an interruption, but somebody tapping *+* ten times must not be
+sent there ten times.
+
+**Ruling: option 2. Ship `v1.0.0` without the self-navigation, and without the migration.**
+
+**What it costs.** Nothing the shepherd can name. `showCapRow` renders the refusal where they already
+are, in the same channel a committed row uses — which is what P2 asks of every other confirmation in
+the app. The rest of constraint 4 is untouched: a **user-initiated** tap on an upgrade row was never
+rate-limited (*"the row is always tappable"*), and the rule cannot fire in the quiet window anyway
+because nothing is refused there.
+
+**What it avoids, and this is the argument.** A migration is the one change this project cannot undo on
+somebody else's phone — `04 §1` lists it among the four — and the first committed snapshot froze `v1`
+forever, so every later version is diffed against both on phones that have never been online. Spending
+that on a rate limit is a poor trade at any time; spending it in the release that must ship before
+1 February 2027 is worse.
+
+**And the thing it would buy is the closest thing in the whole design to an interruption.** #92 bans
+the modal, the interstitial, the self-appearing sheet and the timed prompt; `07 §19.2` makes the two
+upgrade rows static precisely so a shepherd never learns that their appearance means anything. A screen
+that moves under you on a refusal is the same family. Ruling it out is not a compromise forced by a
+missing column — on this reading the column was the compromise.
+
+**Recorded as an open item against `11`'s Definition of Done.** The column, and the self-navigation it
+enables, are `v1.1.0`'s if anybody still wants them — and `v1.1.0` carries reminders, which may need a
+migration of their own, so the cost is shared rather than paid twice.
+
+**What was not done, and must not be.** No `shared_preferences` (entitlement rule 3 forbids it, it is
+not in §5.1, and it re-introduces the `NSPrivacyAccessedAPICategoryUserDefaults` obligation N30-T07 is
+about to declare away). No in-memory field either: a rate limit that resets on every cold launch is not
+a rate limit, and it would read as one to whoever maintained it.
+
 ### 7.0d The fifth `[exempt]` line. RULED 2026-08-04 (the owner, during N30-T01).
 
 **The question.** `copy.banned_word` bans `pending` under `lib/` as a model-state word (`CONVENTIONS

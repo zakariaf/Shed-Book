@@ -1784,6 +1784,35 @@
   "@unlockRestore": {
     "description": "Mandatory, and it sits ABOVE Unlock (11 §6.4): Apple requires it, and a shepherd who reinstalled must be able to get back what they own without paying twice — so the route to it must not be below the thing that charges them. 'Purchases' is the one permitted use of that word in this product (CONVENTIONS §5.1)."
   },
+  "upgradeRowFree": "Free version · covers this season · {ewes} of {cap} {term}",
+  "@upgradeRowFree": {
+    "description": "07 §19.2's row, verbatim. It states FACTS — what this version is, what it covers, and the two counts — and asks for nothing. It renders identically at 3 ewes and at 22 (#92: always present, in the same pixels), so a shepherd never learns that its appearance means they are near a line. NO PRICE IN THIS MESSAGE: the price is the store's own localised string and arrives through the action label, never as a literal (copy.currency_literal).",
+    "placeholders": {
+      "ewes": {"type": "num"},
+      "cap": {"type": "num"},
+      "term": {"type": "String", "example": "ewes"}
+    }
+  },
+  "upgradeRowUnlock": "UNLOCK",
+  "@upgradeRowUnlock": {
+    "description": "The row's primary action. 'Unlock', never purchase, buy or subscribe (CONVENTIONS §5.1) — one non-consumable, bought once, and the word says what the shepherd gets rather than what they do."
+  },
+  "upgradeRowUnlockSemantics": "Unlock Shed Book",
+  "@upgradeRowUnlockSemantics": {
+    "description": "The spoken form. It names the app because a screen reader user arriving on this row from the rotor has no visual context for a bare 'unlock'."
+  },
+  "capRefusedEweCap": "The free notebook holds {cap} {term} in a season. Unlock to add more.",
+  "@capRefusedEweCap": {
+    "description": "11 §7.3's RefusalReason.eweCap message. The cap is a PLACEHOLDER so the number is never typed twice — kFreeEweCap is the source, and a literal here would go stale the day it moves. It names no price and carries no currency symbol.",
+    "placeholders": {
+      "cap": {"type": "num"},
+      "term": {"type": "String", "example": "ewes"}
+    }
+  },
+  "capRefusedSecondSeason": "The free notebook holds one season. Unlock to start another.",
+  "@capRefusedSecondSeason": {
+    "description": "11 §7.3's RefusalReason.secondSeason message. Season-primary: when both caps are over, this is the one that speaks (§7.0 ruling 8)."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."
@@ -1815,6 +1844,10 @@
   "settingsSectionLeftHanded": "Left-handed",
   "@settingsSectionLeftHanded": {
     "description": "07 §14.3 section 8. Moves exactly three things — the slab, the INDEX button and the keypad's bottom row (R40). The spine, the margin and the record column do not mirror: a book's margin is on the left."
+  },
+  "settingsSectionUnlock": "Unlock",
+  "@settingsSectionUnlock": {
+    "description": "07 §14.3 section 9. 'Unlock', never Purchase, Buy, Subscribe or Upgrade (CONVENTIONS §5.1) — one non-consumable, bought once, and the word names what the shepherd gets."
   },
   "settingsSectionDiagnostics": "Diagnostics",
   "@settingsSectionDiagnostics": {

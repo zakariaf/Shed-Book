@@ -666,6 +666,8 @@ spellings only. Production has zero overrides.
 | `seasonRepositoryProvider` | `FutureProvider<SeasonRepository>` | keepAlive | |
 | `seasonsProvider` | `StreamProvider<List<Season>>` | keepAlive | N29-T05 — every season, oldest first, so Settings can render one row per season. A list rather than a count: `seasons` is two or three rows on a real notebook, and a count would need a second read the moment anything wanted to name one |
 | `purchaseServiceProvider` | `Provider<PurchaseService>` | keepAlive | N30-T01 — the store seam. A plain `Provider` because constructing it starts nothing: subscribing to the plugin stream is what initialises Android billing, and that happens in `attach()`, which no shed screen calls |
+| `entitlementRepositoryProvider` | `FutureProvider<EntitlementRepository>` | keepAlive | N30-T02 — the only writer of `entitlements.unlocked`. `ref.onDispose(repo.detach)` stops the plugin subscription outliving the container |
+| `entitlementProvider` | `StreamProvider<Entitlement>` | keepAlive | N30-T02 — **nothing on a shed screen may watch it** (#90); the two gated verbs consult the policy inside the repository |
 | `flockRepositoryProvider` | `FutureProvider<FlockRepository>` | keepAlive | |
 | `lambingRepositoryProvider` | `FutureProvider<LambingRepository>` | keepAlive | takes `NotificationScheduler` + `MediaStore` |
 | `fosterRepositoryProvider` | `FutureProvider<FosterRepository>` | keepAlive | |

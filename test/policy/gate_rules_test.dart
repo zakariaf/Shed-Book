@@ -193,6 +193,15 @@ final Map<String, Planted> firesOn = <String, Planted>{
   // -- the single writer's text half, streams and statistics -----------------
   'db.raw_statement': _at('lib/data/pen_repository.dart', 'void f() => customStatement(sql);'),
   'db.save_verb': _at('lib/data/flock_repository.dart', 'Future<void> saveEwe(Ewe e) async {}'),
+  // **THE ONE RULE HERE THAT GUARDS SOMEBODY'S MONEY.** An entitlement is never
+  // revoked (`11 §12.2`): a shed has no signal most of the time the store is
+  // asked, so *"the store did not confirm"* is the normal case, and an app that
+  // downgraded on it would take the unlock away from a shepherd in a barn at
+  // 03:20 for a network they never had.
+  'db.entitlement_revoke': _at(
+    'lib/data/entitlement_repository.dart',
+    'final c = EntitlementsCompanion(unlocked: const Value<bool>(false));',
+  ),
   'stream.combine': _at('lib/data/season_repository.dart', 'final s = combineLatest(a, b);'),
   'stream.invalidate': _at(
     'lib/features/season/season_controller.dart',

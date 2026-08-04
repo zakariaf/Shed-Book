@@ -188,6 +188,9 @@ void main() {
       'seasonsProvider',
       // N30-T01 — the store seam. Constructing it starts nothing; `attach()` does.
       'purchaseServiceProvider',
+      // N30-T02 — the one writer of entitlements.unlocked, and the row it writes.
+      'entitlementRepositoryProvider',
+      'entitlementProvider',
       // N15-T01, N15-T02
       'mediaStoreProvider',
       'cameraServiceProvider',

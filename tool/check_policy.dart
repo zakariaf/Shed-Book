@@ -913,6 +913,25 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
     'lib/data/',
     'repositories are event verbs; there is no save(aggregate) — CONVENTIONS §4.7',
   ),
+  // **AN ENTITLEMENT IS NEVER REVOKED** (`11 §12.2`). There is no verb that sets
+  // `unlocked` back to false, and this refuses one being written.
+  //
+  // The failure it prevents is not a bug somebody argues for — it is the
+  // reasonable-looking fix. A shed has no signal most of the time the store is
+  // asked, so *"the store did not confirm the purchase"* is the NORMAL case; an
+  // app that downgraded on it takes the unlock away from a shepherd standing in
+  // a barn at 03:20, for a network they never had. It reads as defensive and it
+  // is theft.
+  //
+  // Scoped to `lib/data/` because that is the only tier that can write the
+  // column at all, and matched on the assignment rather than the word so a
+  // comment explaining the rule does not fire it (`_declarationsOnly`).
+  (
+    'db.entitlement_revoke',
+    RegExp(r'unlocked:\s*(const\s+)?Value(<bool>)?\(false\)'),
+    'lib/data/',
+    'an entitlement is never revoked — 11 §12.2',
+  ),
   (
     'copy.tier3_claim',
     RegExp(_tier3Claims.map(RegExp.escape).join('|'), caseSensitive: false),
@@ -942,6 +961,7 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
 /// question 12"* tripped `copy.banned_word` on the ordinary English word.
 const Set<String> _declarationsOnly = <String>{
   'copy.banned_word',
+  'db.entitlement_revoke',
   'type.error_name',
   'db.save_verb',
 };

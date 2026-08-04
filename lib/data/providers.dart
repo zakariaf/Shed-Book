@@ -26,6 +26,8 @@
 //   seasonRepositoryProvider    N27-T06  Provider<SeasonRepository>   (N28's file, one verb early)
 //   seasonsProvider             N29-T05  StreamProvider<List<Season>>
 //   purchaseServiceProvider     N30-T01  Provider<PurchaseService>            keepAlive
+//   entitlementRepositoryProvider N30-T02 FutureProvider<EntitlementRepository> keepAlive
+//   entitlementProvider         N30-T02  StreamProvider<Entitlement>          keepAlive
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
@@ -65,6 +67,7 @@ import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/data/entitlement_repository.dart';
 import 'package:shed_book/data/purchase_service.dart';
 import 'package:shed_book/data/season_repository.dart';
 import 'package:shed_book/data/treatment_repository.dart';
@@ -248,6 +251,34 @@ final StreamProvider<List<Season>> seasonsProvider = StreamProvider<List<Season>
 final Provider<PurchaseService> purchaseServiceProvider = Provider<PurchaseService>(
   (ref) => PurchaseService(),
 );
+
+/// The one writer of `entitlements.unlocked`.
+///
+/// `ref.onDispose(repo.detach)` is what stops the plugin subscription outliving
+/// the container — and `detach()` deliberately leaves `PurchaseService`'s
+/// fan-out open, because that provider is keepAlive and a later `attach()` must
+/// find the same instance.
+final FutureProvider<EntitlementRepository> entitlementRepositoryProvider =
+    FutureProvider<EntitlementRepository>((ref) async {
+      final AppDatabase db = await ref.watch(databaseProvider.future);
+      final EntitlementRepository repo = EntitlementRepository(
+        db,
+        ref.watch(purchaseServiceProvider),
+      );
+      ref.onDispose(repo.detach);
+      return repo;
+    });
+
+/// The row, as a stream.
+///
+/// **NOTHING ON A SHED SCREEN MAY WATCH THIS** (#90). The two gated verbs
+/// consult `FreeTierPolicy` inside the repository, so a screen never needs the
+/// entitlement — and a screen that watched it is a paywall flash waiting for a
+/// slow first frame.
+final StreamProvider<Entitlement> entitlementProvider = StreamProvider<Entitlement>((ref) async* {
+  final EntitlementRepository repo = await ref.watch(entitlementRepositoryProvider.future);
+  yield* repo.watch();
+});
 
 final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepository>(
   (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),

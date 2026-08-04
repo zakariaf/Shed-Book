@@ -444,6 +444,7 @@ final class FlockRow {
     required this.id,
     required this.tag,
     required this.tagDigits,
+    required this.status,
     required this.struck,
     required this.seasonsRecorded,
     required this.lambingsRecorded,
@@ -463,15 +464,32 @@ final class FlockRow {
   final String tag;
   final String tagDigits;
 
-  /// **NOT ACTIVE: CULLED, SOLD OR DEAD.** She stays in the list, struck, at the
-  /// bottom (`indelible.md §7.4`) — the design system's first rule is *nothing is
-  /// ever removed, only struck*, and a statement that filtered her out was that
-  /// rule inverted at the data layer.
+  /// The ANIMAL's state: `active`, `culled`, `sold` or `dead` (`03 §5.2`).
   ///
-  /// It is also what makes §7.0 ruling 7 legible: tags are unique among ACTIVE
-  /// animals only, so `2003` can be here twice, and the struck one is the reason
-  /// that is legal rather than a bug.
+  /// **A STATE OF THE SHEEP, WHICH IS NOT THE SAME THING AS A STRUCK RECORD** —
+  /// `indelible.md §6` draws exactly this line: a **boxed** stamp talks about the
+  /// animal, an **unboxed** one talks about the writing, and *"you must be able to
+  /// tell from ten feet"* which. `CULLED` is the sheep; `STRUCK` is the entry.
+  final String status;
+
+  /// **THE RECORD WAS STRUCK** — `ewes.struck`, the real column, not a synonym
+  /// for culled.
+  ///
+  /// N26-T02's ruling N2 shipped a single `struck` field derived from
+  /// `status != 'active'`, which quietly renamed one fact after another. The
+  /// schema keeps them apart and so does the design; `idx_ewe_tagdigits` is
+  /// partial on **both** (`status = 'active' AND struck = 0`), which is the
+  /// clearest statement that they are two conditions rather than one.
   final bool struck;
+
+  /// §7.4's **Struck** row state — *"ewe removed from the flock"*, by either
+  /// route. This is what the row renders on; the two fields above are what it
+  /// renders *about*.
+  ///
+  /// It is also what makes §7.0 ruling 7 legible: tags are unique among active,
+  /// unstruck animals only, so `2003` is in this list twice and the removed one
+  /// is the reason that is legal rather than a bug.
+  bool get removedFromFlock => struck || status != 'active';
 
   /// **NULLABLE, AND NEVER `?? 0`** (decision #58). `ewe_summaries` is a
   /// `LEFT JOIN`, so a ewe with no summary row yet returns NULL — which means
@@ -548,7 +566,7 @@ final class FlockRow {
 /// concatenation would make it five statements' worth of shapes and a query plan
 /// SQLite has to re-prepare each time.
 const String _flockListSql = '''
-SELECT e.id, e.tag, e.tag_digits, e.status,
+SELECT e.id, e.tag, e.tag_digits, e.status, e.struck,
        s.seasons_recorded, s.lambings_recorded, s.lambs_born, s.lambs_born_alive,
        s.assisted_lambings,
        EXISTS (SELECT 1 FROM pen_occupancies o
@@ -622,10 +640,17 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
                           GROUP BY lg.id HAVING COUNT(lb.id) >= 3))
    AND (? = 0 OR EXISTS (SELECT 1 FROM pen_occupancies o
                           WHERE o.ewe = e.id AND o.exited_at IS NULL))
- -- **RULING N2: ACTIVE FIRST, THEN THE STRUCK ONES.** They are in the list —
- -- `indelible.md`'s first rule is *nothing is ever removed, only struck* — and
- -- §7.4 puts them at the bottom under a printed `STRUCK` line.
- ORDER BY (e.status <> 'active'), e.tag_digits, e.tag;
+ -- **RULING N2: IN THE FLOCK FIRST, THEN THE ONES WHO LEFT IT.** They are all in
+ -- the list — `indelible.md`'s first rule is *nothing is ever removed, only
+ -- struck* — and §7.4 puts the removed ones at the bottom under a printed
+ -- `STRUCK` line.
+ --
+ -- **BOTH MECHANISMS, AND THE INDEX SAYS SO.** `idx_ewe_tagdigits` is partial on
+ -- `WHERE status = 'active' AND struck = 0`, so a tag is released when the ewe
+ -- LEAVES THE FLOCK (culled, sold, dead) *or* when her record is STRUCK. Those
+ -- are two different facts about two different things — the animal and the
+ -- writing — and §7.4's *"ewe removed from the flock"* is satisfied by either.
+ ORDER BY (e.status <> 'active' OR e.struck = 1), e.tag_digits, e.tag;
 ''';
 
 /// The flock, filtered — **one statement**, streamed.
@@ -691,7 +716,8 @@ FlockRow _toFlockRow(QueryRow r) => FlockRow(
   id: EweId(r.read<int>('id')),
   tag: r.read<String>('tag'),
   tagDigits: r.read<String>('tag_digits'),
-  struck: r.read<String>('status') != 'active',
+  status: r.read<String>('status'),
+  struck: r.read<bool>('struck'),
   seasonsRecorded: r.readNullable<int>('seasons_recorded'),
   lambingsRecorded: r.readNullable<int>('lambings_recorded'),
   lambsBorn: r.readNullable<int>('lambs_born'),

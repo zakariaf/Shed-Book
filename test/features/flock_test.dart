@@ -118,16 +118,25 @@ void main() {
     // never a merge offer.
     final List<FlockRow> sameTag = rows.where((FlockRow r) => r.tag == culled.tag).toList();
     expect(sameTag, hasLength(2), reason: 'the struck ewe and the live one that reused her tag');
-    expect(sameTag.where((FlockRow r) => r.struck), hasLength(1));
-    expect(sameTag.where((FlockRow r) => !r.struck), hasLength(1));
+    expect(sameTag.where((FlockRow r) => r.removedFromFlock), hasLength(1));
+    expect(sameTag.where((FlockRow r) => !r.removedFromFlock), hasLength(1));
+
+    // **AND THE TWO FACTS STAY APART.** She is CULLED — a state of the sheep —
+    // and her record was never struck. N2 shipped one field derived from the
+    // other, which renamed one fact after the other; `indelible.md §6` draws the
+    // line (boxed = the animal, unboxed = the writing) and `idx_ewe_tagdigits`
+    // is partial on both conditions rather than one.
+    final FlockRow gone = sameTag.firstWhere((FlockRow r) => r.removedFromFlock);
+    expect(gone.status, 'culled');
+    expect(gone.struck, isFalse, reason: 'culled is not struck — two facts, two fields');
 
     // **AT THE BOTTOM**, which is the half a `struck` flag alone does not give.
     // Asserted as *no active row follows a struck one* rather than on an index,
     // so it survives the fixture gaining another struck animal.
-    final int firstStruck = rows.indexWhere((FlockRow r) => r.struck);
+    final int firstStruck = rows.indexWhere((FlockRow r) => r.removedFromFlock);
     expect(firstStruck, greaterThan(0), reason: 'the list does not open with a struck row');
     expect(
-      rows.skip(firstStruck).every((FlockRow r) => r.struck),
+      rows.skip(firstStruck).every((FlockRow r) => r.removedFromFlock),
       isTrue,
       reason: 'an active ewe is printed below a struck one — §7.4 puts them last',
     );

@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_empty_state.dart';
+import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
 import 'package:shed_book/features/flock/widgets/flock_filter_line.dart';
@@ -100,6 +101,22 @@ class FlockScreen extends ConsumerWidget {
     );
   }
 
+  /// The row's trailing mark, or nothing.
+  ///
+  /// **REMOVED-FROM-FLOCK WINS OVER THE WARNING**, and only one prints. She left
+  /// the flock; a contradiction in the records of an animal who is gone is a
+  /// smaller fact than her being gone, and two stamps in an 88 px row is the
+  /// clutter `indelible.md §6.3`'s six-mark budget exists to refuse.
+  Widget? _mark(BuildContext context, AppLocalizations l10n, FlockRow r) {
+    if (r.removedFromFlock) {
+      return ShedStatusBadge(stamp: ShedStamp.culled, label: l10n.flockStampCulled);
+    }
+    if (r.hasWarning) {
+      return ShedStatusBadge(stamp: ShedStamp.queried, label: l10n.flockStampQueried);
+    }
+    return null;
+  }
+
   /// Empty unless BOTH counts are real.
   String _summary(AppLocalizations l10n, FlockRow r) {
     final int? seasons = r.seasonsRecorded;
@@ -132,6 +149,22 @@ class FlockScreen extends ConsumerWidget {
     // summary.
     summary: _summary(l10n, r),
     height: ShedAnimalRowHeight.tall,
+    // **§12.4's BADGE IS A WORD, AND `07 §3.4` SAYS "icon + count".** There is no
+    // icon set in this system — *"every action is a word"* (`indelible.md §1.3`),
+    // and `ShedStatusBadge` is *"a stamp set in words, not an icon-plus-word"*
+    // (`06 §12`). CLAUDE.md's authority order puts the design above the thirteen
+    // engineering documents, so the word wins and `07 §3.4` is amended in this
+    // commit. Ruling **N3**.
+    //
+    // Two non-colour channels, as every state must have (`§1.2` rule 3): the
+    // WORD, and the FORM — `QUERIED` is unboxed because it is a note about the
+    // writing, `CULLED` is boxed because it is a state of the sheep. Turn on the
+    // grayscale filter and both still read.
+    //
+    // **PERSISTENT, WHICH IS THE WHOLE POINT** — *"a contradiction found at 3am
+    // is still findable at 9am."* It is not a transient, not a toast, and
+    // nothing dismisses it.
+    trailing: _mark(context, l10n, r),
     semanticLabel: l10n.flockRowLabel(tag: r.tag),
     onTap: () {},
   );

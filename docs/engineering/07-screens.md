@@ -179,6 +179,14 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
  ORDER BY (e.status <> 'active'), e.tag_digits, e.tag;
 ```
 
+**RULING N3 (N26-T03) — the §12.4 badge is a word, not an icon.**
+
+This section said *"icon + count, never colour alone"*. There is no icon set in this product: `indelible.md §1.3` lists *"no icon set — every action is a word"* among the things the system does not have, and `06 §12` specifies `ShedStatusBadge` as *"a stamp set in words, not an icon-plus-word"*. `CLAUDE.md`'s authority order puts `indelible.md` above the thirteen engineering documents, so the word wins and this row is corrected.
+
+The two non-colour channels §1.2 rule 3 requires are the **word** and the **form**: `QUERIED` is unboxed because it is a note about the writing, `CULLED` is boxed because it is a state of the sheep, and `indelible.md §7.7` says you must be able to tell which from ten feet. Both stamps were already in the design's own lists; neither is a new mark, so §6.3's six-mark budget is untouched.
+
+`test/features/flock_test.dart` asserts on the rendered TEXT, so an icon-based badge fails it.
+
 **RULING N2 (N26-T03) — `WHERE e.status = 'active'` is struck from this statement.**
 
 It contradicted `indelible.md §7.4`, whose **Struck** state reads *"She stays in the list, at the bottom, under a printed line reading `STRUCK — 1`."* Both could not ship. `CLAUDE.md`'s authority order puts `indelible.md` above the thirteen engineering documents, so the design wins — and two further arguments point the same way. The design system's **first rule** is *nothing is ever removed, only struck*, so filtering her out is that rule inverted at the data layer; and N26-T03's Definition of Done — *a culled tag is visibly distinct from an active one with the same number* — is unsatisfiable if the struck row never renders.
@@ -228,7 +236,7 @@ Consequently **four of the five §7.7 filters narrow the `WHERE`; `under treatme
 
 ### 3.4 §12 on this screen
 
-Only §12.4: a small persistent badge on any row whose records carry warnings, so a contradiction found at 3am is still findable at 9am. The badge is icon + count, never colour alone.
+Only §12.4: a small persistent badge on any row whose records carry warnings, so a contradiction found at 3am is still findable at 9am. The badge is a WORD, never colour alone — see ruling N3 below.
 
 No §12.1 and no §12.5 label appears here: the Flock row shows no withdrawal figure and no event time. The summary line is a count, not a time.
 

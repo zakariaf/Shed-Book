@@ -1483,5 +1483,13 @@
   "flockFilterAllUnknown": "ALL",
   "@flockFilterAllUnknown": {
     "description": "The filter line's first word while the list is still loading. The count is omitted rather than shown as 0 — unknown is not zero (#58)."
+  },
+  "flockStampQueried": "QUERIED",
+  "@flockStampQueried": {
+    "description": "indelible.md §7.7's unboxed stamp for the §12.4 contradiction badge. A WORD, not an icon — this system has no icon set (§1.3), and 07 §3.4's 'icon + count' is superseded by ruling N3."
+  },
+  "flockStampCulled": "CULLED",
+  "@flockStampCulled": {
+    "description": "indelible.md §7.7's boxed form — a state of the ANIMAL, not a note about the record. She stays in the list (§7.4); the stamp says why she is at the bottom."
   }
 }

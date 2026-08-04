@@ -1687,6 +1687,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'ALL'**
   String get flockFilterAllUnknown;
+
+  /// indelible.md §7.7's unboxed stamp for the §12.4 contradiction badge. A WORD, not an icon — this system has no icon set (§1.3), and 07 §3.4's 'icon + count' is superseded by ruling N3.
+  ///
+  /// In en, this message translates to:
+  /// **'QUERIED'**
+  String get flockStampQueried;
+
+  /// indelible.md §7.7's boxed form — a state of the ANIMAL, not a note about the record. She stays in the list (§7.4); the stamp says why she is at the bottom.
+  ///
+  /// In en, this message translates to:
+  /// **'CULLED'**
+  String get flockStampCulled;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

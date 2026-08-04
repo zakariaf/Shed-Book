@@ -985,4 +985,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flockFilterAllUnknown => 'ALL';
+
+  @override
+  String get flockStampQueried => 'QUERIED';
+
+  @override
+  String get flockStampCulled => 'CULLED';
 }

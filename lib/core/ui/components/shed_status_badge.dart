@@ -21,6 +21,11 @@ enum ShedStamp {
   alive(ShedStampForm.boxed),
   petLamb(ShedStampForm.boxed),
   over(ShedStampForm.boxed),
+  // **RULING N3 (N26-T03): `CULLED` IS BOXED, `QUERIED` IS UNBOXED**, and the
+  // pair is the clearest illustration of why the boundary exists. The sheep left
+  // the flock; the writing disagrees with itself. A reader must tell those apart
+  // from ten feet without reading either word.
+  culled(ShedStampForm.boxed),
 
   // Unboxed — a note about the record itself.
   auto(ShedStampForm.unboxed),
@@ -29,6 +34,11 @@ enum ShedStamp {
   counted(ShedStampForm.unboxed),
   yourEntry(ShedStampForm.unboxed),
   struck(ShedStampForm.unboxed),
+
+  /// `indelible.md §7.7` lists `QUERIED` among the unboxed stamps and §6.2 gives
+  /// it the `?` mark; it was simply never needed until the flock row had to show
+  /// a §12.4 contradiction. Restored from the design, not invented.
+  queried(ShedStampForm.unboxed),
   muted(ShedStampForm.unboxed),
   notRecorded(ShedStampForm.unboxed);
 

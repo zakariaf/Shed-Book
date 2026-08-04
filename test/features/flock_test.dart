@@ -13,6 +13,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -243,6 +244,64 @@ void main() {
       findsNothing,
       reason: 'the flock is not empty — 400 ewes are behind this filter',
     );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a ewe with a contradiction renders the warning badge with a word', (
+    WidgetTester tester,
+  ) async {
+    // **T03'S ANCHOR, AND THE WORD IS THE ASSERTION.** `07 §3.4` calls this badge
+    // *"icon + count, never colour alone"*; there is no icon set in this system
+    // — *"every action is a word"* (`indelible.md §1.3`) — and `06 §12` says
+    // `ShedStatusBadge` is *"a stamp set in words, not an icon-plus-word"*.
+    // Ruling N3 takes the design, so this asserts on TEXT. An icon-based badge
+    // would fail it, which is the point.
+    //
+    // §12.4: *"a contradiction found at 3am is still findable at 9am."* The
+    // fixture carries contradictory lambings — every thirty-first declares one
+    // more lamb than it has — so the badge has something real to render.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_400_3seasons.json');
+
+    final List<FlockRow> rows = await flockList(db, const FlockFilters());
+    expect(
+      rows.where((FlockRow r) => r.hasWarning),
+      isNotEmpty,
+      reason: 'no contradiction in the fixture — the badge cannot be tested',
+    );
+
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final BuildContext context = tester.element(find.byType(FlockScreen));
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // **SCROLLED TO, BECAUSE THE FIRST CONTRADICTION IS ~18 ROWS DOWN.** The
+    // list is ordered by tag and the fixture contradicts every thirty-first
+    // lambing, so nothing is queried in the opening viewport — the finder found
+    // zero and the badge was working. Asserting on the visible fold would have
+    // been asserting the viewport height.
+    // Scrolled to the ROW, by key, rather than to the text: a text finder is
+    // evaluated eagerly and `.first` on a not-yet-built widget throws before the
+    // scroll can build it. The row key exists in the model whether or not it is
+    // mounted.
+    final FlockRow warned = rows.firstWhere((FlockRow r) => r.hasWarning);
+    await tester.scrollUntilVisible(
+      find.byKey(Key('flock.row.${warned.id.value}')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
+
+    // THE WORD IS ON SCREEN. Not an icon, not a colour, not a dot.
+    expect(find.text(l10n.flockStampQueried), findsWidgets);
+
+    // **AND ITS FORM IS THE SECOND CHANNEL** (`§1.2` rule 3): unboxed, because
+    // QUERIED is a note about the writing rather than a state of the sheep.
+    // Asserted on the stamp itself so it survives a restyle.
+    expect(ShedStamp.queried.form, ShedStampForm.unboxed);
+    expect(ShedStamp.culled.form, ShedStampForm.boxed);
 
     await tester.closeApp();
   });

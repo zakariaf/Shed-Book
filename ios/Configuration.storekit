@@ -1,0 +1,31 @@
+{
+  "identifier" : "shed-book-local",
+  "nonRenewingSubscriptions" : [ ],
+  "products" : [
+    {
+      "displayPrice" : "24.99",
+      "familyShareable" : false,
+      "internalID" : "shed-book-unlock",
+      "localizations" : [
+        {
+          "description" : "Unlocks the whole notebook: every season, every animal.",
+          "displayName" : "Shed Book unlock",
+          "locale" : "en_GB"
+        }
+      ],
+      "productID" : "shed_book_unlock",
+      "referenceName" : "Shed Book unlock",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "shed-book",
+    "_developerTeamID" : "",
+    "_lastSynchronizedDate" : 0
+  },
+  "subscriptionGroups" : [ ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

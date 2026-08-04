@@ -594,11 +594,11 @@ abstract class AppLocalizations {
   /// **'Lambing'**
   String get lambingEntryTitle;
 
-  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop.
+  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'Lambs'**
-  String get lambingEntryLambs;
+  /// **'{term}'**
+  String lambingEntryLambs({required String term});
 
   /// The care region's label. 'Care' rather than 'Treatments': a treatment is a medicine with a withdrawal period (§12.1) and care is colostrum, warming and drying. Merging the two words would put a withdrawal question on a screen that has none.
   ///
@@ -1467,10 +1467,10 @@ abstract class AppLocalizations {
   /// **'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.'**
   String get restoreRefusedNotABackup;
 
-  /// 04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.
+  /// 04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments. Made on {date} by Shed Book {version}.'**
+  /// **'{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments. Made on {date} by Shed Book {version}.'**
   String restoreBackupSummary({
     required int seasons,
     required int ewes,
@@ -1478,17 +1478,21 @@ abstract class AppLocalizations {
     required int treatments,
     required String date,
     required String version,
+    required String eweTerm,
+    required String lambTerm,
   });
 
-  /// 04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.
+  /// 04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.'**
+  /// **'{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments.'**
   String restoreLiveSummary({
     required int seasons,
     required int ewes,
     required int lambs,
     required int treatments,
+    required String eweTerm,
+    required String lambTerm,
   });
 
   /// 04 7.3 statement 3. 'Cannot be undone FROM INSIDE THE APP' is exact and is not softened: the old database is kept for one launch by the rollback file, so a developer can recover it - and a shepherd cannot. Saying 'cannot be undone' flat would be a smaller truth than the one available.

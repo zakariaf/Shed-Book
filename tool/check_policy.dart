@@ -1493,9 +1493,66 @@ List<String> _checkArb(String path, String source, Set<String> exempt) {
         'only decision-record §3.1 wording is permitted',
       );
     }
+
+    // **NO DOMAIN NOUN AS A LITERAL** (`10 §8.5`). *"Turn out ewe {tag}?"* is the
+    // failure that survives review; *"Turn out {term} {tag}?"* is the fix. The
+    // nouns vary by county — ewe, gimmer, theave, hogg — and a shepherd who has
+    // renamed them must see their own word everywhere, not in most places.
+    //
+    // **THE SKIP IS IN THE RULE, NOT IN THE ALLOWLIST.** The fourteen
+    // `term<Class>Singular` / `term<Class>Plural` messages ARE the default
+    // nouns — they are the source the placeholder is fed FROM — and R56 fixes
+    // the `[exempt]` list, where an exemption would be invisible. A rule
+    // condition is readable; an allowlist line is a fact somebody has to go and
+    // look up.
+    //
+    // Defined by SHAPE rather than by a list of offenders, so the exception
+    // cannot quietly widen: `terminology_survives_a_rename_test.dart` asserts
+    // that key set is exactly the fourteen, in both directions.
+    if (RegExp(r'^term[A-Z]\w*(Singular|Plural)$').hasMatch(key)) {
+      continue;
+    }
+    // **PLACEHOLDER NAMES ARE STRIPPED FIRST, BECAUSE THEY ARE IDENTIFIERS
+    // RATHER THAN COPY.** `"{records} records · {ewes} animals"` renders the
+    // word *animals*; `{ewes}` is the name of a slot and nobody ever sees it.
+    // Matching it would force every count placeholder to be renamed to something
+    // less clear in order to satisfy a rule about words on screen.
+    final String rendered = value.replaceAll(RegExp(r'\{[^{}]*\}'), ' ');
+    for (final String noun in kAnimalNouns) {
+      if (!RegExp('\\b$noun\\b', caseSensitive: false).hasMatch(rendered)) {
+        continue;
+      }
+      violations.add(
+        '[copy.arb_domain_noun] $path: message "$key" carries the literal noun '
+        '"$noun" — domain nouns arrive as a {term} placeholder — 10 §8.5',
+      );
+    }
   }
   return violations;
 }
+
+/// The seven `AnimalClass` nouns, which are the shepherd's to choose.
+///
+/// They live here rather than being imported from `lib/domain/` because the gate
+/// has no dependencies — it is a plain Dart script that reads source text — and
+/// `terminology_survives_a_rename_test.dart` asserts this list against
+/// `AnimalClass.values` so the two cannot drift.
+const List<String> kAnimalNouns = <String>[
+  'ewe',
+  'ewes',
+  'ram',
+  'rams',
+  'lamb',
+  'lambs',
+  'wether',
+  'wethers',
+  'gimmer',
+  'gimmers',
+  'theave',
+  'theaves',
+  'hogg',
+  'hoggs',
+];
 
 /// The non-metadata messages of an ARB file, as (key, value).
 ///

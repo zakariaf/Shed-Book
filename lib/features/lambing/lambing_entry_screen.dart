@@ -89,7 +89,17 @@ class LambingEntryScreen extends ConsumerWidget {
               child: switch (data) {
                 AsyncData<LambingEntryData>(value: final LambingEntryData d) => _Regions(
                   data: d,
-                  lambsLabel: l10n.lambingEntryLambs,
+                  // **THE SHEPHERD'S OWN PLURAL, IN TITLE CASE.**
+                  // `copy.arb_domain_noun` found this heading hard-coded as
+                  // *Lambs* at N33-T05 — a shepherd who renamed the term read
+                  // somebody else's noun on the screen they use most.
+                  //
+                  // The capital is presentation, not derivation: `10 §8.5` bans
+                  // deriving a PLURAL from a singular, because that is a fact
+                  // about the word. Which case a heading renders in is a fact
+                  // about the heading, and every other one in this system is
+                  // capitalised.
+                  lambsLabel: l10n.lambingEntryLambs(term: _titleCase(l10n.termLambPlural)),
                   careLabel: l10n.lambingEntryCare,
                   units: ref.watch(unitsProvider),
                   // RECOMPUTED ON EVERY EMISSION, NEVER STORED. Decision #54
@@ -641,3 +651,11 @@ class _Regions extends ConsumerWidget {
     );
   }
 }
+
+/// First letter up, the rest as the shepherd typed it.
+///
+/// **NOT `toUpperCase()` AND NOT A LOOKUP.** A term they entered as `Ewe Lambs`
+/// keeps its second capital; one they entered as `hoggs` gains one and nothing
+/// else. Deriving anything more than the first character would be editing their
+/// word.
+String _titleCase(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);

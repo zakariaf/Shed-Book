@@ -304,7 +304,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lambingEntryTitle => 'Lambing';
 
   @override
-  String get lambingEntryLambs => 'Lambs';
+  String lambingEntryLambs({required String term}) {
+    return '$term';
+  }
 
   @override
   String get lambingEntryCare => 'Care';
@@ -840,8 +842,10 @@ class AppLocalizationsEn extends AppLocalizations {
     required int treatments,
     required String date,
     required String version,
+    required String eweTerm,
+    required String lambTerm,
   }) {
-    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments. Made on $date by Shed Book $version.';
+    return '$seasons seasons, $ewes $eweTerm, $lambs $lambTerm, $treatments treatments. Made on $date by Shed Book $version.';
   }
 
   @override
@@ -850,8 +854,10 @@ class AppLocalizationsEn extends AppLocalizations {
     required int ewes,
     required int lambs,
     required int treatments,
+    required String eweTerm,
+    required String lambTerm,
   }) {
-    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments.';
+    return '$seasons seasons, $ewes $eweTerm, $lambs $lambTerm, $treatments treatments.';
   }
 
   @override

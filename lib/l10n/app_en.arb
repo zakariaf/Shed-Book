@@ -431,9 +431,15 @@
   "@lambingEntryTitle": {
     "description": "The screen's headingLevel: 1 title. Lambing Entry deliberately has NO level-2 headings (10 §3.4): it is one task, and heading stops would add navigation to a screen whose whole purpose is not having any. The title still emits a level-1 node, because 12 §7.3's gate asserts at least one heading on every variant."
   },
-  "lambingEntryLambs": "Lambs",
+  "lambingEntryLambs": "{term}",
   "@lambingEntryLambs": {
-    "description": "The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop."
+    "description": "The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.",
+    "placeholders": {
+      "term": {
+        "type": "String",
+        "example": "ewes"
+      }
+    }
   },
   "lambingEntryCare": "Care",
   "@lambingEntryCare": {
@@ -1224,9 +1230,9 @@
   "@restoreRefusedNotABackup": {
     "description": "The catch-all for an unrecognised first byte - most often a photo the shepherd renamed. It says what to pick INSTEAD, because a refusal that names no next step leaves somebody holding a phone at 2am with nothing to try."
   },
-  "restoreBackupSummary": "{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments. Made on {date} by Shed Book {version}.",
+  "restoreBackupSummary": "{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments. Made on {date} by Shed Book {version}.",
   "@restoreBackupSummary": {
-    "description": "04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.",
+    "description": "04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.",
     "placeholders": {
       "seasons": {
         "type": "int"
@@ -1245,12 +1251,20 @@
       },
       "version": {
         "type": "String"
+      },
+      "eweTerm": {
+        "type": "String",
+        "example": "ewes"
+      },
+      "lambTerm": {
+        "type": "String",
+        "example": "lambs"
       }
     }
   },
-  "restoreLiveSummary": "{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.",
+  "restoreLiveSummary": "{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments.",
   "@restoreLiveSummary": {
-    "description": "04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.",
+    "description": "04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.",
     "placeholders": {
       "seasons": {
         "type": "int"
@@ -1263,6 +1277,14 @@
       },
       "treatments": {
         "type": "int"
+      },
+      "eweTerm": {
+        "type": "String",
+        "example": "ewes"
+      },
+      "lambTerm": {
+        "type": "String",
+        "example": "lambs"
       }
     }
   },
@@ -1403,7 +1425,7 @@
   },
   "flockUnavailable": "The flock could not be read.",
   "@flockUnavailable": {
-    "description": "07 §3.2 Error."
+    "description": "07 §3.2. The flock list could not be read at all — a damaged database, not an empty one. It is deliberately not the empty state: 'no ewes yet' and 'we could not look' are different facts and a shepherd acts differently on each."
   },
   "flockRowSummary": "{seasons} seasons · {lambings} lambings",
   "@flockRowSummary": {
@@ -1508,12 +1530,22 @@
   "eweCardRowTreatment": "Treated with {product}",
   "@eweCardRowTreatment": {
     "description": "The treatment row. {product} is the shepherd's own typed product name (§12.4 — exactly as typed, never normalised); this app ships no medicine database.",
-    "placeholders": {"product": {"type": "String", "example": "Alamycin LA 300 mg/ml"}}
+    "placeholders": {
+      "product": {
+        "type": "String",
+        "example": "Alamycin LA 300 mg/ml"
+      }
+    }
   },
   "eweCardRowCare": "{kind}",
   "@eweCardRowCare": {
     "description": "The care row. The kind is a stored key rendered through the terminology overlay at the presentation edge.",
-    "placeholders": {"kind": {"type": "String", "example": "colostrum"}}
+    "placeholders": {
+      "kind": {
+        "type": "String",
+        "example": "colostrum"
+      }
+    }
   },
   "eweCardRowFoster": "Fostered",
   "@eweCardRowFoster": {
@@ -1522,32 +1554,61 @@
   "eweCardRowObserved": "{observation}",
   "@eweCardRowObserved": {
     "description": "The observation row. WHAT WAS OBSERVED, never a consequence: 'Prolapse' is a record, 'prolapse risk' is a diagnosis (§12.2). The label is the shepherd's own when they have renamed the term.",
-    "placeholders": {"observation": {"type": "String", "example": "Prolapse"}}
+    "placeholders": {
+      "observation": {
+        "type": "String",
+        "example": "Prolapse"
+      }
+    }
   },
   "eweCardRowPenned": "Penned in {pen}",
   "@eweCardRowPenned": {
     "description": "The pen row. {pen} is the pen's own label, which the shepherd typed.",
-    "placeholders": {"pen": {"type": "String", "example": "Pen 3"}}
+    "placeholders": {
+      "pen": {
+        "type": "String",
+        "example": "Pen 3"
+      }
+    }
   },
   "eweCardRowNote": "{body}",
   "@eweCardRowNote": {
     "description": "The note row. The shepherd's own words, verbatim and never truncated (10 §5).",
-    "placeholders": {"body": {"type": "String", "example": "watched her all night"}}
+    "placeholders": {
+      "body": {
+        "type": "String",
+        "example": "watched her all night"
+      }
+    }
   },
   "eweCardRowEditedFrom": "was {time}",
   "@eweCardRowEditedFrom": {
     "description": "Printed beside the provenance label on an EDITED row. 05 §4.3: an edited row shows BOTH times. The paired SQL CHECK — (time_source = 'edited') = (original_effective IS NOT NULL) — exists precisely so the pre-edit value is always there to show, and omitting it makes the §12.5 label true and uninformative. {time} arrives pre-formatted as 24-hour HH:mm.",
-    "placeholders": {"time": {"type": "String", "example": "07:00"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "07:00"
+      }
+    }
   },
   "eweCardRowStruck": "STRUCK {time}",
   "@eweCardRowStruck": {
     "description": "indelible.md §7.3's margin stamp on a struck row. The row STAYS in position, stays legible, and carries the time it was struck. 24-hour HH:mm, pre-formatted.",
-    "placeholders": {"time": {"type": "String", "example": "03:41"}}
+    "placeholders": {
+      "time": {
+        "type": "String",
+        "example": "03:41"
+      }
+    }
   },
   "eweCardWithdrawalDays": "{days, plural, =0{0 day withdrawal} =1{1 day withdrawal} other{{days} day withdrawal}}",
   "@eweCardWithdrawalDays": {
     "description": "The withdrawal figure on a treatment row. ZERO IS A REAL LABEL VALUE — products genuinely print zero-day withdrawals — so =0 is an explicit case and never falls through to the not-recorded wording. Always rendered beside Disclaimers.withdrawalProvenance, which is referenced and never re-typed.",
-    "placeholders": {"days": {"type": "num"}}
+    "placeholders": {
+      "days": {
+        "type": "num"
+      }
+    }
   },
   "eweCardWithdrawalNotApplicable": "No withdrawal",
   "@eweCardWithdrawalNotApplicable": {
@@ -1561,51 +1622,94 @@
   "@eweCardRowSemantics": {
     "description": "One row, one spoken sentence, in the order a shepherd would say it. 10 §3.2 rule 3: the spoken row and the visible row agree on the visible words. Seven Text widgets is seven rotor stops per row and about eighty rows on a five-season card.",
     "placeholders": {
-      "time": {"type": "String", "example": "03:20"},
-      "body": {"type": "String", "example": "Lambed"},
-      "provenance": {"type": "String", "example": "recorded automatically"}
+      "time": {
+        "type": "String",
+        "example": "03:20"
+      },
+      "body": {
+        "type": "String",
+        "example": "Lambed"
+      },
+      "provenance": {
+        "type": "String",
+        "example": "recorded automatically"
+      }
     }
   },
   "eweCardTitle": "{singularTerm} {tag}",
   "@eweCardTitle": {
     "description": "The card's headingLevel 1 title. {singularTerm} is a USER-EDITABLE noun from the terminology overlay (ewe/gimmer/theave/...). Never derive the plural by appending an s (10 §8.5) — both forms come from TermLabel.",
     "placeholders": {
-      "singularTerm": {"type": "String", "example": "ewe"},
-      "tag": {"type": "String", "example": "412"}
+      "singularTerm": {
+        "type": "String",
+        "example": "ewe"
+      },
+      "tag": {
+        "type": "String",
+        "example": "412"
+      }
     }
   },
   "eweCardSummarySeasons": "{count, plural, =0{No seasons recorded} =1{1 season} other{{count} seasons}}",
   "@eweCardSummarySeasons": {
     "description": "Clause 1 of the ewe card summary line (spec §7.7). A count of seasons in which this animal has a recorded lambing. Never a judgement. The =0 case is what a ewe created ten seconds ago reads, because ewe_summaries has no row for her yet.",
-    "placeholders": {"count": {"type": "num"}}
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "eweCardSummaryAverage": "avg {average}",
   "@eweCardSummaryAverage": {
     "description": "Clause 2. Average litter size for THIS animal: lambs born divided by her recorded lambings (05 §6.5) — never divided by seasons. {average} arrives pre-formatted to one decimal by lib/core/ui/formatters.dart, never formatted inside this message (10 §8.4 rule 4). Omitted entirely when not computable; never rendered as 0.0.",
-    "placeholders": {"average": {"type": "String", "example": "2.0"}}
+    "placeholders": {
+      "average": {
+        "type": "String",
+        "example": "2.0"
+      }
+    }
   },
   "eweCardSummaryAssisted": "{count, plural, =0{never assisted} =1{assisted once} =2{assisted twice} other{assisted {count} times}}",
   "@eweCardSummaryAssisted": {
     "description": "Clause 3. Lambings with a recorded ease of 2 or more (05 §6.7). The =1 and =2 cases are explicit because 'assisted 2 times' is not English. Unscored lambings are excluded from both sides and are named by eweCardSummaryAssistedCoverage; a blank ease is NEVER read as unassisted.",
-    "placeholders": {"count": {"type": "num"}}
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "eweCardSummaryAssistedCoverage": "of {scored} scored",
   "@eweCardSummaryAssistedCoverage": {
     "description": "Appended to clause 3 only when some lambings have no ease score. 05 §6.7: coverage is always reported when it is partial, because a blank ease read as unassisted deflates the number.",
-    "placeholders": {"scored": {"type": "num"}}
+    "placeholders": {
+      "scored": {
+        "type": "num"
+      }
+    }
   },
   "eweCardSummaryObservation": "{observation} {year}",
   "@eweCardSummaryObservation": {
     "description": "Clause 4. The most recent recorded observation and the year of the season it was recorded in — e.g. 'prolapsed 2025'. {observation} is the USER-EDITABLE vocab_terms label for an ewe_observation key; never hard-code it and never translate it. It states WHAT WAS OBSERVED, never a consequence: 'prolapsed 2025' is a record, 'prolapse risk' is a diagnosis (§12.2).",
     "placeholders": {
-      "observation": {"type": "String", "example": "prolapsed"},
-      "year": {"type": "String", "example": "2025"}
+      "observation": {
+        "type": "String",
+        "example": "prolapsed"
+      },
+      "year": {
+        "type": "String",
+        "example": "2025"
+      }
     }
   },
   "eweCardSummarySemantics": "{clauses}",
   "@eweCardSummarySemantics": {
     "description": "The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).",
-    "placeholders": {"clauses": {"type": "String", "example": "3 seasons. avg 2.0. assisted twice"}}
+    "placeholders": {
+      "clauses": {
+        "type": "String",
+        "example": "3 seasons. avg 2.0. assisted twice"
+      }
+    }
   },
   "settingsTitle": "Settings",
   "@settingsTitle": {
@@ -1622,7 +1726,12 @@
   "settingsUnitsWeightSemantics": "Weight in {unit}",
   "@settingsUnitsWeightSemantics": {
     "description": "The spoken form of each segment. NO STATE WORD IN IT (10 §3.2 rule 2): the node carries `selected` and a screen reader announces the state itself, so 'Kilograms, selected' is the doubled announcement users report as noise.",
-    "placeholders": {"unit": {"type": "String", "example": "kilograms"}}
+    "placeholders": {
+      "unit": {
+        "type": "String",
+        "example": "kilograms"
+      }
+    }
   },
   "settingsUnitsWeightKgSpoken": "kilograms",
   "@settingsUnitsWeightKgSpoken": {
@@ -1647,7 +1756,12 @@
   "settingsPaletteSemantics": "{palette} palette",
   "@settingsPaletteSemantics": {
     "description": "The spoken form of each palette choice. No state word in it (10 §3.2 rule 2): the node carries `selected` and announcing it twice is noise.",
-    "placeholders": {"palette": {"type": "String", "example": "Night"}}
+    "placeholders": {
+      "palette": {
+        "type": "String",
+        "example": "Night"
+      }
+    }
   },
   "settingsHighContrast": "HIGH CONTRAST",
   "@settingsHighContrast": {
@@ -1689,14 +1803,25 @@
   "@settingsSeasonCurrent": {
     "description": "The current season row. The date arrives pre-formatted 'd MMM y' — a human-facing date is never all-numeric (R60), because 03/04 reads as a different day on two sides of an ocean.",
     "placeholders": {
-      "label": {"type": "String", "example": "2026"},
-      "date": {"type": "String", "example": "1 Jan 2026"}
+      "label": {
+        "type": "String",
+        "example": "2026"
+      },
+      "date": {
+        "type": "String",
+        "example": "1 Jan 2026"
+      }
     }
   },
   "settingsSeasonSwitch": "{label}",
   "@settingsSeasonSwitch": {
     "description": "One row per season the shepherd can switch to. The label is theirs — seasons.label is a stored string, not a derived year.",
-    "placeholders": {"label": {"type": "String", "example": "2025"}}
+    "placeholders": {
+      "label": {
+        "type": "String",
+        "example": "2025"
+      }
+    }
   },
   "settingsSeasonSwitchSemantics": "Write into {label}",
   "@settingsSeasonSwitchSemantics": {
@@ -1713,14 +1838,25 @@
   "settingsAboutVersion": "Version {version}",
   "@settingsAboutVersion": {
     "description": "The app version, from kAppVersion — a --dart-define, so a build that forgot to set it reads 0.1.0 and says so rather than claiming a release number it does not have.",
-    "placeholders": {"version": {"type": "String", "example": "1.0.0"}}
+    "placeholders": {
+      "version": {
+        "type": "String",
+        "example": "1.0.0"
+      }
+    }
   },
   "settingsDiagnosticsCounts": "{records} records · {ewes} animals",
   "@settingsDiagnosticsCounts": {
     "description": "13 §8.5's first diagnostics row. Counts come from the SAME whole-database count the export uses — a second implementation is a second answer to 'how many ewes are on this phone?'.",
     "placeholders": {
-      "records": {"type": "String", "example": "1,240"},
-      "ewes": {"type": "String", "example": "412"}
+      "records": {
+        "type": "String",
+        "example": "1,240"
+      },
+      "ewes": {
+        "type": "String",
+        "example": "412"
+      }
     }
   },
   "settingsDiagnosticsCheck": "CHECK DATABASE",
@@ -1738,7 +1874,11 @@
   "settingsDiagnosticsRecent": "Last {count} events",
   "@settingsDiagnosticsRecent": {
     "description": "The heading over the log preview. 'Events', because that is what the log holds — 13 §8.4 keeps every value the shepherd typed out of it, so what is left is the shape of what happened and never its content.",
-    "placeholders": {"count": {"type": "num"}}
+    "placeholders": {
+      "count": {
+        "type": "num"
+      }
+    }
   },
   "settingsDiagnosticsNoLog": "Nothing recorded in this session yet.",
   "@settingsDiagnosticsNoLog": {
@@ -1832,23 +1972,43 @@
   "@eweCardEarlierAnimal": {
     "description": "Shown on a ewe card when a NON-ACTIVE animal holds the same tag. Tags are unique among active animals only (decision-record §7.0 ruling 7), so this is a normal expected state and must not read as an error. {date} is the date of the most recent EVENT on the earlier animal's record, pre-formatted 'd MMM y' — NOT the date her status changed, which this app does not store (R41): updated_at is a row-lifecycle fact and rendering it as an event time is the laundering §12.5 exists to prevent. {status} is the current value of a mutable column and is true now, stated WITHOUT a date for the same reason.",
     "placeholders": {
-      "tag": {"type": "String", "example": "412"},
-      "status": {"type": "String", "example": "culled"},
-      "date": {"type": "String", "example": "12 Aug 2025"}
+      "tag": {
+        "type": "String",
+        "example": "412"
+      },
+      "status": {
+        "type": "String",
+        "example": "culled"
+      },
+      "date": {
+        "type": "String",
+        "example": "12 Aug 2025"
+      }
     }
   },
   "eweCardEarlierAnimalUndated": "An earlier {tag} is on record — {status}. Separate record.",
   "@eweCardEarlierAnimalUndated": {
     "description": "The same disclosure for an earlier animal with no recorded events at all. A ewe created and removed with no history is unusual but storable, and naming her without a date is honest where inventing one would not be.",
     "placeholders": {
-      "tag": {"type": "String", "example": "412"},
-      "status": {"type": "String", "example": "culled"}
+      "tag": {
+        "type": "String",
+        "example": "412"
+      },
+      "status": {
+        "type": "String",
+        "example": "culled"
+      }
     }
   },
   "eweCardEarlierAnimalOpen": "Open the earlier {tag}",
   "@eweCardEarlierAnimalOpen": {
     "description": "The action beside the disclosure. Pushes that animal's own card. 64 x 64 minimum, like every target in this system.",
-    "placeholders": {"tag": {"type": "String", "example": "412"}}
+    "placeholders": {
+      "tag": {
+        "type": "String",
+        "example": "412"
+      }
+    }
   },
   "eweStatusSold": "sold",
   "@eweStatusSold": {
@@ -1865,7 +2025,12 @@
   "eweCardSeasonHeading": "{year}",
   "@eweCardSeasonHeading": {
     "description": "The season sub-head on the ewe card — a headingLevel 2 stop so a screen reader can jump season to season instead of swiping through eighty rows. The year is the SEASON's, from a stored foreign key, never derived from an event's instant.",
-    "placeholders": {"year": {"type": "String", "example": "2026"}}
+    "placeholders": {
+      "year": {
+        "type": "String",
+        "example": "2026"
+      }
+    }
   },
   "eweCardNoSeasonHeading": "No season",
   "@eweCardNoSeasonHeading": {

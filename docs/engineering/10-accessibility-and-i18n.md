@@ -671,7 +671,14 @@ expect(resolve(const [Locale('en', 'GB')]), const Locale('en', 'GB'));
 expect(resolve(const [Locale('en', 'US')]), const Locale('en'));
 expect(resolve(const [Locale('fr', 'FR')]), const Locale('en'));
 
-// test/policy/arb_has_no_domain_noun_test.dart — §8.5's rule, as an assertion.
+// test/policy/arb_completeness_test.dart — §8.5's rule as a self-test, plus the
+// other two properties of the same file. **Amended at N33-T05: this section
+// published the name `arb_has_no_domain_noun_test.dart`, which describes ONE of
+// the three and would have meant parsing the same JSON three times and keeping
+// three copies of §8.7's exception list.** The rule itself is
+// `copy.arb_domain_noun` in the one gate; the test proves it fires and proves it
+// does not fire on the `term<Class>*` messages, which are the source the
+// placeholder is fed from.
 ```
 
 Write every new semantics matcher with **`isSemantics`**; `containsSemantics` was deprecated in 3.41 and blog snippets still use it.
@@ -1051,7 +1058,7 @@ Three notes on scope, because each is a real edge:
 
 - **`copy.literal_text` is scoped to `lib/features/` only.** `lib/core/ui/` components take their strings as parameters, `feedback.dart` builds its label from a `SaveReceipt`, and `night_error_panel.dart` must contain literal English. Those are reviewed by hand, and none of them needs an `[exempt]` line — the day-one allowlist stays at CONVENTIONS R56's **four** entries.
 - **`copy.arb_domain_noun` is scoped to `lib/l10n/` and must skip the `term*Singular` / `term*Plural` messages**, which are the *only* place those words legitimately appear. Implement the skip in the rule, not in the allowlist.
-- **Two driver amendments are required, and `01-architecture.md` must accept them.** (a) **The walker does not currently reach the ARB at all.** 01 §3.2's `main()` skips every file that does not end `.dart`, so `copy.arb_domain_noun` — and `05-domain-correctness.md` §7.3's `ContentPolicy` scan, which claims to cover "message values in `lib/l10n/*.arb`" — have nothing to run against. The amendment is one reader that walks `lib/l10n/*.arb`, decodes the JSON, and yields each non-`@`-prefixed message value as a string. It is a *separate* reader from the Dart one: JSON has no adjacent-string-literal problem, so 05's join-before-matching rule applies to the `.dart` half only and must not be copied onto the ARB half, where it would silently concatenate unrelated messages. (b) The generated `lib/l10n/app_localizations*.dart` must be added to the skip list alongside `*.g.dart` and `*.drift.dart`: it is generated, it is committed, its name matches neither existing skip pattern, and every rule that fires on it is firing on the ARB twice.
+- **Two driver amendments are required, and `01-architecture.md` must accept them. Both were made at N31-T02 and N33-T05; `01 §3.2` carries the amended walker.** (a) **The walker does not currently reach the ARB at all.** 01 §3.2's `main()` skips every file that does not end `.dart`, so `copy.arb_domain_noun` — and `05-domain-correctness.md` §7.3's `ContentPolicy` scan, which claims to cover "message values in `lib/l10n/*.arb`" — have nothing to run against. The amendment is one reader that walks `lib/l10n/*.arb`, decodes the JSON, and yields each non-`@`-prefixed message value as a string. It is a *separate* reader from the Dart one: JSON has no adjacent-string-literal problem, so 05's join-before-matching rule applies to the `.dart` half only and must not be copied onto the ARB half, where it would silently concatenate unrelated messages. (b) The generated `lib/l10n/app_localizations*.dart` must be added to the skip list alongside `*.g.dart` and `*.drift.dart`: it is generated, it is committed, its name matches neither existing skip pattern, and every rule that fires on it is firing on the ARB twice.
 
 ---
 

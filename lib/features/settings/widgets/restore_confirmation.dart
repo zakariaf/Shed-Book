@@ -17,9 +17,13 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/domain/terminology/animal_class.dart';
+import 'package:shed_book/domain/terminology/terminology.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// What the two summaries render.
@@ -57,7 +61,7 @@ Future<bool> showRestoreConfirmation(
     ) ??
     false;
 
-class _RestoreConfirmation extends StatefulWidget {
+class _RestoreConfirmation extends ConsumerStatefulWidget {
   const _RestoreConfirmation({
     required this.backup,
     required this.live,
@@ -73,10 +77,10 @@ class _RestoreConfirmation extends StatefulWidget {
   final int mediaCount;
 
   @override
-  State<_RestoreConfirmation> createState() => _RestoreConfirmationState();
+  ConsumerState<_RestoreConfirmation> createState() => _RestoreConfirmationState();
 }
 
-class _RestoreConfirmationState extends State<_RestoreConfirmation> {
+class _RestoreConfirmationState extends ConsumerState<_RestoreConfirmation> {
   /// **TWO STEPS, NOT ONE.** A single 72 pt button under a wall of text is one
   /// cold thumb away from destroying a season. Step one commits to nothing; it
   /// unlocks step two.
@@ -109,6 +113,8 @@ class _RestoreConfirmationState extends State<_RestoreConfirmation> {
                   treatments: widget.backup.treatments,
                   date: widget.backupDate,
                   version: widget.backupVersion,
+                  eweTerm: _terms(context, ref).ewe,
+                  lambTerm: _terms(context, ref).lamb,
                 ),
                 key: const Key('settings.restore.backup_summary'),
                 style: text.bodyMedium,
@@ -124,6 +130,8 @@ class _RestoreConfirmationState extends State<_RestoreConfirmation> {
                   ewes: widget.live.ewes,
                   lambs: widget.live.lambs,
                   treatments: widget.live.treatments,
+                  eweTerm: _terms(context, ref).ewe,
+                  lambTerm: _terms(context, ref).lamb,
                 ),
                 key: const Key('settings.restore.live_summary'),
                 style: text.bodyMedium,
@@ -220,4 +228,20 @@ class _RestoreConfirmationState extends State<_RestoreConfirmation> {
       ),
     );
   }
+}
+
+/// The shepherd's own plurals, resolved at the presentation edge.
+///
+/// **THIS SCREEN ESPECIALLY.** The two summaries are read while somebody decides
+/// whether to destroy their records, and a shepherd who calls them gimmers
+/// reading *"412 ewes"* is reading about somebody else's flock at the worst
+/// possible moment (`10 §8.5`). `copy.arb_domain_noun` found this at N33-T05;
+/// both messages had the nouns hard-coded.
+({String ewe, String lamb}) _terms(BuildContext context, WidgetRef ref) {
+  final AppLocalizations l10n = AppLocalizations.of(context);
+  final Terminology terms = ref.read(terminologyProvider);
+  return (
+    ewe: terms.overrideFor(AnimalClass.ewe)?.plural ?? l10n.termEwePlural,
+    lamb: terms.overrideFor(AnimalClass.lamb)?.plural ?? l10n.termLambPlural,
+  );
 }

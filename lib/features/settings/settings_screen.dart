@@ -33,6 +33,8 @@ import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/models.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/features/settings/settings_write_controller.dart';
+import 'package:shed_book/features/settings/widgets/appearance_section.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
 import 'package:shed_book/features/settings/widgets/units_section.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -135,6 +137,15 @@ class SettingsScreen extends ConsumerWidget {
     // `temperature_unit` column and a segmented line for one would be a setting
     // for a value that does not exist.
     SettingsSectionId.units => const <Widget>[UnitsSection()],
+    SettingsSectionId.appearance => const <Widget>[
+      PaletteSection(),
+      // **HIGH CONTRAST IS ITS OWN ROW.** It raises every ink to the top of its
+      // ramp — an addition to whichever palette is chosen, not a fourth palette
+      // — so a shepherd who wants amber AND high contrast can have both.
+      _HighContrastRow(),
+    ],
+    SettingsSectionId.keepScreenOn => const <Widget>[_KeepScreenOnRow()],
+    SettingsSectionId.leftHanded => const <Widget>[_LeftHandedRow()],
     _ => const <Widget>[],
   };
 
@@ -154,3 +165,72 @@ class SettingsScreen extends ConsumerWidget {
     SettingsSectionId.about => l10n.settingsSectionAbout,
   };
 }
+
+/// The three boolean rows, each one `AppSetting` column and one guarded verb.
+///
+/// They are private classes rather than inline builders because each needs to
+/// watch `settingsProvider` for its own value — an inline row would push that
+/// watch up to the whole screen and rebuild eleven sections when one boolean
+/// moves.
+final class _HighContrastRow extends ConsumerWidget {
+  const _HighContrastRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return BooleanSettingRow(
+      settingKey: 'appearance.high_contrast',
+      label: l10n.settingsHighContrast,
+      value: _read(ref, (AppSetting s) => s.highContrast),
+      spokenOn: l10n.settingsHighContrastOn,
+      spokenOff: l10n.settingsHighContrastOff,
+      onChanged: (bool on) =>
+          ref.read(settingsWriteControllerProvider.notifier).setHighContrast(on: on).ignore(),
+    );
+  }
+}
+
+final class _KeepScreenOnRow extends ConsumerWidget {
+  const _KeepScreenOnRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return BooleanSettingRow(
+      settingKey: 'keep_screen_on',
+      label: l10n.settingsKeepScreenOn,
+      value: _read(ref, (AppSetting s) => s.wakelockEnabled),
+      spokenOn: l10n.settingsKeepScreenOnStateOn,
+      spokenOff: l10n.settingsKeepScreenOnStateOff,
+      onChanged: (bool on) =>
+          ref.read(settingsWriteControllerProvider.notifier).setWakelockEnabled(on: on).ignore(),
+    );
+  }
+}
+
+final class _LeftHandedRow extends ConsumerWidget {
+  const _LeftHandedRow();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return BooleanSettingRow(
+      settingKey: 'left_handed',
+      label: l10n.settingsLeftHanded,
+      value: _read(ref, (AppSetting s) => s.leftHanded),
+      spokenOn: l10n.settingsLeftHandedStateOn,
+      spokenOff: l10n.settingsLeftHandedStateOff,
+      onChanged: (bool on) =>
+          ref.read(settingsWriteControllerProvider.notifier).setLeftHanded(on: on).ignore(),
+    );
+  }
+}
+
+/// **`false` UNTIL THE ROW IS READ, AND IT IS THE HONEST DEFAULT** — every one of
+/// these three columns is `withDefault(const Constant(false))`, so an unread
+/// setting and an off setting are the same fact. That is not true of the palette,
+/// which is why `PaletteSection` renders nothing instead.
+bool _read(WidgetRef ref, bool Function(AppSetting) field) => switch (ref.watch(settingsProvider)) {
+  AsyncData<AppSetting>(value: final AppSetting s) => field(s),
+  _ => false,
+};

@@ -1866,6 +1866,84 @@ abstract class AppLocalizations {
   /// **'pounds'**
   String get settingsUnitsWeightLbSpoken;
 
+  /// R35's frozen palette id 'night'. The default: warm off-white ink on near-black. There is no light theme and no system-follow — the app is dark only, on both platforms.
+  ///
+  /// In en, this message translates to:
+  /// **'NIGHT'**
+  String get settingsPaletteNight;
+
+  /// R35's frozen palette id 'amber'. Shifts the ink warm for a shepherd who finds the default too cool under a head torch.
+  ///
+  /// In en, this message translates to:
+  /// **'AMBER'**
+  String get settingsPaletteAmber;
+
+  /// R35's frozen palette id 'red' — note the STORED key is 'red' and the label is two words. Red-shift for night vision: it overrides token values and nothing else, because nothing in this app was ever encoded by hue.
+  ///
+  /// In en, this message translates to:
+  /// **'DEEP RED'**
+  String get settingsPaletteDeepRed;
+
+  /// The spoken form of each palette choice. No state word in it (10 §3.2 rule 2): the node carries `selected` and announcing it twice is noise.
+  ///
+  /// In en, this message translates to:
+  /// **'{palette} palette'**
+  String settingsPaletteSemantics({required String palette});
+
+  /// Raises every ink to the top of its ramp. It is an ADDITION to the palette, not a fourth palette — which is why it is its own row and not a fourth word on the line above.
+  ///
+  /// In en, this message translates to:
+  /// **'HIGH CONTRAST'**
+  String get settingsHighContrast;
+
+  /// The spoken form when the setting is on. Written as a sentence rather than as a state word appended to a label, so a screen reader announces it once.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast on'**
+  String get settingsHighContrastOn;
+
+  /// The spoken form when the setting is off.
+  ///
+  /// In en, this message translates to:
+  /// **'High contrast off'**
+  String get settingsHighContrastOff;
+
+  /// The wakelock, for a phone propped on a gate while both hands are busy. Released on inactive as well as hidden (#79) — a phone that stays lit in a pocket is a flat battery at 05:00.
+  ///
+  /// In en, this message translates to:
+  /// **'KEEP SCREEN ON'**
+  String get settingsKeepScreenOn;
+
+  /// The spoken form when the wakelock is enabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on, on'**
+  String get settingsKeepScreenOnStateOn;
+
+  /// The spoken form when the wakelock is disabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on, off'**
+  String get settingsKeepScreenOnStateOff;
+
+  /// R40. Moves exactly three things: the corner slab, the INDEX button and the keypad's bottom row. The spine, the margin cell and the record column do NOT mirror — a book's margin is on the left, and the digits stay where a phone keypad puts them because a shepherd who has used a phone knows where 5 is.
+  ///
+  /// In en, this message translates to:
+  /// **'LEFT-HANDED'**
+  String get settingsLeftHanded;
+
+  /// The spoken form when the mirror is on.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed, on'**
+  String get settingsLeftHandedStateOn;
+
+  /// The spoken form when the mirror is off.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed, off'**
+  String get settingsLeftHandedStateOff;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

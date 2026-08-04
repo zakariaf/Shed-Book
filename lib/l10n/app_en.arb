@@ -1632,6 +1632,59 @@
   "@settingsUnitsWeightLbSpoken": {
     "description": "The spoken noun for lb. Written out because a screen reader reads 'LB' as two letters."
   },
+  "settingsPaletteNight": "NIGHT",
+  "@settingsPaletteNight": {
+    "description": "R35's frozen palette id 'night'. The default: warm off-white ink on near-black. There is no light theme and no system-follow — the app is dark only, on both platforms."
+  },
+  "settingsPaletteAmber": "AMBER",
+  "@settingsPaletteAmber": {
+    "description": "R35's frozen palette id 'amber'. Shifts the ink warm for a shepherd who finds the default too cool under a head torch."
+  },
+  "settingsPaletteDeepRed": "DEEP RED",
+  "@settingsPaletteDeepRed": {
+    "description": "R35's frozen palette id 'red' — note the STORED key is 'red' and the label is two words. Red-shift for night vision: it overrides token values and nothing else, because nothing in this app was ever encoded by hue."
+  },
+  "settingsPaletteSemantics": "{palette} palette",
+  "@settingsPaletteSemantics": {
+    "description": "The spoken form of each palette choice. No state word in it (10 §3.2 rule 2): the node carries `selected` and announcing it twice is noise.",
+    "placeholders": {"palette": {"type": "String", "example": "Night"}}
+  },
+  "settingsHighContrast": "HIGH CONTRAST",
+  "@settingsHighContrast": {
+    "description": "Raises every ink to the top of its ramp. It is an ADDITION to the palette, not a fourth palette — which is why it is its own row and not a fourth word on the line above."
+  },
+  "settingsHighContrastOn": "High contrast on",
+  "@settingsHighContrastOn": {
+    "description": "The spoken form when the setting is on. Written as a sentence rather than as a state word appended to a label, so a screen reader announces it once."
+  },
+  "settingsHighContrastOff": "High contrast off",
+  "@settingsHighContrastOff": {
+    "description": "The spoken form when the setting is off."
+  },
+  "settingsKeepScreenOn": "KEEP SCREEN ON",
+  "@settingsKeepScreenOn": {
+    "description": "The wakelock, for a phone propped on a gate while both hands are busy. Released on inactive as well as hidden (#79) — a phone that stays lit in a pocket is a flat battery at 05:00."
+  },
+  "settingsKeepScreenOnStateOn": "Keep screen on, on",
+  "@settingsKeepScreenOnStateOn": {
+    "description": "The spoken form when the wakelock is enabled."
+  },
+  "settingsKeepScreenOnStateOff": "Keep screen on, off",
+  "@settingsKeepScreenOnStateOff": {
+    "description": "The spoken form when the wakelock is disabled."
+  },
+  "settingsLeftHanded": "LEFT-HANDED",
+  "@settingsLeftHanded": {
+    "description": "R40. Moves exactly three things: the corner slab, the INDEX button and the keypad's bottom row. The spine, the margin cell and the record column do NOT mirror — a book's margin is on the left, and the digits stay where a phone keypad puts them because a shepherd who has used a phone knows where 5 is."
+  },
+  "settingsLeftHandedStateOn": "Left-handed, on",
+  "@settingsLeftHandedStateOn": {
+    "description": "The spoken form when the mirror is on."
+  },
+  "settingsLeftHandedStateOff": "Left-handed, off",
+  "@settingsLeftHandedStateOff": {
+    "description": "The spoken form when the mirror is off."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

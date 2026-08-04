@@ -1136,6 +1136,47 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsUnitsWeightLbSpoken => 'pounds';
 
   @override
+  String get settingsPaletteNight => 'NIGHT';
+
+  @override
+  String get settingsPaletteAmber => 'AMBER';
+
+  @override
+  String get settingsPaletteDeepRed => 'DEEP RED';
+
+  @override
+  String settingsPaletteSemantics({required String palette}) {
+    return '$palette palette';
+  }
+
+  @override
+  String get settingsHighContrast => 'HIGH CONTRAST';
+
+  @override
+  String get settingsHighContrastOn => 'High contrast on';
+
+  @override
+  String get settingsHighContrastOff => 'High contrast off';
+
+  @override
+  String get settingsKeepScreenOn => 'KEEP SCREEN ON';
+
+  @override
+  String get settingsKeepScreenOnStateOn => 'Keep screen on, on';
+
+  @override
+  String get settingsKeepScreenOnStateOff => 'Keep screen on, off';
+
+  @override
+  String get settingsLeftHanded => 'LEFT-HANDED';
+
+  @override
+  String get settingsLeftHandedStateOn => 'Left-handed, on';
+
+  @override
+  String get settingsLeftHandedStateOff => 'Left-handed, off';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

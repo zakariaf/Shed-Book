@@ -13,6 +13,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'dart:io';
 
 import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/units/grams.dart';
 import 'package:shed_book/domain/units/weight_unit.dart';
@@ -174,6 +175,101 @@ void main() {
       }
     }
     expect(offenders, isEmpty, reason: 'a mass is formatted outside formatShedWeight: $offenders');
+  });
+
+  testWidgets('the palette, high contrast, the wakelock and the mirror each commit one column', (
+    WidgetTester tester,
+  ) async {
+    // **FOUR SETTINGS, FOUR COLUMNS, AND THE COLUMN IS WHAT IS READ BACK.** A
+    // control that flips its own state and writes nothing passes every visual
+    // check and is gone on the next launch.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    Future<AppSetting> settings() => db.select(db.appSettings).getSingle();
+
+    // The seeded defaults, asserted rather than assumed — a test that starts
+    // from an unknown state cannot tell a write from a coincidence.
+    final AppSetting before = await settings();
+    expect(before.palette, ShedPaletteId.night.key);
+    expect(before.highContrast, isFalse);
+    expect(before.wakelockEnabled, isFalse);
+    expect(before.leftHanded, isFalse);
+
+    for (final ({String key, String column}) row in <({String key, String column})>[
+      (key: 'settings.appearance.palette.amber', column: 'palette'),
+      (key: 'settings.appearance.high_contrast', column: 'high_contrast'),
+      (key: 'settings.keep_screen_on', column: 'wakelock_enabled'),
+      (key: 'settings.left_handed', column: 'left_handed'),
+    ]) {
+      final Finder f = find.byKey(Key(row.key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    final AppSetting after = await settings();
+    // **THE STORED PALETTE KEY IS `red` FOR `DEEP RED` AND `amber` HERE** — R35
+    // freezes the three ids, and the label and the key are deliberately not the
+    // same string on one of them.
+    expect(after.palette, ShedPaletteId.amber.key);
+    expect(after.highContrast, isTrue);
+    expect(after.wakelockEnabled, isTrue);
+    expect(after.leftHanded, isTrue);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('high contrast is an addition to the palette, not a fourth palette', (
+    WidgetTester tester,
+  ) async {
+    // A shepherd who wants amber AND high contrast must be able to have both —
+    // which is why it is its own row rather than a fourth word on the line
+    // above. The failure this catches is a segmented line of four where picking
+    // high contrast silently unsets the palette.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    for (final String key in <String>[
+      'settings.appearance.palette.red',
+      'settings.appearance.high_contrast',
+    ]) {
+      final Finder f = find.byKey(Key(key));
+      await tester.ensureVisible(f);
+      await tester.pumpAndSettle();
+      await tester.tap(f);
+      await tester.pumpAndSettle();
+    }
+
+    final AppSetting s = await db.select(db.appSettings).getSingle();
+    expect(s.palette, ShedPaletteId.deepRed.key, reason: 'the stored key is red, not deep_red');
+    expect(s.highContrast, isTrue, reason: 'the two settings are independent');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no setting is a Switch, a Slider or anything draggable', (
+    WidgetTester tester,
+  ) async {
+    // `06 §7`. Material's `Switch` is a drag target with a tap fallback, and
+    // drag is banned outright — a control whose primary gesture the app does not
+    // support is a control that teaches the wrong thing. `Slider` is banned by
+    // name, and `Dismissible`/`Draggable` are `check_policy` rows.
+    final AppDatabase db = testDatabase();
+    await tester.pumpApp(const SettingsScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(SwitchListTile), findsNothing);
+    expect(find.byType(Slider), findsNothing);
+    expect(find.byType(Checkbox), findsNothing);
+    expect(find.byType(Dismissible), findsNothing);
+    expect(find.byType(Draggable<Object>), findsNothing);
+
+    await tester.closeApp();
   });
 
   testWidgets('the screen never renders a spinner, in any state', (WidgetTester tester) async {

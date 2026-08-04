@@ -801,10 +801,18 @@ void main() {
     await tester.pumpApp(const FlockScreen(), db: db);
     await tester.pumpAndSettle();
 
-    // A ListView builds lazily, so the assertion is on what the provider
-    // produced rather than on how many rows are mounted — counting mounted rows
-    // would assert the viewport height, which is a different fact.
+    // A ListView builds lazily, so the assertion is not on a COUNT of mounted
+    // rows — that would assert the viewport height, which is a different fact.
+    // But it must be on rows: `expect(find.byType(FlockScreen), findsOneWidget)`
+    // alone passes against the loading arm, which renders `SizedBox.expand()`
+    // and no rows at all. N26-T07 pumps this screen at 18 matrix cells and every
+    // one of them would have gone green having laid out nothing.
     expect(find.byType(FlockScreen), findsOneWidget);
+    expect(
+      find.byType(ShedAnimalRow),
+      findsWidgets,
+      reason: 'the list rendered no rows — this is the loading arm, not the flock',
+    );
 
     await tester.closeApp();
   });

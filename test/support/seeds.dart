@@ -369,3 +369,31 @@ Future<void> armExportBanner(AppDatabase db, {Instant? lastExportedAt}) async {
     ),
   );
 }
+
+/// One ewe in the current season with an explicit [status].
+///
+/// **`status` IS REQUIRED AND HAS NO DEFAULT** (`03 §5.3`), and that is the
+/// point: defaulting to `to_ram` would silently assert a ewe was put to the ram,
+/// which is the denominator of a commercially sensitive number (#59). A seeder
+/// that let the caller omit it would reintroduce the default the schema refuses.
+///
+/// One of `to_ram`, `scanned`, `lambed`, `barren`, `aborted`, `died`, `sold` —
+/// the seven stored keys, and the schema's own CHECK refuses an eighth.
+Future<EweId> seedEweInSeason(AppDatabase db, {required String tag, required String status}) async {
+  final SeasonId season = await _season(db);
+  final Instant now = appNow();
+  final EweId ewe = await seedEwe(db, tag: tag);
+  await db
+      .into(db.eweSeasons)
+      .insert(
+        EweSeasonsCompanion.insert(
+          season: season.value,
+          ewe: ewe.value,
+          status: status,
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return ewe;
+}

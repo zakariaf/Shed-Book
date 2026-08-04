@@ -163,20 +163,47 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
        s.assisted_lambings, s.scored_lambings, s.last_observation_season,
        EXISTS (SELECT 1 FROM pen_occupancies o
                 WHERE o.ewe = e.id AND o.exited_at IS NULL)          AS is_penned,
+       (SELECT MAX(w.clear_date) FROM treatments t
+          JOIN treatment_withdrawals w ON w.treatment = t.id
+         WHERE t.ewe = e.id AND t.voided_at IS NULL
+           AND w.kind = 'days')                                      AS latest_clear_date,
        EXISTS (SELECT 1 FROM treatments t
-                 JOIN treatment_withdrawals w ON w.treatment = t.id
                 WHERE t.ewe = e.id AND t.voided_at IS NULL
-                  AND w.kind = 'days' AND w.clear_date >= :today)    AS under_withdrawal,
+                  AND NOT EXISTS (SELECT 1 FROM treatment_withdrawals w
+                                   WHERE w.treatment = t.id))        AS unrecorded_withdrawal,
        EXISTS (SELECT 1 FROM lambing_consistency lc
                  JOIN lambings lg ON lg.id = lc.lambing_id
                 WHERE lg.ewe = e.id AND lc.is_mismatched = 1)        AS has_warning
   FROM ewes e
   LEFT JOIN ewe_summaries s ON s.ewe = e.id
- WHERE e.status = 'active'
- ORDER BY e.tag_digits, e.tag;
+ ORDER BY (e.status <> 'active'), e.tag_digits, e.tag;
 ```
 
-`readsFrom: {ewes, eweSummaries, penOccupancies, treatments, treatmentWithdrawals, lambings, lambs}`. `:today` is bound as a `TEXT 'YYYY-MM-DD'` civil date computed in Dart from `appNow()` — the one wall-clock reader in the app (`lib/core/time/app_clock.dart`), and SQL-side time is banned (decision #47), and `clear_date` is a `TEXT` civil date (decision #2), so the comparison is a lexicographic string comparison and is correct only because the format sorts.
+**RULING N3 (N26-T03) — the §12.4 badge is a word, not an icon.**
+
+This section said *"icon + count, never colour alone"*. There is no icon set in this product: `indelible.md §1.3` lists *"no icon set — every action is a word"* among the things the system does not have, and `06 §12` specifies `ShedStatusBadge` as *"a stamp set in words, not an icon-plus-word"*. `CLAUDE.md`'s authority order puts `indelible.md` above the thirteen engineering documents, so the word wins and this row is corrected.
+
+The two non-colour channels §1.2 rule 3 requires are the **word** and the **form**: `QUERIED` is unboxed because it is a note about the writing, `CULLED` is boxed because it is a state of the sheep, and `indelible.md §7.7` says you must be able to tell which from ten feet. Both stamps were already in the design's own lists; neither is a new mark, so §6.3's six-mark budget is untouched.
+
+`test/features/flock_test.dart` asserts on the rendered TEXT, so an icon-based badge fails it.
+
+**RULING N2 (N26-T03) — `WHERE e.status = 'active'` is struck from this statement.**
+
+It contradicted `indelible.md §7.4`, whose **Struck** state reads *"She stays in the list, at the bottom, under a printed line reading `STRUCK — 1`."* Both could not ship. `CLAUDE.md`'s authority order puts `indelible.md` above the thirteen engineering documents, so the design wins — and two further arguments point the same way. The design system's **first rule** is *nothing is ever removed, only struck*, so filtering her out is that rule inverted at the data layer; and N26-T03's Definition of Done — *a culled tag is visibly distinct from an active one with the same number* — is unsatisfiable if the struck row never renders.
+
+She is also what makes §7.0 ruling 7 legible: tags are unique among **active** animals only, so one tag appears twice and the struck row is the reason that is legal rather than a bug (`03 §6`: they are two animals, *"a link, never a merge offer"*).
+
+The ordering clause carries it: active first, struck last, tag order within each. `test/features/flock_test.dart` holds both halves — that she is present, and that no active row is printed below her.
+
+**RULING N1 (N26-T02) — the two columns above replaced a single `under_withdrawal` `EXISTS` whose predicate was `w.kind = 'days' AND w.clear_date >= :today`, and it was wrong twice.**
+
+*An unrecorded withdrawal is **unknown**, never clear.* The old predicate INNER JOINed `treatment_withdrawals`, so a ewe injected yesterday whose withdrawal nobody typed had nothing to join to and vanished from the *under treatment* filter — the app answering a withdrawal question on the shepherd's behalf, which is spec §12.1's exact shape and the thing `03 §5.8`'s child table already refuses at the storage layer. `unrecorded_withdrawal` names that state so the screen can say `— NOT RECORDED` rather than nothing.
+
+*And no date may be bound into this statement.* `watch()` binds its variables **once**, when the stream is built, and drift re-runs the same prepared statement with the same arguments on every table change — so a phone left on the flock page overnight goes on filtering against yesterday, and the ewe who cleared at midnight stays listed as running. Decision #47 bans SQL-side time; a Dart date frozen into a long-lived statement is the same defect wearing a Dart hat. Both columns are clock-free and the comparison happens in Dart, where `now` is a parameter (R24) and advances. `test/policy/flock_filter_never_implies_a_withdrawal_test.dart` holds all three halves.
+
+Consequently **four of the five §7.7 filters narrow the `WHERE`; `under treatment` is applied in Dart** against these two columns.
+
+`readsFrom: {ewes, eweSummaries, penOccupancies, treatments, treatmentWithdrawals, lambings, lambs}`. `clear_date` is a `TEXT 'YYYY-MM-DD'` civil date computed in Dart at write time (decision #2, #50) — the one wall-clock reader in the app (`lib/core/time/app_clock.dart`), and SQL-side time is banned (decision #47), and `clear_date` is a `TEXT` civil date (decision #2), so the comparison is a lexicographic string comparison and is correct only because the format sorts.
 
 **There is no `warning_count` column and there never will be** (decision #54): a warning cannot be persisted because there is nowhere to persist it. `has_warning` is read from the `lambing_consistency` **view** (doc 03 §5.4), which recomputes on read. The remaining warning codes that can badge a Flock row — `duplicateActiveTag` in particular — are computed in Dart from the same active-tag cache the keypad uses; they are not in this statement because they are not in the database.
 
@@ -207,9 +234,18 @@ SELECT e.id, e.tag, e.tag_digits, e.status,
 
 **Typing a tag that an active animal already holds** raises `WarningCode.duplicateActiveTag` — "412 is already in use by an active ewe." — as ~~a 60 pt amber strip under the field~~ **the query mark and underline ruled at N16-T06** (see §6.3's amendment: Indelible has no status palette, so there is no amber to build a strip from). It **never blocks the create**, because tags are unique among active animals only (§7.0 ruling 7) and the partial unique index is what enforces uniqueness; the warning is there so the shepherd sees the collision, not so the app refuses the entry. A tag held only by a culled or sold animal raises nothing at all: that tag is free.
 
+> **Amended — ruling N4 (N26-T04), and what "never blocks" turns out to mean.** This paragraph and `03 §6`'s partial unique index `ON ewes (tag) WHERE status = 'active' AND struck = 0` were carried by `00-README` §10 as an open contradiction. **Both sentences are true, about different cases**, because the index is on `tag`, the *exact string*:
+>
+> - `412` and `B412` are **different tags with the same digits**, both storable, both ranked together by the pad. That is the genuinely ambiguous case, it is what `duplicateActiveTag` is for, and it never blocks anything.
+> - A **second live `412`** is not ambiguous, it is identical, and it makes *"what did 412 do last year?"* — the question the product exists to answer — unanswerable. It is refused, as `TagAlreadyInUse`, checked inside the create's own transaction so the shepherd gets a sentence naming the tag rather than a crash from the index.
+>
+> The resolution is **geometry, not prose**: the add sheet's confirm bar takes its label from the match state, so it reads `Open 412` while an active 412 exists and `Create 412` only when the tag is free. There is no create to block, which is what keeps §12.4 at *unconstructible* rather than dropping it to *documented*.
+>
+> ~~"navigates to Unlock"~~ **does not land in N26.** Unlock is a **Settings section**, not one of the thirteen `RouteNames`, and Settings is N29; the over-cap refusal renders as a row through `showCapRow` (decision #92 — no modal, no interstitial, no navigation). The pixels are N30-T05's.
+
 ### 3.4 §12 on this screen
 
-Only §12.4: a small persistent badge on any row whose records carry warnings, so a contradiction found at 3am is still findable at 9am. The badge is icon + count, never colour alone.
+Only §12.4: a small persistent badge on any row whose records carry warnings, so a contradiction found at 3am is still findable at 9am. The badge is a WORD, never colour alone — see ruling N3 below.
 
 No §12.1 and no §12.5 label appears here: the Flock row shows no withdrawal figure and no event time. The summary line is a count, not a time.
 

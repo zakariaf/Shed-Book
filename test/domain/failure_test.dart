@@ -29,10 +29,18 @@ const List<ShedFailure> _allFailures = <ShedFailure>[
   StorageWriteFailed(),
   StorageReadOnly(),
   MediaWriteFailed(),
+  // **BOTH DOMAIN-OUTCOME FAILURES WERE MISSING FROM THIS LIST.**
+  // `TagAlreadyInUse` landed at ruling N4 and only the exhaustive switch above
+  // was updated — so the property below, which is the one that checks the
+  // *words*, never saw it. A failure whose message ends without a full stop or
+  // tells a shepherd to "try again" at something that cannot work would have
+  // shipped. Added with `EweNotFound` at N26-T04.
+  TagAlreadyInUse('412'),
+  EweNotFound(),
 ];
 
 void main() {
-  test('ShedFailure has six variants, WriteOutcome three, and neither is generic', () {
+  test('ShedFailure has seven variants, WriteOutcome three, and neither is generic', () {
     // THE ANCHOR, and it is a COMPILE-TIME claim wearing a test's clothes: two
     // exhaustive switch expressions with no `default:` and no `_`. They compile
     // today and stop compiling the day a variant is added — which is the point.
@@ -45,6 +53,14 @@ void main() {
       StorageWriteFailed() => 'StorageWriteFailed',
       StorageReadOnly() => 'StorageReadOnly',
       MediaWriteFailed() => 'MediaWriteFailed',
+      // Added by ruling N4, and this switch is what forced the edit — it
+      // stopped compiling the moment the variant landed, which is what the
+      // comment above promises.
+      TagAlreadyInUse() => 'TagAlreadyInUse',
+      // Added by N26-T04's `setStatus`, and this switch stopped compiling the
+      // moment it landed — twice now, which is the whole argument for writing
+      // the anchor as an exhaustive switch rather than as a count.
+      EweNotFound() => 'EweNotFound',
       UnexpectedFailure() => 'UnexpectedFailure',
     };
     expect(named, 'DiskFull');
@@ -71,14 +87,14 @@ void main() {
   });
 
   test('every userMessage is a non-empty sentence a shepherd could act on', () {
-    // Six variants. No stack traces, no SQLite codes, no blame — and none of
+    // Eight variants. No stack traces, no SQLite codes, no blame — and none of
     // CONVENTIONS §5.3's banned words, including `should`, which turns a
     // statement of fact into an instruction nobody asked for.
     final List<ShedFailure> every = <ShedFailure>[
       ..._allFailures,
       UnexpectedFailure(Exception('x'), StackTrace.current),
     ];
-    expect(every, hasLength(6));
+    expect(every, hasLength(8));
 
     for (final ShedFailure f in every) {
       final String m = f.userMessage;
@@ -87,7 +103,18 @@ void main() {
       expect(m, isNot(contains('Exception')), reason: '$f');
       expect(m, isNot(contains('null')), reason: '$f');
       expect(m, isNot(contains('#0')), reason: '$f');
-      expect(m, isNot(matches(RegExp(r'\b\d+\b'))), reason: '$f leaks a code');
+      // **NO CODE LEAKS — BUT THE SHEPHERD'S OWN NUMBER IS NOT A CODE.** The
+      // rule this holds is `DatabaseUnreadable`'s: a SQLite result code on
+      // screen at 03:20 reads as blame and cannot be acted on. `TagAlreadyInUse`
+      // names the tag, which is the opposite — it is the one fact that makes the
+      // sentence actionable, and `flock_test.dart` asserts the tag is in it.
+      //
+      // So the property is scoped to failures that carry no number of the user's
+      // own, rather than weakened for all of them. Widening it again means
+      // adding a variant here, deliberately.
+      if (f is! TagAlreadyInUse) {
+        expect(m, isNot(matches(RegExp(r'\b\d+\b'))), reason: '$f leaks a code');
+      }
 
       for (final String banned in <String>['should', 'sync', 'draft', 'invalid', 'error']) {
         expect(m.toLowerCase(), isNot(contains(banned)), reason: '$f says $banned');

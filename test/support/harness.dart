@@ -72,6 +72,7 @@ import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/treatments_screen.dart';
 import 'package:shed_book/features/export/export_screen.dart';
+import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
@@ -159,6 +160,14 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   RouteNames.penBoard: (seed: _seedHardPenBoard, build: _penBoard),
   RouteNames.treatments: (seed: _seedHardTreatments, build: _treatments),
   RouteNames.export: (seed: _seedHardTreatments, build: _export),
+  // **NO SEEDER, AND THAT IS THE POINT OF THIS ONE.** Every other variant needs
+  // a hard record built on top of the fixture because the fixture cannot contain
+  // one particular animal's worst state. Flock is the opposite: what overflows
+  // it is VOLUME — four hundred rows, three-digit counts, a `STRUCK — n` line at
+  // the bottom, a filter line whose five words plus counts have to fit — and the
+  // fixture is volume. Adding a seeded ewe here would add nothing the four
+  // hundred do not already carry.
+  RouteNames.flock: (seed: _seedNothing, build: _flock),
   // **QUICK ENTRY WITH THE BANNER SHOWN** — a state, not a screen, and the one
   // in which the reachability assertion is most likely to fail. Keyed on the
   // banner's widget key rather than on a route name because it is not a route:
@@ -444,6 +453,8 @@ Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
 }
 
 Widget _treatments(Map<String, int> _) => const TreatmentsScreen();
+
+Widget _flock(Map<String, int> _) => const FlockScreen();
 
 /// **THE SAME SEED AS TREATMENTS, DELIBERATELY.** The Export screen renders
 /// counts, and the counts that can overflow a row are the large ones — the
@@ -941,4 +952,40 @@ AppDatabase testDatabase({bool seedOnCreate = true}) {
   final AppDatabase db = AppDatabase(testConnection(), seedOnCreate: seedOnCreate);
   addTearDown(db.close);
   return db;
+}
+
+/// Counts the SELECTs a piece of work actually issues.
+///
+/// **`07 §1.2`'s one-query rule is only a rule if something counts.** A test that
+/// asserts on ROW COUNT passes on an implementation that issues one statement per
+/// ewe — which is exactly the shape that is fine against six animals and makes
+/// the flock page unusable against four hundred. N26-T01's §4 asks for
+/// `db.executedStatements.length`; drift has no such getter, and
+/// `QueryInterceptor` is the API that does what the task means.
+///
+/// **SELECTs only.** Counting writes as well would make the number depend on
+/// whatever the seed did, and the rule is about reads.
+final class StatementCounter extends QueryInterceptor {
+  int selects = 0;
+
+  @override
+  Future<List<Map<String, Object?>>> runSelect(
+    QueryExecutor executor,
+    String statement,
+    List<Object?> args,
+  ) {
+    selects++;
+    return executor.runSelect(statement, args);
+  }
+}
+
+/// A database that counts its own SELECTs.
+({AppDatabase db, StatementCounter counter}) countingDatabase({bool seedOnCreate = true}) {
+  final StatementCounter counter = StatementCounter();
+  final AppDatabase db = AppDatabase(
+    testConnection().interceptWith(counter),
+    seedOnCreate: seedOnCreate,
+  );
+  addTearDown(db.close);
+  return (db: db, counter: counter);
 }

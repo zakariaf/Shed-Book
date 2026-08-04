@@ -76,6 +76,7 @@ shed_book/
 │   │   ├── lambing_ease.dart         # extension type LambingEase(int) 1..5. NO descriptions (R44).
 │   │   ├── care_kind.dart            # CareKind · ColostrumMethod · sealed CareSubject (R82)
 │   │   ├── sex.dart                  # enum Sex { female('f'), male('m'), unknown('unknown') }
+│   │   ├── ewe_status.dart           # enum EweStatus { active, sold, dead, culled } (N26-T04, §2.9)
 │   │   ├── foster_outcome.dart       # sealed FosterOutcome (R64)
 │   │   ├── penning.dart              # timeSincePenned(entered, now), isReadyToTurnOut(...)  (R24)
 │   │   ├── tag_match.dart            # TagIndexEntry + rankTagMatches()  (R27)
@@ -492,6 +493,7 @@ for the type.
 | `CareSubject` | `lib/domain/care_kind.dart` | `sealed class CareSubject` with `CareForLamb` / `CareForLambing` — exactly one, made unconstructible rather than checked at 03:20 (R82). |
 | `LambingEase` | `lib/domain/lambing_ease.dart` | `extension type const LambingEase(int code)` 1..5, validated. **No descriptions in the domain** — the five labels are `vocab_terms` keys `ease_1`…`ease_5` with ARB defaults (R44). |
 | `Sex` | `lib/domain/sex.dart` | `female('f')`, `male('m')`, `unknown('unknown')` (R45). `NULL` ≠ `unknown`. |
+| `EweStatus` | `lib/domain/ewe_status.dart` | `active('active')`, `sold('sold')`, `dead('dead')`, `culled('culled')` — byte-identical to `03 §5.2`'s `CHECK`. **Added at N26-T04**, because §2.13 types `setStatus(EweId, EweStatus)` and this table carried no row for it: a signature naming a type nothing declares is a defect. **Never merged with `struck`** — a boxed stamp is the animal, an unboxed one is the writing (`indelible.md §6`), and ruling N2 shipped the merge once already. |
 | `LambStatus` | `lib/domain/stats/season_counts.dart` | `alive`, `dead`, `stillborn`, `sold` |
 | `FosterOutcome` | `lib/domain/foster_outcome.dart` | sealed: `ToEwe(EweId)`→`'to_ewe'`, `ToBottle()`→`'to_bottle'`, `RemovedUnknown()`→`'removed_unknown'` (R64) |
 | `AnimalClass` | `lib/domain/terminology/animal_class.dart` | `ewe`, `maidenFemale`, `eweLamb`, `ram`, `ramLamb`, `wether`, `lamb` |

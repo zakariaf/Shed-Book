@@ -70,6 +70,41 @@ final class MediaWriteFailed extends ShedFailure {
 }
 
 /// Bugs. R8 fixes the constructor at exactly two positional arguments.
+/// The tag is already on a live animal in this flock (`03 §6`'s partial unique
+/// index; ruling N4).
+///
+/// **ITS OWN TYPE BECAUSE THE ADVICE IS DIFFERENT.** `UnexpectedFailure` says
+/// *"Try again"*, and trying again fails identically — the same reason
+/// `WriteRefused` exists apart from `WriteFailed`. Nothing went wrong: the flock
+/// already has a live `412`, and a second one makes *"what did 412 do last
+/// year?"* unanswerable, which is the question the product exists to answer.
+final class TagAlreadyInUse extends ShedFailure {
+  const TagAlreadyInUse(this.tag);
+
+  final String tag;
+
+  @override
+  String get userMessage =>
+      'Tag $tag is already on an animal in this flock. '
+      'Cull or sell that one first, or use a different tag.';
+}
+
+/// **THE UPDATE MATCHED NO ROW.** Its own type for the same reason
+/// [TagAlreadyInUse] is: *"Try again"* is wrong advice, because trying again
+/// finds the same nothing.
+///
+/// It is reachable through exactly one route in normal use — a restore landing
+/// under an open screen — so the message names that rather than blaming the
+/// shepherd for a state they did not create.
+final class EweNotFound extends ShedFailure {
+  const EweNotFound();
+
+  @override
+  String get userMessage =>
+      'That animal is no longer in this notebook, so nothing was changed. '
+      'Go back to the flock and open her again.';
+}
+
 final class UnexpectedFailure extends ShedFailure {
   const UnexpectedFailure(this.error, this.stack);
 

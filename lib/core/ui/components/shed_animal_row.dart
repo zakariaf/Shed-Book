@@ -20,6 +20,7 @@ enum ShedAnimalRowHeight { standard, tall }
 final class ShedAnimalRow extends StatelessWidget {
   const ShedAnimalRow({
     required this.tag,
+    this.warning = false,
     required this.summary,
     required this.semanticLabel,
     required this.onTap,
@@ -34,6 +35,18 @@ final class ShedAnimalRow extends StatelessWidget {
   /// (indelible.md §7.4). That alignment is the whole claim of the flock list —
   /// a shepherd scanning for 128 finds it by shape, not by reading.
   final String tag;
+
+  /// `indelible.md §7.4`'s **Warning** state — over threshold, last withdrawal
+  /// day, or a §12.4 contradiction. This draws the **doubled rule**, one of the
+  /// state's four channels (the margin `†` belongs to the page grid).
+  ///
+  /// **THE GAP IS THE MARK, AND A THICK RULE IS NOT A DOUBLED ONE.** A first
+  /// draft drew a single 6 px border and called it doubled in a comment; a
+  /// second restructured the row into a `Column` and broke four tests by moving
+  /// every scroll offset on the page. This is a `Stack`, which takes its size
+  /// from the unpositioned child — so the 88 px in `§4.4`'s table cannot move,
+  /// which is what both earlier attempts got wrong.
+  final bool warning;
 
   /// **One line.** `07 §4.2`: *"3 seasons · avg 2.0 · assisted twice"*. Composed
   /// by the screen from its own query, never assembled here.
@@ -86,38 +99,56 @@ final class ShedAnimalRow extends StatelessWidget {
             bottom: BorderSide(color: t.outline, width: t.outlineWidth),
           ),
         ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          child: Row(
-            children: <Widget>[
-              SizedBox(
-                width: tagColumn,
-                child: Text(
-                  tag,
-                  // RIGHT-aligned: the units digit is what aligns, not the
-                  // first digit.
-                  textAlign: TextAlign.right,
-                  style: text.headlineLarge,
-                  maxLines: 1,
+        child: Stack(
+          children: <Widget>[
+            // The INNER rule of the pair, floated above the content. The outer
+            // one is the row's own bottom border; the gap between them is
+            // `--rule-double-gap`, and it is the thing that reads as *a
+            // boundary, a threshold crossed* from across the shed.
+            if (warning)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: t.outlineWidth * 2,
+                child: SizedBox(
+                  height: t.outlineWidth,
+                  child: ColoredBox(color: t.outline),
                 ),
               ),
-              SizedBox(width: t.gapMin),
-              Expanded(
-                child: Text(
-                  summary,
-                  style: text.bodyMedium?.copyWith(
-                    // The non-colour channel for selection: the summary carries
-                    // an underline when the row is selected, so the state
-                    // survives a reader who cannot tell the inks apart.
-                    decoration: selected ? TextDecoration.underline : TextDecoration.none,
-                    fontWeight: selected ? FontWeight.w700 : null,
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+              child: Row(
+                children: <Widget>[
+                  SizedBox(
+                    width: tagColumn,
+                    child: Text(
+                      tag,
+                      // RIGHT-aligned: the units digit is what aligns, not the
+                      // first digit.
+                      textAlign: TextAlign.right,
+                      style: text.headlineLarge,
+                      maxLines: 1,
+                    ),
                   ),
-                  maxLines: 1,
-                ),
+                  SizedBox(width: t.gapMin),
+                  Expanded(
+                    child: Text(
+                      summary,
+                      style: text.bodyMedium?.copyWith(
+                        // The non-colour channel for selection: the summary carries
+                        // an underline when the row is selected, so the state
+                        // survives a reader who cannot tell the inks apart.
+                        decoration: selected ? TextDecoration.underline : TextDecoration.none,
+                        fontWeight: selected ? FontWeight.w700 : null,
+                      ),
+                      maxLines: 1,
+                    ),
+                  ),
+                  if (trailing != null) ...<Widget>[SizedBox(width: t.gapMin), trailing!],
+                ],
               ),
-              if (trailing != null) ...<Widget>[SizedBox(width: t.gapMin), trailing!],
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

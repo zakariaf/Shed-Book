@@ -398,7 +398,7 @@ Two facts set the order. **Quick Entry is the product** — every other screen e
 | **Owner rulings folded in** | Four rulings, closing five of the eighteen questions, settled 2026-07-27 (§5.1). Thirteen remain open (§5.2) |
 | **Complete** | `CONVENTIONS.md`, `01`–`13`, `CODE-REVIEW-CHECKLIST.md`, `REFERENCES.md`, and this file. Nothing in the set is unwritten |
 | **Outstanding** | **G0 has not been run.** `flutter_timezone` has not been audited and must not enter any pubspec until it is |
-| **Known open contradictions** | `07-screens.md` §3.3 says the `duplicateActiveTag` warning "never blocks the create" while `03-data-model-and-schema.md` §6's partial unique index makes a second *active* animal on the same tag unstorable — one of the two is wrong and it is a domain question, not a naming one. `HapticFeedback.successNotification()` is asserted real by `06-design-system.md` §10 and carried as unverified by `07` §22, `10` §11 and `12`; `REFERENCES.md` §22.E E1 states the five-minute check that closes it |
+| **Known open contradictions** | `HapticFeedback.successNotification()` is asserted real by `06-design-system.md` §10 and carried as unverified by `07` §22, `10` §11 and `12`; `REFERENCES.md` §22.E E1 states the five-minute check that closes it. **(The `duplicateActiveTag` / partial-unique-index row is resolved — ruling N4, N26-T04: the index is on `tag`, the exact string, so `412` and `B412` are both storable and that ambiguity is what the warning is for; only an identical second live tag is refused. Both sentences were true about different cases.)** |
 
 ### The amendment rule
 

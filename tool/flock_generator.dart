@@ -174,6 +174,7 @@ Map<String, Object?> flockTables({
   final List<Map<String, Object?>> eweRows = <Map<String, Object?>>[];
   final List<Map<String, Object?>> lambingRows = <Map<String, Object?>>[];
   final List<Map<String, Object?>> lambRows = <Map<String, Object?>>[];
+  final List<Map<String, Object?>> eweSeasonRows = <Map<String, Object?>>[];
 
   for (int s = 0; s < seasons; s++) {
     final int year = 2026 - seasons + 1 + s;
@@ -327,6 +328,31 @@ Map<String, Object?> flockTables({
     // season*; a flock that lambed identically three years running is a flock
     // whose ewe card shows the same row three times and proves nothing.
     final int litter = g.litterSize();
+
+    // **HER PARTICIPATION IN THE SEASON, AND THE FIXTURE CARRIED NONE OF IT.**
+    // `ewe_seasons` is the table the whole free tier is counted from —
+    // `_countEwesInCurrentSeason` counts ROWS HERE, not ewes — so a fixture of
+    // fifteen ewes and no participation rows counted as **zero**, and
+    // `flock_15_at_cap.json` was not at the cap at all. It is the file's entire
+    // reason to exist (`12 §11.5`), and every N30 test that would have pumped it
+    // was going to assert against the wrong side of the boundary.
+    //
+    // It is also where *barren* lives (R42, `03 §5.3`): a barren ewe is a stored
+    // ANSWER — `status = 'barren'` — never the absence of a lambing. A flock with
+    // no rows here can never light the *barren* filter, so N26-T02's own filter
+    // was passing against an empty set.
+    //
+    // Found by N26-T04's at-cap anchor. Third table this epic has found missing
+    // from a fixture that every check called complete.
+    eweSeasonRows.add(<String, Object?>{
+      'uid': g.uid('eweseason', e),
+      'created_at': firstSeasonStart,
+      'updated_at': firstSeasonStart,
+      'season_uid': g.uid('season', seasons - 1),
+      'ewe_uid': eweUid,
+      'status': litter == 0 ? 'barren' : 'lambed',
+    });
+
     if (litter == 0) {
       continue; // barren, and barren is a real outcome rather than an absence
     }
@@ -424,6 +450,7 @@ Map<String, Object?> flockTables({
     'seasons': seasonRows,
     'pens': penRows,
     'ewes': eweRows,
+    'ewe_seasons': eweSeasonRows,
     'lambings': lambingRows,
     'lambs': lambRows,
     'pen_occupancies': occupancyRows,

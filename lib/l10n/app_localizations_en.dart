@@ -933,4 +933,101 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get treatmentsUntagged => 'UNTAGGED';
+
+  @override
+  String get flockEmpty => 'No animals yet.';
+
+  @override
+  String get flockFilteredEmpty => 'No animals match these filters.';
+
+  @override
+  String get flockUnavailable => 'The flock could not be read.';
+
+  @override
+  String flockRowSummary({required int seasons, required int lambings}) {
+    return '$seasons seasons · $lambings lambings';
+  }
+
+  @override
+  String flockRowLabel({required String tag}) {
+    return 'Tag $tag';
+  }
+
+  @override
+  String flockFilterAll({required int count}) {
+    return 'ALL $count';
+  }
+
+  @override
+  String flockFilterNotYetLambed({required int count}) {
+    return 'NOT YET LAMBED $count';
+  }
+
+  @override
+  String flockFilterCurrentlyPenned({required int count}) {
+    return 'IN THE PENS $count';
+  }
+
+  @override
+  String flockFilterUnderTreatment({required int count}) {
+    return 'UNDER TREATMENT $count';
+  }
+
+  @override
+  String flockFilterTripletBearing({required int count}) {
+    return 'TRIPLET-BEARING $count';
+  }
+
+  @override
+  String flockFilterBarren({required int count}) {
+    return 'BARREN $count';
+  }
+
+  @override
+  String get flockFilterAllUnknown => 'ALL';
+
+  @override
+  String get flockStampQueried => 'QUERIED';
+
+  @override
+  String get flockStampCulled => 'CULLED';
+
+  @override
+  String flockStruckDivider({required int count}) {
+    return 'STRUCK — $count';
+  }
+
+  @override
+  String flockAddSlab({required String term}) {
+    return '+ $term';
+  }
+
+  @override
+  String flockAddHeading({required String term}) {
+    return 'Add a $term';
+  }
+
+  @override
+  String get flockAddFieldLabel => 'Tag';
+
+  @override
+  String flockAddDuplicateTag({required String tag, required String term}) {
+    return '$tag is already on an active $term.';
+  }
+
+  @override
+  String flockAddConfirmCreate({required String tag}) {
+    return 'Create $tag';
+  }
+
+  @override
+  String flockAddConfirmOpen({required String tag}) {
+    return 'Open $tag';
+  }
+
+  @override
+  String get flockAddClose => 'CLOSE';
+
+  @override
+  String get flockAddCloseHint => 'Close this sheet. Nothing is written until you confirm.';
 }

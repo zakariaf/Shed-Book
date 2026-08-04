@@ -1615,6 +1615,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'UNTAGGED'**
   String get treatmentsUntagged;
+
+  /// 07 §3.2 Empty. The flock has no active ewes at all.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals yet.'**
+  String get flockEmpty;
+
+  /// 07 §3.2 Filtered-empty. Its own state: 'No animals yet' shown to a shepherd with 400 ewes and a filter on says their flock is gone.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals match these filters.'**
+  String get flockFilteredEmpty;
+
+  /// 07 §3.2 Error.
+  ///
+  /// In en, this message translates to:
+  /// **'The flock could not be read.'**
+  String get flockUnavailable;
+
+  /// The ewe row's summary line, assembled in Dart from ewe_summaries COUNTS (03 §5.13). A formatted string in the database would freeze the terminology overlay and the locale.
+  ///
+  /// In en, this message translates to:
+  /// **'{seasons} seasons · {lambings} lambings'**
+  String flockRowSummary({required int seasons, required int lambings});
+
+  /// Semantics label for a flock row.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag {tag}'**
+  String flockRowLabel({required String tag});
+
+  /// 07 §3.2 / indelible.md §8 Screen 1. The filter line's first word — tapping it clears every filter.
+  ///
+  /// In en, this message translates to:
+  /// **'ALL {count}'**
+  String flockFilterAll({required int count});
+
+  /// In lamb and still waiting: an ewe_seasons row of to_ram or scanned, and no lambing this season. NOT the same question as barren (R42).
+  ///
+  /// In en, this message translates to:
+  /// **'NOT YET LAMBED {count}'**
+  String flockFilterNotYetLambed({required int count});
+
+  /// An open pen_occupancies row. 'penned', never 'housed' (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'IN THE PENS {count}'**
+  String flockFilterCurrentlyPenned({required int count});
+
+  /// A live treatment still running OR one whose withdrawal nobody recorded — unknown is never clear (ruling N1, spec §12.1).
+  ///
+  /// In en, this message translates to:
+  /// **'UNDER TREATMENT {count}'**
+  String flockFilterUnderTreatment({required int count});
+
+  /// Three or more lambs on a single lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'TRIPLET-BEARING {count}'**
+  String flockFilterTripletBearing({required int count});
+
+  /// ewe_seasons.status = 'barren' (R42). 'barren', never 'empty' or 'not in lamb' (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'BARREN {count}'**
+  String flockFilterBarren({required int count});
+
+  /// The filter line's first word while the list is still loading. The count is omitted rather than shown as 0 — unknown is not zero (#58).
+  ///
+  /// In en, this message translates to:
+  /// **'ALL'**
+  String get flockFilterAllUnknown;
+
+  /// indelible.md §7.7's unboxed stamp for the §12.4 contradiction badge. A WORD, not an icon — this system has no icon set (§1.3), and 07 §3.4's 'icon + count' is superseded by ruling N3.
+  ///
+  /// In en, this message translates to:
+  /// **'QUERIED'**
+  String get flockStampQueried;
+
+  /// indelible.md §7.7's boxed form — a state of the ANIMAL, not a note about the record. She stays in the list (§7.4); the stamp says why she is at the bottom.
+  ///
+  /// In en, this message translates to:
+  /// **'CULLED'**
+  String get flockStampCulled;
+
+  /// indelible.md §7.4's printed line: the ewes who have left the flock sit at the bottom under it. An em dash, not a hyphen, and the count is the number below the line.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK — {count}'**
+  String flockStruckDivider({required int count});
+
+  /// indelible.md §8 Screen 1: 'Quick-add is the corner slab.' The largest target in the system, bottom-right, mirrored to bottom-left when left_handed is set. The noun is fed from termEweSingular (10 §8.5) because it varies by county — a shepherd who calls them gimmers reads GIMMER here.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {term}'**
+  String flockAddSlab({required String term});
+
+  /// The add sheet's heading, and its modal barrier label. 'Add', not 'New' — the shepherd is adding an animal that already exists in the field to a notebook that does not yet know her.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a {term}'**
+  String flockAddHeading({required String term});
+
+  /// The label ABOVE the line, because indelible.md §7.12 forbids placeholder text inside a field: in the dark a grey placeholder is indistinguishable from an entered value.
+  ///
+  /// In en, this message translates to:
+  /// **'Tag'**
+  String get flockAddFieldLabel;
+
+  /// WarningCode.duplicateActiveTag's value, constructed in the UI and never persisted (decision #54 — there is no warnings column). It states the collision; the confirm bar reading OPEN rather than CREATE is what makes the create unreachable. Ruling N4.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} is already on an active {term}.'**
+  String flockAddDuplicateTag({required String tag, required String term});
+
+  /// 06 §12: a confirm bar is 'labelled with the outcome'. Reachable only when no active animal wears this exact tag — a tag held only by a culled, sold or dead one is free (03 §6 item 4).
+  ///
+  /// In en, this message translates to:
+  /// **'Create {tag}'**
+  String flockAddConfirmCreate({required String tag});
+
+  /// What the bar reads when an active animal already wears this exact tag. Ruling N4: there is no create to block, so 07 §3.3's 'never blocks the create' is true and vacuous.
+  ///
+  /// In en, this message translates to:
+  /// **'Open {tag}'**
+  String flockAddConfirmOpen({required String tag});
+
+  /// indelible.md §7.14's 88 x 64 dismiss word. Not 'Cancel' — 07 §15.5: there is no draft state, so 'Cancel' is not a verb.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get flockAddClose;
+
+  /// The dismiss control's semantic label. It says what closing costs, which is nothing, because there is no draft to discard.
+  ///
+  /// In en, this message translates to:
+  /// **'Close this sheet. Nothing is written until you confirm.'**
+  String get flockAddCloseHint;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

@@ -134,14 +134,28 @@ void main() {
     }
   });
 
-  test('the [exempt] section has exactly four lines and every id it names exists '
+  test('the [exempt] section has exactly five lines and every id it names exists '
       'in the rule table', () {
     final List<String> exempt = _exemptLines();
 
     // R56 fixes the day-one total. A fifth line is a review conversation, not a
     // keystroke, and this is the assertion that makes that true rather than
     // aspirational.
-    expect(exempt, hasLength(4), reason: 'R56: exactly four [exempt] lines, forever');
+    // **FIVE SINCE 2026-08-04** (decision-record §7.0d). The fifth is
+    // `lib/data/purchase_service.dart :: copy.banned_word` —
+    // `PurchaseStatus.pending` is the `in_app_purchase` plugin's own enum member,
+    // in the acknowledgement guard and the exhaustive switch arm, and neither is
+    // removable or ours.
+    //
+    // **R56 WAS NEVER ABOUT THE NUMBER FOUR.** It was about a new line requiring
+    // somebody to say why, in front of a reader — which is why FOUR SEPARATE
+    // TESTS assert this count and all four had to be edited, deliberately, in
+    // the commit that added it. The sixth costs the same.
+    expect(
+      exempt,
+      hasLength(5),
+      reason: 'R56, amended: five, and the sixth is another review conversation',
+    );
 
     // The silent-typo case, and the more valuable half. A key naming an id no
     // row declares exempts NOTHING — silently — and reads as correct in a diff

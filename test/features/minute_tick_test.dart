@@ -314,7 +314,7 @@ void main() {
     );
   });
 
-  test('the allowlist still has exactly four exempt lines', () {
+  test('the allowlist still has exactly five exempt lines', () {
     // R56, and it is what makes the case above meaningful: the refresh landed
     // WITHOUT buying a fifth line. If one ever appears, this is where it is
     // noticed.
@@ -326,6 +326,16 @@ void main() {
         .where((String l) => l.contains('::'))
         .toList();
 
-    expect(keys, hasLength(4));
+    // **FIVE SINCE 2026-08-04** (decision-record §7.0d). The fifth is
+    // `lib/data/purchase_service.dart :: copy.banned_word` —
+    // `PurchaseStatus.pending` is the `in_app_purchase` plugin's own enum member,
+    // in the acknowledgement guard and the exhaustive switch arm, and neither is
+    // removable or ours.
+    //
+    // **R56 WAS NEVER ABOUT THE NUMBER FOUR.** It was about a new line requiring
+    // somebody to say why, in front of a reader — which is why FOUR SEPARATE
+    // TESTS assert this count and all four had to be edited, deliberately, in
+    // the commit that added it. The sixth costs the same.
+    expect(keys, hasLength(5));
   });
 }

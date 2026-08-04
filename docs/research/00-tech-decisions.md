@@ -525,6 +525,37 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 19 | Does the whole remaining backlog ship as one release? — **ruled 2026-08-03** | **No. Two releases: `v1.0.0` before 1 February 2027, `v1.1.0` on 1 June 2027.** Twenty-six of ninety remaining tasks move; nothing is cut. Long form in §7.0c (**P15**); scope in [`docs/RELEASE-SCOPE.md`](../RELEASE-SCOPE.md). | `13 §11`'s freeze is the binding constraint, not effort: 1 Feb – 30 Apr is the only time of year the app is used, so a release that misses 31 January 2027 slips by a **year**. The freeze blocks releases and not work, so `v1.1.0` is built Feb–May 2027 and costs no calendar. Three things `v1.0.0` must build for a release it does not contain: the backup format ships **whole** (all 21 tables — `unknown_json` carries an unknown *column* forward, never an unknown *table*); **no notification channel is created**, so #63/#65's *ids frozen at release* freezes nothing; and `android/expected_permissions.txt` is `v1.0.0`'s strictly smaller set with the three `v1.1.0` adds named in the same file, because G1 asserts set equality and going red must be answerable from a file. Every epic header carries a `**Ships in**` row and `tool/validate_epics.py` fails while one disagrees with the scope table. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
 
+### 7.0d The fifth `[exempt]` line. RULED 2026-08-04 (the owner, during N30-T01).
+
+**The question.** `copy.banned_word` bans `pending` under `lib/` as a model-state word (`CONVENTIONS
+§5`), and the rule already strips comments. `lib/data/purchase_service.dart` contains two hits, both
+`PurchaseStatus.pending` — the `in_app_purchase` plugin's own enum member:
+
+- **the acknowledgement guard.** Google auto-refunds and revokes a purchase not acknowledged within
+  three days, and its own wording is *"don't acknowledge it while a purchase is in PENDING state"*.
+  On Android `completePurchase` **is** `acknowledgePurchase()`. Removing the guard costs a shepherd
+  their unlock, three days later, silently, with nothing to repair it.
+- **the exhaustive switch arm.** Five members, five arms, no catch-all — so a sixth status in a future
+  plugin major is a compile error rather than a purchase nobody notices.
+
+Neither is removable. Neither is a name this project chose. `CONVENTIONS` R56 says the `[exempt]` list
+has four lines and *"a fifth is a review conversation, not a keystroke"*, and `CLAUDE.md` says never
+to add one to silence a gate — *"if a gate is genuinely wrong, say so and stop."* Work stopped for one
+task while the conversation was had.
+
+**Ruling: a fifth line, scoped to that one file.** The gate is **not wrong about our vocabulary** — it
+simply cannot tell a third-party identifier from one of ours, and no source scan can.
+
+**Why a per-file waiver rather than narrowing the pattern.** An exception for `PurchaseStatus.` inside
+the rule would weaken the vocabulary rule in **every file in the project**, permanently, for one
+dependency — and the next person to want `pending` would find the precedent already set. The waiver
+cannot spread: `layer.in_app_purchase` refuses the plugin and its five type names everywhere except
+this file, so there is nowhere else the exemption could apply even deliberately.
+
+**What R56 was actually protecting, and what survives.** Not the number four — the requirement that a
+fifth line means somebody says why, in front of a reader, in writing. That happened. `R56` is amended
+with this reasoning, the allowlist carries it inline, and the sixth needs the same.
+
 ### 7.0c P15 — the two releases. RULED 2026-08-03 (the owner, after N20).
 
 **The question.** N00–N20 are merged and ninety tasks remain across N21–N34. `13 §11` freezes

@@ -1534,6 +1534,18 @@ one place a shared widget would hide one. 06 widens them.
 **Ruling.** Four, exactly as printed in §4.7. A fifth is a review conversation.
 **Files:** 01 (Definition of Done).
 
+> **Amended — the review conversation was held, 2026-08-04, and produced a fifth.** Decision-record
+> §7.0d. `copy.banned_word` fires on `PurchaseStatus.pending` in
+> `lib/data/purchase_service.dart` — the `in_app_purchase` plugin's own enum member, in the
+> acknowledgement guard and the exhaustive switch arm, neither of which is removable and neither of
+> which is ours.
+>
+> **Five, and the count is still the point.** R56 was never about the number four; it was about a
+> fifth line requiring somebody to say why in front of a reader. That happened, it is written down in
+> two places, and the next line needs the same. The waiver is **scoped to one file**, which
+> `layer.in_app_purchase` already fences off, so it cannot spread — narrowing the rule's pattern
+> instead would have weakened the vocabulary rule in every file in the project for one dependency.
+
 ### R57 — The test tree
 
 07 writes `test/screens/*` and `test/integration/first_run_journey_test.dart`; 01's tree has

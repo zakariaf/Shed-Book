@@ -85,8 +85,17 @@ class FlockScreen extends ConsumerWidget {
         AsyncData<List<FlockRow>>(value: final List<FlockRow> list) => ListView.builder(
           key: const Key('flock.list'),
           padding: EdgeInsets.zero,
-          itemCount: list.length,
-          itemBuilder: (BuildContext context, int i) => _row(context, l10n, list[i]),
+          // **ONE EXTRA ITEM FOR THE DIVIDER**, and only when there is something
+          // below it to divide. `indelible.md §7.4`: the removed ewes sit *"at
+          // the bottom, under a printed line reading `STRUCK — 1`."*
+          itemCount: list.length + (list.any((FlockRow r) => r.removedFromFlock) ? 1 : 0),
+          itemBuilder: (BuildContext context, int i) {
+            final int firstRemoved = list.indexWhere((FlockRow r) => r.removedFromFlock);
+            if (firstRemoved >= 0 && i == firstRemoved) {
+              return _struckDivider(context, l10n, list.length - firstRemoved);
+            }
+            return _row(context, l10n, list[firstRemoved >= 0 && i > firstRemoved ? i - 1 : i]);
+          },
         ),
         AsyncError<List<FlockRow>>() => ShedEmptyState(
           key: const Key('flock.error'),
@@ -100,6 +109,47 @@ class FlockScreen extends ConsumerWidget {
       },
     );
   }
+
+  /// `STRUCK — n`, the printed line the removed ewes sit under (`§7.4`).
+  ///
+  /// **A DOUBLED RULE, WHICH IS THE MARK FOR EXACTLY THIS.** `--rule-double-gap`
+  /// means *a total, a boundary, a threshold crossed*, and this is a boundary —
+  /// between the flock and the animals who have left it. It is readable in
+  /// peripheral vision from across the shed, which is the property the doubled
+  /// rule exists for; a single rule would read as one more row boundary among
+  /// four hundred.
+  ///
+  /// **NOT A TARGET AND NOT A HEADER.** Nothing collapses, nothing filters,
+  /// nothing hides behind it — it is a printed line, so it carries no
+  /// `ShedTapTarget` and cannot fail a tap-target gate for being under 60 pt.
+  Widget _struckDivider(BuildContext context, AppLocalizations l10n, int count) {
+    final ShedTokens t = context.tokens;
+    return Padding(
+      key: const Key('flock.struck_divider'),
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // Two 2px rules with a gap between them. Rules never scale with text —
+          // a rule is a mark, not type (`§3.6`).
+          _rule(t),
+          SizedBox(height: t.outlineWidth),
+          _rule(t),
+          SizedBox(height: t.gapMin),
+          Text(
+            l10n.flockStruckDivider(count: count),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(color: t.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _rule(ShedTokens t) => SizedBox(
+    height: t.outlineWidth,
+    child: ColoredBox(color: t.outline),
+  );
 
   /// The row's trailing mark, or nothing.
   ///

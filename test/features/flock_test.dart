@@ -306,6 +306,57 @@ void main() {
     await tester.closeApp();
   });
 
+  testWidgets('the removed ewes sit under a printed STRUCK line', (WidgetTester tester) async {
+    // `indelible.md §7.4`, the last clause: *"She stays in the list, at the
+    // bottom, under a printed line reading `STRUCK — 1`."* The list half is
+    // ruling N2; this is the printed line.
+    //
+    // **THE COUNT IS DERIVED, NOT WRITTEN.** A literal `1` would pass today and
+    // lie the moment the fixture gains a second removed animal — which is what
+    // `12 §11.5` reserves the right to do.
+    final AppDatabase db = testDatabase(seedOnCreate: false);
+    await restoreFixture(db, 'flock_400_3seasons.json');
+
+    // **A SECOND REMOVED EWE, PLANTED, BECAUSE THE FIXTURE HAS EXACTLY ONE.**
+    // With one, a hard-coded `1` and a derived count are indistinguishable — and
+    // the first draft of this test proved it: hard-coding the count in the widget
+    // kept it green. A test that cannot tell the two apart is asserting nothing.
+    //
+    // The second is STRUCK rather than culled, so the divider also has to count
+    // both routes out of the flock rather than just `status`.
+    await db.customStatement(
+      "UPDATE ewes SET struck = 1, struck_at = 1770000000000 "
+      "WHERE id = (SELECT id FROM ewes WHERE status = 'active' ORDER BY id LIMIT 1)",
+    );
+
+    final List<FlockRow> rows = await flockList(db, const FlockFilters());
+    final int removed = rows.where((FlockRow r) => r.removedFromFlock).length;
+    expect(removed, 2, reason: 'one culled, one struck — the two routes out');
+
+    await tester.pumpApp(const FlockScreen(), db: db);
+    await tester.pumpAndSettle();
+
+    final BuildContext context = tester.element(find.byType(FlockScreen));
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // Scrolled to, because the divider is at the bottom of four hundred rows —
+    // by key, since a text finder cannot be evaluated before the widget builds.
+    await tester.scrollUntilVisible(
+      find.byKey(const Key('flock.struck_divider')),
+      // **A BIG DELTA, BECAUSE THE DIVIDER IS BELOW 400 ROWS.** At 88 px each
+      // that is ~35,000 px, and `scrollUntilVisible` gives up after 50 scrolls —
+      // a 400 px step needs 88 of them and threw before it arrived.
+      4000,
+      scrollable: find.byType(Scrollable).last,
+      maxScrolls: 200,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text(l10n.flockStruckDivider(count: removed)), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
   testWidgets('the screen renders a row per active ewe', (WidgetTester tester) async {
     final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
     await tester.pumpApp(const FlockScreen(), db: db);

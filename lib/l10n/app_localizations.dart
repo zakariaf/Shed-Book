@@ -1699,6 +1699,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'CULLED'**
   String get flockStampCulled;
+
+  /// indelible.md §7.4's printed line: the ewes who have left the flock sit at the bottom under it. An em dash, not a hyphen, and the count is the number below the line.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK — {count}'**
+  String flockStruckDivider({required int count});
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

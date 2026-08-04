@@ -991,4 +991,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flockStampCulled => 'CULLED';
+
+  @override
+  String flockStruckDivider({required int count}) {
+    return 'STRUCK — $count';
+  }
 }

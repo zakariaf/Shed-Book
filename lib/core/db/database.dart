@@ -17,6 +17,38 @@ import 'package:shed_book/domain/time/partial_date.dart';
 
 part 'database.g.dart';
 
+/// `ewe_summaries`, recomputed for one ewe. See [AppDatabase.rebuildEweSummary].
+///
+/// **`last_observation_season` IS A REAL FK WITH `ON DELETE SET NULL`** — a
+/// dangling id would render a blank year on the one line the retention feature
+/// is built on. Deleting a season nulls it, and the next recompute finds the
+/// next-newest observation rather than reaching for the previous value.
+const String _eweSummarySql = '''
+INSERT INTO ewe_summaries
+      (ewe, seasons_recorded, lambings_recorded, lambs_born, lambs_born_alive,
+       assisted_lambings, scored_lambings, last_observation_season, rebuilt_at)
+SELECT ?,
+       (SELECT COUNT(DISTINCT lg.season) FROM lambings lg WHERE lg.ewe = ?),
+       (SELECT COUNT(*)                  FROM lambings lg WHERE lg.ewe = ?),
+       (SELECT COUNT(*) FROM lambs lb WHERE lb.birth_dam = ?),
+       (SELECT COUNT(*) FROM lambs lb WHERE lb.birth_dam = ?
+                                       AND lb.status <> 'stillborn'),
+       (SELECT COUNT(*) FROM lambings lg WHERE lg.ewe = ? AND lg.ease >= 2),
+       (SELECT COUNT(*) FROM lambings lg WHERE lg.ewe = ? AND lg.ease IS NOT NULL),
+       (SELECT o.season FROM ewe_observations o WHERE o.ewe = ?
+         ORDER BY o.occurred_at DESC, o.id DESC LIMIT 1),
+       ?
+ON CONFLICT(ewe) DO UPDATE SET
+       seasons_recorded = excluded.seasons_recorded,
+       lambings_recorded = excluded.lambings_recorded,
+       lambs_born = excluded.lambs_born,
+       lambs_born_alive = excluded.lambs_born_alive,
+       assisted_lambings = excluded.assisted_lambings,
+       scored_lambings = excluded.scored_lambings,
+       last_observation_season = excluded.last_observation_season,
+       rebuilt_at = excluded.rebuilt_at;
+''';
+
 /// **Bumped by exactly one per schema change** (04 §2.4).
 ///
 /// A top-level `const` that captures nothing, because it is read on the
@@ -121,6 +153,42 @@ class AppDatabase extends _$AppDatabase {
   /// SQLite cannot bind a parameter in this position.
   Future<void> snapshotInto(String path) =>
       customStatement("VACUUM INTO '${path.replaceAll("'", "''")}'");
+
+  /// **ONE EWE'S SUMMARY, RECOMPUTED FROM HER OWN ROWS.**
+  ///
+  /// It lives here for the same reason the restore's pragmas do: `customStatement(`
+  /// is confined to `lib/core/db/` (layer rule 8), and this is an
+  /// `INSERT … ON CONFLICT DO UPDATE` that drift's typed API cannot express over
+  /// eight correlated sub-selects. `lib/data/` calls it and writes no SQL of its
+  /// own, which is what the rule protects.
+  ///
+  /// **`lambs_born_alive` EXCLUDES `stillborn` AND NOTHING ELSE.** `lambs.status`
+  /// is one of `alive`, `dead`, `stillborn`, `sold`. `= 'alive'` loses every lamb
+  /// born alive that later died and every lamb sold; `<> 'alive'` counts a sold
+  /// lamb as never born alive. `CONVENTIONS §5.1` is explicit that stillborn *"is
+  /// its own bucket, never folded into day-0 deaths"*.
+  ///
+  /// **`assisted` AND `scored` ARE A PAIR, ON PURPOSE** (#59). They are stored
+  /// together so the assisted rate can exclude unscored lambings from **both**
+  /// sides and report coverage (`05 §6.7`). Storing only `assisted` forces the
+  /// screen to treat a blank ease as *unassisted*, which is the silent inference
+  /// §12.4 forbids.
+  ///
+  /// Both are separate `WHERE` clauses rather than one `CASE`: in SQLite
+  /// `ease >= 2` on a NULL is NULL and the row is correctly dropped, but a
+  /// carelessly written `CASE WHEN ease >= 2 THEN 1 END` inside `COUNT(*)` counts
+  /// it. The unscored-lambing test is what proves which was written.
+  Future<void> rebuildEweSummary(int ewe, Instant now) => customStatement(_eweSummarySql, <Object?>[
+    ewe,
+    ewe,
+    ewe,
+    ewe,
+    ewe,
+    ewe,
+    ewe,
+    ewe,
+    now.epochMillis,
+  ]);
 
   /// One restored row, with its columns supplied at runtime.
   ///

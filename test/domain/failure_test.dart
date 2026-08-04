@@ -37,10 +37,11 @@ const List<ShedFailure> _allFailures = <ShedFailure>[
   // shipped. Added with `EweNotFound` at N26-T04.
   TagAlreadyInUse('412'),
   EweNotFound(),
+  NoCurrentSeason(),
 ];
 
 void main() {
-  test('ShedFailure has seven variants, WriteOutcome three, and neither is generic', () {
+  test('ShedFailure has eight variants, WriteOutcome three, and neither is generic', () {
     // THE ANCHOR, and it is a COMPILE-TIME claim wearing a test's clothes: two
     // exhaustive switch expressions with no `default:` and no `_`. They compile
     // today and stop compiling the day a variant is added — which is the point.
@@ -61,6 +62,7 @@ void main() {
       // moment it landed — twice now, which is the whole argument for writing
       // the anchor as an exhaustive switch rather than as a count.
       EweNotFound() => 'EweNotFound',
+      NoCurrentSeason() => 'NoCurrentSeason',
       UnexpectedFailure() => 'UnexpectedFailure',
     };
     expect(named, 'DiskFull');
@@ -87,14 +89,14 @@ void main() {
   });
 
   test('every userMessage is a non-empty sentence a shepherd could act on', () {
-    // Eight variants. No stack traces, no SQLite codes, no blame — and none of
+    // Nine variants. No stack traces, no SQLite codes, no blame — and none of
     // CONVENTIONS §5.3's banned words, including `should`, which turns a
     // statement of fact into an instruction nobody asked for.
     final List<ShedFailure> every = <ShedFailure>[
       ..._allFailures,
       UnexpectedFailure(Exception('x'), StackTrace.current),
     ];
-    expect(every, hasLength(8));
+    expect(every, hasLength(9));
 
     for (final ShedFailure f in every) {
       final String m = f.userMessage;

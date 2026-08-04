@@ -375,7 +375,7 @@ void main() {
     final String source = File('test/support/harness.dart').readAsStringSync();
 
     expect(source, contains(needle));
-    expect(kPumpableVariants, hasLength(9));
+    expect(kPumpableVariants, hasLength(10));
     expect(
       kPumpableVariants.keys.toSet(),
       <String>{
@@ -387,12 +387,13 @@ void main() {
         'treatments',
         'export',
         'flock',
+        'ewe_card',
         // NOT A SCREEN — a STATE of Quick Entry, and `12 §6.4` gives it a variant
         // of its own because the banner takes height from the screen with the
         // tightest vertical budget in the app.
         'quick_entry.export_banner',
       },
-      reason: 'eight screens exist plus one state; each epic adds its own row',
+      reason: 'nine screens exist plus one state; each epic adds its own row',
     );
     expect(
       source,

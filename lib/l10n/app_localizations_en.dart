@@ -998,6 +998,183 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get eweCardRowLambing => 'Lambed';
+
+  @override
+  String eweCardRowTreatment({required String product}) {
+    return 'Treated with $product';
+  }
+
+  @override
+  String eweCardRowCare({required String kind}) {
+    return '$kind';
+  }
+
+  @override
+  String get eweCardRowFoster => 'Fostered';
+
+  @override
+  String eweCardRowObserved({required String observation}) {
+    return '$observation';
+  }
+
+  @override
+  String eweCardRowPenned({required String pen}) {
+    return 'Penned in $pen';
+  }
+
+  @override
+  String eweCardRowNote({required String body}) {
+    return '$body';
+  }
+
+  @override
+  String eweCardRowEditedFrom({required String time}) {
+    return 'was $time';
+  }
+
+  @override
+  String eweCardRowStruck({required String time}) {
+    return 'STRUCK $time';
+  }
+
+  @override
+  String eweCardWithdrawalDays({required num days}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days day withdrawal',
+      one: '1 day withdrawal',
+      zero: '0 day withdrawal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get eweCardWithdrawalNotApplicable => 'No withdrawal';
+
+  @override
+  String get eweCardWithdrawalNotRecorded => 'Withdrawal — NOT RECORDED';
+
+  @override
+  String eweCardRowSemantics({
+    required String time,
+    required String body,
+    required String provenance,
+  }) {
+    return '$time. $body. $provenance';
+  }
+
+  @override
+  String eweCardTitle({required String singularTerm, required String tag}) {
+    return '$singularTerm $tag';
+  }
+
+  @override
+  String eweCardSummarySeasons({required num count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count seasons',
+      one: '1 season',
+      zero: 'No seasons recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eweCardSummaryAverage({required String average}) {
+    return 'avg $average';
+  }
+
+  @override
+  String eweCardSummaryAssisted({required num count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'assisted $count times',
+      two: 'assisted twice',
+      one: 'assisted once',
+      zero: 'never assisted',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String eweCardSummaryAssistedCoverage({required num scored}) {
+    return 'of $scored scored';
+  }
+
+  @override
+  String eweCardSummaryObservation({required String observation, required String year}) {
+    return '$observation $year';
+  }
+
+  @override
+  String eweCardSummarySemantics({required String clauses}) {
+    return '$clauses';
+  }
+
+  @override
+  String get eweCardActionLambing => 'LAMBING';
+
+  @override
+  String get eweCardActionObserve => 'OBSERVE';
+
+  @override
+  String get eweCardActionBarren => 'BARREN';
+
+  @override
+  String get eweCardActionCull => 'CULL';
+
+  @override
+  String get eweCardObserveHeading => 'What did you see?';
+
+  @override
+  String get eweCardObserveClose => 'CLOSE';
+
+  @override
+  String get eweCardObserveCloseHint => 'Close without recording an observation.';
+
+  @override
+  String eweCardEarlierAnimal({required String tag, required String status, required String date}) {
+    return 'An earlier $tag is on record — $status, last recorded $date. Separate record.';
+  }
+
+  @override
+  String eweCardEarlierAnimalUndated({required String tag, required String status}) {
+    return 'An earlier $tag is on record — $status. Separate record.';
+  }
+
+  @override
+  String eweCardEarlierAnimalOpen({required String tag}) {
+    return 'Open the earlier $tag';
+  }
+
+  @override
+  String get eweStatusSold => 'sold';
+
+  @override
+  String get eweStatusDead => 'died';
+
+  @override
+  String get eweStatusCulled => 'culled';
+
+  @override
+  String eweCardSeasonHeading({required String year}) {
+    return '$year';
+  }
+
+  @override
+  String get eweCardNoSeasonHeading => 'No season';
+
+  @override
+  String get eweCardEmpty => 'Nothing recorded yet.';
+
+  @override
+  String get eweCardUnavailable => 'Her records could not be read.';
+
+  @override
   String flockAddSlab({required String term}) {
     return '+ $term';
   }

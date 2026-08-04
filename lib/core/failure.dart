@@ -105,6 +105,22 @@ final class EweNotFound extends ShedFailure {
       'Go back to the flock and open her again.';
 }
 
+/// **NO SEASON HAS BEEN STARTED.** Its own type because the remedy is a
+/// specific act the shepherd can take, and *"try again"* is not it — trying
+/// again finds the same absence.
+///
+/// A season is the shepherd's first act, not the installer's: `seedFirstRun`
+/// deliberately writes none (#42). So this is reachable on a genuinely fresh
+/// notebook, and the message names the way out rather than the fault.
+final class NoCurrentSeason extends ShedFailure {
+  const NoCurrentSeason();
+
+  @override
+  String get userMessage =>
+      'No season has been started yet, so there was nothing to record this against. '
+      'Start a season first.';
+}
+
 final class UnexpectedFailure extends ShedFailure {
   const UnexpectedFailure(this.error, this.stack);
 

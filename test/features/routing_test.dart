@@ -90,21 +90,22 @@ void main() {
     // isFirst, and its helper is a POP — which is why the count below counts
     // only the screens that are genuinely pushed onto it.
     //
-    // GREW TO THREE AT N17-T01 AND N18-T02, one per screen epic, exactly as the
-    // rule above describes. The number is asserted rather than the shape,
-    // because "at least one" would let twelve land in a single commit for
-    // screens that do not exist.
+    // GREW TO THREE AT N17-T01 AND N18-T02, then export at N21 and the ewe card
+    // at N27-T01 — one per screen epic, exactly as the rule above describes. The
+    // number is asserted rather than the shape, because "at least one" would let
+    // twelve land in a single commit for screens that do not exist.
     expect(
       '.push('.allMatches(declarations).length,
-      4,
+      5,
       reason:
-          'lambingEntry (N16-T01), lambCard (N17-T01), foster (N18-T02). '
-          'Quick Entry is home: and is never pushed',
+          'lambingEntry (N16-T01), lambCard (N17-T01), foster (N18-T02), '
+          'export (N21), eweCard (N27-T01). Quick Entry is home: and is never pushed',
     );
     expect(declarations, contains('popToQuickEntry'));
     expect(declarations, contains('static Future<void> lambingEntry('));
     expect(declarations, contains('static Future<void> lambCard('));
     expect(declarations, contains('static Future<void> foster('));
+    expect(declarations, contains('static Future<void> eweCard('));
 
     // The arithmetic 12 §6.2 will assert at N33 — thirteen names minus twelve
     // helpers equals one — is still not written here, because it is still not
@@ -112,8 +113,8 @@ void main() {
     // Reminders, Season Summary and Note Search (docs/RELEASE-SCOPE.md §5.4).
     expect(
       RegExp(r'static Future<void> \w+\(').allMatches(declarations).length,
-      4,
-      reason: 'four screens exist to push to; N33-T01 asserts the final count',
+      5,
+      reason: 'five screens exist to push to; N33-T01 asserts the final count',
     );
   });
 

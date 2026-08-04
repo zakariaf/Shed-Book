@@ -332,9 +332,26 @@ SELECT 'note', n.id, n.occurred_at,
 | Frame 1 | Header placeholder at the summary line's exact height |
 | Loaded | `headingLevel: 1` tag, then the summary line, then the timeline |
 | Empty | "Nothing recorded for 412 yet." + "Record a lambing" |
-| Reused tag | Under the header: "An earlier 412 was culled on 12 Aug 2025. Separate record." + a 60 pt tap to open it. Tags are unique among **active** animals only (§7.0 ruling 7), so this line is a normal, expected state — not an error |
+| Reused tag | Under the header: ~~"An earlier 412 was culled on 12 Aug 2025."~~ **"An earlier 412 is on record — culled, last recorded 12 Aug 2025. Separate record."** + a tap target to open it. Tags are unique among **active** animals only (§7.0 ruling 7), so this line is a normal, expected state — not an error |
 | Error | Standard panel |
 | Over-cap | **Nothing.** Free-tier history is never hidden, blurred, greyed or made read-only. The season wall is upstream (§19.2); it never reaches back and locks last year's card |
+
+> **Amended — N27-T05, and the struck copy names a date the schema cannot produce.** *"was culled on
+> 12 Aug 2025"* needs the date her status changed. **R41 rules there is no status-history table**:
+> `ewes.status` is a mutable column with `updated_at` moving, and `updated_at` is a **row-lifecycle**
+> fact — it moves when anyone edits her breed, her EID or her date of birth. Rendering it as *"culled
+> on"* presents a maintenance timestamp as an event time, which is precisely the laundering §12.5
+> exists to prevent: an event time carries its provenance and `updated_at` has none.
+>
+> The replacement states two things the database can honestly produce — her **status word**, which is
+> the current value of a mutable column and is true now, stated without a date; and the **last
+> recorded event** on her record, which is a real event time with its own provenance quad, reached
+> through the same tables the timeline reads.
+>
+> **This is where the retention story discovers R41's limit, and the limit stands.** *"She was culled
+> in March 2025 and un-culled in April"* needs a schema addition; the schema was frozen at N07-T08 and
+> a migration is irreversible on somebody else's phone in April. Escalated to the owner in the pull
+> request rather than resolved here.
 
 ### 4.3 Actions
 

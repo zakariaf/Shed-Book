@@ -1706,6 +1706,232 @@ abstract class AppLocalizations {
   /// **'STRUCK — {count}'**
   String flockStruckDivider({required int count});
 
+  /// The record column's sentence on a lambing row. A past-tense statement of what happened, never a heading and never a count — the tally is its own mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambed'**
+  String get eweCardRowLambing;
+
+  /// The treatment row. {product} is the shepherd's own typed product name (§12.4 — exactly as typed, never normalised); this app ships no medicine database.
+  ///
+  /// In en, this message translates to:
+  /// **'Treated with {product}'**
+  String eweCardRowTreatment({required String product});
+
+  /// The care row. The kind is a stored key rendered through the terminology overlay at the presentation edge.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind}'**
+  String eweCardRowCare({required String kind});
+
+  /// The foster row. It names the act, not a direction — a foster is one rearing dam and an outcome, and 'she lost a lamb' is a reading of the previous rearing dam rather than a stored fact.
+  ///
+  /// In en, this message translates to:
+  /// **'Fostered'**
+  String get eweCardRowFoster;
+
+  /// The observation row. WHAT WAS OBSERVED, never a consequence: 'Prolapse' is a record, 'prolapse risk' is a diagnosis (§12.2). The label is the shepherd's own when they have renamed the term.
+  ///
+  /// In en, this message translates to:
+  /// **'{observation}'**
+  String eweCardRowObserved({required String observation});
+
+  /// The pen row. {pen} is the pen's own label, which the shepherd typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Penned in {pen}'**
+  String eweCardRowPenned({required String pen});
+
+  /// The note row. The shepherd's own words, verbatim and never truncated (10 §5).
+  ///
+  /// In en, this message translates to:
+  /// **'{body}'**
+  String eweCardRowNote({required String body});
+
+  /// Printed beside the provenance label on an EDITED row. 05 §4.3: an edited row shows BOTH times. The paired SQL CHECK — (time_source = 'edited') = (original_effective IS NOT NULL) — exists precisely so the pre-edit value is always there to show, and omitting it makes the §12.5 label true and uninformative. {time} arrives pre-formatted as 24-hour HH:mm.
+  ///
+  /// In en, this message translates to:
+  /// **'was {time}'**
+  String eweCardRowEditedFrom({required String time});
+
+  /// indelible.md §7.3's margin stamp on a struck row. The row STAYS in position, stays legible, and carries the time it was struck. 24-hour HH:mm, pre-formatted.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK {time}'**
+  String eweCardRowStruck({required String time});
+
+  /// The withdrawal figure on a treatment row. ZERO IS A REAL LABEL VALUE — products genuinely print zero-day withdrawals — so =0 is an explicit case and never falls through to the not-recorded wording. Always rendered beside Disclaimers.withdrawalProvenance, which is referenced and never re-typed.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =0{0 day withdrawal} =1{1 day withdrawal} other{{days} day withdrawal}}'**
+  String eweCardWithdrawalDays({required num days});
+
+  /// The label explicitly states no withdrawal applies. A recorded ANSWER, distinct from zero days and distinct from 'I did not look' — three states, never two.
+  ///
+  /// In en, this message translates to:
+  /// **'No withdrawal'**
+  String get eweCardWithdrawalNotApplicable;
+
+  /// No treatment_withdrawals row exists: nobody typed one. §12.1 — never a default, never 0, never blank. indelible.md §5: an unset value prints a dotted rule and the words NOT RECORDED, because a blank reads as missing data and a dotted rule reads as nothing happened.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawal — NOT RECORDED'**
+  String get eweCardWithdrawalNotRecorded;
+
+  /// One row, one spoken sentence, in the order a shepherd would say it. 10 §3.2 rule 3: the spoken row and the visible row agree on the visible words. Seven Text widgets is seven rotor stops per row and about eighty rows on a five-season card.
+  ///
+  /// In en, this message translates to:
+  /// **'{time}. {body}. {provenance}'**
+  String eweCardRowSemantics({
+    required String time,
+    required String body,
+    required String provenance,
+  });
+
+  /// The card's headingLevel 1 title. {singularTerm} is a USER-EDITABLE noun from the terminology overlay (ewe/gimmer/theave/...). Never derive the plural by appending an s (10 §8.5) — both forms come from TermLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{singularTerm} {tag}'**
+  String eweCardTitle({required String singularTerm, required String tag});
+
+  /// Clause 1 of the ewe card summary line (spec §7.7). A count of seasons in which this animal has a recorded lambing. Never a judgement. The =0 case is what a ewe created ten seconds ago reads, because ewe_summaries has no row for her yet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{No seasons recorded} =1{1 season} other{{count} seasons}}'**
+  String eweCardSummarySeasons({required num count});
+
+  /// Clause 2. Average litter size for THIS animal: lambs born divided by her recorded lambings (05 §6.5) — never divided by seasons. {average} arrives pre-formatted to one decimal by lib/core/ui/formatters.dart, never formatted inside this message (10 §8.4 rule 4). Omitted entirely when not computable; never rendered as 0.0.
+  ///
+  /// In en, this message translates to:
+  /// **'avg {average}'**
+  String eweCardSummaryAverage({required String average});
+
+  /// Clause 3. Lambings with a recorded ease of 2 or more (05 §6.7). The =1 and =2 cases are explicit because 'assisted 2 times' is not English. Unscored lambings are excluded from both sides and are named by eweCardSummaryAssistedCoverage; a blank ease is NEVER read as unassisted.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{never assisted} =1{assisted once} =2{assisted twice} other{assisted {count} times}}'**
+  String eweCardSummaryAssisted({required num count});
+
+  /// Appended to clause 3 only when some lambings have no ease score. 05 §6.7: coverage is always reported when it is partial, because a blank ease read as unassisted deflates the number.
+  ///
+  /// In en, this message translates to:
+  /// **'of {scored} scored'**
+  String eweCardSummaryAssistedCoverage({required num scored});
+
+  /// Clause 4. The most recent recorded observation and the year of the season it was recorded in — e.g. 'prolapsed 2025'. {observation} is the USER-EDITABLE vocab_terms label for an ewe_observation key; never hard-code it and never translate it. It states WHAT WAS OBSERVED, never a consequence: 'prolapsed 2025' is a record, 'prolapse risk' is a diagnosis (§12.2).
+  ///
+  /// In en, this message translates to:
+  /// **'{observation} {year}'**
+  String eweCardSummaryObservation({required String observation, required String year});
+
+  /// The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).
+  ///
+  /// In en, this message translates to:
+  /// **'{clauses}'**
+  String eweCardSummarySemantics({required String clauses});
+
+  /// 07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set.
+  ///
+  /// In en, this message translates to:
+  /// **'LAMBING'**
+  String get eweCardActionLambing;
+
+  /// Opens the observation picker. The word names the act of recording what was SEEN — never 'diagnose', never 'assess'.
+  ///
+  /// In en, this message translates to:
+  /// **'OBSERVE'**
+  String get eweCardActionObserve;
+
+  /// Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing.
+  ///
+  /// In en, this message translates to:
+  /// **'BARREN'**
+  String get eweCardActionBarren;
+
+  /// Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row.
+  ///
+  /// In en, this message translates to:
+  /// **'CULL'**
+  String get eweCardActionCull;
+
+  /// The observation sheet's heading. A question about an OBSERVATION, deliberately — 'what is wrong with her' would invite a diagnosis, and this app originates none (§12.2).
+  ///
+  /// In en, this message translates to:
+  /// **'What did you see?'**
+  String get eweCardObserveHeading;
+
+  /// indelible.md §7.14's dismiss word. Not 'Cancel' — there is no draft state, so 'Cancel' is not a verb (07 §15.5).
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get eweCardObserveClose;
+
+  /// The dismiss control's semantic label. Nothing is written until a term is tapped, so closing costs nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Close without recording an observation.'**
+  String get eweCardObserveCloseHint;
+
+  /// Shown on a ewe card when a NON-ACTIVE animal holds the same tag. Tags are unique among active animals only (decision-record §7.0 ruling 7), so this is a normal expected state and must not read as an error. {date} is the date of the most recent EVENT on the earlier animal's record, pre-formatted 'd MMM y' — NOT the date her status changed, which this app does not store (R41): updated_at is a row-lifecycle fact and rendering it as an event time is the laundering §12.5 exists to prevent. {status} is the current value of a mutable column and is true now, stated WITHOUT a date for the same reason.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier {tag} is on record — {status}, last recorded {date}. Separate record.'**
+  String eweCardEarlierAnimal({required String tag, required String status, required String date});
+
+  /// The same disclosure for an earlier animal with no recorded events at all. A ewe created and removed with no history is unusual but storable, and naming her without a date is honest where inventing one would not be.
+  ///
+  /// In en, this message translates to:
+  /// **'An earlier {tag} is on record — {status}. Separate record.'**
+  String eweCardEarlierAnimalUndated({required String tag, required String status});
+
+  /// The action beside the disclosure. Pushes that animal's own card. 64 x 64 minimum, like every target in this system.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the earlier {tag}'**
+  String eweCardEarlierAnimalOpen({required String tag});
+
+  /// ewes.status = 'sold', for prose. Lower case because it appears mid-sentence in the reused-tag disclosure; the boxed stamp form is upper case and lives on the row.
+  ///
+  /// In en, this message translates to:
+  /// **'sold'**
+  String get eweStatusSold;
+
+  /// ewes.status = 'dead', for prose. 'died' rather than 'dead' because the sentence reads 'An earlier 412 is on record — died, last recorded ...'.
+  ///
+  /// In en, this message translates to:
+  /// **'died'**
+  String get eweStatusDead;
+
+  /// ewes.status = 'culled', for prose. Culling is what releases a tag (03 §6 item 4), which is why this is the common case of the disclosure.
+  ///
+  /// In en, this message translates to:
+  /// **'culled'**
+  String get eweStatusCulled;
+
+  /// The season sub-head on the ewe card — a headingLevel 2 stop so a screen reader can jump season to season instead of swiping through eighty rows. The year is the SEASON's, from a stored foreign key, never derived from an event's instant.
+  ///
+  /// In en, this message translates to:
+  /// **'{year}'**
+  String eweCardSeasonHeading({required String year});
+
+  /// The group for records with no season. Only notes can be seasonless (03 §5.12); folding them into the newest season would be the app filing a record the shepherd did not file.
+  ///
+  /// In en, this message translates to:
+  /// **'No season'**
+  String get eweCardNoSeasonHeading;
+
+  /// 07 §4.2's empty state. A new animal with no history is a normal state, not an error — the shepherd added her a minute ago. The noun is deliberately absent: the tag is already the page heading.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing recorded yet.'**
+  String get eweCardEmpty;
+
+  /// 07 §4.2's error state. It says what could not be read rather than naming a fault, because there is nothing the shepherd can do about a read failure at 03:20 except come back.
+  ///
+  /// In en, this message translates to:
+  /// **'Her records could not be read.'**
+  String get eweCardUnavailable;
+
   /// indelible.md §8 Screen 1: 'Quick-add is the corner slab.' The largest target in the system, bottom-right, mirrored to bottom-left when left_handed is set. The noun is fed from termEweSingular (10 §8.5) because it varies by county — a shepherd who calls them gimmers reads GIMMER here.
   ///
   /// In en, this message translates to:

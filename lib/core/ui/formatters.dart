@@ -97,6 +97,30 @@ String formatShedWeight(Grams g, WeightUnit u, String localeName) => switch (u) 
 String formatShedCount(int n, String localeName) =>
     NumberFormat.decimalPattern(localeName).format(n);
 
+/// A **year**, and never grouped.
+///
+/// **`2026`, NOT `2,026`.** `formatShedCount` groups by the locale — which is
+/// right for *1,240 lambs* and wrong for a year, and the ewe card printed
+/// `2,026` as a season sub-head until this existed. A year is an identifier a
+/// shepherd reads as a word, not a quantity.
+///
+/// It takes the locale for symmetry with every other formatter here, and because
+/// the day a locale writes years differently this is the one place that changes.
+String formatShedYear(int year, String localeName) => NumberFormat('0000', localeName).format(year);
+
+/// An average, to **one decimal**, in the locale's own separator — `2.0` here,
+/// `2,0` in a locale that writes it that way.
+///
+/// **`2.0` AND NEVER `2`.** The trailing zero is what says the number is an
+/// average rather than a count: a ewe whose card reads `avg 2` looks like she
+/// had two lambs once, and the whole clause is a rate over her lambings. Both
+/// digits are forced, so the column does not jitter between `2` and `1.5`.
+///
+/// It is separate from [formatShedCount] because the two are different claims —
+/// a count is exact and an average is not — and a shared formatter would
+/// eventually round one of them the other's way.
+String formatShedAverage(double v, String localeName) => NumberFormat('0.0', localeName).format(v);
+
 /// The locale every formatter above is passed.
 ///
 /// **Never `null`.** A `DateFormat` with a null locale falls back to the system

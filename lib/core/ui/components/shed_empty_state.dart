@@ -29,12 +29,43 @@ final class ShedEmptyState extends StatelessWidget {
       // and the screen jumps the moment a shepherd records their first ewe.
       width: double.infinity,
       height: double.infinity,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: <Widget>[
-          Text(copy, style: Theme.of(context).textTheme.bodyLarge, textAlign: TextAlign.center),
-          if (action != null) ...<Widget>[SizedBox(height: t.gapMin), action!],
-        ],
+      // **IT SCROLLS WHEN THE BOX IS SMALLER THAN THE WORDS, AND AT 200% IT IS.**
+      // The centred column above is right when this widget owns the page. On the
+      // Ewe Card it does not — the summary line sits above it and takes the
+      // height it needs — so at textScaler 2.0 on a 375 x 667 device the column
+      // overflowed by 52 px. Measured at N27-T02, not guessed.
+      //
+      // The scroll view keeps both properties: the box is still the full height
+      // of the slot, so nothing jumps when the first record lands, AND the copy
+      // is still reachable when it is taller than the box. `Center` inside is
+      // what keeps the resting position identical to before — a screen with room
+      // to spare renders exactly the same pixels it did.
+      //
+      // Vertical scrolling is the one permitted tracked gesture, and an empty
+      // state's action is never reachable ONLY behind it: at every size where
+      // the action fits, it is on screen.
+      // `LayoutBuilder` is what makes the two properties compatible: a scroll
+      // view hands its child UNBOUNDED height, so a bare `Center` inside one
+      // fails to lay out at all. The minimum height is the slot's own, read from
+      // the constraints — so the content centres in a full-height box when there
+      // is room and grows past it when there is not.
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) => SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  copy,
+                  style: Theme.of(context).textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+                if (action != null) ...<Widget>[SizedBox(height: t.gapMin), action!],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

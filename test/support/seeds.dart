@@ -140,17 +140,24 @@ Future<TreatmentId> seedTreatment(
   AppDatabase db, {
   required String product,
   required int withdrawalDays,
+  EweId? ewe,
+  Instant? administeredAt,
 }) async {
-  final Instant at = appNow();
+  final Instant at = administeredAt ?? appNow();
   final SeasonId season = await _season(db);
-  final EweId ewe = await seedEwe(db, tag: 'T${at.epochMillis % 100000}');
+  // **[ewe] IS OPTIONAL AND THE FALLBACK STILL SEEDS ONE.** N20 wrote this
+  // helper for the treatments screen, where the animal is incidental; N27's
+  // timeline needs a treatment on a NAMED ewe, and a second helper for that
+  // would be two rows of one fact. The fallback tag is derived from the instant
+  // so two calls in one test do not collide on `idx_ewe_tag_active`.
+  final EweId subject = ewe ?? await seedEwe(db, tag: 'T${at.epochMillis % 100000}');
 
   final int id = await db
       .into(db.treatments)
       .insert(
         TreatmentsCompanion.insert(
           season: season.value,
-          ewe: Value<int?>(ewe.value),
+          ewe: Value<int?>(subject.value),
           productName: product,
           administeredAt: at,
           capturedAt: at,
@@ -396,4 +403,168 @@ Future<EweId> seedEweInSeason(AppDatabase db, {required String tag, required Str
         ),
       );
   return ewe;
+}
+
+/// One observation on [ewe] — `03 §5.7`, `07 §4.1`.
+///
+/// **`kind` IS A `vocab_terms` KEY, NOT A DOMAIN ENUM** (R17, `07 §4.1`): death
+/// causes, malpresentations, routes and observations are rows, user-extensible,
+/// and `lib/domain/observation_kind.dart` does not exist. The column has a
+/// `RESTRICT` foreign key onto `vocab_terms`, so an invented key fails the
+/// insert rather than landing an unrenderable row.
+///
+/// **`barren` is not one of them** (R42). A barren season is
+/// `ewe_seasons.status`, and `seedEweInSeason` is the helper for it — the app
+/// records what the shepherd observed and never infers it (§12.2).
+Future<EweObservationId> seedEweObservation(
+  AppDatabase db,
+  EweId ewe, {
+  required String kind,
+  Instant? occurredAt,
+}) async {
+  final Instant now = appNow();
+  final Instant at = occurredAt ?? now;
+  final SeasonId season = await _season(db);
+  final int id = await db
+      .into(db.eweObservations)
+      .insert(
+        EweObservationsCompanion.insert(
+          ewe: ewe.value,
+          season: season.value,
+          kind: kind,
+          // The honest quad for a row written as it happened: `captured_at`
+          // equals `occurred_at`, `time_source` is `auto`, and there is no
+          // original effective time because nothing has been edited.
+          occurredAt: at,
+          capturedAt: at,
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return EweObservationId(id);
+}
+
+/// One note.
+///
+/// **`occurred_at` AND `captured_at` ARE SEPARATE PARAMETERS BECAUSE THAT
+/// DISTINCTION IS WHY THE COLUMN EXISTS** (R37, `07 §4.1`). A note typed at
+/// 07:00 about something at 03:20 has `occurred_at` 03:20 and `captured_at`
+/// 07:00 — and the timeline sorts on the first, which is the assertion this
+/// helper exists to make writable.
+///
+/// **`season` IS THE ONE NULLABLE ONE** (`03 §5.12`), so it is a parameter and
+/// not a call to `_season`: a helper that always attached a season could never
+/// seed the row the timeline's null-season case is about.
+Future<NoteId> seedNote(
+  AppDatabase db, {
+  required String body,
+  EweId? ewe,
+  LambId? lamb,
+  SeasonId? season,
+  Instant? occurredAt,
+  Instant? capturedAt,
+}) async {
+  final Instant now = appNow();
+  final Instant at = occurredAt ?? now;
+  final int id = await db
+      .into(db.notes)
+      .insert(
+        NotesCompanion.insert(
+          ewe: Value<int?>(ewe?.value),
+          lamb: Value<int?>(lamb?.value),
+          season: Value<int?>(season?.value),
+          body: body,
+          occurredAt: at,
+          // **NOT `?? at` BY ACCIDENT.** Defaulting `captured_at` to the event
+          // time is the honest quad for a row written as it happened; a caller
+          // who wants the deferred-entry shape passes both and gets it.
+          capturedAt: capturedAt ?? at,
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return NoteId(id);
+}
+
+/// One foster event on [lamb] — `03 §7`, append-only.
+///
+/// **ONE `rearing_dam` PLUS AN OUTCOME, AND THERE IS NO `from_ewe`.** That is
+/// the whole reason the timeline's foster arm needs a window function: *"she
+/// lost a lamb to a foster"* is the **previous** rearing dam, which is the `LAG`
+/// of this column over the lamb's own event order. A helper that took a
+/// `fromEwe` would be inventing a column and would make the arm untestable.
+///
+/// `rearingDam` is nullable because a lamb can leave a rearing dam without
+/// gaining one — `to_bottle` and `removed_unknown` are both real outcomes.
+Future<FosterEventId> seedFosterEvent(
+  AppDatabase db,
+  LambId lamb, {
+  required String outcome,
+  EweId? rearingDam,
+  Instant? effectiveAt,
+}) async {
+  final Instant now = appNow();
+  final Instant at = effectiveAt ?? now;
+  final SeasonId season = await _season(db);
+  final int id = await db
+      .into(db.fosterEvents)
+      .insert(
+        FosterEventsCompanion.insert(
+          lamb: lamb.value,
+          season: season.value,
+          rearingDam: Value<int?>(rearingDam?.value),
+          outcome: outcome,
+          effectiveAt: at,
+          capturedAt: at,
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+  return FosterEventId(id);
+}
+
+/// One `ewe_summaries` row — the counts the card's summary line is assembled
+/// from.
+///
+/// **COUNTS ONLY. THERE IS NOWHERE TO PUT A RENDERED LINE AND THAT IS THE
+/// POINT** (`03 §5.13`): a stored string freezes the terminology, the locale and
+/// the units at write time and is wrong the moment a record is corrected.
+///
+/// It is a **cache** — rebuildable, excluded from the backup, and normally
+/// written by the repositories inside the transactions that invalidate it
+/// (N27-T03). This helper exists so the wording can be tested at every count
+/// combination without driving nine writes to reach each one.
+Future<void> seedEweSummary(
+  AppDatabase db,
+  EweId ewe, {
+  required int seasons,
+  required int lambings,
+  required int lambsBorn,
+  required int assisted,
+  required int scored,
+  int? lambsBornAlive,
+  SeasonId? lastObservationSeason,
+}) async {
+  await db
+      .into(db.eweSummaries)
+      .insertOnConflictUpdate(
+        EweSummariesCompanion.insert(
+          ewe: Value<int>(ewe.value),
+          seasonsRecorded: seasons,
+          lambingsRecorded: lambings,
+          lambsBorn: lambsBorn,
+          // **DEFAULTS TO `lambsBorn`, NOT TO ZERO.** A seeder whose born-alive
+          // count silently trailed its born count would make every card in the
+          // suite look like a disaster, and `?? 0` near a count is the shape
+          // decision #58 exists to refuse.
+          lambsBornAlive: lambsBornAlive ?? lambsBorn,
+          assistedLambings: assisted,
+          scoredLambings: scored,
+          lastObservationSeason: Value<int?>(lastObservationSeason?.value),
+          rebuiltAt: appNow(),
+        ),
+      );
 }

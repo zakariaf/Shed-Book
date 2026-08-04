@@ -21,6 +21,7 @@ import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/domain/foster_outcome.dart';
+import 'package:shed_book/data/lambing_repository.dart' show writeEweSummary;
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
@@ -65,7 +66,19 @@ final class FosterRepository {
         // foster into the wrong season's rearing figures forever.
         final SeasonId season = await _seasonOfLamb(lamb);
 
-        return _db
+        // **BOTH DAMS, AND `lambs_born` MOVES FOR NEITHER OF THEM.** `05 §6.5`:
+        // a fostered lamb is counted in the **birth** dam's litter, never the
+        // receiving ewe's — her *reared* count goes up and her *born* count does
+        // not, and `ewe_summaries` has no reared column. What a foster can move
+        // is `seasons_recorded`, when it is the first thing recorded against a
+        // ewe in a season.
+        //
+        // Written for the previous rearing dam as well as the new one, because
+        // the recompute is idempotent and getting this wrong is invisible. It is
+        // the write side of the same fact T01's timeline reads with `LAG`.
+        final int? previousDam = await _previousRearingDam(lamb);
+
+        final int inserted = await _db
             .into(_db.fosterEvents)
             .insert(
               FosterEventsCompanion.insert(
@@ -83,11 +96,39 @@ final class FosterRepository {
                 updatedAt: now,
               ),
             );
+
+        for (final int? ewe in <int?>{dam?.value, previousDam}) {
+          if (ewe != null) {
+            await writeEweSummary(_db, EweId(ewe), now);
+          }
+        }
+        return inserted;
       });
       return WriteCommitted(insertedId: id);
     } on Object catch (e) {
       return WriteFailed(shedFailureFrom(e));
     }
+  }
+
+  /// The lamb's rearing dam **immediately before** the event about to be
+  /// written — the `LAG` of `rearing_dam` over the lamb's own event order, read
+  /// here rather than computed, because this side has the transaction open.
+  ///
+  /// `null` when nothing has fostered her yet, which is the ordinary case: the
+  /// first foster off a lamb moves her from her birth dam, and no `foster_events`
+  /// row records that state.
+  Future<int?> _previousRearingDam(LambId lamb) async {
+    final List<FosterEvent> latest =
+        await (_db.select(_db.fosterEvents)
+              ..where(($FosterEventsTable t) => t.lamb.equals(lamb.value))
+              ..orderBy(<OrderClauseGenerator<$FosterEventsTable>>[
+                ($FosterEventsTable t) =>
+                    OrderingTerm(expression: t.effectiveAt, mode: OrderingMode.desc),
+                ($FosterEventsTable t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+              ])
+              ..limit(1))
+            .get();
+    return latest.isEmpty ? null : latest.first.rearingDam;
   }
 
   /// The lamb's CURRENT rearing dam, from the view.

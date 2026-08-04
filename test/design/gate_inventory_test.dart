@@ -30,6 +30,8 @@ const List<String> _expected = <String>[
   'gate_inventory_test.dart',
   'haptics_test.dart',
   'reduce_motion_test.dart',
+  // N33-T02's sweep over the variant table, with its canary.
+  'semantics_gate_test.dart',
   'tap_target_test.dart',
   'theme_test.dart',
   'tokens_test.dart',
@@ -87,7 +89,15 @@ void main() {
         'kPumpable'
         'Variants';
 
+    // **AMENDED AT N33-T02: ONE FILE MAY NOW NAME IT, AND EXACTLY ONE.** The
+    // case asserted no file in this directory touched the table, which was right
+    // while the table was empty. `semantics_gate_test.dart` is the sweep that
+    // earns it; every other gate file here is still per-widget, and a second one
+    // reaching for the table would be a sweep arriving without a task behind it.
     for (final String name in _filesInDesign()) {
+      if (name == 'semantics_gate_test.dart') {
+        continue;
+      }
       final String body = File(
         '$_dir/$name',
       ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
@@ -114,16 +124,26 @@ void main() {
     }
   });
 
-  test('semantics_gate_test.dart does not exist yet', () {
-    // AN EMPTY GATE FILE READS AS COVERAGE, which is worse than a missing one:
-    // it appears in every listing, it passes, and nobody opens it.
+  test('semantics_gate_test.dart exists and actually sweeps something', () {
+    // **INVERTED AT N33-T02, IN THE COMMIT THAT GAVE THE FILE SOMETHING TO
+    // SWEEP.** The case used to assert the file was ABSENT, because an empty
+    // gate file reads as coverage — worse than a missing one: it appears in
+    // every listing, it passes, and nobody opens it.
     //
-    // This case deletes itself at N33-T02, in the commit that gives the file
-    // something to sweep.
+    // What survives is the property it was protecting, stated the other way
+    // round: the file exists AND it iterates the variant table AND it carries a
+    // canary. A sweep with no canary is a sweep that stays green after the
+    // guideline stops evaluating anything.
+    final String source = File('$_dir/semantics_gate_test.dart').readAsStringSync();
+
+    const String needle =
+        'kPumpable'
+        'Variants';
+    expect(source, contains(needle), reason: 'the sweep iterates nothing');
     expect(
-      File('$_dir/semantics_gate_test.dart').existsSync(),
-      isFalse,
-      reason: 'if this file now exists, it must actually sweep something',
+      source,
+      contains('labeledTapTargetGuideline.evaluate('),
+      reason: 'no canary — a dead guideline would keep every sweep green',
     );
   });
 }

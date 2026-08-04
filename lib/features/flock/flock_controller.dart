@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/free_tier.dart';
@@ -91,6 +92,37 @@ final class FlockWriteController extends WriteController {
   /// must write one status change, not two.
   Future<void> setStatus(EweId ewe, EweStatus status) =>
       guard(() => ref.read(flockRepositoryProvider).setStatus(ewe, status));
+
+  /// **THE CARD'S VERBS LIVE HERE, AND THAT IS A LAYER FACT RATHER THAN A
+  /// PREFERENCE.** Layer rule 6 forbids `lib/features/flock/` from importing
+  /// `lib/features/lambing/` or `lib/features/pens/`, so
+  /// `lambingWriteControllerProvider` is unreachable from the Ewe Card.
+  /// `CONVENTIONS §4.4` rule 2 — one write controller per **feature** — is what
+  /// makes that fine: the Flock screen and the Ewe Card are one feature folder.
+  /// N14-T03 hit the identical wall on Quick Entry; this is its resolution,
+  /// unchanged.
+  Future<void> recordObservation(EweId ewe, {required String kind, String? note}) => guard(
+    () => ref.read(lambingRepositoryProvider).recordObservation(ewe, kind: kind, note: note),
+  );
+
+  /// R32: `beginLambing` returns an id and **throws**. It is adapted to
+  /// `guard()`'s `Future<WriteOutcome>` exactly as N14-T03 adapted it — the id
+  /// travels back as `WriteCommitted.insertedId`, R33's single permitted call
+  /// site, and a throw surfaces as `WriteFailed(UnexpectedFailure)` rather than
+  /// as silence.
+  ///
+  /// **THE ROW EXISTS BEFORE ANY SCREEN IS PUSHED.** There is no draft and
+  /// nothing to lose if the phone dies between the tap and the push.
+  Future<void> beginLambing(EweId ewe) => guard(() async {
+    final LambingId id = await ref.read(lambingRepositoryProvider).beginLambing(ewe);
+    return WriteCommitted(insertedId: id.value);
+  });
+
+  /// R42 — **barren is a season participation outcome**, `ewe_seasons.status`,
+  /// owned by `SeasonRepository`. It is not a status change and it is not an
+  /// observation; three different columns, three different facts.
+  Future<void> recordBarren(EweId ewe) =>
+      guard(() => ref.read(seasonRepositoryProvider).setEweSeasonStatus(ewe, 'barren'));
 }
 
 /// `.autoDispose`, always, for a write controller (`CONVENTIONS §3.4`).

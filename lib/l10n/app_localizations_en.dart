@@ -1116,6 +1116,27 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get eweCardActionLambing => 'LAMBING';
+
+  @override
+  String get eweCardActionObserve => 'OBSERVE';
+
+  @override
+  String get eweCardActionBarren => 'BARREN';
+
+  @override
+  String get eweCardActionCull => 'CULL';
+
+  @override
+  String get eweCardObserveHeading => 'What did you see?';
+
+  @override
+  String get eweCardObserveClose => 'CLOSE';
+
+  @override
+  String get eweCardObserveCloseHint => 'Close without recording an observation.';
+
+  @override
   String eweCardEarlierAnimal({required String tag, required String status, required String date}) {
     return 'An earlier $tag is on record — $status, last recorded $date. Separate record.';
   }

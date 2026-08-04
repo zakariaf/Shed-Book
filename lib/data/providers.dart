@@ -23,6 +23,7 @@
 //   quickEntryDeckProvider      N18-T02  StreamProvider<QuickEntryDeck>       keepAlive  (moved, R83)
 //   fosterRepositoryProvider    N18-T02  Provider<FosterRepository>
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
+//   seasonRepositoryProvider    N27-T06  Provider<SeasonRepository>   (N28's file, one verb early)
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
@@ -61,6 +62,7 @@ import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/data/season_repository.dart';
 import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/data/settings_repository.dart';
@@ -206,6 +208,15 @@ final Provider<int> settleThresholdHoursProvider = Provider<int>(
 
 final Provider<FosterRepository> fosterRepositoryProvider = Provider<FosterRepository>(
   (ref) => FosterRepository(ref.watch(databaseProvider).requireValue),
+);
+
+/// **CREATED AT N27-T06, EIGHT EPICS BEFORE ITS OWN.** `SeasonRepository` is
+/// N28's, and N28 ships in `v1.1.0` — but `ewe_seasons` is this repository's
+/// table (§2.13) and R42 puts *barren* on it, so the Flock screen's barren
+/// filter had nothing that could ever write a row to match. One write verb now;
+/// N28 adds the summary reads to the same file.
+final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepository>(
+  (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),
 );
 
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(

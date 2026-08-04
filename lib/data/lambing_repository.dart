@@ -651,6 +651,74 @@ final class LambingRepository {
     }
   }
 
+  /// **AN OBSERVATION IS A RECORD OF WHAT WAS SEEN.** `03 §5.7`'s rule belongs
+  /// in this method's doc comment too, because this is the one place it could be
+  /// broken: the app never infers `obs_poor_mothering` from a lamb death, never
+  /// infers `obs_no_milk` from a bottle-fed lamb, and **never writes a row on
+  /// the shepherd's behalf**. Only a tap reaches here.
+  ///
+  /// It is a record, never a diagnosis (§12.2's origination line): *"prolapsed"*
+  /// is what somebody saw, *"prolapse risk"* is a clinical decision, and this
+  /// app originates neither.
+  ///
+  /// `kind` is a `vocab_terms` key validated by the foreign key — `ON DELETE
+  /// RESTRICT`, so an invented key fails the insert rather than landing an
+  /// unrenderable row.
+  ///
+  /// **`barren` IS NOT ONE OF THEM** (R42): it is a season participation
+  /// outcome on `ewe_seasons.status`, owned by `SeasonRepository`. The
+  /// `ewe_observation` vocabulary has no barren key and must not gain one.
+  ///
+  /// The summary write is in the same transaction because an observation moves
+  /// `last_observation_season`, which the card's fourth clause reads.
+  Future<WriteOutcome> recordObservation(
+    EweId ewe, {
+    required String kind,
+    LambingId? lambing,
+    String? note,
+  }) async {
+    try {
+      final Instant now = appNow(); // ONE instant per mutation
+      final RecordedTime when = RecordedTime.capture(now); // §12.5 provenance
+      return await _db.transaction(() async {
+        final SeasonId season = await _currentSeason();
+        await _db
+            .into(_db.eweObservations)
+            .insert(
+              EweObservationsCompanion.insert(
+                ewe: ewe.value,
+                season: season.value,
+                lambing: Value<int?>(lambing?.value),
+                kind: kind,
+                occurredAt: when.effective,
+                capturedAt: when.capturedAt,
+                timeSource: Value<String>(when.source.key),
+                // **ABSENT, NOT `Value(null)`, WHEN THERE IS NO NOTE** — and the
+                // note is never trimmed into existence: an empty field is no
+                // note, not a note that says nothing.
+                note: note == null || note.trim().isEmpty
+                    ? const Value<String?>.absent()
+                    : Value<String?>(note),
+                uid: newUid(),
+                createdAt: now,
+                updatedAt: now,
+              ),
+            );
+        await writeEweSummary(_db, ewe, now);
+        // **NO `insertedId`, AND THAT IS DELIBERATE RATHER THAN AN OMISSION.**
+        // `WriteCommitted.insertedId` means *"a screen is about to be pushed
+        // for this row"* — it is R33's single permitted place for a bare `int`,
+        // and `beginLambing` is the verb that uses it. An observation opens
+        // nothing, so carrying its id would make the Ewe Card's one listener
+        // unable to tell the two outcomes apart without screen state to
+        // disambiguate them.
+        return const WriteCommitted();
+      });
+    } on Object catch (e) {
+      return WriteFailed(shedFailureFrom(e));
+    }
+  }
+
   /// The ewe a lambing belongs to. One lookup, inside the caller's transaction —
   /// the summary recompute needs the ewe and a `LambingId` is what the screen
   /// holds.

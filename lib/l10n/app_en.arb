@@ -1607,6 +1607,34 @@
     "description": "The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).",
     "placeholders": {"clauses": {"type": "String", "example": "3 seasons. avg 2.0. assisted twice"}}
   },
+  "eweCardActionLambing": "LAMBING",
+  "@eweCardActionLambing": {
+    "description": "07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set."
+  },
+  "eweCardActionObserve": "OBSERVE",
+  "@eweCardActionObserve": {
+    "description": "Opens the observation picker. The word names the act of recording what was SEEN — never 'diagnose', never 'assess'."
+  },
+  "eweCardActionBarren": "BARREN",
+  "@eweCardActionBarren": {
+    "description": "Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing."
+  },
+  "eweCardActionCull": "CULL",
+  "@eweCardActionCull": {
+    "description": "Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row."
+  },
+  "eweCardObserveHeading": "What did you see?",
+  "@eweCardObserveHeading": {
+    "description": "The observation sheet's heading. A question about an OBSERVATION, deliberately — 'what is wrong with her' would invite a diagnosis, and this app originates none (§12.2)."
+  },
+  "eweCardObserveClose": "CLOSE",
+  "@eweCardObserveClose": {
+    "description": "indelible.md §7.14's dismiss word. Not 'Cancel' — there is no draft state, so 'Cancel' is not a verb (07 §15.5)."
+  },
+  "eweCardObserveCloseHint": "Close without recording an observation.",
+  "@eweCardObserveCloseHint": {
+    "description": "The dismiss control's semantic label. Nothing is written until a term is tapped, so closing costs nothing."
+  },
   "eweCardEarlierAnimal": "An earlier {tag} is on record — {status}, last recorded {date}. Separate record.",
   "@eweCardEarlierAnimal": {
     "description": "Shown on a ewe card when a NON-ACTIVE animal holds the same tag. Tags are unique among active animals only (decision-record §7.0 ruling 7), so this is a normal expected state and must not read as an error. {date} is the date of the most recent EVENT on the earlier animal's record, pre-formatted 'd MMM y' — NOT the date her status changed, which this app does not store (R41): updated_at is a row-lifecycle fact and rendering it as an event time is the laundering §12.5 exists to prevent. {status} is the current value of a mutable column and is true now, stated WITHOUT a date for the same reason.",

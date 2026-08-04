@@ -14,7 +14,14 @@ import 'package:shed_book/core/ui/components/shed_empty_state.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/ui/feedback.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/features/flock/flock_controller.dart';
 import 'package:shed_book/features/flock/widgets/earlier_animal_note.dart';
+import 'package:shed_book/features/flock/widgets/ewe_card_actions.dart';
 import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
 import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
@@ -35,39 +42,102 @@ class EweCardScreen extends ConsumerWidget {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
 
+    // **REGISTERED UNCONDITIONALLY, AT THE TOP OF `build`** (`02 §4.3`).
+    // Navigation is the screen's job, never the controller's (`§4.4` rule 3).
+    ref.listen<WriteState>(flockWriteControllerProvider, (WriteState? _, WriteState next) {
+      if (next case WriteDone(outcome: final WriteOutcome outcome)) {
+        // Sealed, three variants, no `default:` — the day a fourth appears this
+        // must fail to compile rather than swallow it.
+        switch (outcome) {
+          case WriteCommitted(insertedId: final int? id):
+            // **AN ID MEANS A SCREEN IS ABOUT TO BE PUSHED, AND ONLY
+            // `beginLambing` CARRIES ONE.** `WriteCommitted.insertedId` is R33's
+            // single permitted place for a bare `int`, and the other three verbs
+            // on this card deliberately return none — so the listener can tell
+            // them apart without screen state to disambiguate them.
+            //
+            // The lambing row already exists, committed before this listener
+            // ran, so pushing is the only thing left to do. Every other verb
+            // confirms by its row appearing on the timeline behind — P2: the
+            // confirmation IS the committed row, and there is no SnackBar.
+            if (id != null) {
+              Routes.lambingEntry(context, LambingId(id)).ignore();
+            }
+          case WriteFailed(failure: final ShedFailure failure):
+            showFailure(context, failure.userMessage);
+          case WriteRefused(reason: final RefusalReason reason):
+            // Not reachable from this card — nothing here is a gated verb — and
+            // stated rather than assumed, because `showCapRow` carries the guard
+            // that would matter if one ever were.
+            showCapRow(context, reason, onShedScreen: false);
+        }
+      }
+    });
+
     return Scaffold(
       backgroundColor: t.surfaceBase,
       body: SafeArea(
-        // **THE SUMMARY LINE IS FIRST, ABOVE THE TIMELINE.** Spec §7.7: it is
-        // *"visible before anything else"*, and that is a widget-order fact
-        // rather than a comment — `07 §4.2`'s frame 1 reserves its height so the
-        // page does not shift when the counts land.
+        // **ONE SCROLLING DOCUMENT, AND A FIXED BAND UNDER IT.** The disclosure,
+        // the summary line and the timeline are one scroll — which is what
+        // `indelible.md §8` means by *the same document under a different
+        // filter* — and the actions are a fixed layer above it, in the thumb
+        // band, where they cannot scroll away from the thumb.
+        //
+        // **THE FIRST DRAFT MADE THE SUMMARY A FIXED HEADER AND IT OVERFLOWED BY
+        // 120 PX AT 200 %** on a 375 x 667 device: a three-line summary and four
+        // wrapped word buttons both demanded their full height and the timeline
+        // had nothing left to give. Reading gives way to scrolling; the thumb
+        // band never does.
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // **UNDER THE HEADER AND ABOVE THE SUMMARY LINE** (`07 §4.2`). It
-            // qualifies *who this card is about*, so it cannot come after the
-            // history it qualifies — a reader who meets the timeline first has
-            // already begun attributing it to one animal.
-            EarlierAnimalNote(
-              eweId: eweId,
-              tag: tag,
-              // **THE EARLIER CARD DOES NOT DISCLOSE BACK.** The relationship is
-              // directional: she is finished, and telling a reader of a closed
-              // record that a different animal has her number later is noise at
-              // the moment they are trying to read one history. That falls out of
-              // the statement rather than out of this call — it returns only
-              // animals whose status is not active.
-              onOpen: (EweId earlier, String earlierTag) =>
-                  Routes.eweCard(context, earlier, tag: earlierTag),
-            ),
-            EweSummaryLine(eweId: eweId, tag: tag),
-            Expanded(child: _timeline(context, ref, t, l10n)),
+            Expanded(child: _page(context, ref, t, l10n)),
+            // **THE ACTIONS SIT IN THE THUMB BAND** (`indelible.md §4.5`):
+            // nothing required to record an event is more than 320 px from the
+            // bottom, and reading happens above it.
+            EweCardActions(eweId: eweId),
           ],
         ),
       ),
     );
   }
+
+  /// The page: the disclosure, the summary line, then her history — in that
+  /// order, because each one qualifies the next.
+  ///
+  /// **SPEC §7.7's *"visible before anything else"* IS A WIDGET-ORDER FACT**, not
+  /// a comment: the summary line is the first thing under the disclosure, and
+  /// the disclosure is above it because it qualifies *who this card is about*. A
+  /// reader who meets the timeline first has already begun attributing it to one
+  /// animal.
+  Widget _page(BuildContext context, WidgetRef ref, ShedTokens t, AppLocalizations l10n) =>
+      CustomScrollView(
+        key: const Key('ewe_card.page'),
+        slivers: <Widget>[
+          SliverToBoxAdapter(
+            child: EarlierAnimalNote(
+              eweId: eweId,
+              tag: tag,
+              // **THE EARLIER CARD DOES NOT DISCLOSE BACK.** The relationship is
+              // directional: she is finished, and telling a reader of a closed
+              // record that a different animal has her number later is noise at
+              // the moment they are trying to read one history. That falls out
+              // of the statement rather than out of this call — it returns only
+              // animals whose status is not active.
+              onOpen: (EweId earlier, String earlierTag) =>
+                  Routes.eweCard(context, earlier, tag: earlierTag),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: EweSummaryLine(eweId: eweId, tag: tag),
+          ),
+          // **`SliverFill` SO THE EMPTY STATE STILL OWNS THE REST OF THE PAGE.**
+          // It is what keeps `07 §2.2`'s promise that the empty state *"occupies
+          // the same box the populated content will"* — nothing jumps when the
+          // first record lands.
+          SliverFillRemaining(hasScrollBody: true, child: _timeline(context, ref, t, l10n)),
+        ],
+      );
 
   Widget _timeline(BuildContext context, WidgetRef ref, ShedTokens t, AppLocalizations l10n) =>
       SizedBox.expand(

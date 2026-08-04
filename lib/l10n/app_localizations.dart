@@ -1830,6 +1830,48 @@ abstract class AppLocalizations {
   /// **'{clauses}'**
   String eweCardSummarySemantics({required String clauses});
 
+  /// 07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set.
+  ///
+  /// In en, this message translates to:
+  /// **'LAMBING'**
+  String get eweCardActionLambing;
+
+  /// Opens the observation picker. The word names the act of recording what was SEEN — never 'diagnose', never 'assess'.
+  ///
+  /// In en, this message translates to:
+  /// **'OBSERVE'**
+  String get eweCardActionObserve;
+
+  /// Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing.
+  ///
+  /// In en, this message translates to:
+  /// **'BARREN'**
+  String get eweCardActionBarren;
+
+  /// Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row.
+  ///
+  /// In en, this message translates to:
+  /// **'CULL'**
+  String get eweCardActionCull;
+
+  /// The observation sheet's heading. A question about an OBSERVATION, deliberately — 'what is wrong with her' would invite a diagnosis, and this app originates none (§12.2).
+  ///
+  /// In en, this message translates to:
+  /// **'What did you see?'**
+  String get eweCardObserveHeading;
+
+  /// indelible.md §7.14's dismiss word. Not 'Cancel' — there is no draft state, so 'Cancel' is not a verb (07 §15.5).
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get eweCardObserveClose;
+
+  /// The dismiss control's semantic label. Nothing is written until a term is tapped, so closing costs nothing.
+  ///
+  /// In en, this message translates to:
+  /// **'Close without recording an observation.'**
+  String get eweCardObserveCloseHint;
+
   /// Shown on a ewe card when a NON-ACTIVE animal holds the same tag. Tags are unique among active animals only (decision-record §7.0 ruling 7), so this is a normal expected state and must not read as an error. {date} is the date of the most recent EVENT on the earlier animal's record, pre-formatted 'd MMM y' — NOT the date her status changed, which this app does not store (R41): updated_at is a row-lifecycle fact and rendering it as an event time is the laundering §12.5 exists to prevent. {status} is the current value of a mutable column and is true now, stated WITHOUT a date for the same reason.
   ///
   /// In en, this message translates to:

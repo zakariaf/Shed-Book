@@ -178,6 +178,12 @@ void main() {
       'tagIndexProvider',
       // N14-T02
       'lambingRepositoryProvider',
+      // **N27-T06, AND IT IS N28'S REPOSITORY ARRIVING EARLY.** `ewe_seasons` is
+      // `SeasonRepository`'s table (§2.13) and R42 puts *barren* on it, so until
+      // this existed the Flock screen's barren filter had nothing that could
+      // ever write a row to match — a control that can never match anything. One
+      // write verb now; N28 adds the summary reads to the same file.
+      'seasonRepositoryProvider',
       // N15-T01, N15-T02
       'mediaStoreProvider',
       'cameraServiceProvider',

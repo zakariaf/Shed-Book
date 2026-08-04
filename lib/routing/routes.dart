@@ -12,6 +12,7 @@ import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/features/settings/settings_screen.dart';
 
 /// Every route name that can appear in the diagnostics log. Route name is one of
 /// the few fields decision #124 permits to be logged, so every route sets one.
@@ -176,6 +177,22 @@ abstract final class Routes {
       Navigator.of(
         context,
       ).push(route(RouteNames.eweCard, (BuildContext _) => EweCardScreen(eweId: id, tag: tag)));
+
+  /// Settings.
+  ///
+  /// **`11 §5` PRINTS THIS WITH A `focusUnlock` FLAG AND IT IS NOT HERE YET.**
+  /// The flag opens the screen with the Unlock section in view — and that
+  /// section is N30-T05's, absent rather than stubbed, so a parameter accepted
+  /// today would be one that silently does nothing at its only call site. It
+  /// lands with the section that gives it meaning.
+  ///
+  /// What `11 §5` settles and this DOES honour: it is an argument on an existing
+  /// helper, never a fourteenth `RouteNames` entry. `RouteNames.unlock` would
+  /// put a monetization concept in the routing table, where every screen can see
+  /// it.
+  static Future<void> settings(BuildContext context) => Navigator.of(
+    context,
+  ).push(route(RouteNames.settings, (BuildContext _) => const SettingsScreen()));
 
   /// **No argument.** The Export screen is scoped to the current season, which
   /// it reads for itself — passing a season id would be a second answer to a

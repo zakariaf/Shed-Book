@@ -1607,6 +1607,58 @@
     "description": "The whole summary line as ONE spoken string. The visual separator is a middle dot, which a screen reader swallows; this joins the clauses with a full stop so each is spoken. One node, not four — four means four rotor stops in front of the one line the screen exists to deliver (10 §3.4).",
     "placeholders": {"clauses": {"type": "String", "example": "3 seasons. avg 2.0. assisted twice"}}
   },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "The page header. 07 §16's sticky 44 px header — read-only, never collapses, never parallaxes."
+  },
+  "settingsSectionUnits": "Units",
+  "@settingsSectionUnits": {
+    "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."
+  },
+  "settingsSectionTerminology": "Terminology",
+  "@settingsSectionTerminology": {
+    "description": "07 §14.3 section 2. The shepherd's own nouns for their animals. Editing is N29-T03 and ships in v1.1.0; the section renders its current words meanwhile."
+  },
+  "settingsSectionReminders": "Reminders",
+  "@settingsSectionReminders": {
+    "description": "07 §14.3 section 3. A row that opens the reminders editor. Reminders themselves are N24 and N25 and ship in v1.1.0."
+  },
+  "settingsSectionSeason": "Season",
+  "@settingsSectionSeason": {
+    "description": "07 §14.3 section 4. Which season is current, and when it started."
+  },
+  "settingsSectionPens": "Pens",
+  "@settingsSectionPens": {
+    "description": "07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold."
+  },
+  "settingsSectionAppearance": "Appearance",
+  "@settingsSectionAppearance": {
+    "description": "07 §14.3 section 6. The palette and high contrast. There is no light theme and no system-follow — the app is dark only."
+  },
+  "settingsSectionKeepScreenOn": "Keep screen on",
+  "@settingsSectionKeepScreenOn": {
+    "description": "07 §14.3 section 7. The wakelock, for a phone propped on a gate at 03:20."
+  },
+  "settingsSectionLeftHanded": "Left-handed",
+  "@settingsSectionLeftHanded": {
+    "description": "07 §14.3 section 8. Moves exactly three things — the slab, the INDEX button and the keypad's bottom row (R40). The spine, the margin and the record column do not mirror: a book's margin is on the left."
+  },
+  "settingsSectionDiagnostics": "Diagnostics",
+  "@settingsSectionDiagnostics": {
+    "description": "07 §14.3 section 10. A copy of the records file and the app's own log — there is no telemetry and no analytics in this app, so this is the only way a problem travels."
+  },
+  "settingsSectionData": "Data",
+  "@settingsSectionData": {
+    "description": "07 §14.3 section 11. Backup, restore and the two deletes. The deletes are N29-T06 and ship in v1.1.0."
+  },
+  "settingsSectionAbout": "About",
+  "@settingsSectionAbout": {
+    "description": "07 §14.3 section 12. The version, the licences, and the offline statement."
+  },
+  "settingsUnavailable": "Settings could not be read.",
+  "@settingsUnavailable": {
+    "description": "07 §14.2's error state. It names what could not be read rather than a fault — there is nothing the shepherd can do about a read failure except come back."
+  },
   "eweCardActionLambing": "LAMBING",
   "@eweCardActionLambing": {
     "description": "07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set."

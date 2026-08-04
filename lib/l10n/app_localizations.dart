@@ -1830,6 +1830,84 @@ abstract class AppLocalizations {
   /// **'{clauses}'**
   String eweCardSummarySemantics({required String clauses});
 
+  /// The page header. 07 §16's sticky 44 px header — read-only, never collapses, never parallaxes.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get settingsSectionUnits;
+
+  /// 07 §14.3 section 2. The shepherd's own nouns for their animals. Editing is N29-T03 and ships in v1.1.0; the section renders its current words meanwhile.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminology'**
+  String get settingsSectionTerminology;
+
+  /// 07 §14.3 section 3. A row that opens the reminders editor. Reminders themselves are N24 and N25 and ship in v1.1.0.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders'**
+  String get settingsSectionReminders;
+
+  /// 07 §14.3 section 4. Which season is current, and when it started.
+  ///
+  /// In en, this message translates to:
+  /// **'Season'**
+  String get settingsSectionSeason;
+
+  /// 07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold.
+  ///
+  /// In en, this message translates to:
+  /// **'Pens'**
+  String get settingsSectionPens;
+
+  /// 07 §14.3 section 6. The palette and high contrast. There is no light theme and no system-follow — the app is dark only.
+  ///
+  /// In en, this message translates to:
+  /// **'Appearance'**
+  String get settingsSectionAppearance;
+
+  /// 07 §14.3 section 7. The wakelock, for a phone propped on a gate at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep screen on'**
+  String get settingsSectionKeepScreenOn;
+
+  /// 07 §14.3 section 8. Moves exactly three things — the slab, the INDEX button and the keypad's bottom row (R40). The spine, the margin and the record column do not mirror: a book's margin is on the left.
+  ///
+  /// In en, this message translates to:
+  /// **'Left-handed'**
+  String get settingsSectionLeftHanded;
+
+  /// 07 §14.3 section 10. A copy of the records file and the app's own log — there is no telemetry and no analytics in this app, so this is the only way a problem travels.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics'**
+  String get settingsSectionDiagnostics;
+
+  /// 07 §14.3 section 11. Backup, restore and the two deletes. The deletes are N29-T06 and ship in v1.1.0.
+  ///
+  /// In en, this message translates to:
+  /// **'Data'**
+  String get settingsSectionData;
+
+  /// 07 §14.3 section 12. The version, the licences, and the offline statement.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get settingsSectionAbout;
+
+  /// 07 §14.2's error state. It names what could not be read rather than a fault — there is nothing the shepherd can do about a read failure except come back.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings could not be read.'**
+  String get settingsUnavailable;
+
   /// 07 §4.3's first action. The row is committed by this tap, BEFORE Lambing Entry is pushed — so the label names the event rather than an intention. Every action in this system is a word; there is no icon set.
   ///
   /// In en, this message translates to:

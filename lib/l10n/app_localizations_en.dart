@@ -1116,6 +1116,45 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsSectionUnits => 'Units';
+
+  @override
+  String get settingsSectionTerminology => 'Terminology';
+
+  @override
+  String get settingsSectionReminders => 'Reminders';
+
+  @override
+  String get settingsSectionSeason => 'Season';
+
+  @override
+  String get settingsSectionPens => 'Pens';
+
+  @override
+  String get settingsSectionAppearance => 'Appearance';
+
+  @override
+  String get settingsSectionKeepScreenOn => 'Keep screen on';
+
+  @override
+  String get settingsSectionLeftHanded => 'Left-handed';
+
+  @override
+  String get settingsSectionDiagnostics => 'Diagnostics';
+
+  @override
+  String get settingsSectionData => 'Data';
+
+  @override
+  String get settingsSectionAbout => 'About';
+
+  @override
+  String get settingsUnavailable => 'Settings could not be read.';
+
+  @override
   String get eweCardActionLambing => 'LAMBING';
 
   @override

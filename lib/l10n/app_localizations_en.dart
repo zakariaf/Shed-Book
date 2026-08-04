@@ -1278,6 +1278,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'The free notebook holds one season. Unlock to start another.';
 
   @override
+  String unlockBuyPriced({required String price}) {
+    return 'UNLOCK — $price';
+  }
+
+  @override
+  String get unlockBuyUnpriced => 'UNLOCK';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override

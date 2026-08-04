@@ -941,6 +941,22 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
   // entitlement, the store or the unlock controller. And a screen that merely
   // watches is the shape that ships, because it renders nothing today and
   // flashes a paywall on the first slow frame after somebody adds a row to it.
+  // **THE PRICE IS NEVER A LITERAL, AND IT IS NEVER FORMATTED HERE EITHER.**
+  // `ProductDetails.price` arrives from the store already localised and
+  // currency-formatted for the account that will be charged — this app knows
+  // neither the currency nor the tier nor the tax treatment, and every one of
+  // those differs by territory. A hard-coded `£24.99` is wrong for most of the
+  // world the day it ships, and a `NumberFormat.currency` call is wrong more
+  // subtly: it formats the number correctly in the wrong currency.
+  //
+  // Matched on a currency symbol followed by a digit, under `lib/` and
+  // `assets/`, so the ARB is covered too.
+  (
+    'copy.currency_literal',
+    RegExp(r'[£\$€¥]\s?\d'),
+    'lib/',
+    'the price is the store — never a literal, never formatted here — 11 §9',
+  ),
   (
     'ui.monetization_surface',
     RegExp(r'\bentitlementProvider\b|\bpurchaseServiceProvider\b|\bunlockControllerProvider\b'),

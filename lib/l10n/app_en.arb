@@ -1813,6 +1813,15 @@
   "@capRefusedSecondSeason": {
     "description": "11 §7.3's RefusalReason.secondSeason message. Season-primary: when both caps are over, this is the one that speaks (§7.0 ruling 8)."
   },
+  "unlockBuyPriced": "UNLOCK — {price}",
+  "@unlockBuyPriced": {
+    "description": "The Unlock action WHEN THE STORE ANSWERED IN THIS PROCESS. {price} is ProductDetails.price verbatim — the store's own localised, currency-formatted string for the account that will be charged. It is never built here and never reformatted: this app knows neither the currency, nor the tier, nor the tax treatment, and all three differ by territory.",
+    "placeholders": {"price": {"type": "String", "example": "£24.99"}}
+  },
+  "unlockBuyUnpriced": "UNLOCK",
+  "@unlockBuyUnpriced": {
+    "description": "The Unlock action when the store has not answered. TWO MESSAGES RATHER THAN ONE WITH AN EMPTY PLACEHOLDER: 'UNLOCK — ' with a trailing dash is a rendering of a missing value, and a dash where a price should be reads as free. The action stays tappable, because the store may answer on the next tap."
+  },
   "settingsSectionUnits": "Units",
   "@settingsSectionUnits": {
     "description": "07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams."

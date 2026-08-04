@@ -97,10 +97,15 @@ class _UnlockSectionState extends ConsumerState<UnlockSection> {
             // **THE PRICE IS THE STORE'S OWN STRING.** It arrives localised and
             // currency-formatted from the account's own store; this app knows
             // neither, and building one would be inventing a number.
+            // **TWO MESSAGES, NEVER ONE WITH AN EMPTY PLACEHOLDER.**
+            // `UNLOCK — ` with a trailing dash is a rendering of a missing
+            // value, and a dash where a price should be reads as free. The
+            // unpriced form stays tappable, because the store may answer on the
+            // next tap.
             label: switch (state) {
               UnlockContactingStore() => l10n.unlockContactingStore,
-              UnlockOffered(price: final String p) => p,
-              _ => l10n.upgradeRowUnlock,
+              UnlockOffered(price: final String p) => l10n.unlockBuyPriced(price: p),
+              _ => l10n.unlockBuyUnpriced,
             },
             selected: false,
             onTap: () => controller.unlock().ignore(),

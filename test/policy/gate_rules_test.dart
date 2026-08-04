@@ -202,6 +202,15 @@ final Map<String, Planted> firesOn = <String, Planted>{
   // ask different questions — *does this design row have a planting* and *has
   // every rule in the table been seen to fire* — and a rule proved in one but
   // not the other is a rule nobody has watched fail.
+  // **A CURRENCY SYMBOL FOLLOWED BY A DIGIT, ANYWHERE UNDER `lib/`.** The price
+  // arrives from the store already localised and currency-formatted for the
+  // account that will be charged; a literal is wrong for most of the world the
+  // day it ships, and a `NumberFormat.currency` call is wrong more subtly — it
+  // formats the number correctly in the wrong currency.
+  'copy.currency_literal': _at(
+    'lib/features/settings/settings_screen.dart',
+    "const p = 'Unlock for £24.99';",
+  ),
   'ui.monetization_surface': _at(
     'lib/features/quick_entry/quick_entry_screen.dart',
     'final u = ref.watch(entitlementProvider);',

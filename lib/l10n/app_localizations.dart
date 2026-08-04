@@ -2106,6 +2106,18 @@ abstract class AppLocalizations {
   /// **'The free notebook holds one season. Unlock to start another.'**
   String get capRefusedSecondSeason;
 
+  /// The Unlock action WHEN THE STORE ANSWERED IN THIS PROCESS. {price} is ProductDetails.price verbatim — the store's own localised, currency-formatted string for the account that will be charged. It is never built here and never reformatted: this app knows neither the currency, nor the tier, nor the tax treatment, and all three differ by territory.
+  ///
+  /// In en, this message translates to:
+  /// **'UNLOCK — {price}'**
+  String unlockBuyPriced({required String price});
+
+  /// The Unlock action when the store has not answered. TWO MESSAGES RATHER THAN ONE WITH AN EMPTY PLACEHOLDER: 'UNLOCK — ' with a trailing dash is a rendering of a missing value, and a dash where a price should be reads as free. The action stays tappable, because the store may answer on the next tap.
+  ///
+  /// In en, this message translates to:
+  /// **'UNLOCK'**
+  String get unlockBuyUnpriced;
+
   /// 07 §14.3 section 1. Weight in kg or lb — converted only at the display edge; the database stores grams.
   ///
   /// In en, this message translates to:

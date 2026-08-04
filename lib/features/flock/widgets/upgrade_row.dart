@@ -69,6 +69,16 @@ class UpgradeRow extends ConsumerWidget {
       key: const Key('flock.upgrade_row'),
       now: now,
       message: l10n.upgradeRowFree(ewes: eweCount, cap: kFreeEweCap, term: term.plural),
+      // **NO PRICE ON THIS ROW, AND THAT IS A DECISION RATHER THAN AN
+      // OMISSION.** The price would have to come from `unlockControllerProvider`
+      // — a sibling feature, which `layer.sibling` forbids — and reaching it
+      // another way would mean this screen asking the store, which is the one
+      // thing #90 is about even though Flock is not a shed screen.
+      //
+      // So the row states facts about the free tier and the ACTION carries the
+      // shepherd to where the price is. That is also the honest shape: a number
+      // you cannot act on beside a word you can is an advertisement.
+      //
       // **ONE ACTION AND NO DISMISS.** There is nothing to dismiss: the row is
       // not an event, so it has no lifetime — and a dismiss control would make
       // it one, which is how a static row becomes a prompt.

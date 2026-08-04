@@ -1,0 +1,49 @@
+# android/expected_permissions.txt — the permission set the shipped .aab may declare.
+#
+# **THIS FILE AND `tool/check_policy.dart` ARE THE TWO CLAUDE.md FORBIDS EDITING
+# TO SILENCE A GATE.** G1 compares this list to `bundletool dump manifest` on the
+# real release artefact and asserts **exact set equality** — so a red G1 is
+# answered by deciding whether the permission belongs, never by adding a line.
+#
+# The record it is built from is decision-record §3.3, which is the merger's own
+# output on a real release .aab, 2026-08-01 — not a guess and not a reading of
+# any plugin's documentation. Two libraries nobody in the doc set had listed
+# contribute permissions, and neither was predictable from a README.
+#
+# ---------------------------------------------------------------------------
+# THIS IS `v1.0.0`'s SET, AND IT IS STRICTLY SMALLER THAN THE AS-BUILT SEVEN.
+# ---------------------------------------------------------------------------
+#
+# Five uncommented lines. Two names are asserted by their **absence** and are
+# removed by `tools:node="remove"` in `src/main/AndroidManifest.xml`:
+#
+#   android.permission.INTERNET
+#       Merged by com.google.android.datatransport:transport-backend-cct:3.1.8 —
+#       Google's Cloud CCT telemetry transport, a compile-scope dependency of
+#       Play Billing 8.0.0. Billing's own manifest declares only BILLING; the
+#       telemetry rides in on a transitive edge. Removing it is what makes the
+#       claim in decision-record §3.1 true: the app itself cannot connect to
+#       anything. Proven on 2026-08-01 — the merger logs "REJECTED from
+#       [transport-backend-cct:3.1.8]".
+#
+#   android.permission.POST_NOTIFICATIONS
+#       Merged by flutter_local_notifications 22.2.0, which is a dependency from
+#       N00-T03 — but `v1.0.0` creates no notification channel and never asks for
+#       the permission (reminders are N24/N25, `v1.1.0`). A permission declared
+#       for a feature that does not exist is a line in the Play listing a
+#       shepherd can read and a promise the app does not keep.
+#
+# The three `v1.1.0` ADDS, named here rather than remembered, because §3.2 is
+# built on G1 going red being answerable from a file:
+#
+#   android.permission.POST_NOTIFICATIONS      <- N24; the removal above is deleted
+#   android.permission.RECEIVE_BOOT_COMPLETED  <- N24; reminders survive a reboot
+#   android.permission.SCHEDULE_EXACT_ALARM    <- N24; user-granted, NEVER USE_EXACT_ALARM
+#
+# Each line below names the manifest the merger attributed it to.
+
+android.permission.VIBRATE                 <- flutter_local_notifications 22.2.0 (merged)
+android.permission.RECORD_AUDIO            <- record_android, via record 7.1.1 (merged)
+com.android.vending.BILLING                <- com.android.billingclient:billing:8.0.0 (merged)
+com.shedbook.shedbook.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION <- androidx.core:core:1.18.0 (merged)
+android.permission.ACCESS_NETWORK_STATE    <- transport-backend-cct:3.1.8 (merged)

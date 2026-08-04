@@ -176,10 +176,27 @@ void main() {
       expect(manifest, contains('<application'));
       expect(manifest, contains('.MainActivity'));
       expect(manifest, contains('@style/LaunchTheme'));
+      // **THE NAME MUST APPEAR, AND IT MUST APPEAR ONLY AS A REMOVAL.**
+      //
+      // This case asserted the string was absent entirely, which was right while
+      // nothing had written a removal directive — and wrong the moment N31-T01
+      // did. `tools:node="remove"` names the permission in order to delete it
+      // from the merged manifest: absence of the string means the merger puts
+      // INTERNET back, which is the opposite of what the assertion wanted.
+      //
+      // What survives is the property it was reaching for: the app never
+      // **declares** it. Merged in by Play Billing's telemetry transport on a
+      // transitive edge no README mentions, and removed here — which is what
+      // makes decision-record §3.1's sentence true.
       expect(
         manifest,
-        isNot(contains('android.permission.INTERNET')),
-        reason: 'G1: the shipped app has no internet permission',
+        contains('android:name="android.permission.INTERNET" tools:node="remove"'),
+        reason: 'G1: the shipped app has no internet permission — the removal is how',
+      );
+      expect(
+        RegExp(r'android\.permission\.INTERNET').allMatches(manifest).length,
+        1,
+        reason: 'INTERNET appears once, as the removal, and never as a declaration',
       );
     });
   });

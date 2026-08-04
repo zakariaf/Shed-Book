@@ -350,6 +350,25 @@ The reason it is a grep and not a review item: every tutorial published after 20
 
 ### 2.7 G5 — iOS, honestly
 
+> **Amended — N31-T04. Where the observation is recorded, so the next release does not re-derive it.**
+>
+> The table's *When* column says *"once per release, by hand"* for the two rows a text check cannot
+> reach — the privacy report and the App Privacy answers. **The answer now lives in
+> `docs/calendar.md`, as the `g5_observation` row**, beside the seven commitments
+> `00-PLAN-CRITIQUE` named. That row carries an owner, an ISO date, the device and the outcome, and
+> `calendar_commitments_test.dart` asserts the key set — so a release that skips the observation
+> leaves a visible empty row rather than a memory nobody has.
+>
+> **It is a commitment and not a test, because no test can make this claim.** G1 reads the permission
+> set off a built artefact and G3 reads the imports; **neither watches the app run**. A dependency that
+> opened a socket from a background isolate would pass both, and the only thing that catches it is a
+> proxy on a physical phone for one full session. The row states that consequence in its own words.
+>
+> The `NSAppTransportSecurity` row of the table above **is** a text check and does live in CI — it moved
+> from `test/design/first_frame_parity_test.dart` to `test/policy/ios_config_test.dart` in this
+> commit, because a plist policy inside a design test is a policy the next person deletes while tidying
+> a colour assertion.
+
 **There is no iOS permission to remove.** iOS has no manifest analogue of `INTERNET`, so iOS enforcement is *construction plus observation*, and the doc set says so rather than implying parity:
 
 | Check | How | When |
@@ -670,6 +689,17 @@ jobs:
             build/symbols/android
             merged-manifest.xml
 ```
+
+> **Amended — N31-T03, watched failing on the pull request that added the job.** The published fetch
+> used `releases/latest/download/bundletool-all.jar`. **That asset name does not exist**: GitHub's
+> release assets carry the version in the filename, so the URL 404s into an HTML page, `curl -sSL`
+> follows the redirect and writes it, and `java -jar` reports *"Invalid or corrupt jarfile"* — which
+> reads as a broken runner rather than as a wrong URL, on the one job nobody has run before.
+>
+> Now pinned to **1.18.3**, the version decision-record §3.3 recorded G0 running against, with a
+> `file` check so a bad download names itself. **An unpinned tool is an unpinned gate**: G1 asserts
+> exact set equality, so a bundletool whose dump format moved would change the answer without anything
+> in this repository changing.
 
 **Action versions.** `actions/checkout` v7.0.1, `actions/cache` v6.1.0, `actions/upload-artifact` v7.0.1, `actions/setup-java` v5, `subosito/flutter-action` **v2.23.0 on the v2 major tag — there is no v3**. These were read off the GitHub API on 2026-07-20 / 2026-06-26 / 2026-04-10 / 2026-03-25 by note 07 and are **not** covered by decision-record §5, which is a pub.dev table. Re-verify before the first run; anyone who tells you `flutter-action@v3` exists is remembering, not checking.
 

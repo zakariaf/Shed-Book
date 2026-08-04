@@ -1931,8 +1931,22 @@ lib/core/ui/palettes.dart          :: token.primitives_import
         final int end = j + 1 < starts.length ? starts[j + 1] : workflow.length;
         // Scoped to the job's OWN block: a whole-file `any` would pass on one
         // job's `needs:` while a second job had none.
+        // **BOTH SPELLINGS, BECAUSE `needs:` TAKES A LIST.** The case matched
+        // the string `needs: gate` and was right while every job needed exactly
+        // one thing. N31-T03's `android` job needs three —
+        // `needs: [gate, codegen, test]` — and an artefact is worth inspecting
+        // only once the source it was built from has passed. Matching the
+        // literal would have read that as *no gate at all*, which is the
+        // opposite of what it is.
+        //
+        // What the property is, and what it stays: every job depends on `gate`,
+        // so one toolchain assert covers the workflow (`13 §1.1`).
+        final Iterable<String> needs = workflow
+            .sublist(starts[j], end)
+            .where((String l) => l.contains('needs:'));
+        expect(needs, isNotEmpty, reason: '${names[j]} declares no needs: at all');
         expect(
-          workflow.sublist(starts[j], end).any((String l) => l.contains('needs: gate')),
+          needs.any((String l) => RegExp(r'needs:\s*(gate\b|\[[^\]]*\bgate\b)').hasMatch(l)),
           isTrue,
           reason: '${names[j]} does not need gate — 13 §1.1 assumes one assert covers the workflow',
         );

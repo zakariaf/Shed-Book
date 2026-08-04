@@ -10,6 +10,9 @@ library;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -413,6 +416,56 @@ void main() {
     expect(failure, isA<TagAlreadyInUse>());
     expect(failure.userMessage, contains('412'));
     expect(failure.userMessage.toLowerCase(), isNot(contains('try again')));
+
+    await db.close();
+  });
+
+  test('the flock write controller uses EntryContext.calm, not liveEntry', () async {
+    // **THE PARAMETER IS THE TASK.** `07 §3.3`: adding a ewe from the Flock
+    // screen is daylight work — nobody is holding a lamb — so it is the one
+    // place the free-tier cap may honestly refuse. Quick Entry passes
+    // `liveEntry`, where a refusal is unreachable by construction (#91:
+    // *"a shepherd mid-lambing is never told to pay"*).
+    //
+    // Asserted as BEHAVIOUR rather than by reading the source: at two seasons
+    // and not unlocked, the calm path refuses and the live path does not. A test
+    // that grepped for the enum name would pass on a controller that named it
+    // and passed the other one.
+    //
+    // Pinned to 14:00 — `FreeTierPolicy` allows the calm path during quiet hours
+    // (22:00–06:00), so an unpinned clock makes this green by day and silent by
+    // night. That bug was real in this repository and is documented in
+    // `flock_repository_test.dart`.
+    final AppDatabase db = testDatabase();
+    await atFixed(DateTime.utc(2026, 3, 14, 14), () async {
+      await seedSeason(db);
+      // A SECOND SEASON, inserted directly: `seedSeason` is idempotent by design
+      // (it returns the existing one), and two seasons is the state where the
+      // free tier's season cap bites.
+      await db
+          .into(db.seasons)
+          .insert(
+            SeasonsCompanion.insert(
+              year: 2027,
+              label: '2027',
+              startDate: LocalDate(2027, 1, 1),
+              uid: newUid(),
+              createdAt: appNow(),
+              updatedAt: appNow(),
+            ),
+          );
+
+      final FlockRepository repo = FlockRepository(db: db, policy: const FreeTierPolicy());
+      expect(
+        await repo.createEwe(tag: '900', context: EntryContext.calm),
+        isA<WriteRefused>(),
+        reason: 'two seasons, not unlocked — the calm path is where the cap lands',
+      );
+      expect(
+        await repo.createEwe(tag: '901', context: EntryContext.liveEntry),
+        isA<WriteCommitted>(),
+      );
+    });
 
     await db.close();
   });

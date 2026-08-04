@@ -9,7 +9,9 @@ library;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/data/providers.dart';
 
 export 'package:shed_book/data/flock_repository.dart' show FlockFilter, FlockFilters, FlockRow;
@@ -58,6 +60,28 @@ flockFilterCountsProvider = Provider.autoDispose<FlockFilterCounts?>((ref) {
     barren: all.where((FlockRow r) => r.barren).length,
   );
 });
+
+/// Creating a ewe from the Flock screen.
+///
+/// **`EntryContext.calm`, AND THAT IS THE POINT OF THE TASK.** This is the one
+/// place the cap may honestly speak: daylight work, nobody holding a lamb. Quick
+/// Entry passes `liveEntry`, where a refusal is unreachable by construction —
+/// *"a shepherd mid-lambing is never told to pay"* (#91).
+final class FlockWriteController extends AutoDisposeAsyncNotifier<void> {
+  @override
+  Future<void> build() async {}
+
+  /// **THROUGH THE PROVIDER, NOT A CONSTRUCTOR.** `lib/features/` may not import
+  /// `lib/core/db/` (`layer.features`), and the first draft built a
+  /// `FlockRepository` here from a raw `AppDatabase` — which the gate refused. A
+  /// feature does not get to know a database exists; `flockRepositoryProvider`
+  /// is the seam, and it already carries the policy this needs.
+  Future<WriteOutcome> createEwe(String tag) async =>
+      ref.read(flockRepositoryProvider).createEwe(tag: tag, context: EntryContext.calm);
+}
+
+final AutoDisposeAsyncNotifierProvider<FlockWriteController, void> flockWriteControllerProvider =
+    AsyncNotifierProvider.autoDispose<FlockWriteController, void>(FlockWriteController.new);
 
 /// The five counts, all five present or it does not compile.
 final class FlockFilterCounts {

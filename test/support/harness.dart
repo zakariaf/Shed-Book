@@ -857,9 +857,21 @@ extension PumpApp on WidgetTester {
     bool highContrast = false,
     List<Override> overrides = const <Override>[],
     FakeShareService? share,
+
+    /// **THE STORE, FOR THE ONE SWEEP THAT ASSERTS NOTHING TOUCHED IT.** Every
+    /// other test gets the default fake; `no_money_on_a_shed_screen_test.dart`
+    /// needs to hold the instance so it can read `calls` afterwards, because a
+    /// screen that quietly asked for a price and rendered nothing would pass
+    /// every visual assertion in that file.
+    FakePurchaseService? purchases,
     EdgeInsets padding = const EdgeInsets.only(top: 47, bottom: 34),
   }) async {
-    final ProviderContainer container = shedContainer(db, overrides: overrides, share: share);
+    final ProviderContainer container = shedContainer(
+      db,
+      overrides: overrides,
+      share: share,
+      purchases: purchases,
+    );
     _container = container;
 
     view.physicalSize = device.size * device.dpr;

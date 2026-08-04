@@ -193,7 +193,7 @@ The hierarchy below is derived from `07-screens.md`'s per-screen structure and m
 
 | Screen | `headingLevel: 1` | `headingLevel: 2` |
 |---|---|---|
-| Ewe Card | the user's term + tag ("gimmer 412") | Summary · Timeline — the two things `07-screens.md` §4.2 renders. The card has **one** flat timeline (`ORDER BY at DESC`), not per-season or per-kind sections, so there are no further stops to invent |
+| Ewe Card | the user's term + tag ("gimmer 412") | Summary · Timeline — the two things `07-screens.md` §4.2 renders. ~~The card has **one** flat timeline (`ORDER BY at DESC`), not per-season or per-kind sections, so there are no further stops to invent.~~ **Amended, N27-T07: the timeline is one statement and one order, and it is grouped for reading by SEASON.** The stops are the title (level 1), the summary line (level 2) and one level-2 sub-head per season. The sentence above was right about the query and wrong about the reader: a five-season card is ~80 rows, and *no further stops* means the rotor offers a reader exactly two — after which they swipe. Grouping invents no data and changes no order; the rows arrive in `ORDER BY at DESC` and are cut where `season` changes. A record with **no** season — only a note can have one (`03 §5.12`) — is its own group, never folded into the newest. |
 | Season Summary | the season label ("2026 lambing") | one per stat card (`07-screens.md` §12.2): Lambing percentage · Average litter size · Barren rate · Assisted rate · Losses · Lambing spread |
 | Pen Board | "Pen board" | — (the board is one list, §3.5) |
 | Treatments | "Treatments" | the two segments, in 07 §10's words: Countdowns · Medicine book |

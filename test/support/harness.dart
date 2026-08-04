@@ -72,6 +72,7 @@ import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/treatments/treatments_screen.dart';
 import 'package:shed_book/features/export/export_screen.dart';
+import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/flock/flock_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
@@ -168,6 +169,13 @@ const Map<String, PumpableVariant> kPumpableVariants = <String, PumpableVariant>
   // fixture is volume. Adding a seeded ewe here would add nothing the four
   // hundred do not already carry.
   RouteNames.flock: (seed: _seedNothing, build: _flock),
+  // **THE CARD NEEDS ONE ANIMAL WITH A HISTORY, WHICH THE FIXTURE HAS AND
+  // CANNOT NAME.** Every other variant either owns the page or is handed an id
+  // by its seeder; this one has to pick a ewe out of four hundred, so the seeder
+  // returns the id of the one it built the hard state on and the builder opens
+  // her. A card opened on an arbitrary fixture ewe would pump the empty state at
+  // eighteen cells and prove nothing.
+  RouteNames.eweCard: (seed: _seedHardEweCard, build: _eweCard),
   // **QUICK ENTRY WITH THE BANNER SHOWN** — a state, not a screen, and the one
   // in which the reachability assertion is most likely to fail. Keyed on the
   // banner's widget key rather than on a route name because it is not a route:
@@ -455,6 +463,31 @@ Future<Map<String, int>> _seedHardTreatments(AppDatabase db) async {
 Widget _treatments(Map<String, int> _) => const TreatmentsScreen();
 
 Widget _flock(Map<String, int> _) => const FlockScreen();
+
+/// One ewe carrying every arm of the timeline at once — which is the only
+/// arrangement that can overflow the card, because each arm renders a different
+/// row body and the widest one is not the same at every text scale.
+Future<Map<String, int>> _seedHardEweCard(AppDatabase db) async {
+  final EweId ewe = await seedEwe(db, tag: '412');
+  final LambingId lambing = await seedLambing(db, ewe);
+  final LambId lamb = await seedLamb(db, lambing, ewe, sex: 'f', birthWeightG: 4200);
+  await seedCareEvent(db, kind: 'colostrum', lamb: lamb, volumeMl: 200);
+  await seedEweObservation(db, ewe, kind: 'obs_prolapse');
+  // **A TREATMENT WITH A WITHDRAWAL AND ITS DISCLAIMER**, which is the widest
+  // record cell on the screen: a figure, the provenance sentence beneath it and
+  // the §12.5 label in the margin, all at 200 %.
+  await seedTreatment(db, product: 'Alamycin LA 300 mg/ml', ewe: ewe, withdrawalDays: 28);
+  await seedNote(db, body: 'Cadwyd yn y sied — llaeth yn brin 🐑', ewe: ewe);
+  // **A LABEL THE FIXTURE CANNOT ALREADY HOLD.** The 400-ewe fixture seeds
+  // `Pen 1`…`Pen 20`, and `pens.label` is unique — so the obvious name failed
+  // every one of the eighteen cells with a constraint violation rather than a
+  // layout failure. The seeder runs ON TOP of the fixture; it does not replace it.
+  final PenId pen = await seedPen(db, label: 'Lambing shed corner');
+  await seedPenOccupancy(db, pen, ewe);
+  return <String, int>{'ewe': ewe.value};
+}
+
+Widget _eweCard(Map<String, int> ids) => EweCardScreen(eweId: EweId(ids['ewe']!), tag: '412');
 
 /// **THE SAME SEED AS TREATMENTS, DELIBERATELY.** The Export screen renders
 /// counts, and the counts that can overflow a row are the large ones — the

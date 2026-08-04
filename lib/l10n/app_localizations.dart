@@ -1908,6 +1908,18 @@ abstract class AppLocalizations {
   /// **'culled'**
   String get eweStatusCulled;
 
+  /// The season sub-head on the ewe card — a headingLevel 2 stop so a screen reader can jump season to season instead of swiping through eighty rows. The year is the SEASON's, from a stored foreign key, never derived from an event's instant.
+  ///
+  /// In en, this message translates to:
+  /// **'{year}'**
+  String eweCardSeasonHeading({required String year});
+
+  /// The group for records with no season. Only notes can be seasonless (03 §5.12); folding them into the newest season would be the app filing a record the shepherd did not file.
+  ///
+  /// In en, this message translates to:
+  /// **'No season'**
+  String get eweCardNoSeasonHeading;
+
   /// 07 §4.2's empty state. A new animal with no history is a normal state, not an error — the shepherd added her a minute ago. The noun is deliberately absent: the tag is already the page heading.
   ///
   /// In en, this message translates to:

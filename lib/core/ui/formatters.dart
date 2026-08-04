@@ -97,6 +97,17 @@ String formatShedWeight(Grams g, WeightUnit u, String localeName) => switch (u) 
 String formatShedCount(int n, String localeName) =>
     NumberFormat.decimalPattern(localeName).format(n);
 
+/// A **year**, and never grouped.
+///
+/// **`2026`, NOT `2,026`.** `formatShedCount` groups by the locale — which is
+/// right for *1,240 lambs* and wrong for a year, and the ewe card printed
+/// `2,026` as a season sub-head until this existed. A year is an identifier a
+/// shepherd reads as a word, not a quantity.
+///
+/// It takes the locale for symmetry with every other formatter here, and because
+/// the day a locale writes years differently this is the one place that changes.
+String formatShedYear(int year, String localeName) => NumberFormat('0000', localeName).format(year);
+
 /// An average, to **one decimal**, in the locale's own separator — `2.0` here,
 /// `2,0` in a locale that writes it that way.
 ///

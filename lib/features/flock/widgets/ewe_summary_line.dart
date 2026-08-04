@@ -92,6 +92,13 @@ class EweSummaryLine extends ConsumerWidget {
           // never ellipsised, and the whole line is the payload. No `maxLines`,
           // no overflow, nothing that scales the glyphs down to fit.
           Semantics(
+            // **`headingLevel: 2`, AND IT IS WHAT MAKES THE ROTOR JUMP LAND
+            // HERE.** `10 §3.4`: the title is level 1 and this is the next stop,
+            // so *"what did 412 do last year?"* is one flick rather than a swipe
+            // through every field on the card. Without it the retention feature
+            // is reachable only linearly, which for a VoiceOver user means it is
+            // gone.
+            headingLevel: 2,
             label: l10n.eweCardSummarySemantics(clauses: clauses.join('. ')),
             child: ExcludeSemantics(
               child: Text(clauses.join(' · '), style: Theme.of(context).textTheme.bodyMedium),
@@ -146,7 +153,7 @@ class EweSummaryLine extends ConsumerWidget {
       out.add(
         l10n.eweCardSummaryObservation(
           observation: _observationLabel(ref, l10n, kind),
-          year: formatShedCount(year, locale),
+          year: formatShedYear(year, locale),
         ),
       );
     }

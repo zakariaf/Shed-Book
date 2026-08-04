@@ -1161,6 +1161,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eweStatusCulled => 'culled';
 
   @override
+  String eweCardSeasonHeading({required String year}) {
+    return '$year';
+  }
+
+  @override
+  String get eweCardNoSeasonHeading => 'No season';
+
+  @override
   String get eweCardEmpty => 'Nothing recorded yet.';
 
   @override

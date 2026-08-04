@@ -22,7 +22,9 @@ import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
 import 'package:shed_book/features/flock/widgets/earlier_animal_note.dart';
 import 'package:shed_book/features/flock/widgets/ewe_card_actions.dart';
+import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
+import 'package:shed_book/features/flock/widgets/season_heading.dart';
 import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -113,17 +115,33 @@ class EweCardScreen extends ConsumerWidget {
   Widget _page(BuildContext context, WidgetRef ref, ShedTokens t, AppLocalizations l10n) =>
       CustomScrollView(
         key: const Key('ewe_card.page'),
+        // **NOTHING HERE DECLARES A READING ORDER, AND THE GATE AGREES.**
+        // `a11y.sort_key` bans the semantics-ordering key outright — *reading
+        // order is the tree* (`10 §10`) — and the first draft of this page reached
+        // for one anyway, because a raw walk of the semantics tree returns this
+        // `CustomScrollView`'s slivers in an order that does not follow the page.
+        //
+        // The walk order is not the traversal order. Flutter derives that from
+        // geometry when it serialises to the platform, and on a vertical page
+        // geometry already IS the reading order. What the keys did buy was a
+        // regression: an ancestor `Semantics` merges the labels beneath it, so
+        // the title and the summary line became one node — undoing the *one node
+        // per region* property `10 §3.4` asks for. The test asserts heading order
+        // by position instead, which is what a reader actually gets.
+        //
+        // (The banned identifier is described rather than spelled: that gate row
+        // scans source text, comments included.)
         slivers: <Widget>[
           SliverToBoxAdapter(
             child: EarlierAnimalNote(
               eweId: eweId,
               tag: tag,
-              // **THE EARLIER CARD DOES NOT DISCLOSE BACK.** The relationship is
-              // directional: she is finished, and telling a reader of a closed
-              // record that a different animal has her number later is noise at
-              // the moment they are trying to read one history. That falls out
-              // of the statement rather than out of this call — it returns only
-              // animals whose status is not active.
+              // **THE EARLIER CARD DOES NOT DISCLOSE BACK.** The relationship
+              // is directional: she is finished, and telling a reader of a
+              // closed record that a different animal has her number later is
+              // noise at the moment they are trying to read one history. That
+              // falls out of the statement rather than out of this call — it
+              // returns only animals whose status is not active.
               onOpen: (EweId earlier, String earlierTag) =>
                   Routes.eweCard(context, earlier, tag: earlierTag),
             ),
@@ -149,17 +167,35 @@ class EweCardScreen extends ConsumerWidget {
         child: switch (ref.watch(eweTimelineProvider(eweId))) {
           AsyncData<List<TimelineRow>>(value: final List<TimelineRow> rows) when rows.isEmpty =>
             ShedEmptyState(key: const Key('ewe_card.empty'), copy: l10n.eweCardEmpty),
-          AsyncData<List<TimelineRow>>(value: final List<TimelineRow> rows) => ListView.builder(
+          AsyncData<List<TimelineRow>>(value: final List<TimelineRow> rows) => ListView(
             key: const Key('ewe_card.timeline'),
             padding: EdgeInsets.zero,
-            itemCount: rows.length,
-            // **KEYED ON THE PAIR, NEVER ON `ref` ALONE.** Lambing 7 and note 7
-            // are both `ref: 7`, so a key built from the id alone collides and
-            // Flutter reuses the wrong element.
-            itemBuilder: (BuildContext context, int i) => TimelineRecordRow(
-              key: Key('ewe_card.row.${rows[i].kind.key}.${rows[i].ref}'),
-              row: rows[i],
-            ),
+            children: <Widget>[
+              // **GROUPED BY THE SEASON EACH ROW WAS FILED UNDER**, so a screen
+              // reader can jump season to season instead of swiping through
+              // eighty rows (`10 §3.4`). The groups are already in the
+              // statement's order — newest first — so nothing is re-sorted here.
+              for (final ({int? year, List<TimelineRow> rows}) group in groupBySeason(
+                rows,
+              )) ...<Widget>[
+                SeasonHeading(
+                  key: Key('ewe_card.season.${group.year ?? 'none'}'),
+                  label: group.year == null
+                      ? l10n.eweCardNoSeasonHeading
+                      : l10n.eweCardSeasonHeading(
+                          year: formatShedYear(
+                            group.year!,
+                            Localizations.localeOf(context).toLanguageTag(),
+                          ),
+                        ),
+                ),
+                // **KEYED ON THE PAIR, NEVER ON `ref` ALONE.** Lambing 7 and
+                // note 7 are both `ref: 7`, so a key built from the id alone
+                // collides and Flutter reuses the wrong element.
+                for (final TimelineRow r in group.rows)
+                  TimelineRecordRow(key: Key('ewe_card.row.${r.kind.key}.${r.ref}'), row: r),
+              ],
+            ],
           ),
           AsyncError<List<TimelineRow>>() => ShedEmptyState(
             key: const Key('ewe_card.error'),

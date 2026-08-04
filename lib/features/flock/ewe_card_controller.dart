@@ -183,3 +183,31 @@ earlierAnimalsProvider = StreamProvider.autoDispose
           .read(flockRepositoryProvider)
           .watchEarlierAnimalsWithTag(key.tag, excluding: key.ewe);
     });
+
+/// Her history, grouped by the season each row was filed under.
+///
+/// **THE SEASON IS A STORED FOREIGN KEY, NOT A YEAR DERIVED FROM THE INSTANT.**
+/// A lambing at 01:30 on the clocks-back night belongs to the season it was
+/// filed under, whatever the wall clock did that night — and `season_year` comes
+/// from a join for exactly that reason.
+///
+/// **A NOTE WITH NO SEASON IS ITS OWN GROUP, NOT FOLDED INTO THE NEWEST ONE.**
+/// `notes.season` is the one nullable one (`03 §5.12`); attaching a seasonless
+/// note to whichever season happened to be current when it was read would be the
+/// app filing a record the shepherd did not file.
+///
+/// Groups come back **newest first**, matching the timeline's own order, and the
+/// rows inside each keep the order the statement produced them in — no second
+/// sort, and no assumption that one is needed.
+List<({int? year, List<TimelineRow> rows})> groupBySeason(List<TimelineRow> rows) {
+  final List<({int? year, List<TimelineRow> rows})> groups =
+      <({int? year, List<TimelineRow> rows})>[];
+  for (final TimelineRow r in rows) {
+    if (groups.isNotEmpty && groups.last.year == r.seasonYear) {
+      groups.last.rows.add(r);
+      continue;
+    }
+    groups.add((year: r.seasonYear, rows: <TimelineRow>[r]));
+  }
+  return groups;
+}

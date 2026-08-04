@@ -23,6 +23,7 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
+import 'package:shed_book/features/flock/widgets/season_heading.dart';
 import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
@@ -1385,6 +1386,132 @@ void main() {
     expect(await db.select(db.eweObservations).get(), isEmpty);
 
     await tester.closeApp();
+  });
+
+  testWidgets('the summary line is the first heading a screen reader reaches', (
+    WidgetTester tester,
+  ) async {
+    // **THE ASSERTION MEASURES THE JUMP, NOT THE PRESENCE.** A test that only
+    // checks `headingLevel: 2` exists on the summary passes on a card where
+    // forty timeline rows come first — which is the exact failure `10 §3.4`
+    // describes: *"that user swipes through every field on the card and the
+    // retention feature is gone."*
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final AppDatabase db = testDatabase();
+    final EweId ewe = await _seedWholeLife(db);
+    await seedEweSummary(db, ewe, seasons: 3, lambings: 3, lambsBorn: 6, assisted: 2, scored: 3);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    // **THE PROPERTY IS THE JUMP, AND ON A VERTICAL PAGE THE JUMP IS
+    // GEOMETRY.** Flutter derives reading order from position when it serialises
+    // the semantics tree to the platform, so *"the first heading a reader
+    // reaches"* is the topmost one. Asserted with `getRect` rather than by
+    // walking the tree, because a raw walk returns a `CustomScrollView`'s
+    // slivers in an order that does not follow the page — measured: the season
+    // sub-heads came back before the level-1 title.
+    //
+    // The first attempt fixed the walk with `OrdinalSortKey` wrappers and bought
+    // a regression instead: an ancestor `Semantics` merges the labels beneath
+    // it, so the title and the summary became one node — undoing the *one node
+    // per region* property `10 §3.4` asks for.
+    // **FOUND BY PREFIX, NOT BY THE WHOLE SENTENCE.** This ewe has an
+    // observation, so her line carries the fourth clause too — and pinning the
+    // exact string here would make the case fail the day the fixture gains a
+    // record, which is a test asserting the seed rather than the heading.
+    final Finder summary = find.bySemanticsLabel(RegExp(r'^3 seasons\. '));
+    final double titleTop = tester.getRect(find.text('ewe 412')).top;
+    final double summaryTop = tester.getRect(summary).top;
+
+    expect(tester.getSemantics(find.text('ewe 412')).headingLevel, 1);
+    expect(tester.getSemantics(summary).headingLevel, 2);
+    expect(summaryTop, greaterThan(titleTop), reason: 'the title comes first');
+
+    // **AND NOTHING WITH A HEADING SITS BETWEEN THEM.** A test that only checked
+    // `headingLevel: 2` exists on the summary passes on a card where forty
+    // timeline rows come first — the exact failure `10 §3.4` describes: *"that
+    // user swipes through every field on the card and the retention feature is
+    // gone."*
+    for (final Element e in find.byType(SeasonHeading).evaluate()) {
+      expect(
+        tester.getRect(find.byWidget(e.widget)).top,
+        greaterThan(summaryTop),
+        reason: 'a season sub-head came before the summary line',
+      );
+    }
+
+    handle.dispose();
+    await tester.closeApp();
+  });
+
+  testWidgets('the history is grouped by season, each group a level-2 stop', (
+    WidgetTester tester,
+  ) async {
+    // `10 §3.4`'s amendment: the Ewe Card is not *"one flat timeline"* — its
+    // seasons are the stops a reader jumps between, and eighty rows with no
+    // sub-heads is the failure the heading hierarchy exists to prevent.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe, occurredAt: Instant.fromDateTime(DateTime.utc(2026, 3, 2)));
+    // **A SEASONLESS NOTE IS ITS OWN GROUP.** `notes.season` is the one nullable
+    // one; folding it into the newest season would be the app filing a record
+    // the shepherd did not file.
+    await seedNote(db, body: 'bought at Builth', ewe: ewe);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    // **ONE HEADING PER GROUP, AND THE GROUPS ARE `groupBySeason`'S** — the
+    // widget assertion is that a sub-head renders and is a level-2 stop, not
+    // that every group is on screen: a `ListView` mounts what fits, and asserting
+    // a count here would be asserting the viewport height.
+    expect(find.byType(SeasonHeading), findsWidgets);
+    expect(
+      find.byKey(const Key('ewe_card.season.none')),
+      findsOneWidget,
+      reason: 'the seasonless note is its own group, not folded into 2026',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('groupBySeason keeps the statement order and never folds a seasonless row in', () {
+    // Asserted without a widget tree, because the grouping is arithmetic and the
+    // failure it guards against — a null season swept into the newest group — is
+    // invisible on screen until somebody reads the wrong year off a note.
+    final Instant t0 = Instant.fromDateTime(DateTime.utc(2026, 3, 2));
+    TimelineRow row(int? year, int ref) => TimelineRow(
+      kind: TimelineKind.note,
+      ref: ref,
+      at: t0,
+      capturedAt: t0,
+      timeSource: TimeSource.autoCaptured,
+      struck: false,
+      seasonYear: year,
+    );
+
+    final List<({int? year, List<TimelineRow> rows})> groups = groupBySeason(<TimelineRow>[
+      row(2026, 1),
+      row(2026, 2),
+      row(null, 3),
+      row(2025, 4),
+    ]);
+
+    expect(groups.map((({int? year, List<TimelineRow> rows}) g) => g.year).toList(), <int?>[
+      2026,
+      null,
+      2025,
+    ]);
+    expect(groups.first.rows, hasLength(2));
+    expect(groups[1].rows.single.ref, 3, reason: 'the seasonless row is its own group');
   });
 
   testWidgets('popping the card leaves eweTimelineProvider with no listeners', (

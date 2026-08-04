@@ -28,6 +28,7 @@ by a parser, exactly as a CSV carries an ISO-8601 column beside its human one.
 | `developer_accounts` | Both store accounts exist; the post-13-Nov-2023 personal-account question answered | | before N32 | | | No app record, no closed track, no TestFlight |
 | `apple_sbp_enrolment` | Apple Small Business Program enrolment submitted | | before the first sale | | | 30% instead of 15% on everything sold in the gap, for nothing |
 | `price_and_territories` | The exact price and the territory list, read in Play Console | | before the first submission | | | A price set from a secondary source, wrong for three years |
+| `g5_observation` | The shipped build observed making **no network connection** on a real device — Charles or a proxy on a physical phone, one full session, every screen | | before N34 | | | The offline claim in decision-record §3.1 rests on two gates that read *artefacts* — G1 the permission set, G3 the imports — and neither watches the app run. A dependency that opened a socket from a background isolate would pass both |
 | `store_identifiers` | Application id / bundle id and the unlock product id, created on both stores | | before N32 | | The application id and bundle id half is **done**: `com.shedbook.shedbook`, fixed in N00-T01 and recorded in `RELEASES.md`'s header and decision #129. The unlock product id is fixed as **`shed_book_unlock`** — one id, identical on both stores — but has **not been created** on either: a non-consumable in App Store Connect and a one-time (managed) product in Play Console. That half is N00-T09's and needs the accounts first | Two stores keyed on a string nobody wrote down |
 
 ## P15 turned three of these due points into dates
@@ -44,6 +45,7 @@ three rows now also have a calendar date behind them, and they are the three tha
 |---|---|---|
 | `twelve_testers` | before N32 | **~November 2026.** Play counts testers who joined the closed track via the opt-in link, for **fourteen continuous days**, before production. Working back from a mid-December submission, the link has to be live in November — and this row is still empty |
 | `developer_accounts` | before N32 | **~October 2026.** Both accounts must exist before the app record, the closed track and TestFlight do; Apple's enrolment is not same-day |
+| `g5_observation` | The shipped build observed making **no network connection** on a real device — Charles or a proxy on a physical phone, one full session, every screen | | before N34 | | | The offline claim in decision-record §3.1 rests on two gates that read *artefacts* — G1 the permission set, G3 the imports — and neither watches the app run. A dependency that opened a socket from a background isolate would pass both |
 | `store_identifiers` | before N32 | **~October 2026**, its unresolved half. `shed_book_unlock` has to exist as a non-consumable in App Store Connect and a one-time managed product in Play Console, and it needs the accounts first |
 
 `apple_sbp_enrolment` and `price_and_territories` read *before the first sale* and *before the first

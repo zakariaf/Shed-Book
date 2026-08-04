@@ -84,3 +84,12 @@ migrate_working_dir/
 # second half by committing them.
 app.*.symbols
 app.*.map.json
+
+# G1's three working files (`tool/assert_permissions.sh`). Written into the
+# repository root because the script is run from there, both on CI and by hand.
+# Anchored with a leading solidus so each matches at the root and nowhere else —
+# an unanchored `merged-manifest.xml` would also hide one somebody deliberately
+# committed as a fixture.
+/merged-manifest.xml
+/actual-permissions.txt
+/expected-sorted.txt

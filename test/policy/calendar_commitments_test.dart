@@ -30,6 +30,16 @@ const List<String> commitmentKeys = <String>[
   'apple_sbp_enrolment',
   'price_and_territories',
   'store_identifiers',
+  // **THE EIGHTH, ADDED AT N31-T04 AND NOT ONE OF THE CRITIQUE'S SEVEN.** G5's
+  // observation half is the only claim in this project that no test can make:
+  // G1 reads the permission set off a built artefact and G3 reads the imports,
+  // and NEITHER WATCHES THE APP RUN. A dependency opening a socket from a
+  // background isolate passes both.
+  //
+  // It is in the ledger rather than in a test because that is what the ledger is
+  // for — a commitment somebody has to keep, with a named consequence if they do
+  // not.
+  'g5_observation',
 ];
 
 /// Cells that look filled in and are not.
@@ -162,13 +172,14 @@ void main() {
     );
   });
 
-  test('the ledger carries exactly the seven commitments the critique names', () {
+  test('the ledger carries exactly the eight commitments — the critique seven plus G5', () {
     expect(
       ledger.map((Commitment c) => c.key).toSet(),
       commitmentKeys.toSet(),
       reason:
           'a row was added or dropped; a row is never deleted to make '
-          'the anchor pass',
+          'the anchor pass. Eight since N31-T04: the critique names seven and '
+          'G5s observation half is the eighth',
     );
   });
 

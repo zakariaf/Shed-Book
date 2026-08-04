@@ -998,6 +998,74 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get eweCardRowLambing => 'Lambed';
+
+  @override
+  String eweCardRowTreatment({required String product}) {
+    return 'Treated with $product';
+  }
+
+  @override
+  String eweCardRowCare({required String kind}) {
+    return '$kind';
+  }
+
+  @override
+  String get eweCardRowFoster => 'Fostered';
+
+  @override
+  String eweCardRowObserved({required String observation}) {
+    return '$observation';
+  }
+
+  @override
+  String eweCardRowPenned({required String pen}) {
+    return 'Penned in $pen';
+  }
+
+  @override
+  String eweCardRowNote({required String body}) {
+    return '$body';
+  }
+
+  @override
+  String eweCardRowEditedFrom({required String time}) {
+    return 'was $time';
+  }
+
+  @override
+  String eweCardRowStruck({required String time}) {
+    return 'STRUCK $time';
+  }
+
+  @override
+  String eweCardWithdrawalDays({required num days}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '$days day withdrawal',
+      one: '1 day withdrawal',
+      zero: '0 day withdrawal',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get eweCardWithdrawalNotApplicable => 'No withdrawal';
+
+  @override
+  String get eweCardWithdrawalNotRecorded => 'Withdrawal — NOT RECORDED';
+
+  @override
+  String eweCardRowSemantics({
+    required String time,
+    required String body,
+    required String provenance,
+  }) {
+    return '$time. $body. $provenance';
+  }
+
+  @override
   String eweCardTitle({required String singularTerm, required String tag}) {
     return '$singularTerm $tag';
   }

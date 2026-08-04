@@ -93,6 +93,22 @@ final class WithdrawalDays extends WithdrawalPeriod {
 
   final int days;
   final WithdrawalTarget target;
+
+  /// **VALUE EQUALITY, AND IT IS LOAD-BEARING RATHER THAN TIDY.** The Ewe Card's
+  /// timeline de-duplicates its stream with a list comparison, and drift re-runs
+  /// a watched statement on every write to any table it reads — so with identity
+  /// `==` every treatment row would compare unequal to itself and the card would
+  /// re-lay-out while it is being read (`01 §4.4`).
+  ///
+  /// It does not weaken the private constructor: two periods that are equal were
+  /// both still built through [asEnteredByUser].
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is WithdrawalDays && other.days == days && other.target == target;
+
+  @override
+  int get hashCode => Object.hash(days, target);
 }
 
 /// The label explicitly states no withdrawal applies. Distinct from zero days
@@ -104,10 +120,23 @@ final class WithdrawalNotApplicable extends WithdrawalPeriod {
   const WithdrawalNotApplicable(this.target);
 
   final WithdrawalTarget target;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is WithdrawalNotApplicable && other.target == target;
+
+  @override
+  int get hashCode => target.hashCode;
 }
 
 /// The user deliberately skipped it. The app must never invent one, and must
 /// never show a countdown or a clear date for this state.
 final class WithdrawalNotRecorded extends WithdrawalPeriod {
   const WithdrawalNotRecorded();
+
+  @override
+  bool operator ==(Object other) => other is WithdrawalNotRecorded;
+
+  @override
+  int get hashCode => (WithdrawalNotRecorded).hashCode;
 }

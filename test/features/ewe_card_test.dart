@@ -20,6 +20,12 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
+import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
+import 'package:shed_book/domain/policy/disclaimers.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
+import 'package:shed_book/core/db/uid.dart';
+import 'package:shed_book/core/time/app_clock.dart';
+import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/terminology/animal_class.dart';
@@ -643,6 +649,329 @@ void main() {
       expect(t.overflow, isNot(TextOverflow.ellipsis), reason: t.data ?? '');
     }
 
+    await tester.closeApp();
+  });
+
+  testWidgets(
+    'every timeline row renders a provenance label and every withdrawal renders as entered by you',
+    (WidgetTester tester) async {
+      // **THE ANCHOR, AND IT ITERATES `TimelineKind.values` RATHER THAN LISTING
+      // THREE BY HAND** — so an arm added later inherits the assertion instead
+      // of quietly rendering a bare time.
+      //
+      // §12.5 is held at *unrepresentable* by R37 putting the quad on all seven
+      // of these tables. This is the task where it either stays there or drops
+      // to *documented*: a row that renders `03:21` with nothing beside it is a
+      // review failure.
+      final AppDatabase db = testDatabase();
+      final EweId ewe = await _seedWholeLife(db);
+
+      await tester.pumpApp(
+        EweCardScreen(eweId: ewe, tag: '412'),
+        db: db,
+      );
+      await tester.pumpAndSettle();
+
+      final List<TimelineRow> rows = await _repo(db).watchEweTimeline(ewe).first;
+      expect(rows.map((TimelineRow r) => r.kind).toSet(), TimelineKind.values.toSet());
+
+      // Every one of the three exact strings is non-empty and comes from
+      // `RecordedTime.provenanceLabel` — an exhaustive switch that can never be
+      // empty (`05 §4.1`). A second switch over `time_source` in a widget would
+      // disagree with the CSV within one release.
+      const Set<String> labels = <String>{
+        'recorded automatically',
+        'time entered by you',
+        'time edited by you',
+      };
+      for (final TimelineRow r in rows) {
+        expect(r.recorded.provenanceLabel, isNotEmpty, reason: r.kind.key);
+        expect(labels, contains(r.recorded.provenanceLabel), reason: r.kind.key);
+      }
+      expect(find.text('recorded automatically'), findsWidgets);
+
+      await tester.closeApp();
+    },
+  );
+
+  testWidgets('the withdrawal figure carries the disclaimer BY IDENTITY, not by matching text', (
+    WidgetTester tester,
+  ) async {
+    // **IDENTITY WITH THE CONSTANT, BECAUSE A TEXT MATCH PASSES ON A COPY** —
+    // which is the defect `copy.disclaimer_retyped` exists to catch (#62,
+    // §12.3's mechanism). `Disclaimers` is an `abstract final class` of `const`
+    // strings in one file, referenced and never re-typed.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedTreatment(db, product: 'Alamycin LA 300 mg/ml', ewe: ewe, withdrawalDays: 28);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('28 day withdrawal'), findsOneWidget);
+    expect(
+      find.text(Disclaimers.withdrawalProvenance),
+      findsOneWidget,
+      reason: 'the disclaimer must be the constant, not a copy of its words',
+    );
+
+    // And it is defined as a Dart constant in exactly one file. Duplicates
+    // N06-T09 deliberately, in the tier a developer runs first.
+    //
+    // **`lib/l10n/` IS EXCLUDED AND THAT IS NOT A WEAKENING.** `withdrawalSource`
+    // is an ARB message whose own `description` calls the wording *"a SAFETY
+    // REQUIREMENT, not a style choice"*, and `gen-l10n` copies it into the
+    // generated Dart — so the words legitimately live there too. What §12.3's
+    // mechanism forbids is a second *hand-written* copy that can drift from the
+    // constant; a generated file cannot drift from its own source.
+    final List<String> carriers = <String>[
+      for (final FileSystemEntity f in Directory('lib').listSync(recursive: true))
+        if (f is File &&
+            f.path.endsWith('.dart') &&
+            !f.path.contains('/l10n/') &&
+            f.readAsStringSync().contains("'${Disclaimers.withdrawalProvenance}'"))
+          f.path,
+    ];
+    expect(carriers, hasLength(1), reason: 'the disclaimer is defined once: $carriers');
+
+    await tester.closeApp();
+  });
+
+  testWidgets('a treatment with no withdrawal row reads NOT RECORDED and never 0', (
+    WidgetTester tester,
+  ) async {
+    // **§12.1'S UNPERSISTABLE MECHANISM, ON THE READ SIDE.** No row means nobody
+    // looked. `0` is a real label value — products genuinely print zero-day
+    // withdrawals — so the two can never be the same rendering, and a blank is
+    // worse than either: a blank reads as missing data and the dotted rule reads
+    // as *nothing happened*.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final Instant now = appNow();
+    await db
+        .into(db.treatments)
+        .insert(
+          TreatmentsCompanion.insert(
+            season: (await seedSeason(db)).value,
+            ewe: Value<int?>(ewe.value),
+            productName: 'Alamycin LA 300 mg/ml',
+            administeredAt: now,
+            capturedAt: now,
+            uid: newUid(),
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Withdrawal — NOT RECORDED'), findsOneWidget);
+    expect(find.text('0 day withdrawal'), findsNothing);
+    expect(
+      find.text(Disclaimers.withdrawalProvenance),
+      findsNothing,
+      reason: 'there is no figure the shepherd entered, so nothing to attribute',
+    );
+
+    await tester.closeApp();
+  });
+
+  test('a zero-day withdrawal is a recorded figure, not the not-recorded state', () async {
+    // The case that proves `0` flows through real code. A nullable int could not
+    // carry it, which is why the child table exists at all.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedTreatment(db, product: 'Spot-on', ewe: ewe, withdrawalDays: 0);
+
+    final TimelineRow row = (await _repo(db).watchEweTimeline(ewe).first).single;
+    expect(row.withdrawal, isA<WithdrawalDays>());
+    expect((row.withdrawal! as WithdrawalDays).days, 0);
+
+    await db.close();
+  });
+
+  test('a lambing row has no withdrawal at all, which is not the same as not recorded', () async {
+    // Absence of the CONCEPT versus absence of an ANSWER. A lambing has no
+    // withdrawal; a treatment always has one of three answers, and one of them
+    // is *nobody looked*.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe);
+
+    final TimelineRow row = (await _repo(db).watchEweTimeline(ewe).first).single;
+    expect(row.kind, TimelineKind.lambing);
+    expect(row.withdrawal, isNull);
+
+    await db.close();
+  });
+
+  testWidgets('a struck row stays in position, stays legible, and prints STRUCK with its time', (
+    WidgetTester tester,
+  ) async {
+    // `indelible.md §7.3`. **Assert the INDEX, not just the presence** — sorting
+    // struck rows to the bottom, collapsing them behind a toggle or fading them
+    // below 4.5:1 all delete the feature rule 1 exists to protect.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final Instant early = Instant.fromDateTime(DateTime.utc(2026, 3, 1));
+    final Instant late = Instant.fromDateTime(DateTime.utc(2026, 3, 5));
+    final LambingId struck = await seedLambing(db, ewe, occurredAt: late);
+    await seedLambing(db, ewe, occurredAt: early);
+
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(struck.value))).write(
+      LambingsCompanion(
+        struck: const Value<bool>(true),
+        struckAt: Value<Instant?>(Instant.fromDateTime(DateTime.utc(2026, 3, 5, 3, 41))),
+      ),
+    );
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    final List<TimelineRow> rows = await _repo(db).watchEweTimeline(ewe).first;
+    expect(
+      rows.first.struck,
+      isTrue,
+      reason: 'the struck row is still the most recent — it did not move',
+    );
+    // **THE EXPECTED TIME IS COMPUTED, NOT TYPED.** The runner's zone is not
+    // UTC, and a hard-coded `03:41` passes in London and fails in Dublin — which
+    // is a test asserting the machine rather than the app.
+    expect(
+      find.text(
+        'STRUCK ${formatShedTime(Instant.fromDateTime(DateTime.utc(2026, 3, 5, 3, 41)), 'en-GB')}',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.closeApp();
+  });
+
+  testWidgets('an edited row shows both the current time and what it was edited from', (
+    WidgetTester tester,
+  ) async {
+    // `05 §4.3`. The paired SQL CHECK guarantees the original is there; this
+    // asserts it is SHOWN. Omitting it makes the §12.5 label true and
+    // uninformative — it says the time was edited and loses what it was edited
+    // from.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final Instant asEntered = Instant.fromDateTime(DateTime.utc(2026, 3, 2, 7));
+    final Instant corrected = Instant.fromDateTime(DateTime.utc(2026, 3, 2, 3, 20));
+    final LambingId lambing = await seedLambing(db, ewe, occurredAt: asEntered);
+    await (db.update(db.lambings)..where(($LambingsTable t) => t.id.equals(lambing.value))).write(
+      LambingsCompanion(
+        occurredAt: Value<Instant>(corrected),
+        originalEffective: Value<Instant?>(asEntered),
+        timeSource: const Value<String>('edited'),
+      ),
+    );
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('time edited by you'), findsOneWidget);
+    expect(
+      find.text('was ${formatShedTime(asEntered, 'en-GB')}'),
+      findsOneWidget,
+      reason: 'the pre-edit value must be shown',
+    );
+    expect(find.text(formatShedTime(corrected, 'en-GB')), findsOneWidget);
+
+    await tester.closeApp();
+  });
+
+  testWidgets('no row renders a bare time, and the provenance label is at least 18 px', (
+    WidgetTester tester,
+  ) async {
+    // Two properties over every row. The first is the negative form of the
+    // anchor — a time with nothing beside it is §12.5 dropped to documented. The
+    // second is `build-manifest §4.4` defect 2 as a geometric assertion: the
+    // provenance stamp loses the 14 px exemption because it is the SOLE carrier
+    // of its claim.
+    final AppDatabase db = testDatabase();
+    final EweId ewe = await _seedWholeLife(db);
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    for (final Element e in find.byType(TimelineRecordRow).evaluate()) {
+      final Finder within = find.descendant(
+        of: find.byWidget(e.widget),
+        matching: find.byType(Text),
+      );
+      final Iterable<String> texts = tester.widgetList<Text>(within).map((Text t) => t.data ?? '');
+      expect(
+        texts.any(
+          (String s) => s.contains('recorded') || s.contains('entered') || s.contains('edited'),
+        ),
+        isTrue,
+        reason: 'a row rendered a bare time: $texts',
+      );
+    }
+
+    for (final Text t in tester.widgetList<Text>(find.byType(Text))) {
+      if (t.data == 'recorded automatically') {
+        final double? size = t.style?.fontSize;
+        expect(size, isNotNull);
+        expect(size!, greaterThanOrEqualTo(18), reason: 'the §12.5 label is not an exempt stamp');
+      }
+    }
+
+    await tester.closeApp();
+  });
+
+  testWidgets('each row is one semantics node whose label contains the visible words', (
+    WidgetTester tester,
+  ) async {
+    // `10 §3.2` rule 3, the Voice Control criterion — asserted character for
+    // character. Seven `Text` widgets is seven rotor stops per row and about
+    // eighty rows on a five-season card.
+    final SemanticsHandle handle = tester.ensureSemantics();
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedLambing(db, ewe, occurredAt: Instant.fromDateTime(DateTime.utc(2026, 3, 2, 3, 20)));
+
+    await tester.pumpApp(
+      EweCardScreen(eweId: ewe, tag: '412'),
+      db: db,
+    );
+    await tester.pumpAndSettle();
+
+    final String spoken = formatShedTime(
+      Instant.fromDateTime(DateTime.utc(2026, 3, 2, 3, 20)),
+      'en-GB',
+    );
+    expect(
+      find.bySemanticsLabel('$spoken. Lambed. recorded automatically'),
+      findsOneWidget,
+      reason: 'the spoken row and the visible row must agree on the visible words',
+    );
+
+    handle.dispose();
     await tester.closeApp();
   });
 

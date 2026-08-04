@@ -1706,6 +1706,88 @@ abstract class AppLocalizations {
   /// **'STRUCK — {count}'**
   String flockStruckDivider({required int count});
 
+  /// The record column's sentence on a lambing row. A past-tense statement of what happened, never a heading and never a count — the tally is its own mark.
+  ///
+  /// In en, this message translates to:
+  /// **'Lambed'**
+  String get eweCardRowLambing;
+
+  /// The treatment row. {product} is the shepherd's own typed product name (§12.4 — exactly as typed, never normalised); this app ships no medicine database.
+  ///
+  /// In en, this message translates to:
+  /// **'Treated with {product}'**
+  String eweCardRowTreatment({required String product});
+
+  /// The care row. The kind is a stored key rendered through the terminology overlay at the presentation edge.
+  ///
+  /// In en, this message translates to:
+  /// **'{kind}'**
+  String eweCardRowCare({required String kind});
+
+  /// The foster row. It names the act, not a direction — a foster is one rearing dam and an outcome, and 'she lost a lamb' is a reading of the previous rearing dam rather than a stored fact.
+  ///
+  /// In en, this message translates to:
+  /// **'Fostered'**
+  String get eweCardRowFoster;
+
+  /// The observation row. WHAT WAS OBSERVED, never a consequence: 'Prolapse' is a record, 'prolapse risk' is a diagnosis (§12.2). The label is the shepherd's own when they have renamed the term.
+  ///
+  /// In en, this message translates to:
+  /// **'{observation}'**
+  String eweCardRowObserved({required String observation});
+
+  /// The pen row. {pen} is the pen's own label, which the shepherd typed.
+  ///
+  /// In en, this message translates to:
+  /// **'Penned in {pen}'**
+  String eweCardRowPenned({required String pen});
+
+  /// The note row. The shepherd's own words, verbatim and never truncated (10 §5).
+  ///
+  /// In en, this message translates to:
+  /// **'{body}'**
+  String eweCardRowNote({required String body});
+
+  /// Printed beside the provenance label on an EDITED row. 05 §4.3: an edited row shows BOTH times. The paired SQL CHECK — (time_source = 'edited') = (original_effective IS NOT NULL) — exists precisely so the pre-edit value is always there to show, and omitting it makes the §12.5 label true and uninformative. {time} arrives pre-formatted as 24-hour HH:mm.
+  ///
+  /// In en, this message translates to:
+  /// **'was {time}'**
+  String eweCardRowEditedFrom({required String time});
+
+  /// indelible.md §7.3's margin stamp on a struck row. The row STAYS in position, stays legible, and carries the time it was struck. 24-hour HH:mm, pre-formatted.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK {time}'**
+  String eweCardRowStruck({required String time});
+
+  /// The withdrawal figure on a treatment row. ZERO IS A REAL LABEL VALUE — products genuinely print zero-day withdrawals — so =0 is an explicit case and never falls through to the not-recorded wording. Always rendered beside Disclaimers.withdrawalProvenance, which is referenced and never re-typed.
+  ///
+  /// In en, this message translates to:
+  /// **'{days, plural, =0{0 day withdrawal} =1{1 day withdrawal} other{{days} day withdrawal}}'**
+  String eweCardWithdrawalDays({required num days});
+
+  /// The label explicitly states no withdrawal applies. A recorded ANSWER, distinct from zero days and distinct from 'I did not look' — three states, never two.
+  ///
+  /// In en, this message translates to:
+  /// **'No withdrawal'**
+  String get eweCardWithdrawalNotApplicable;
+
+  /// No treatment_withdrawals row exists: nobody typed one. §12.1 — never a default, never 0, never blank. indelible.md §5: an unset value prints a dotted rule and the words NOT RECORDED, because a blank reads as missing data and a dotted rule reads as nothing happened.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawal — NOT RECORDED'**
+  String get eweCardWithdrawalNotRecorded;
+
+  /// One row, one spoken sentence, in the order a shepherd would say it. 10 §3.2 rule 3: the spoken row and the visible row agree on the visible words. Seven Text widgets is seven rotor stops per row and about eighty rows on a five-season card.
+  ///
+  /// In en, this message translates to:
+  /// **'{time}. {body}. {provenance}'**
+  String eweCardRowSemantics({
+    required String time,
+    required String body,
+    required String provenance,
+  });
+
   /// The card's headingLevel 1 title. {singularTerm} is a USER-EDITABLE noun from the terminology overlay (ewe/gimmer/theave/...). Never derive the plural by appending an s (10 §8.5) — both forms come from TermLabel.
   ///
   /// In en, this message translates to:

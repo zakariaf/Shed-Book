@@ -32,6 +32,7 @@ import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
+import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 
 /// One row of either bucket of the deck.
 ///
@@ -519,6 +520,7 @@ final class TimelineRow {
     this.struckAt,
     this.detail,
     this.seasonYear,
+    this.withdrawal,
   });
 
   final TimelineKind kind;
@@ -570,6 +572,16 @@ final class TimelineRow {
   /// that night. `null` only on a note with no season (`03 §5.12`).
   final int? seasonYear;
 
+  /// **THREE STATES ON A TREATMENT ROW, AND `null` ON EVERY OTHER KIND.**
+  ///
+  /// On a treatment this is never `null`: a treatment with no
+  /// `treatment_withdrawals` row is [WithdrawalNotRecorded], which is a recorded
+  /// fact about a live animal and must render as *not recorded* — never as `0`
+  /// and never as blank. On a lambing it IS `null`, because a lambing has no
+  /// withdrawal at all; that is absence of the concept rather than absence of an
+  /// answer, and the two are different sentences on the page.
+  final WithdrawalPeriod? withdrawal;
+
   /// The §12.5 value, **reconstructed** — never a second switch over
   /// `time_source`.
   ///
@@ -613,7 +625,8 @@ final class TimelineRow {
           other.struck == struck &&
           other.struckAt == struckAt &&
           other.detail == detail &&
-          other.seasonYear == seasonYear;
+          other.seasonYear == seasonYear &&
+          other.withdrawal == withdrawal;
 
   @override
   int get hashCode => Object.hash(
@@ -628,6 +641,7 @@ final class TimelineRow {
     struckAt,
     detail,
     seasonYear,
+    withdrawal,
   );
 }
 
@@ -1104,7 +1118,8 @@ SELECT 'lambing' AS kind, lg.id AS ref, lg.occurred_at AS at,
        lg.captured_at AS captured_at, lg.original_effective AS original_effective,
        lg.time_source AS time_source, lg.season AS season,
        lg.struck AS struck, lg.struck_at AS struck_at,
-       NULL AS detail, s.year AS season_year
+       NULL AS detail, s.year AS season_year,
+       NULL AS withdrawal_kind, NULL AS withdrawal_days
   FROM lambings lg LEFT JOIN seasons s ON s.id = lg.season
  WHERE lg.ewe = ?
 
@@ -1123,8 +1138,21 @@ UNION ALL
 SELECT 'treatment', t.id, t.administered_at,
        t.captured_at, t.original_effective, t.time_source, t.season,
        t.voided_at IS NOT NULL, t.voided_at,
-       t.product_name, s.year
-  FROM treatments t LEFT JOIN seasons s ON s.id = t.season
+       t.product_name, s.year,
+       -- **A `LEFT JOIN` IS THE WHOLE MECHANISM, NOT A CONVENIENCE.** `03 §5.8`
+       -- makes *no row* the storage representation of *not recorded*, so an
+       -- INNER JOIN silently drops every treatment whose withdrawal nobody
+       -- typed — which is the exact set of rows §12.1 exists to make visible.
+       --
+       -- MEAT ONLY, DELIBERATELY. A treatment can carry a row per target and
+       -- this is one row per treatment, so the arm takes the meat period and the
+       -- Treatments screen remains the place that shows both. Picking whichever
+       -- row the join happened to return would make the card disagree with the
+       -- medicine book on some treatments and not others.
+       w.kind AS withdrawal_kind, w.days AS withdrawal_days
+  FROM treatments t
+  LEFT JOIN seasons s ON s.id = t.season
+  LEFT JOIN treatment_withdrawals w ON w.treatment = t.id AND w.target = 'meat'
  WHERE t.ewe = ?
 
 -- `care_events` HAS NO `ewe` COLUMN. `03 §5.6`'s CHECK is exactly one of
@@ -1135,7 +1163,7 @@ UNION ALL
 SELECT 'care', c.id, c.occurred_at,
        c.captured_at, c.original_effective, c.time_source, c.season,
        c.struck, c.struck_at,
-       c.kind, s.year
+       c.kind, s.year, NULL, NULL
   FROM care_events c
   LEFT JOIN lambings lg2 ON lg2.id = c.lambing
   LEFT JOIN lambs   lb2  ON lb2.id = c.lamb
@@ -1155,7 +1183,7 @@ UNION ALL
 SELECT 'foster', f.id, f.effective_at,
        f.captured_at, f.original_effective, f.time_source, f.season,
        f.struck, f.struck_at,
-       f.outcome, s.year
+       f.outcome, s.year, NULL, NULL
   FROM (SELECT fe.*,
                LAG(fe.rearing_dam) OVER (PARTITION BY fe.lamb
                                          ORDER BY fe.effective_at, fe.id) AS prev_dam,
@@ -1170,7 +1198,7 @@ UNION ALL
 SELECT 'observed', o.id, o.occurred_at,
        o.captured_at, o.original_effective, o.time_source, o.season,
        o.struck, o.struck_at,
-       o.kind, s.year
+       o.kind, s.year, NULL, NULL
   FROM ewe_observations o LEFT JOIN seasons s ON s.id = o.season
  WHERE o.ewe = ?
 
@@ -1178,7 +1206,7 @@ UNION ALL
 SELECT 'penned', p.id, p.entered_at,
        p.captured_at, p.original_effective, p.time_source, p.season,
        p.struck, p.struck_at,
-       pn.label, s.year
+       pn.label, s.year, NULL, NULL
   FROM pen_occupancies p
   LEFT JOIN pens    pn ON pn.id = p.pen
   LEFT JOIN seasons s  ON s.id = p.season
@@ -1191,7 +1219,7 @@ UNION ALL
 SELECT 'note', n.id, n.occurred_at,
        n.captured_at, n.original_effective, n.time_source, n.season,
        n.struck, n.struck_at,
-       n.body, s.year
+       n.body, s.year, NULL, NULL
   FROM notes n LEFT JOIN seasons s ON s.id = n.season
  WHERE n.ewe = ?
 
@@ -1222,7 +1250,39 @@ TimelineRow _toTimelineRow(QueryRow r) => TimelineRow(
   },
   detail: r.readNullable<String>('detail'),
   seasonYear: r.readNullable<int>('season_year'),
+  withdrawal: _withdrawalFrom(r),
 );
+
+/// **THREE STATES, NOT A NULLABLE INT** (`CONVENTIONS §2.7`, `03 §5.8`).
+///
+///   * a `days` row  → [WithdrawalDays], through the one entry point;
+///   * a `not_applicable` row → [WithdrawalNotApplicable] — a recorded ANSWER;
+///   * **no row at all** → [WithdrawalNotRecorded] — nobody looked.
+///
+/// `0` is a real label value, so a nullable int could not tell *"the label says
+/// zero"* from *"I did not look"*. That is the confusion the child table's shape
+/// exists to prevent, and this is the read side of it.
+///
+/// `null` on a non-treatment arm, and that is a **fourth** thing: the field does
+/// not apply. A lambing has no withdrawal — absence of the concept, not absence
+/// of an answer.
+WithdrawalPeriod? _withdrawalFrom(QueryRow r) {
+  if (r.read<String>('kind') != TimelineKind.treatment.key) {
+    return null;
+  }
+  return switch (r.readNullable<String>('withdrawal_kind')) {
+    'days' => WithdrawalDays.asEnteredByUser(
+      // `read`, not `readNullable`: the schema pairs them —
+      // `CHECK ((kind = 'days') = (days IS NOT NULL))` — so a `days` row without
+      // a number is unstorable, and a `?? 0` here would be inventing the one
+      // figure §12.1 exists to protect.
+      days: r.read<int>('withdrawal_days'),
+      target: WithdrawalTarget.meat,
+    ),
+    'not_applicable' => const WithdrawalNotApplicable(WithdrawalTarget.meat),
+    _ => const WithdrawalNotRecorded(),
+  };
+}
 
 /// Element-wise, for the same reason [_sameList] is written out rather than
 /// taken from `package:collection`: making that dependency direct is a

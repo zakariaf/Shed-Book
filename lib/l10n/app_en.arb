@@ -1501,6 +1501,71 @@
       }
     }
   },
+  "eweCardRowLambing": "Lambed",
+  "@eweCardRowLambing": {
+    "description": "The record column's sentence on a lambing row. A past-tense statement of what happened, never a heading and never a count — the tally is its own mark."
+  },
+  "eweCardRowTreatment": "Treated with {product}",
+  "@eweCardRowTreatment": {
+    "description": "The treatment row. {product} is the shepherd's own typed product name (§12.4 — exactly as typed, never normalised); this app ships no medicine database.",
+    "placeholders": {"product": {"type": "String", "example": "Alamycin LA 300 mg/ml"}}
+  },
+  "eweCardRowCare": "{kind}",
+  "@eweCardRowCare": {
+    "description": "The care row. The kind is a stored key rendered through the terminology overlay at the presentation edge.",
+    "placeholders": {"kind": {"type": "String", "example": "colostrum"}}
+  },
+  "eweCardRowFoster": "Fostered",
+  "@eweCardRowFoster": {
+    "description": "The foster row. It names the act, not a direction — a foster is one rearing dam and an outcome, and 'she lost a lamb' is a reading of the previous rearing dam rather than a stored fact."
+  },
+  "eweCardRowObserved": "{observation}",
+  "@eweCardRowObserved": {
+    "description": "The observation row. WHAT WAS OBSERVED, never a consequence: 'Prolapse' is a record, 'prolapse risk' is a diagnosis (§12.2). The label is the shepherd's own when they have renamed the term.",
+    "placeholders": {"observation": {"type": "String", "example": "Prolapse"}}
+  },
+  "eweCardRowPenned": "Penned in {pen}",
+  "@eweCardRowPenned": {
+    "description": "The pen row. {pen} is the pen's own label, which the shepherd typed.",
+    "placeholders": {"pen": {"type": "String", "example": "Pen 3"}}
+  },
+  "eweCardRowNote": "{body}",
+  "@eweCardRowNote": {
+    "description": "The note row. The shepherd's own words, verbatim and never truncated (10 §5).",
+    "placeholders": {"body": {"type": "String", "example": "watched her all night"}}
+  },
+  "eweCardRowEditedFrom": "was {time}",
+  "@eweCardRowEditedFrom": {
+    "description": "Printed beside the provenance label on an EDITED row. 05 §4.3: an edited row shows BOTH times. The paired SQL CHECK — (time_source = 'edited') = (original_effective IS NOT NULL) — exists precisely so the pre-edit value is always there to show, and omitting it makes the §12.5 label true and uninformative. {time} arrives pre-formatted as 24-hour HH:mm.",
+    "placeholders": {"time": {"type": "String", "example": "07:00"}}
+  },
+  "eweCardRowStruck": "STRUCK {time}",
+  "@eweCardRowStruck": {
+    "description": "indelible.md §7.3's margin stamp on a struck row. The row STAYS in position, stays legible, and carries the time it was struck. 24-hour HH:mm, pre-formatted.",
+    "placeholders": {"time": {"type": "String", "example": "03:41"}}
+  },
+  "eweCardWithdrawalDays": "{days, plural, =0{0 day withdrawal} =1{1 day withdrawal} other{{days} day withdrawal}}",
+  "@eweCardWithdrawalDays": {
+    "description": "The withdrawal figure on a treatment row. ZERO IS A REAL LABEL VALUE — products genuinely print zero-day withdrawals — so =0 is an explicit case and never falls through to the not-recorded wording. Always rendered beside Disclaimers.withdrawalProvenance, which is referenced and never re-typed.",
+    "placeholders": {"days": {"type": "num"}}
+  },
+  "eweCardWithdrawalNotApplicable": "No withdrawal",
+  "@eweCardWithdrawalNotApplicable": {
+    "description": "The label explicitly states no withdrawal applies. A recorded ANSWER, distinct from zero days and distinct from 'I did not look' — three states, never two."
+  },
+  "eweCardWithdrawalNotRecorded": "Withdrawal — NOT RECORDED",
+  "@eweCardWithdrawalNotRecorded": {
+    "description": "No treatment_withdrawals row exists: nobody typed one. §12.1 — never a default, never 0, never blank. indelible.md §5: an unset value prints a dotted rule and the words NOT RECORDED, because a blank reads as missing data and a dotted rule reads as nothing happened."
+  },
+  "eweCardRowSemantics": "{time}. {body}. {provenance}",
+  "@eweCardRowSemantics": {
+    "description": "One row, one spoken sentence, in the order a shepherd would say it. 10 §3.2 rule 3: the spoken row and the visible row agree on the visible words. Seven Text widgets is seven rotor stops per row and about eighty rows on a five-season card.",
+    "placeholders": {
+      "time": {"type": "String", "example": "03:20"},
+      "body": {"type": "String", "example": "Lambed"},
+      "provenance": {"type": "String", "example": "recorded automatically"}
+    }
+  },
   "eweCardTitle": "{singularTerm} {tag}",
   "@eweCardTitle": {
     "description": "The card's headingLevel 1 title. {singularTerm} is a USER-EDITABLE noun from the terminology overlay (ewe/gimmer/theave/...). Never derive the plural by appending an s (10 §8.5) — both forms come from TermLabel.",

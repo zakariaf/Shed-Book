@@ -15,6 +15,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/features/flock/widgets/ewe_summary_line.dart';
+import 'package:shed_book/features/flock/widgets/timeline_record_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class EweCardScreen extends ConsumerWidget {
@@ -67,16 +68,9 @@ class EweCardScreen extends ConsumerWidget {
             // **KEYED ON THE PAIR, NEVER ON `ref` ALONE.** Lambing 7 and note 7
             // are both `ref: 7`, so a key built from the id alone collides and
             // Flutter reuses the wrong element.
-            itemBuilder: (BuildContext context, int i) => SizedBox(
+            itemBuilder: (BuildContext context, int i) => TimelineRecordRow(
               key: Key('ewe_card.row.${rows[i].kind.key}.${rows[i].ref}'),
-              height: t.tapIndelible,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-                  child: Text(rows[i].kind.key, style: Theme.of(context).textTheme.bodyMedium),
-                ),
-              ),
+              row: rows[i],
             ),
           ),
           AsyncError<List<TimelineRow>>() => ShedEmptyState(

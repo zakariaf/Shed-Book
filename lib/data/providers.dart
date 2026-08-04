@@ -284,6 +284,21 @@ final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepos
   (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),
 );
 
+/// **THE TWO GATED REPOSITORIES DO NOT WATCH `entitlementRepositoryProvider`,
+/// AND THE REASON IS MEASURED.** The obvious wiring — pass it in from the
+/// provider — makes these rebuild when the entitlement future resolves, which
+/// constructs a NEW repository and restarts every stream it owns.
+/// `quick_entry_test.dart` caught it immediately: the tag index came back empty
+/// mid-frame, on the one screen whose whole promise is that typing reorders the
+/// match list in the same frame with no database read.
+///
+/// So they read the row directly, which is what `_readUnlocked`'s fallback does
+/// — the SAME row, through the same database, so it cannot disagree with the
+/// repository that owns the writes. What the fallback lacks is the store
+/// subscription, and a write path has no business holding one open.
+///
+/// The constructor parameter stays for callers that already hold the repository
+/// — the tests that assert unlocking reaches these verbs, and N30-T05's section.
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(
   (ref) => FlockRepository(
     db: ref.watch(databaseProvider).requireValue,

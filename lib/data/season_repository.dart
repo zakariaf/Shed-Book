@@ -23,6 +23,7 @@ import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/time/local_date.dart';
+import 'package:shed_book/data/entitlement_repository.dart';
 import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -32,9 +33,15 @@ final class SeasonRepository {
   /// lint is suppressed rather than obeyed: `this._db` would make the PUBLIC
   /// parameter name `_db`, so every caller would be writing a private name.
   // ignore_for_file: prefer_initializing_formals
-  SeasonRepository({required AppDatabase db}) : _db = db;
+  SeasonRepository({required AppDatabase db, EntitlementRepository? entitlements})
+    : _db = db,
+      _entitlements = entitlements;
 
   final AppDatabase _db;
+
+  /// The entitlement, read through its owner. See `FlockRepository`'s field of
+  /// the same name for why it is optional and why the fallback cannot disagree.
+  final EntitlementRepository? _entitlements;
 
   /// **THE SECOND AND LAST GATED WRITE** (`11 §7.2`, `11 §7.3`). `createEwe` is
   /// the other; `beginLambing` and `addLamb` are never gated, at any entitlement
@@ -66,7 +73,7 @@ final class SeasonRepository {
         final CapDecision decision = policy.decide(
           context: context,
           now: now,
-          unlocked: (await _db.select(_db.entitlements).getSingle()).unlocked,
+          unlocked: await _readUnlocked(),
           // **POST-WRITE COUNTS, WHICH IS THE CONTRACT** (`11 §7.2`). Backwards,
           // you either refuse the second season or let the third through — and
           // the free tier's boundary is the one number a paying user notices.
@@ -102,6 +109,10 @@ final class SeasonRepository {
       return WriteFailed(shedFailureFrom(e));
     }
   }
+
+  Future<bool> _readUnlocked() async => _entitlements != null
+      ? (await _entitlements.read()).unlocked
+      : (await _db.select(_db.entitlements).getSingle()).unlocked;
 
   /// Which season the app is writing into.
   ///

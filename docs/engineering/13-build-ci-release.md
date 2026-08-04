@@ -690,6 +690,17 @@ jobs:
             merged-manifest.xml
 ```
 
+> **Amended — N31-T03, watched failing on the pull request that added the job.** The published fetch
+> used `releases/latest/download/bundletool-all.jar`. **That asset name does not exist**: GitHub's
+> release assets carry the version in the filename, so the URL 404s into an HTML page, `curl -sSL`
+> follows the redirect and writes it, and `java -jar` reports *"Invalid or corrupt jarfile"* — which
+> reads as a broken runner rather than as a wrong URL, on the one job nobody has run before.
+>
+> Now pinned to **1.18.3**, the version decision-record §3.3 recorded G0 running against, with a
+> `file` check so a bad download names itself. **An unpinned tool is an unpinned gate**: G1 asserts
+> exact set equality, so a bundletool whose dump format moved would change the answer without anything
+> in this repository changing.
+
 **Action versions.** `actions/checkout` v7.0.1, `actions/cache` v6.1.0, `actions/upload-artifact` v7.0.1, `actions/setup-java` v5, `subosito/flutter-action` **v2.23.0 on the v2 major tag — there is no v3**. These were read off the GitHub API on 2026-07-20 / 2026-06-26 / 2026-04-10 / 2026-03-25 by note 07 and are **not** covered by decision-record §5, which is a pub.dev table. Re-verify before the first run; anyone who tells you `flutter-action@v3` exists is remembering, not checking.
 
 **Dependabot is enabled for GitHub Actions versions only.** `.github/dependabot.yml` declares exactly one ecosystem, `github-actions`, monthly. It is **not** pointed at pub: a plugin bump can change the merged manifest or a privacy manifest, so pub updates go through `flutter pub outdated` read by a human (§4.6), never through a bot that opens a green PR.

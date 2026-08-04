@@ -240,10 +240,29 @@ jobs:
             --dart-define=APP_VERSION=ci --dart-define=APP_BUILD=${{ github.run_number }} \
             --obfuscate --split-debug-info=build/symbols/android
 
+      # **PINNED, AND `latest/download/bundletool-all.jar` DOES NOT EXIST.**
+      # `13 §4.3`'s published form fetches an unversioned asset name; GitHub's
+      # release assets carry the version in the filename, so the URL 404s into an
+      # HTML page, `curl -sSL` follows the redirect and writes it, and `java -jar`
+      # reports *"Invalid or corrupt jarfile"* — which reads as a broken runner
+      # rather than as a wrong URL. Watched failing on the pull request that
+      # added this job.
+      #
+      # 1.18.3 is the version decision-record §3.3 recorded G0 running against.
+      # **An unpinned tool is an unpinned gate**: G1 asserts exact set equality,
+      # so a bundletool whose dump format moved would change the answer without
+      # anything in this repository changing.
       - name: Fetch bundletool
-        run: >-
-          curl -sSL -o bundletool.jar
-          https://github.com/google/bundletool/releases/latest/download/bundletool-all.jar
+        env:
+          BUNDLETOOL_VERSION: '1.18.3'
+        run: |
+          curl -fsSL -o bundletool.jar \
+            "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar"
+          # A jar is a zip. Checked here rather than left to `java -jar`, so a
+          # bad download names itself.
+          file bundletool.jar | grep -q 'Zip archive' || {
+            echo "::error::bundletool.jar is not an archive — the download returned something else."
+            exit 2; }
 
       - name: G1 — the shipped permission set is exactly the expected set
         run: bash tool/assert_permissions.sh

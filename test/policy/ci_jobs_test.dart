@@ -106,6 +106,24 @@ void main() {
     // release.
     expect(block.join('\n'), contains('bash tool/assert_permissions.sh'));
 
+    // **BUNDLETOOL IS PINNED, AND AN UNPINNED TOOL IS AN UNPINNED GATE.** G1
+    // asserts EXACT set equality, so a bundletool whose dump format moved would
+    // change the answer without anything in this repository changing.
+    //
+    // The version is also the one decision-record §3.3 recorded G0 running
+    // against — the two must be the same tool or the expected file was written
+    // by a different program from the one checking it.
+    expect(
+      block.join('\n'),
+      contains('BUNDLETOOL_VERSION'),
+      reason: 'the bundletool version is not pinned',
+    );
+    expect(
+      block.join('\n'),
+      isNot(contains('releases/latest/download')),
+      reason: 'that asset name does not exist — it 404s into HTML and java reports a corrupt jar',
+    );
+
     // **`if: always()` IS G4, NOT TIDINESS.** The merger report is the only
     // artefact that names which dependency contributed a permission, and the run
     // you need it from is the run that just went red.

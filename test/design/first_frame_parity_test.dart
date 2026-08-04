@@ -23,7 +23,6 @@ const String _stylesV31 = 'android/app/src/main/res/values-v31/styles.xml';
 const String _manifest = 'android/app/src/main/AndroidManifest.xml';
 const String _launchStoryboard = 'ios/Runner/Base.lproj/LaunchScreen.storyboard';
 const String _mainStoryboard = 'ios/Runner/Base.lproj/Main.storyboard';
-const String _plist = 'ios/Runner/Info.plist';
 
 /// The root view's `backgroundColor` as (red, green, blue) floats.
 ///
@@ -221,28 +220,12 @@ void main() {
       }
     });
 
-    test('Info.plist pins the dark appearance and names both storyboards', () {
-      // UILaunchStoryboardName and UIMainStoryboardFile are DIFFERENT KEYS
-      // NAMING DIFFERENT STORYBOARDS, and losing either is a flash rather than a
-      // crash.
-      final String plist = File(_plist).readAsStringSync();
-
-      expect(plist, contains('<key>UIUserInterfaceStyle</key>'));
-      expect(
-        RegExp(r'<key>UIUserInterfaceStyle</key>\s*<string>Dark</string>').hasMatch(plist),
-        isTrue,
-        reason: 'the app follows the system appearance and can go light',
-      );
-      expect(plist, contains('<key>UILaunchStoryboardName</key>'));
-      expect(plist, contains('<key>UIMainStoryboardFile</key>'));
-    });
-
-    test('Info.plist carries no ATS exception', () {
-      // G5's text half, and the gate job greps for it too. An app with no
-      // network code does not need one, and its presence would be a claim that
-      // something wants to talk.
-      expect(File(_plist).readAsStringSync(), isNot(contains('NSAppTransportSecurity')));
-    });
+    // **THE TWO `Info.plist` POLICY CASES MOVED TO
+    // `test/policy/ios_config_test.dart` AT N31-T04.** This file is for the
+    // FIRST FRAME — the page colour and the two storyboards — and a plist policy
+    // living inside a design test is a policy the next person deletes while
+    // tidying a colour assertion. Moved, not duplicated: two copies of an
+    // assertion is one copy that stops being true.
 
     test('the template launch image is gone', () {
       // The generated storyboard centres a LaunchImage on white. Leaving it

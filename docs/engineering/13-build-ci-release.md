@@ -350,6 +350,25 @@ The reason it is a grep and not a review item: every tutorial published after 20
 
 ### 2.7 G5 — iOS, honestly
 
+> **Amended — N31-T04. Where the observation is recorded, so the next release does not re-derive it.**
+>
+> The table's *When* column says *"once per release, by hand"* for the two rows a text check cannot
+> reach — the privacy report and the App Privacy answers. **The answer now lives in
+> `docs/calendar.md`, as the `g5_observation` row**, beside the seven commitments
+> `00-PLAN-CRITIQUE` named. That row carries an owner, an ISO date, the device and the outcome, and
+> `calendar_commitments_test.dart` asserts the key set — so a release that skips the observation
+> leaves a visible empty row rather than a memory nobody has.
+>
+> **It is a commitment and not a test, because no test can make this claim.** G1 reads the permission
+> set off a built artefact and G3 reads the imports; **neither watches the app run**. A dependency that
+> opened a socket from a background isolate would pass both, and the only thing that catches it is a
+> proxy on a physical phone for one full session. The row states that consequence in its own words.
+>
+> The `NSAppTransportSecurity` row of the table above **is** a text check and does live in CI — it moved
+> from `test/design/first_frame_parity_test.dart` to `test/policy/ios_config_test.dart` in this
+> commit, because a plist policy inside a design test is a policy the next person deletes while tidying
+> a colour assertion.
+
 **There is no iOS permission to remove.** iOS has no manifest analogue of `INTERNET`, so iOS enforcement is *construction plus observation*, and the doc set says so rather than implying parity:
 
 | Check | How | When |

@@ -34,7 +34,19 @@ const XTypeGroup _backupType = XTypeGroup(
   uniformTypeIdentifiers: <String>['public.json'],
 );
 
-/// `null` when the shepherd backed out. **Not an error** — backing out of a file
-/// picker is a decision, and rendering it as a failure is how a screen tells
-/// somebody they did something wrong when they did not.
-Future<XFile?> pickBackupFile() => openFile(acceptedTypeGroups: <XTypeGroup>[_backupType]);
+/// The picked path, or `null` when the shepherd backed out.
+///
+/// **Not an error** — backing out of a file picker is a decision, and rendering
+/// it as a failure is how a screen tells somebody they did something wrong when
+/// they did not.
+///
+/// **A `String` AND NOT AN `XFile`, WHICH IS THE POINT OF THIS FILE.** Returning
+/// the plugin's own type would make every caller import `file_selector` to name
+/// it, and `layer.plugin_file_selector` fails the build on a second import
+/// anywhere — correctly, because a second import is a second set of type filters
+/// and the one that greys out a shepherd's own backup is always the one nobody
+/// tested on Android. Widened from `Future<XFile?>` when the restore flow was
+/// finally wired (N23-T02 step 4), which is the commit that produced the first
+/// caller outside a test.
+Future<String?> pickBackupFile() async =>
+    (await openFile(acceptedTypeGroups: <XTypeGroup>[_backupType]))?.path;

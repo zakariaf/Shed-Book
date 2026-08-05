@@ -1325,6 +1325,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionData => 'Data';
 
   @override
+  String get settingsDataRestore => 'RESTORE FROM BACKUP';
+
+  @override
   String get settingsSectionAbout => 'About';
 
   @override

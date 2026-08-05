@@ -43,27 +43,17 @@ const List<String> kNotInTheArb = <String>[
 ///
 /// The groups are not equal. Only the first loses records.
 const List<String> kWrittenAhead = <String>[
-  // ── 1. RESTORE IS UNREACHABLE IN THE PRODUCT. ─────────────────────────────
-  // `N23-T02` step 4 — *"the Settings ▸ Data row that opens it"* — was never
-  // done. `SettingsSectionId.data` falls through to `const <Widget>[]`, so the
-  // Data section prints a heading and nothing else, and `pickBackupFile`,
-  // `readBackupPrelude` and `showRestoreConfirmation` have no caller outside
-  // their own tests.
+  // ── 1. RESTORE — WIRED, AND THE GROUP IS GONE. ────────────────────────────
   //
-  // **Sorted by `CLAUDE.md`'s test — *what happens on the night of 3 March
-  // 2027?* — a shepherd on a new phone, holding the backup file this whole
-  // product tells them to make, cannot get their records back.** That is
-  // `v1.0.0`, and it is the one group here that is.
-  'restoreRefusedNewerApp',
-  'restoreRefusedNewerAppDetail',
-  'restoreRefusedNotOurs',
-  'restoreRefusedDamaged',
-  'restoreRefusedZip',
-  'restoreRefusedDatabaseCopy',
-  'restoreRefusedNotABackup',
-  'backupRefusedIncomplete',
-  'restoreDoneTitle',
-  'restoreDoneMedia',
+  // This list opened with ten messages under the heading *RESTORE IS
+  // UNREACHABLE IN THE PRODUCT*: `SettingsSectionId.data` fell through to an
+  // empty widget list, so Settings ▸ Data printed a heading over nothing and
+  // `pickBackupFile`, `readBackupPrelude` and `showRestoreConfirmation` had no
+  // caller outside their own tests. N23-T02's step 4 was never done.
+  //
+  // **All ten now render**, so all ten are deleted from this list — which is
+  // what the second assertion below is for. A finding that stays on the page
+  // after it is fixed is a finding nobody trusts the next time.
 
   // ── 2. A SECOND NAME FOR COPY THAT ALREADY RENDERS. ───────────────────────
   // An earlier ARB draft; the widget was built against a different key and the

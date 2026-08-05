@@ -2188,6 +2188,12 @@ abstract class AppLocalizations {
   /// **'Data'**
   String get settingsSectionData;
 
+  /// 07 §14.3 row 11, Settings ▸ Data. The only row in this section in v1.0.0 — the two deletes are v1.1.0. Caps because it is a word button, and the word is `restore` because the vocabulary has exactly one word for this act: never import, never load, never merge — there is no merge.
+  ///
+  /// In en, this message translates to:
+  /// **'RESTORE FROM BACKUP'**
+  String get settingsDataRestore;
+
   /// 07 §14.3 section 12. The version, the licences, and the offline statement.
   ///
   /// In en, this message translates to:

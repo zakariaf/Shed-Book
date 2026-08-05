@@ -1928,9 +1928,16 @@
   "@upgradeRowFree": {
     "description": "07 §19.2's row, verbatim. It states FACTS — what this version is, what it covers, and the two counts — and asks for nothing. It renders identically at 3 ewes and at 22 (#92: always present, in the same pixels), so a shepherd never learns that its appearance means they are near a line. NO PRICE IN THIS MESSAGE: the price is the store's own localised string and arrives through the action label, never as a literal (copy.currency_literal).",
     "placeholders": {
-      "ewes": {"type": "num"},
-      "cap": {"type": "num"},
-      "term": {"type": "String", "example": "ewes"}
+      "ewes": {
+        "type": "num"
+      },
+      "cap": {
+        "type": "num"
+      },
+      "term": {
+        "type": "String",
+        "example": "ewes"
+      }
     }
   },
   "upgradeRowUnlock": "UNLOCK",
@@ -1945,8 +1952,13 @@
   "@capRefusedEweCap": {
     "description": "11 §7.3's RefusalReason.eweCap message. The cap is a PLACEHOLDER so the number is never typed twice — kFreeEweCap is the source, and a literal here would go stale the day it moves. It names no price and carries no currency symbol.",
     "placeholders": {
-      "cap": {"type": "num"},
-      "term": {"type": "String", "example": "ewes"}
+      "cap": {
+        "type": "num"
+      },
+      "term": {
+        "type": "String",
+        "example": "ewes"
+      }
     }
   },
   "capRefusedSecondSeason": "The free notebook holds one season. Unlock to start another.",
@@ -1956,7 +1968,12 @@
   "unlockBuyPriced": "UNLOCK — {price}",
   "@unlockBuyPriced": {
     "description": "The Unlock action WHEN THE STORE ANSWERED IN THIS PROCESS. {price} is ProductDetails.price verbatim — the store's own localised, currency-formatted string for the account that will be charged. It is never built here and never reformatted: this app knows neither the currency, nor the tier, nor the tax treatment, and all three differ by territory.",
-    "placeholders": {"price": {"type": "String", "example": "£24.99"}}
+    "placeholders": {
+      "price": {
+        "type": "String",
+        "example": "£24.99"
+      }
+    }
   },
   "unlockBuyUnpriced": "UNLOCK",
   "@unlockBuyUnpriced": {
@@ -2005,6 +2022,10 @@
   "settingsSectionData": "Data",
   "@settingsSectionData": {
     "description": "07 §14.3 section 11. Backup, restore and the two deletes. The deletes are N29-T06 and ship in v1.1.0."
+  },
+  "settingsDataRestore": "RESTORE FROM BACKUP",
+  "@settingsDataRestore": {
+    "description": "07 §14.3 row 11, Settings ▸ Data. The only row in this section in v1.0.0 — the two deletes are v1.1.0. Caps because it is a word button, and the word is `restore` because the vocabulary has exactly one word for this act: never import, never load, never merge — there is no merge."
   },
   "settingsSectionAbout": "About",
   "@settingsSectionAbout": {

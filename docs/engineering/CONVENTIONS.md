@@ -689,7 +689,8 @@ spellings only. Production has zero overrides.
 | `settingsRepositoryProvider` | `FutureProvider<SettingsRepository>` | keepAlive | |
 | `entitlementRepositoryProvider` | `FutureProvider<EntitlementRepository>` | keepAlive | |
 | `exportRepositoryProvider` | `FutureProvider<ExportRepository>` | keepAlive | |
-| `restoreServiceProvider` | `FutureProvider<RestoreService>` | keepAlive | |
+| `restoreServiceProvider` | `FutureProvider<RestoreService>` | keepAlive | Holds the application-support `Directory` the service may not look up itself (`layer.path_provider`) |
+| `restorePlannerProvider` | `Provider<RestorePlanner>` | keepAlive | **Added 2026-08-05 when the restore flow was finally wired.** A seam, not a convenience: `lib/features/` may not import `lib/core/db/`, and the restore controller needs live counts without ever holding a database handle |
 | `mediaSweeperProvider` | `FutureProvider<MediaSweeper>` | keepAlive | |
 | `reminderReconcilerProvider` | `FutureProvider<ReminderReconciler>` | keepAlive | needs the DB **and** the notification seam |
 | `notificationSchedulerProvider` | `FutureProvider<NotificationScheduler>` | keepAlive | async: plugin `initialize()` |

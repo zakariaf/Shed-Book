@@ -32,13 +32,14 @@
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
 //   mediaSweeperProvider        N23-T03  FutureProvider<MediaSweeper>         keepAlive
+//   restoreServiceProvider      N23-T02  FutureProvider<RestoreService>       keepAlive
+//   restorePlannerProvider      N23-T02  Provider<RestorePlanner>             keepAlive
 //
 // NOT YET DECLARED — the epic that writes the class adds its provider in the
 // same commit, and deletes its line from this list:
 //   fosterRepositoryProvider                                         N18
 //   penRepositoryProvider                                            N19
 //   treatmentRepositoryProvider                                      N20
-//   restoreServiceProvider                                           N23
 //   reminderRepositoryProvider · reminderReconcilerProvider ·
 //     notificationSchedulerProvider                                  N24
 //   seasonRepositoryProvider                                         N28
@@ -63,6 +64,7 @@ import 'package:shed_book/data/media_store.dart';
 import 'package:shed_book/data/media_sweeper.dart';
 import 'package:shed_book/data/export_repository.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:shed_book/data/restore_plan.dart';
 import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
@@ -122,6 +124,33 @@ final FutureProvider<AppDatabase> databaseProvider = FutureProvider<AppDatabase>
   ref.onDispose(db.close);
   return db;
 });
+
+/// The restore service, holding the one directory it may not look up itself.
+///
+/// **DECLARED HERE BECAUSE THIS FILE IS ALREADY THE ONE PLACE `lib/data/` MAY
+/// REACH `path_provider`** — `databaseProvider` above resolves the same
+/// directory for `completeInterruptedRestore`, and `layer.path_provider` keeps
+/// every other file out. A second lookup elsewhere would be a second answer to
+/// *where does the database live*, and the two would disagree the first time
+/// one of them was improved.
+///
+/// `keepAlive` by construction: it holds a `Directory` and nothing else, so
+/// there is nothing to dispose and nothing to re-resolve.
+final FutureProvider<RestoreService> restoreServiceProvider = FutureProvider<RestoreService>(
+  (ref) async => RestoreService(await getApplicationSupportDirectory()),
+);
+
+/// Reads a picked backup against the live database, and writes nothing.
+///
+/// **THE SEAM EXISTS SO THE RESTORE CONTROLLER NEVER HOLDS A DATABASE.**
+/// `lib/features/` may not import `lib/core/db/` (`layer.features`, `04 §4.9`),
+/// and the first draft of the restore flow broke that rule three times — the
+/// staging `AppDatabase`, `drift/native.dart`, and the live counts. The counts
+/// are the only one that needed a seam rather than a move.
+final Provider<RestorePlanner> restorePlannerProvider = Provider<RestorePlanner>(
+  (ref) =>
+      (String pickedPath) async => planRestore(pickedPath, await ref.read(databaseProvider.future)),
+);
 
 /// Pure policy: **no database, no clock** — `decide()` takes `now` as a
 /// parameter (`CONVENTIONS §2.10`, R69).

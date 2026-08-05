@@ -36,6 +36,7 @@ import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/settings/settings_write_controller.dart';
 import 'package:shed_book/features/settings/widgets/appearance_section.dart';
 import 'package:shed_book/features/settings/widgets/about_section.dart';
+import 'package:shed_book/features/settings/widgets/data_section.dart';
 import 'package:shed_book/features/settings/widgets/diagnostics_section.dart';
 import 'package:shed_book/features/settings/widgets/season_section.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
@@ -150,6 +151,11 @@ class SettingsScreen extends ConsumerWidget {
     // Diagnostics row that disappears because the settings row could not be read
     // is a diagnostics row that works only when nothing needs diagnosing.
     SettingsSectionId.diagnostics => const <Widget>[DiagnosticsSection()],
+    // **THIS FELL THROUGH TO AN EMPTY LIST AND THE SECTION PRINTED A HEADING
+    // OVER NOTHING.** N23-T02's step 4 — the Settings ▸ Data row that opens the
+    // restore — was never done, so the only recovery path this product has had
+    // no caller anywhere in `lib/`. Found by N33-T05's ARB orphan sweep.
+    SettingsSectionId.data => const <Widget>[DataSection()],
     SettingsSectionId.about => const <Widget>[AboutSection()],
     SettingsSectionId.appearance => const <Widget>[
       PaletteSection(),

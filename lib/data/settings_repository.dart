@@ -11,6 +11,8 @@
 // interface, EVENT VERBS returning `WriteOutcome`, one transaction each, and no
 // `Clock` parameter — a repository that knows the time is a repository that
 // cannot be tested without controlling it.
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -75,6 +77,46 @@ final class SettingsRepository {
   /// at all is a `false` the row renders as *the file reported a problem* —
   /// which is the honest reading of a check that could not complete.
   Future<bool> checkDatabase() => _db.quickCheck();
+
+  /// The two numbers `13 §8.5` prints beside the integrity check.
+  ///
+  /// **RECORDS AND ANIMALS, NOT ROWS AND EWES.** A shepherd sending a
+  /// diagnostics note needs a size, not a schema: *"1,240 records · 87 animals"*
+  /// tells whoever reads it whether the file is a test flock or four seasons of
+  /// work. `records` is every append-only fact — lambings, lambs, treatments,
+  /// notes — and deliberately not a table count, which would mean nothing to
+  /// either of them.
+  ///
+  /// Through the repository because two layer rules say so: `lib/features/` may
+  /// not import `lib/core/db/`, and the raw statement is confined to
+  /// `lib/core/db/` besides.
+  Future<({int records, int animals})> diagnosticCounts() async {
+    final int lambings = (await _db.select(_db.lambings).get()).length;
+    final int lambs = (await _db.select(_db.lambs).get()).length;
+    final int treatments = (await _db.select(_db.treatments).get()).length;
+    final int notes = (await _db.select(_db.notes).get()).length;
+    final int ewes = (await _db.select(_db.ewes).get()).length;
+    return (records: lambings + lambs + treatments + notes, animals: ewes + lambs);
+  }
+
+  /// A copy of the records file, written where it can be shared from.
+  ///
+  /// **`VACUUM INTO`, WHICH IS THE ONE WAY THIS PROJECT COPIES A DATABASE**
+  /// (`09 §6.2`) — the same verb the restore path uses, so there is one answer
+  /// to *how do you copy it* rather than two that drift.
+  ///
+  /// **THE WORD IS `snapshot` AND IT IS NEVER `backup`** (`CLAUDE.md`): a backup
+  /// is the JSON a shepherd restores from, and a snapshot is a `.sqlite` file
+  /// for somebody debugging. Swapping them is how a shepherd sends the wrong one
+  /// and cannot restore it.
+  Future<File> writeSnapshot(Directory into) async {
+    final File out = File('${into.path}/shed-book-diagnostics.sqlite');
+    if (out.existsSync()) {
+      out.deleteSync();
+    }
+    await _db.snapshotInto(out.path);
+    return out;
+  }
 
   Future<WriteOutcome> setWeightUnit(WeightUnit unit) =>
       _write(AppSettingsCompanion(weightUnit: Value<String>(unit.key)));

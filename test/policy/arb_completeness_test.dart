@@ -92,10 +92,14 @@ const List<String> kWrittenAhead = <String>[
   // ── 3. A ROW THAT WAS NEVER ADDED TO A SECTION THAT WAS. ──────────────────
   // Each names a line missing from a screen that otherwise ships. A label, not
   // a record: the section works, it just says less than it was written to say.
+  //
+  // **THREE OF THE FIVE ARE GONE.** `settingsDiagnosticsCounts`,
+  // `…ShareLog` and `…ShareSnapshot` now render: `13 §8.5`'s two share rows had
+  // no widget, so `diagnostics_section.dart`'s own header claimed an affordance
+  // the file did not have — *"the only way a problem travels — and it travels
+  // because the shepherd sent it"* — while the log and the records file could
+  // be read on the phone and never got off it.
   'settingsSeasonCapRefused',
-  'settingsDiagnosticsCounts',
-  'settingsDiagnosticsShareLog',
-  'settingsDiagnosticsShareSnapshot',
   'exportFailed',
 
   // ── 4. PHOTOS ARE NOT IN A BACKUP IN THIS VERSION. ────────────────────────

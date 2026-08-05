@@ -93,9 +93,6 @@ const List<String> kWrittenAhead = <String>[
   // tier's own switch reaches for.
   'settingsSeasonCapRefused',
   'fosterBirthDamNote',
-  'detailAssistedBy',
-  'detailPresentationNote',
-  'detailNote',
   'warningImplausibleBirthWeight',
 
   // ── 4. PHOTOS ARE NOT IN A BACKUP IN THIS VERSION. ────────────────────────

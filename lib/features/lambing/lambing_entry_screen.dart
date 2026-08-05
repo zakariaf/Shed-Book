@@ -11,6 +11,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
+import 'package:shed_book/core/ui/components/shed_text_field.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
@@ -292,6 +293,56 @@ class _Regions extends ConsumerWidget {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
             child: Text(AppLocalizations.of(context).detailPresentation, style: text.labelMedium),
+          ),
+          // **THE THREE DETAIL FIELDS, WHICH THE DESIGN SPECIFIES AND NOBODY
+          // BUILT.** `indelible.md §8` screen 4: *"Assistance detail and the
+          // note are text fields with the label above and a dotted rule
+          // below."* `setAssistedBy`, `setPresentationNote` and `setNote` all
+          // existed on the controller and the repository, with tests, and had
+          // no caller — because until `ShedTextField` landed there was no way
+          // to enter free text anywhere in the app.
+          //
+          // **EVERY KEYSTROKE COMMITS.** There is no Save button and no draft:
+          // each `onChanged` is its own write, which is the same contract the
+          // ease buttons and the care checks hold to.
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: ShedTextField(
+              key: const Key('lambing_entry.assisted_by'),
+              label: AppLocalizations.of(context).detailAssistedBy,
+              value: data.lambing.assistedBy,
+              semanticLabel: AppLocalizations.of(context).detailAssistedBy,
+              onChanged: (String? v) => ref
+                  .read(lambingWriteControllerProvider.notifier)
+                  .setAssistedBy(data.lambing.id, v)
+                  .ignore(),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: ShedTextField(
+              key: const Key('lambing_entry.presentation_note'),
+              label: AppLocalizations.of(context).detailPresentationNote,
+              value: data.lambing.presentationNote,
+              semanticLabel: AppLocalizations.of(context).detailPresentationNote,
+              onChanged: (String? v) => ref
+                  .read(lambingWriteControllerProvider.notifier)
+                  .setPresentationNote(data.lambing.id, v)
+                  .ignore(),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: ShedTextField(
+              key: const Key('lambing_entry.note'),
+              label: AppLocalizations.of(context).detailNote,
+              value: data.lambing.note,
+              semanticLabel: AppLocalizations.of(context).detailNote,
+              onChanged: (String? v) => ref
+                  .read(lambingWriteControllerProvider.notifier)
+                  .setNote(data.lambing.id, v)
+                  .ignore(),
+            ),
           ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),

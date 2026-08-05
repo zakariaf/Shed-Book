@@ -125,15 +125,29 @@ class _ShedTextFieldState extends State<ShedTextField> {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Text(widget.label, style: text.labelMedium?.copyWith(color: t.textSecondary)),
+                // **`Flexible`, BECAUSE A LABEL IS A SENTENCE AT 200%.**
+                // `DAYS — READ FROM THE BOTTLE. YOUR ENTRY.` is the longest
+                // label in the app and the one that must not be clipped.
+                // Measured: the bare `Text` overflowed Lambing Entry's row by
+                // 26 to 56 px at textScaler 2.0, and the overflow matrix caught
+                // all six cells on the first run.
+                Flexible(
+                  child: Text(
+                    widget.label,
+                    style: text.labelMedium?.copyWith(color: t.textSecondary),
+                  ),
+                ),
                 if (widget.stamp case final ({ShedStamp stamp, String label}) badge) ...<Widget>[
                   SizedBox(width: t.gapMin / 2),
                   ShedStatusBadge(stamp: badge.stamp, label: badge.label),
                 ],
               ],
             ),
-            SizedBox(
-              height: t.tapIndelible,
+            // **A MINIMUM, NOT A FIXED HEIGHT** (`indelible.md §3.6`: rows grow,
+            // the grid does not move). The value inside is 20 px record face,
+            // which is 40 at 200%, and a fixed 64 px box cannot hold it.
+            ConstrainedBox(
+              constraints: BoxConstraints(minHeight: t.tapIndelible),
               child: Align(
                 alignment: Alignment.bottomLeft,
                 child: TextField(

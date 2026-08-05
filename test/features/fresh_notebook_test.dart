@@ -28,6 +28,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
+import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
 import 'package:shed_book/features/treatments/treatments_screen.dart';
@@ -261,6 +262,53 @@ void main() {
       expect(all, hasLength(1), reason: 'the occupancy was deleted rather than closed');
       expect(all.single.exitedAt, isNotNull);
       expect(all.single.exitReason, 'turned_out');
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('the three lambing detail fields commit every keystroke', (
+    WidgetTester tester,
+  ) async {
+    // **`indelible.md §8` SCREEN 4 SPECIFIES THEM AND NOBODY BUILT THEM**:
+    // *"Assistance detail and the note are text fields with the label above and
+    // a dotted rule below."* `setAssistedBy`, `setPresentationNote` and
+    // `setNote` all existed on the controller AND the repository, with tests,
+    // and had no caller — because until `ShedTextField` there was no way to
+    // enter free text anywhere in the app.
+    //
+    // The assertion is the COLUMN, because *every write commits immediately* is
+    // the claim: no Save button, no draft, each keystroke its own write.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+
+    try {
+      await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
+      await tester.pumpAndSettle();
+
+      for (final ({String key, String typed}) field in <({String key, String typed})>[
+        (key: 'lambing_entry.assisted_by', typed: 'Tom'),
+        (key: 'lambing_entry.presentation_note', typed: 'ropes'),
+        (key: 'lambing_entry.note', typed: 'watch her'),
+      ]) {
+        final Finder f = find.byKey(Key(field.key));
+        await tester.ensureVisible(f);
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.descendant(of: f, matching: find.byType(TextField)),
+          field.typed,
+        );
+        await tester.pumpAndSettle();
+      }
+
+      final Lambing row = await (db.select(
+        db.lambings,
+      )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
+      expect(row.assistedBy, 'Tom');
+      expect(row.presentationNote, 'ropes');
+      expect(row.note, 'watch her');
     } finally {
       await tester.closeApp();
     }

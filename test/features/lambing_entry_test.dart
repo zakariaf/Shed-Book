@@ -22,6 +22,7 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/ui/components/shed_tally.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_text_field.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
@@ -47,6 +48,45 @@ Future<SeasonId> _seedSeason(AppDatabase db) async {
     AppSettingsCompanion(currentSeason: Value<int?>(id)),
   );
   return SeasonId(id);
+}
+
+/// Every `TextField` in the tree sits inside a [ShedTextField].
+///
+/// **THIS REPLACED THREE `expect(find.byType(TextField), findsNothing)` LINES,
+/// AND THE REPLACEMENT IS STRONGER RATHER THAN WEAKER.**
+///
+/// Those three read *there is no text field on this screen at all, which is the
+/// strongest available form of `no placeholder`: a field with no `hintText`
+/// could grow one, and a screen with no field cannot.* That was true while the
+/// screen had no text entry — and it was asserting the absence of an unbuilt
+/// feature as if it were a safety property. `indelible.md §8` screen 4 has
+/// always specified three of them: *"Assistance detail and the note are text
+/// fields with the label above and a dotted rule below."*
+///
+/// The two real properties both survive, and this one assertion holds both:
+///
+/// - **Decision #57** — numeric entry is the keypad or nothing. A raw
+///   `TextField` for a volume or a time fails here.
+/// - **§7.12** — no placeholder. `ShedTextField`'s API has no `hintText`, no
+///   `initialValue` and no `InputDecoration`, and `components_test.dart` asserts
+///   that against its source text. A field that cannot express a placeholder is
+///   a stronger guarantee than a screen that happens to have no field.
+void expectEveryFieldIsOurs(WidgetTester tester) {
+  for (final Element e in find.byType(TextField).evaluate()) {
+    bool ours = false;
+    e.visitAncestorElements((Element a) {
+      if (a.widget is ShedTextField) {
+        ours = true;
+        return false;
+      }
+      return true;
+    });
+    expect(
+      ours,
+      isTrue,
+      reason: 'a raw TextField — decision #57 is the keypad or nothing, and §7.12 has no hint',
+    );
+  }
 }
 
 void main() {
@@ -1041,7 +1081,7 @@ void main() {
     await tester.tap(colostrum);
     await tester.pumpAndSettle();
 
-    expect(find.byType(TextField), findsNothing, reason: 'decision #57 — the keypad or nothing');
+    expectEveryFieldIsOurs(tester);
 
     final Text field = tester.widget<Text>(
       find.descendant(
@@ -1470,7 +1510,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expectEveryFieldIsOurs(tester);
     expect(find.byType(Dialog), findsNothing);
 
     await tester.closeApp();
@@ -1635,9 +1675,10 @@ void main() {
     // has neither". Asserted against the four Material chip types by name.
     //
     // NO PLACEHOLDER: `indelible.md §7.12` — in the dark a grey placeholder is
-    // indistinguishable from an entered value. There is no text field on this
-    // screen at all, which is the strongest available form of that: a field with
-    // no `hintText` could grow one, and a screen with no field cannot.
+    // indistinguishable from an entered value. **Amended 2026-08-05:** this said
+    // *there is no text field on this screen at all*, which was asserting the
+    // absence of an unbuilt feature — §8 screen 4 has always specified three of
+    // them. See `expectEveryFieldIsOurs`.
     final AppDatabase db = testDatabase();
     await _seedSeason(db);
     final EweId ewe = await seedEwe(db, tag: '412');
@@ -1650,7 +1691,7 @@ void main() {
     expect(find.byType(FilterChip), findsNothing);
     expect(find.byType(ActionChip), findsNothing);
     expect(find.byType(InputChip), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    expectEveryFieldIsOurs(tester);
 
     // AND THE UNSET LINE SAYS SKIPPABLE, in as many words, because a shepherd
     // at 03:20 needs to know they may walk away.

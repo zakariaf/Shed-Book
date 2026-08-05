@@ -204,7 +204,21 @@ void main() {
 
     final String source = _declarations(_appFile);
     expect('AccessibilityTools('.allMatches(source).length, 1);
-    expect(source, contains('debugShowAccessibilityTools ? AccessibilityTools('));
+    // **THE WRAP MOVED INTO `MaterialApp.builder` ON 2026-08-05**, and the
+    // shape moved with it: from a ternary around the whole app to a ternary
+    // inside the builder. The property is unchanged — one file, one guard on
+    // `debugShowAccessibilityTools`, compiled out of release — and the reason
+    // for the move is that the old shape put `AccessibilityTools` ABOVE the
+    // `MaterialApp`, where it has no `Directionality` to read.
+    //
+    // Measured on a simulator: every frame threw *"No Directionality widget
+    // found — `_Theater` widgets require a Directionality widget ancestor"*
+    // and the app came up as a wall of red. No test could have caught it,
+    // because every widget test sets that flag false (the package throws on
+    // tear-down), so the one configuration nobody exercised was the one every
+    // developer runs.
+    expect(source, contains('debugShowAccessibilityTools && child != null'));
+    expect(source, contains('AccessibilityTools(child: child)'));
     // The DEFAULT is what makes the release claim true: the flag exists for
     // tests, and every build a human runs takes kDebugMode.
     expect(source, contains('bool debugShowAccessibilityTools = kDebugMode;'));

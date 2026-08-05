@@ -66,7 +66,10 @@ import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.d
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/quick_entry/widgets/export_banner.dart';
+import 'package:shed_book/features/quick_entry/widgets/index_sheet.dart';
+import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/features/quick_entry/widgets/recents_strip.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -192,236 +195,367 @@ class _QuickEntryPage extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: t.surfaceBase,
-      body: Stack(
-        children: <Widget>[
-          // THE SPINE IS THE BOTTOM LAYER, painted behind everything. A spine
-          // assembled per row is a spine with seams, and the seams show under a
-          // head torch at the moment the shepherd is scrolling.
-          const QuickEntrySpine(left: _Grid.marginWidth),
+      // **THE ONE SCREEN WITHOUT A `SafeArea`, AND IT IS THE SCREEN THE WHOLE
+      // PRODUCT IS.** Seen on a simulator on 2026-08-05: the page header drew
+      // UNDER the status bar and behind the Dynamic Island — `NIGHT OF · P`
+      // and then nothing, with the clock printed through it. Every other screen
+      // in `lib/features/` already had one.
+      //
+      // **NO TEST COULD SEE IT.** `pumpApp` passes
+      // `EdgeInsets.only(top: 47, bottom: 34)` as a MediaQuery inset, which is
+      // exactly right — and a widget that ignores the inset lays out and
+      // measures perfectly inside it. The overflow matrix asks *did anything
+      // overflow*, the geometric sweep asks *is anything too small or too
+      // close*; neither asks *is anything underneath the notch*, because that
+      // is not a property of the layout, it is a property of the layout's
+      // relationship to a cut-out the test view does not draw.
+      //
+      // `indelible.md §4.3`'s 393 × 852 grid is the SAFE viewport, and `§4.4`'s
+      // 44 px sticky header is measured from the top of it.
+      body: SafeArea(
+        child: Stack(
+          children: <Widget>[
+            // THE SPINE IS THE BOTTOM LAYER, painted behind everything. A spine
+            // assembled per row is a spine with seams, and the seams show under a
+            // head torch at the moment the shepherd is scrolling.
+            const QuickEntrySpine(left: _Grid.marginWidth),
 
-          Column(
-            children: <Widget>[
-              QuickEntryPageHeader(
-                // The night and page are the record column's, and the column is
-                // T06's. Until then the header renders its own shape at its own
-                // height, which is what the anchor pins.
-                text: l10n.quickEntryPageHeader(night: '', page: 1),
-                height: _Grid.headerHeight,
-              ),
+            Column(
+              children: <Widget>[
+                QuickEntryPageHeader(
+                  // The night and page are the record column's, and the column is
+                  // T06's. Until then the header renders its own shape at its own
+                  // height, which is what the anchor pins.
+                  text: l10n.quickEntryPageHeader(night: '', page: 1),
+                  height: _Grid.headerHeight,
+                ),
 
-              // THE BANNER'S SLOT, above the record column and below the page
-              // header (`07 §16.2`). It renders here and nowhere else.
-              //
-              // **IT IS OUTSIDE THE `Expanded` BELOW**, which is the shrink
-              // order made structural: the record column is what gives when the
-              // banner takes height, and the keypad, the confirm bar and the two
-              // strips never shrink. `06 §8.2` sets that trade one level down —
-              // *"the match list above it gives up rows"* — and this is the same
-              // trade one level up.
-              // The record column takes the remainder, and the remainder is what
-              // gives. That is the design's own answer rather than an invention:
-              // 06 §8.2 says of the keypad growing that "the match list above it
-              // gives up rows". Same trade, one level up — the chrome the thumb
-              // aims at is fixed, the reading surface flexes.
-              //
-              // Its rows share edges — 64 pt, no gaps — because a ruled page has
-              // no gutters.
-              Expanded(
-                child: ClipRect(
-                  child: SingleChildScrollView(
-                    key: const Key('quick_entry.record_column'),
-                    child: Column(
-                      children: <Widget>[
-                        // THE BANNER'S SLOT: the top of the record column, which
-                        // is the reading surface above the tag readout
-                        // (`07 §16.2`) — and, structurally, the one part of this
-                        // screen that already scrolls.
-                        //
-                        // **INSIDE THE SCROLL VIEW AND NOT ABOVE IT**, and that
-                        // is measured rather than preferred. Placed above the
-                        // record column it takes height from a `Column` whose
-                        // other children are fixed, and at textScaler 2.0 on a
-                        // 375 × 667 device it overflowed by **665 pixels** —
-                        // there is no shrink order that survives that, because
-                        // the keypad, the confirm bar and the recents strip may
-                        // never give. Inside, it cannot take height from the
-                        // chrome at all: the banner scrolls, and the thumb
-                        // targets stay exactly where they were.
-                        const ExportBanner(),
-                        for (int i = 0; i < 12; i++)
-                          const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
-                      ],
+                // THE BANNER'S SLOT, above the record column and below the page
+                // header (`07 §16.2`). It renders here and nowhere else.
+                //
+                // **IT IS OUTSIDE THE `Expanded` BELOW**, which is the shrink
+                // order made structural: the record column is what gives when the
+                // banner takes height, and the keypad, the confirm bar and the two
+                // strips never shrink. `06 §8.2` sets that trade one level down —
+                // *"the match list above it gives up rows"* — and this is the same
+                // trade one level up.
+                // The record column takes the remainder, and the remainder is what
+                // gives. That is the design's own answer rather than an invention:
+                // 06 §8.2 says of the keypad growing that "the match list above it
+                // gives up rows". Same trade, one level up — the chrome the thumb
+                // aims at is fixed, the reading surface flexes.
+                //
+                // Its rows share edges — 64 pt, no gaps — because a ruled page has
+                // no gutters.
+                Expanded(
+                  child: ClipRect(
+                    child: SingleChildScrollView(
+                      key: const Key('quick_entry.record_column'),
+                      child: Column(
+                        children: <Widget>[
+                          // THE BANNER'S SLOT: the top of the record column, which
+                          // is the reading surface above the tag readout
+                          // (`07 §16.2`) — and, structurally, the one part of this
+                          // screen that already scrolls.
+                          //
+                          // **INSIDE THE SCROLL VIEW AND NOT ABOVE IT**, and that
+                          // is measured rather than preferred. Placed above the
+                          // record column it takes height from a `Column` whose
+                          // other children are fixed, and at textScaler 2.0 on a
+                          // 375 × 667 device it overflowed by **665 pixels** —
+                          // there is no shrink order that survives that, because
+                          // the keypad, the confirm bar and the recents strip may
+                          // never give. Inside, it cannot take height from the
+                          // chrome at all: the banner scrolls, and the thumb
+                          // targets stay exactly where they were.
+                          const ExportBanner(),
+                          for (int i = 0; i < 12; i++)
+                            const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              // The deck's two strips. T06 fills them; the sizes are final now,
-              // which is what makes frame 1 and frame 2 identical.
-              //
-              // **THE IN-PENS STRIP IS THE SECOND THING THAT GIVES**, and only
-              // when the export banner is up. `07 §16.2` fixes the shrink order
-              // — the filtered-match list loses a row, then this strip — and the
-              // keypad, the confirm bar and the recents strip never shrink.
-              //
-              // The `Flexible` stays from N21-T08's first attempt even though the
-              // banner no longer needs it: the record column reaches zero on a
-              // 375 × 667 device before anything is added, so a strip that
-              // cannot give is a strip that overflows the day anything else
-              // does. It costs nothing while nothing needs it.
-              const Flexible(child: InPensStrip(height: _Grid.stripHeight)),
-              const RecentsStrip(height: _Grid.stripHeight),
+                // The deck's two strips. T06 fills them; the sizes are final now,
+                // which is what makes frame 1 and frame 2 identical.
+                //
+                // **THE IN-PENS STRIP IS THE SECOND THING THAT GIVES**, and only
+                // when the export banner is up. `07 §16.2` fixes the shrink order
+                // — the filtered-match list loses a row, then this strip — and the
+                // keypad, the confirm bar and the recents strip never shrink.
+                //
+                // The `Flexible` stays from N21-T08's first attempt even though the
+                // banner no longer needs it: the record column reaches zero on a
+                // 375 × 667 device before anything is added, so a strip that
+                // cannot give is a strip that overflows the day anything else
+                // does. It costs nothing while nothing needs it.
+                const Flexible(child: InPensStrip(height: _Grid.stripHeight)),
+                const RecentsStrip(height: _Grid.stripHeight),
 
-              QuickEntryBottomBand(
-                indexLabel: l10n.quickEntryIndex,
-                slabLabel: l10n.quickEntrySlabTagFirst,
-                onIndex: () {},
-                onSlab: () {},
-                bandHeight: _Grid.bandHeight,
-                indexWidth: _Grid.indexWidth,
-                indexHeight: _Grid.indexHeight,
-                slabWidth: _Grid.slabWidth,
-                slabHeight: _Grid.slabHeight,
-              ),
-            ],
-          ),
+                QuickEntryBottomBand(
+                  indexLabel: l10n.quickEntryIndex,
+                  slabLabel: l10n.quickEntrySlabTagFirst,
+                  // **THIS WAS `() {}` AND IT MADE THE APP A SINGLE SCREEN.**
+                  // Flock, the pens, the medicine book, Export and Settings
+                  // were all built, all tested, all in the matrix — and
+                  // unreachable. `indelible.md §7.17`: `INDEX` opens the index.
+                  onIndex: () => _openIndex(context, l10n),
+                  onSlab: () {},
+                  bandHeight: _Grid.bandHeight,
+                  indexWidth: _Grid.indexWidth,
+                  indexHeight: _Grid.indexHeight,
+                  slabWidth: _Grid.slabWidth,
+                  slabHeight: _Grid.slabHeight,
+                ),
+              ],
+            ),
 
-          // THE ENTRY SHEET, OPEN ON FRAME 1. See the ruling in this file's
-          // header. It overlays the band rather than pushing it, because a sheet
-          // that moved the slab would move the one target the shepherd aims at
-          // without looking.
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: ColoredBox(
-              color: t.surfaceRaised,
-              child: Column(
-                key: const Key('quick_entry.entry_sheet'),
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  // THE LIVE ROW LIVES AT THE TOP OF THE SHEET, AND THAT IS A CORRECTION
-                  // MEASURED AT N14-T05. As a sibling of the bottom band it was
-                  // COVERED by the sheet — the hit test landed on the sheet's own
-                  // background, which means the shepherd could neither see the
-                  // receipt nor press the strike word. indelible §8's whole claim
-                  // is "you can see it, in ink, one line above the one being
-                  // written", and a row under an opaque sheet is not one line
-                  // above anything.
-                  //
-                  // It is still a FIXED LAYER, NOT A SCROLLING CHILD, and this
-                  // task owns that correction. indelible.html:1138 puts it inside the
-                  // scrolling stream, so the open row scrolls away — the audit
-                  // block's Indelible artefact defect 1. The corrected rule is that
-                  // it is welded above the bottom band, and the reason is the
-                  // mechanism §8 describes: "you can see it, in ink, one line above."
-                  // A row you have to scroll to find is not a receipt.
-                  SizedBox(
-                    key: const Key('quick_entry.live_row'),
-                    height: _Grid.liveRowHeight,
-                    child: Row(
-                      children: <Widget>[
-                        QuickEntryMarginCell(
-                          time: '',
-                          stampAuto: l10n.quickEntryStampAuto,
-                          width: _Grid.marginWidth,
-                          height: _Grid.rowHeight,
-                        ),
-                        // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY. It reads
-                        // the scope rather than watching a provider, because a
-                        // feedback function has a BuildContext and no WidgetRef.
-                        Expanded(
-                          child: ValueListenableBuilder<SaveReceipt?>(
-                            valueListenable: ShedReceiptScope.of(context),
-                            builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
-                                receipt == null
-                                ? const SizedBox.expand()
-                                : _StrikeAffordance(receipt: receipt),
+            // THE ENTRY SHEET, OPEN ON FRAME 1. See the ruling in this file's
+            // header. It overlays the band rather than pushing it, because a sheet
+            // that moved the slab would move the one target the shepherd aims at
+            // without looking.
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ColoredBox(
+                color: t.surfaceRaised,
+                child: Column(
+                  key: const Key('quick_entry.entry_sheet'),
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    // THE LIVE ROW LIVES AT THE TOP OF THE SHEET, AND THAT IS A CORRECTION
+                    // MEASURED AT N14-T05. As a sibling of the bottom band it was
+                    // COVERED by the sheet — the hit test landed on the sheet's own
+                    // background, which means the shepherd could neither see the
+                    // receipt nor press the strike word. indelible §8's whole claim
+                    // is "you can see it, in ink, one line above the one being
+                    // written", and a row under an opaque sheet is not one line
+                    // above anything.
+                    //
+                    // It is still a FIXED LAYER, NOT A SCROLLING CHILD, and this
+                    // task owns that correction. indelible.html:1138 puts it inside the
+                    // scrolling stream, so the open row scrolls away — the audit
+                    // block's Indelible artefact defect 1. The corrected rule is that
+                    // it is welded above the bottom band, and the reason is the
+                    // mechanism §8 describes: "you can see it, in ink, one line above."
+                    // A row you have to scroll to find is not a receipt.
+                    SizedBox(
+                      key: const Key('quick_entry.live_row'),
+                      height: _Grid.liveRowHeight,
+                      child: Row(
+                        children: <Widget>[
+                          QuickEntryMarginCell(
+                            time: '',
+                            stampAuto: l10n.quickEntryStampAuto,
+                            width: _Grid.marginWidth,
+                            height: _Grid.rowHeight,
                           ),
-                        ),
-                      ],
+                          // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY. It reads
+                          // the scope rather than watching a provider, because a
+                          // feedback function has a BuildContext and no WidgetRef.
+                          Expanded(
+                            child: ValueListenableBuilder<SaveReceipt?>(
+                              valueListenable: ShedReceiptScope.of(context),
+                              builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
+                                  receipt == null
+                                  ? const SizedBox.expand()
+                                  : _StrikeAffordance(receipt: receipt),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
-                  // the keypad is fully usable before the database has opened,
-                  // because it watches nothing and needs nothing.
-                  ShedKeypad(
-                    // WIRED HERE, and it was a stub until N14-T06 found it. The
-                    // budget test is what noticed: with a no-op onDigit the query
-                    // never fills, so the confirm bar renders nothing and tap 4
-                    // lands on empty space. A screen test that only asserted
-                    // "the keypad is present" would never have caught it.
-                    onDigit: (String d) =>
-                        ref.read(quickEntryControllerProvider.notifier).appendDigit(d),
-                    onBackspace: () => ref.read(quickEntryControllerProvider.notifier).backspace(),
-                    thirdKey: ShedKeypadThirdKey.newTag,
-                    // The third key clears the selection and starts a fresh tag:
-                    // "new tag" at 03:20 means the animal in front of you is not
-                    // the one on screen.
-                    onThirdKey: () =>
-                        ref.read(quickEntryControllerProvider.notifier).clearSelection(),
-                    padLabel: l10n.keypadTagEntry,
-                    backspaceLabel: l10n.keypadBackspace,
-                    backspaceHint: l10n.hintDeleteLastDigit,
-                    thirdKeyLabel: l10n.keypadNewTag,
-                  ),
-                  // THE LAMBING EVENT BUTTON, in the confirm slot the shell
-                  // reserved. It is the product's central write: the tap commits
-                  // the row BEFORE any screen is pushed, which is why the label
-                  // names the event rather than an intention.
-                  //
-                  // N16 pushes LambingEntryScreen from the outcome's id. There
-                  // is no route helper for a screen that does not exist yet.
-                  // THE CONFIRM BAR AND THE EVENT BUTTON ARE TWO CONTROLS, and
-                  // T06's budget is what says so: tap 4 confirms WHICH animal,
-                  // tap 5 commits WHAT happened. Merging them would read as four
-                  // taps and would mean the shepherd cannot see which ewe they
-                  // are about to file a lambing against before they file it.
-                  //
-                  // Labelled with the OUTCOME — "Use 412" / "Create 412" — never
-                  // a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to
-                  // remember what they were confirming.
-                  SizedBox(
-                    key: const Key('quick_entry.confirm'),
-                    height: t.tapHero,
-                    width: double.infinity,
-                    child: _ConfirmBar(),
-                  ),
+                    // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
+                    // the keypad is fully usable before the database has opened,
+                    // because it watches nothing and needs nothing.
+                    ShedKeypad(
+                      // WIRED HERE, and it was a stub until N14-T06 found it. The
+                      // budget test is what noticed: with a no-op onDigit the query
+                      // never fills, so the confirm bar renders nothing and tap 4
+                      // lands on empty space. A screen test that only asserted
+                      // "the keypad is present" would never have caught it.
+                      onDigit: (String d) =>
+                          ref.read(quickEntryControllerProvider.notifier).appendDigit(d),
+                      onBackspace: () =>
+                          ref.read(quickEntryControllerProvider.notifier).backspace(),
+                      thirdKey: ShedKeypadThirdKey.newTag,
+                      // The third key clears the selection and starts a fresh tag:
+                      // "new tag" at 03:20 means the animal in front of you is not
+                      // the one on screen.
+                      onThirdKey: () =>
+                          ref.read(quickEntryControllerProvider.notifier).clearSelection(),
+                      padLabel: l10n.keypadTagEntry,
+                      backspaceLabel: l10n.keypadBackspace,
+                      backspaceHint: l10n.hintDeleteLastDigit,
+                      thirdKeyLabel: l10n.keypadNewTag,
+                    ),
+                    // THE LAMBING EVENT BUTTON, in the confirm slot the shell
+                    // reserved. It is the product's central write: the tap commits
+                    // the row BEFORE any screen is pushed, which is why the label
+                    // names the event rather than an intention.
+                    //
+                    // N16 pushes LambingEntryScreen from the outcome's id. There
+                    // is no route helper for a screen that does not exist yet.
+                    // THE CONFIRM BAR AND THE EVENT BUTTON ARE TWO CONTROLS, and
+                    // T06's budget is what says so: tap 4 confirms WHICH animal,
+                    // tap 5 commits WHAT happened. Merging them would read as four
+                    // taps and would mean the shepherd cannot see which ewe they
+                    // are about to file a lambing against before they file it.
+                    //
+                    // Labelled with the OUTCOME — "Use 412" / "Create 412" — never
+                    // a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to
+                    // remember what they were confirming.
+                    SizedBox(
+                      key: const Key('quick_entry.confirm'),
+                      height: t.tapHero,
+                      width: double.infinity,
+                      child: _ConfirmBar(),
+                    ),
 
-                  SizedBox(
-                    key: const Key('quick_entry.event'),
-                    height: t.tapHero,
-                    width: double.infinity,
-                    child: ShedTapTarget(
-                      key: const Key('quick_entry.event.lambing'),
-                      semanticLabel: l10n.quickEntryLambing,
-                      minSize: t.tapHero,
-                      onTap: () {
-                        final EweId? selected = ref.read(quickEntryControllerProvider).selected;
-                        if (selected == null) {
-                          return;
-                        }
-                        ref
-                            .read(quickEntryWriteControllerProvider.notifier)
-                            .beginLambing(selected)
-                            .ignore();
-                      },
-                      child: ExcludeSemantics(
-                        child: Center(
-                          child: Text(
-                            l10n.quickEntryLambing,
-                            style: Theme.of(context).textTheme.labelLarge,
+                    // **`INDEX` LIVES IN THE SHEET, AND THAT IS A CORRECTION
+                    // MADE ON A SIMULATOR RATHER THAN A PREFERENCE.**
+                    //
+                    // `indelible.md §7.17` pins it bottom-left of the BAND —
+                    // and the band is 152 px sitting under an opaque sheet that
+                    // is open on frame 1, so `INDEX` and the corner slab were
+                    // painted over on every frame this app has ever drawn.
+                    // Measured: from Quick Entry a shepherd could reach Flock,
+                    // the pens, the medicine book, Export and Settings — not one
+                    // of them.
+                    //
+                    // Moving the sheet up by the band's height was tried first
+                    // and is worse: the sheet is nearly full height, so its top
+                    // then covered the page header. The band's geometry is
+                    // `07 §16`'s and not this session's to re-cut.
+                    //
+                    // So the affordance goes where the thumb already is. It is
+                    // still bottom-left of what is on screen, which is what
+                    // §4.5's reach rule is about, and the slab does not move.
+                    SizedBox(
+                      key: const Key('quick_entry.index'),
+                      height: t.tapIndelible,
+                      width: double.infinity,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: ShedTapTarget(
+                          key: const Key('quick_entry.index.open'),
+                          semanticLabel: l10n.quickEntryIndex,
+                          minSize: t.tapIndelible,
+                          onTap: () => _openIndex(context, l10n),
+                          child: ExcludeSemantics(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                              child: Text(
+                                l10n.quickEntryIndex,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  SizedBox(height: MediaQuery.paddingOf(context).bottom),
-                ],
+
+                    SizedBox(
+                      key: const Key('quick_entry.event'),
+                      height: t.tapHero,
+                      width: double.infinity,
+                      child: ShedTapTarget(
+                        key: const Key('quick_entry.event.lambing'),
+                        semanticLabel: l10n.quickEntryLambing,
+                        minSize: t.tapHero,
+                        onTap: () {
+                          final EweId? selected = ref.read(quickEntryControllerProvider).selected;
+                          if (selected == null) {
+                            return;
+                          }
+                          ref
+                              .read(quickEntryWriteControllerProvider.notifier)
+                              .beginLambing(selected)
+                              .ignore();
+                        },
+                        child: ExcludeSemantics(
+                          child: Center(
+                            child: Text(
+                              l10n.quickEntryLambing,
+                              style: Theme.of(context).textTheme.labelLarge,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: MediaQuery.paddingOf(context).bottom),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// `§7.17`'s index, from either affordance.
+  ///
+  /// **ONE METHOD, TWO CALL SITES**, because the band's `INDEX` and the sheet's
+  /// are the same act — and two copies of a six-destination list is one that
+  /// stops agreeing the first time a screen is added.
+  void _openIndex(BuildContext context, AppLocalizations l10n) {
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.indexClose,
+        dismissSemanticLabel: l10n.indexCloseHint,
+        barrierLabel: l10n.quickEntryIndex,
+        child: IndexSheet(
+          lines: <IndexLine>[
+            // **TONIGHT HAS NO DESTINATION**, and that is not an
+            // omission: the shepherd is already on it, so the
+            // line closes the sheet. `IndexSheet` supplies that.
+            (id: 'tonight', label: l10n.indexTonight, onTap: null),
+            (
+              id: 'flock',
+              label: l10n.indexFlock,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(Routes.flock(context));
+              },
+            ),
+            (
+              id: 'pens',
+              label: l10n.indexPens,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(Routes.penBoard(context));
+              },
+            ),
+            (
+              id: 'medicine_book',
+              label: l10n.indexMedicineBook,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(Routes.treatments(context));
+              },
+            ),
+            (
+              id: 'export',
+              label: l10n.indexExport,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(Routes.export(context));
+              },
+            ),
+            (
+              id: 'settings',
+              label: l10n.indexSettings,
+              onTap: () {
+                Navigator.of(context).pop();
+                unawaited(Routes.settings(context));
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

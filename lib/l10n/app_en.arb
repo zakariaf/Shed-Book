@@ -303,6 +303,38 @@
   "@quickEntryIndex": {
     "description": "The bottom-left navigation anchor, 96x64. It is the ONLY navigation affordance in the app — P3's affordance half went to indelible.md, so there is no back chevron anywhere (decision record §7.0a). Capitals because it is the control voice."
   },
+  "indexTonight": "TONIGHT",
+  "@indexTonight": {
+    "description": "indelible.md §7.17 line 1. Quick Entry, named for what it is rather than for the screen — the shepherd is already on it, and the line closes the sheet."
+  },
+  "indexFlock": "FLOCK",
+  "@indexFlock": {
+    "description": "§7.17 line 2. Every animal, in one list — the screen a shepherd opens in year two to ask what 412 did last year."
+  },
+  "indexPens": "THE PENS",
+  "@indexPens": {
+    "description": "§7.17 line 3. `THE PENS` and not `PEN BOARD`: the shepherd is going to the pens, not to a board."
+  },
+  "indexMedicineBook": "MEDICINE BOOK",
+  "@indexMedicineBook": {
+    "description": "§7.17 line 4. The word `treatments` is the code's; `MEDICINE BOOK` is what a shepherd calls the thing they show an inspector."
+  },
+  "indexExport": "EXPORT",
+  "@indexExport": {
+    "description": "indelible.md §7.17 line 7. It pushes Export rather than exporting: the index is a map of the book, and a line that DID something would be the one line in it that is not a place."
+  },
+  "indexSettings": "SETTINGS",
+  "@indexSettings": {
+    "description": "§7.17 line 8, and the last. It is the only line the design draws with no summary beside it, because there is no count to give — settings are settings."
+  },
+  "indexClose": "CLOSE",
+  "@indexClose": {
+    "description": "The index sheet's dismiss word."
+  },
+  "indexCloseHint": "Close the index",
+  "@indexCloseHint": {
+    "description": "Spoken hint on the index sheet's dismiss target."
+  },
   "quickEntrySlabTagFirst": "Tag first",
   "@quickEntrySlabTagFirst": {
     "description": "The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1)."

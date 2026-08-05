@@ -12,6 +12,9 @@ import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/lambing/foster_screen.dart';
 import 'package:shed_book/features/lambing/lamb_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/features/flock/flock_screen.dart';
+import 'package:shed_book/features/pens/pen_board_screen.dart';
+import 'package:shed_book/features/treatments/treatments_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
 
 /// Every route name that can appear in the diagnostics log. Route name is one of
@@ -200,4 +203,27 @@ abstract final class Routes {
   static Future<void> export(BuildContext context) => Navigator.of(
     context,
   ).push(route(RouteNames.export, (BuildContext _) => const ExportScreen()));
+
+  // **THREE SCREENS HAD NO PUSH HELPER AT ALL**, added 2026-08-05 after the app
+  // was run on a simulator and **nothing could be reached from Quick Entry**.
+  // Flock, the pen board and the medicine book each had a `RouteNames` constant,
+  // a built screen, a matrix variant and a full test file — and no way in.
+  //
+  // The reachability sweep that closed thirty-seven repository verbs never
+  // looked at routes, which is the same defect one level up: a screen nothing
+  // pushes is a screen nobody sees, and every test pumps it directly.
+
+  /// The flock list. **No argument** — it reads the current season itself.
+  static Future<void> flock(BuildContext context) =>
+      Navigator.of(context).push(route(RouteNames.flock, (BuildContext _) => const FlockScreen()));
+
+  /// The pen board.
+  static Future<void> penBoard(BuildContext context) => Navigator.of(
+    context,
+  ).push(route(RouteNames.penBoard, (BuildContext _) => const PenBoardScreen()));
+
+  /// The medicine book, both modes.
+  static Future<void> treatments(BuildContext context) => Navigator.of(
+    context,
+  ).push(route(RouteNames.treatments, (BuildContext _) => const TreatmentsScreen()));
 }

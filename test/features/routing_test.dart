@@ -94,12 +94,26 @@ void main() {
     // at N27-T01 — one per screen epic, exactly as the rule above describes. The
     // number is asserted rather than the shape, because "at least one" would let
     // twelve land in a single commit for screens that do not exist.
+    //
+    // **SIX BECAME NINE ON 2026-08-05, AND THE THREE THAT ARRIVED TOGETHER ARE
+    // THE EXCEPTION THIS RULE'S OWN WORDING WARNS ABOUT** — *never twelve at
+    // once for screens that do not exist*. These three exist. Flock, the pen
+    // board and the medicine book were each built, tested, given a matrix
+    // variant, and had **no push helper at all**, so nothing could reach them.
+    //
+    // Found by running the app on a simulator: from Quick Entry a shepherd
+    // could reach none of the eleven screens. `INDEX` was `onTap: () {}` and
+    // the only route out of the first screen was the export banner, which shows
+    // on about one day in thirty. It is the reachability defect that closed
+    // thirty-seven repository verbs, one level up — and the sweep that found
+    // those never looked at routes.
     expect(
       '.push('.allMatches(declarations).length,
-      6,
+      9,
       reason:
           'lambingEntry (N16-T01), lambCard (N17-T01), foster (N18-T02), '
-          'export (N21), eweCard (N27-T01), settings (N29-T01). '
+          'export (N21), eweCard (N27-T01), settings (N29-T01), and '
+          'flock, penBoard, treatments — the three that had no way in at all. '
           'Quick Entry is home: and is never pushed',
     );
     expect(declarations, contains('popToQuickEntry'));
@@ -109,14 +123,23 @@ void main() {
     expect(declarations, contains('static Future<void> eweCard('));
     expect(declarations, contains('static Future<void> settings('));
 
-    // The arithmetic 12 §6.2 will assert at N33 — thirteen names minus twelve
-    // helpers equals one — is still not written here, because it is still not
-    // true: seven screens remain, and P15 moves three of them to v1.1.0 —
-    // Reminders, Season Summary and Note Search (docs/RELEASE-SCOPE.md §5.4).
+    // **THE THREE THAT HAD NO HELPER AT ALL**, added 2026-08-05.
+    expect(declarations, contains('static Future<void> flock('));
+    expect(declarations, contains('static Future<void> penBoard('));
+    expect(declarations, contains('static Future<void> treatments('));
+
+    // **NINE, AND THAT IS EVERY `v1.0.0` SCREEN THAT IS PUSHED.** Thirteen
+    // names, minus Quick Entry (`MaterialApp.home`, never pushed) and minus
+    // P15's three `v1.1.0` screens — Reminders, Season Summary and Note Search
+    // — leaves nine, and all nine now have a way in.
+    //
+    // It was six, and the missing three were not a gap in this table: they were
+    // three built and tested screens nothing could reach. Found by running the
+    // app rather than by any test here, which is the point worth keeping.
     expect(
       RegExp(r'static Future<void> \w+\(').allMatches(declarations).length,
-      6,
-      reason: 'six screens exist to push to; N33-T01 asserts the final count',
+      9,
+      reason: '13 names − Quick Entry − P15\'s three v1.1.0 screens = 9, and all nine push',
     );
   });
 

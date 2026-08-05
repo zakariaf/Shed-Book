@@ -488,6 +488,54 @@ abstract class AppLocalizations {
   /// **'INDEX'**
   String get quickEntryIndex;
 
+  /// indelible.md §7.17 line 1. Quick Entry, named for what it is rather than for the screen — the shepherd is already on it, and the line closes the sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'TONIGHT'**
+  String get indexTonight;
+
+  /// §7.17 line 2. Every animal, in one list — the screen a shepherd opens in year two to ask what 412 did last year.
+  ///
+  /// In en, this message translates to:
+  /// **'FLOCK'**
+  String get indexFlock;
+
+  /// §7.17 line 3. `THE PENS` and not `PEN BOARD`: the shepherd is going to the pens, not to a board.
+  ///
+  /// In en, this message translates to:
+  /// **'THE PENS'**
+  String get indexPens;
+
+  /// §7.17 line 4. The word `treatments` is the code's; `MEDICINE BOOK` is what a shepherd calls the thing they show an inspector.
+  ///
+  /// In en, this message translates to:
+  /// **'MEDICINE BOOK'**
+  String get indexMedicineBook;
+
+  /// indelible.md §7.17 line 7. It pushes Export rather than exporting: the index is a map of the book, and a line that DID something would be the one line in it that is not a place.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPORT'**
+  String get indexExport;
+
+  /// §7.17 line 8, and the last. It is the only line the design draws with no summary beside it, because there is no count to give — settings are settings.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get indexSettings;
+
+  /// The index sheet's dismiss word.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get indexClose;
+
+  /// Spoken hint on the index sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the index'**
+  String get indexCloseHint;
+
   /// The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1).
   ///
   /// In en, this message translates to:

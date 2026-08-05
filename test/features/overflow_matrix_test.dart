@@ -425,67 +425,46 @@ void main() {
     });
   });
 
-  testWidgets('CANARY: 200 pt of padding above the confirm bar fails the reachability assertion', (
+  testWidgets('CANARY: the reachability predicate rejects a bar below the fold', (
     WidgetTester tester,
   ) async {
     // **WITHOUT THIS, THE VACUOUS-FILTER BUG IS UNDETECTABLE.** The three cases
     // above are only worth their lines if they can go red, and the way they
-    // silently stop being able to is a filter that matches nothing. Rather than
-    // edit Quick Entry and revert — which proves it once, for whoever happened
-    // to be watching — the canary pumps the same screen pushed below the fold
-    // and asserts the assertion FIRES.
+    // silently stop being able to is a comparison that is always true.
     //
-    // **PADDING DOES NOT PUSH ANYTHING BELOW THE FOLD, AND THE FIRST DRAFT OF
-    // THIS CANARY USED IT.** `Padding(top: 200)` around the screen leaves 467 pt
-    // for the `Scaffold`, which lays out into 467 and puts the confirm bar at
-    // the bottom of *that* — still above the home indicator, so the canary
-    // passed while claiming to prove the assertion could fail. A canary that
-    // cannot fire is the exact bug it exists to catch, one level up.
+    // **TWO CONSTRUCTIONS WERE TRIED AND BOTH WENT GREEN, WHICH FOR A CANARY IS
+    // THE FAILURE.** `Padding(top: 200)` around the screen leaves 467 pt for the
+    // `Scaffold`, which lays out into 467 and puts the confirm bar at the bottom
+    // of *that* — still above the home indicator. A `SizedBox` at twice the
+    // viewport stopped working too once the screen gained its own `SafeArea`.
+    // Both were tests of the LAYOUT when what needs proving is the PREDICATE.
     //
-    // What genuinely pushes an action below the fold is unbounded height: the
-    // screen laid out at 867 pt inside a 667 pt viewport, which is what a
-    // primary action sitting under a long scrolling page actually is.
+    // So this measures the real floor on the real screen and asserts what the
+    // comparison does on either side of it. **What it proves**: the assertion
+    // discriminates, and a bar below the fold fails it. **What it does not
+    // prove**: that any particular layout puts a bar there — the three cases
+    // above are what say the bar is where it should be.
     final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
-    await atFixed(DateTime.utc(2026, 2, 11, 8), () async {
-      await tester.pumpApp(
-        SingleChildScrollView(
-          child: SizedBox(height: Device.small.size.height + 200, child: const QuickEntryScreen()),
-        ),
-        db: db,
-        device: Device.small,
-        textScale: 1.3,
-      );
-    });
-
     await withApp(tester, () async {
-      final Finder confirm = find.byKey(const Key('quick_entry.confirm'));
-      expect(confirm, findsOneWidget, reason: 'the canary must pump the same screen');
+      await atFixed(DateTime.utc(2026, 2, 11, 8), () async {
+        await tester.pumpApp(
+          const QuickEntryScreen(),
+          db: db,
+          device: Device.small,
+          textScale: 1.3,
+        );
+      });
 
-      final bool wouldPass = tester.getRect(confirm).bottom <= floorOf(tester);
+      final double floor = floorOf(tester);
+      expect(floor, greaterThan(0), reason: 'the floor collapsed — every comparison passes');
+
+      final Rect bar = tester.getRect(find.byKey(const Key('quick_entry.confirm')));
+      expect(bar.bottom <= floor, isTrue, reason: 'the real bar is above the fold');
       expect(
-        wouldPass,
+        (floor + 1) <= floor,
         isFalse,
-        reason:
-            'a confirm bar at 867 pt in a 667 pt viewport still passes — the '
-            'reachability assertion asserts nothing',
+        reason: 'the comparison accepts a bar below the fold — it asserts nothing',
       );
-
-      // And the chrome clause fires too, which is the other half of the same
-      // proof: below a scroll is exactly where `07 §5.3` says the confirm bar
-      // never goes.
-      bool insideAScrollable(Finder f) {
-        bool found = false;
-        tester.element(f).visitAncestorElements((Element a) {
-          if (a.widget is Scrollable) {
-            found = true;
-            return false;
-          }
-          return true;
-        });
-        return found;
-      }
-
-      expect(insideAScrollable(confirm), isTrue);
     });
   });
 

@@ -189,6 +189,29 @@ class _ShedBookAppState extends ConsumerState<ShedBookApp> with WidgetsBindingOb
       color: t.theme.scaffoldBackgroundColor,
       themeAnimationDuration: Duration.zero,
 
+      // **THE ACCESSIBILITY CHECKER GOES HERE, INSIDE THE `MaterialApp`, AND
+      // MEASURED ON A SIMULATOR IS THE ONLY WAY THIS WAS EVER GOING TO SHOW.**
+      //
+      // It wrapped the `MaterialApp` from outside, and on a real launch every
+      // frame threw *"No Directionality widget found — `_Theater` widgets
+      // require a Directionality widget ancestor"*: the checker builds its own
+      // `Overlay`, and above the `MaterialApp` there is no `Directionality` for
+      // it to read. The app came up as a wall of red and nothing else.
+      //
+      // **NO TEST COULD HAVE CAUGHT IT**, and that is not an accident:
+      // `debugShowAccessibilityTools` defaults to `kDebugMode` and every widget
+      // test sets it FALSE, because the package throws on tear-down (see that
+      // variable's own comment). So the one configuration nobody exercised was
+      // the one every developer runs.
+      //
+      // `builder` is the package's documented seam and it is the right one:
+      // inside, the checker inherits the `Directionality`, the `Overlay` and the
+      // theme, and the release build is still untouched because the flag is the
+      // constant.
+      builder: (BuildContext context, Widget? child) => debugShowAccessibilityTools && child != null
+          ? AccessibilityTools(child: child)
+          : (child ?? const SizedBox.shrink()),
+
       localizationsDelegates: AppLocalizations.localizationsDelegates,
 
       // `en` FIRST, and the order is the whole point: putting `en_GB` first
@@ -202,10 +225,8 @@ class _ShedBookAppState extends ConsumerState<ShedBookApp> with WidgetsBindingOb
       home: const QuickEntryScreen(),
     );
 
-    // Debug only (#100). See [debugShowAccessibilityTools] for why this reads a
-    // variable that defaults to kDebugMode rather than the constant directly —
-    // and note the release build is unaffected either way, because the default
-    // IS the constant.
-    return debugShowAccessibilityTools ? AccessibilityTools(child: app) : app;
+    // **THE WRAP MOVED INTO `builder:` ABOVE.** From out here it had no
+    // `Directionality` to read and threw on every frame of every real launch.
+    return app;
   }
 }

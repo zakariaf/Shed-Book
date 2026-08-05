@@ -231,6 +231,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quickEntryIndex => 'INDEX';
 
   @override
+  String get indexTonight => 'TONIGHT';
+
+  @override
+  String get indexFlock => 'FLOCK';
+
+  @override
+  String get indexPens => 'THE PENS';
+
+  @override
+  String get indexMedicineBook => 'MEDICINE BOOK';
+
+  @override
+  String get indexExport => 'EXPORT';
+
+  @override
+  String get indexSettings => 'SETTINGS';
+
+  @override
+  String get indexClose => 'CLOSE';
+
+  @override
+  String get indexCloseHint => 'Close the index';
+
+  @override
   String get quickEntrySlabTagFirst => 'Tag first';
 
   @override

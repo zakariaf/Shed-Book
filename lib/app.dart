@@ -9,12 +9,15 @@
 // ignore: depend_on_referenced_packages
 import 'package:accessibility_tools/accessibility_tools.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/time/ticker.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/data/media_sweeper.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
@@ -94,7 +97,34 @@ class _ShedBookAppState extends ConsumerState<ShedBookApp> with WidgetsBindingOb
     // rather than as an unhandled future.
     WidgetsBinding.instance.addPostFrameCallback((Duration _) {
       ref.read(databaseProvider.future).ignore();
+      _sweepMedia();
     });
+  }
+
+  /// **THE TWO MEDIA SWEEPS, WHICH HAD NO CALLER ANYWHERE.**
+  ///
+  /// `MediaSweeper` landed at N23-T03 with its own tests and `04 §5.3` says
+  /// exactly when to run it — *never before the first frame, once per launch,
+  /// once after a restore* — and N23-T03's own file list names this call site.
+  /// It was never written, so a restored notebook carried rows pointing at
+  /// files that are not on this phone and files no row points at, both
+  /// invisible, indefinitely.
+  ///
+  /// **NEITHER SWEEP DELETES ANYTHING** (`04 §4.8`). `sweepMissingFiles` sets
+  /// `missing_since` on a row whose file is gone and CLEARS it when the file
+  /// comes back — a photo on a card that was out is not a photo that is lost.
+  /// `sweepOrphanFiles` moves a file no row points at into `.trash/<date>/`,
+  /// where a shepherd can still find it.
+  ///
+  /// **AFTER THE FIRST FRAME AND AWAITED IN ORDER.** Missing first: it is a
+  /// database pass and cheap, and it decides which paths are referenced before
+  /// the orphan walk reads them.
+  void _sweepMedia() {
+    unawaited(() async {
+      final MediaSweeper sweeper = await ref.read(mediaSweeperProvider.future);
+      await sweeper.sweepMissingFiles();
+      await sweeper.sweepOrphanFiles();
+    }());
   }
 
   @override

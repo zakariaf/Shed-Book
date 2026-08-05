@@ -27,6 +27,7 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/ui/components/shed_primary_button.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -90,7 +91,13 @@ class TreatmentsScreen extends ConsumerWidget {
     final List<Widget> lines = mode == TreatmentMode.countdown
         ? _countdownLines(rows, now: now, today: today, locale: locale, l10n: l10n)
         : <Widget>[
-            for (final TreatmentRow row in rows) _BookLine(row: row, locale: locale, l10n: l10n),
+            for (final TreatmentRow row in rows)
+              _BookLine(
+                row: row,
+                locale: locale,
+                l10n: l10n,
+                onVoid: () => ref.read(treatmentRepositoryProvider).voidTreatment(row.id).ignore(),
+              ),
           ];
 
     return Scaffold(
@@ -511,11 +518,17 @@ class _CountdownLine extends StatelessWidget {
 /// words, and the split is exactly §12.1's: *nothing applies* is something
 /// somebody read, *not recorded* is nobody having looked.
 class _BookLine extends StatelessWidget {
-  const _BookLine({required this.row, required this.locale, required this.l10n});
+  const _BookLine({
+    required this.row,
+    required this.locale,
+    required this.l10n,
+    required this.onVoid,
+  });
 
   final TreatmentRow row;
   final String locale;
   final AppLocalizations l10n;
+  final VoidCallback onVoid;
 
   @override
   Widget build(BuildContext context) {
@@ -546,6 +559,27 @@ class _BookLine extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
+          // **THE VOID, WHICH `voidTreatment` HAD NO CALLER FOR.** `07 §10.4`
+          // gives it two taps and the repository landed it at N20-T05 with its
+          // own tests; the book could show a void and could not make one, so a
+          // treatment recorded against the wrong ewe stayed in the medicine
+          // book with its withdrawal running.
+          //
+          // **A SOFT VOID, AND THE ROW STAYS.** Nothing is removed from this
+          // book — the row may already be printed in one somebody is holding —
+          // so the word is `void` and never `delete`. The only two honest
+          // deletes in the product are in Settings.
+          if (!voided)
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ShedWordButton(
+                key: Key('treatments.void.${row.id.value}'),
+                label: l10n.treatmentsVoid,
+                semanticLabel: l10n.treatmentsVoid,
+                selected: false,
+                onTap: onVoid,
+              ),
+            ),
           if (row.voidedAt case final Instant at)
             Text(
               l10n.treatmentsVoided(date: formatShedDate(LocalDate.of(at), locale)),

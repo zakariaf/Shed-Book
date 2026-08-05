@@ -1603,6 +1603,12 @@ abstract class AppLocalizations {
   /// **'VOIDED {date}'**
   String treatmentsVoided({required String date});
 
+  /// 07 §10.4, two taps. A SOFT void: the medicine book keeps the row and marks it, because nothing is removed from this book (indelible.md rule 1). The word is `void` and never `delete` — the only two honest deletes in the product are in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'VOID THIS'**
+  String get treatmentsVoid;
+
   /// The countdown line. It prints the STORED clear date and never recomputes one. There is no 'she is clear' copy anywhere: leaving the countdown is not the same as claiming a negative, and only the shepherd and their vet can say the second.
   ///
   /// In en, this message translates to:

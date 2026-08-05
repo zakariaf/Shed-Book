@@ -313,4 +313,46 @@ void main() {
       await tester.closeApp();
     }
   });
+
+  testWidgets('a treatment can be voided, and the row stays in the book', (
+    WidgetTester tester,
+  ) async {
+    // **`voidTreatment` HAD NO CALLER.** `07 §10.4` gives it two taps and
+    // N20-T05 landed it with its own tests; the book could SHOW a void and
+    // could not make one, so a treatment recorded against the wrong ewe stayed
+    // in the medicine book with its withdrawal running.
+    //
+    // The assertion is that the row SURVIVES. Nothing is removed from this book
+    // — it may already be printed in one somebody is holding — so a void that
+    // deleted would be the defect, not the fix.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedTreatment(db, ewe: ewe, product: 'Alamycin', withdrawalDays: 7);
+
+    try {
+      await tester.pumpApp(const TreatmentsScreen(), db: db);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treatments.mode.book')));
+      await tester.pumpAndSettle();
+
+      final int id = (await db.select(db.treatments).get()).single.id;
+      final Finder voidIt = find.byKey(Key('treatments.void.$id'));
+      await tester.ensureVisible(voidIt);
+      await tester.pumpAndSettle();
+      await tester.tap(voidIt);
+      await tester.pumpAndSettle();
+
+      final List<Treatment> after = await db.select(db.treatments).get();
+      expect(after, hasLength(1), reason: 'the void deleted the row');
+      expect(after.single.voidedAt, isNotNull);
+
+      // AND THE WITHDRAWAL ROW IS UNTOUCHED — decision #69: never delete, blank
+      // or recompute it. The medicine book shows it struck through, still
+      // carrying the figure it was saved with.
+      expect(await db.select(db.treatmentWithdrawals).get(), hasLength(1));
+    } finally {
+      await tester.closeApp();
+    }
+  });
 }

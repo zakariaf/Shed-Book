@@ -925,6 +925,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get treatmentsVoid => 'VOID THIS';
+
+  @override
   String treatmentsClears({required String date}) {
     return 'CLEARS $date';
   }

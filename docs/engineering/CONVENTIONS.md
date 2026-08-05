@@ -1544,6 +1544,16 @@ one place a shared widget would hide one. 06 widens them.
 `lib/features/`, and `integration_test` is the directory name the SDK package requires.
 07's three files become `test/features/{overflow_matrix,tap_budget,no_monetization}_test.dart`;
 its first-run journey becomes `integration_test/first_run_journey_test.dart`.
+
+> **AMENDED 2026-08-05 (N33-T08).** The four journeys are **four `group()`s in one file**,
+> `integration_test/journeys_test.dart`, keeping `12 §9`'s names as the group names. The tree is
+> unchanged — `integration_test/` is still a top-level sibling of `test/` — and what changed is the
+> count of files inside it, because **each additional file there is another full
+> build-install-launch cycle on the device**: four files is four builds, four installs and four cold
+> starts on a suite that runs against a phone on a desk. `12 §9`'s File column is amended in the same
+> commit, and `test/policy/ci_jobs_test.dart` gained the two cases that keep the second half of the
+> ruling true — the journeys are **not a GitHub job at all** (`13 §4.2`), and `make integration`
+> refuses to run without `DEVICE`.
 **Files:** 01 (§2.2 mkdir — add `design`, `support`), 07 (§1.3, §21.2, §2.1).
 
 ### R58 — The overflow matrix is 252 cells over 14 variants

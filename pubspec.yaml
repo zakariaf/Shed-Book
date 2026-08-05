@@ -42,6 +42,17 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # DECISION #117, landed at N33-T08. An SDK package like flutter_test, not a
+  # pub.dev one — `patrol` was rejected because it costs a Gradle test target,
+  # an Xcode test target, `patrol_cli` in CI and the permanent loss of
+  # `flutter test` for those files.
+  #
+  # It never runs in GitHub Actions and that is the design, not an omission:
+  # 13 §4.2 — a `schedule:` trigger cannot drive a real device, hosted emulators
+  # are debug-mode only, and Firebase Test Lab wants an account and an upload,
+  # which is the exact posture this product rejects.
+  integration_test:
+    sdk: flutter
   drift_dev: 2.34.5
   build_runner: ">=2.15.0 <2.15.2"
   flutter_lints: 6.0.0

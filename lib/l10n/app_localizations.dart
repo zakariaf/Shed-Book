@@ -1632,7 +1632,7 @@ abstract class AppLocalizations {
   /// **'No animals match these filters.'**
   String get flockFilteredEmpty;
 
-  /// 07 §3.2 Error.
+  /// 07 §3.2. The flock list could not be read at all — a damaged database, not an empty one. It is deliberately not the empty state: 'no ewes yet' and 'we could not look' are different facts and a shepherd acts differently on each.
   ///
   /// In en, this message translates to:
   /// **'The flock could not be read.'**

@@ -73,6 +73,11 @@ perf:                     ## decision #126 — needs a real device, profile mode
 	$(FLUTTER) run --profile --trace-startup -d $(DEVICE)
 
 integration:              ## decision #117 — four journeys, real device, reported not blocking
+# **THE GUARD IS NOT TIDINESS.** `flutter test integration_test` with no device
+# picks an arbitrary attached one — on a laptop with a simulator running, that
+# is the simulator, and journey 1's *fresh install* then proves nothing about a
+# phone. Fail with a sentence somebody can act on instead.
+	@[ -n "$(DEVICE)" ] || { 	  echo "make integration DEVICE=<id>   # flutter devices"; 	  echo "DEVICE is unset: an unguarded run picks an arbitrary attached device,"; 	  echo "including a simulator, and journey 1 stops meaning anything."; 	  exit 1; 	}
 	$(FLUTTER) test integration_test -d $(DEVICE)
 
 all: gen check test       ## the full local pass, in the order a developer actually wants it

@@ -425,4 +425,59 @@ void main() {
     expect(yml, contains('test/features/failures/**'));
     expect(yml, contains('if: failure()'));
   });
+  test('no workflow runs integration_test, and the absence is the design', () {
+    // **RULING 2 OF N33-T08, HELD BY A MACHINE AFTER EVERYBODY HAS FORGOTTEN
+    // WHY.** The old plan called the journeys *"a reported-not-blocking CI
+    // step"*, and `13 §4.2` is explicit that no such step can exist: a
+    // `schedule:` trigger cannot drive a real device, hosted emulators run debug
+    // mode only, and Firebase Test Lab wants an account and an upload — the
+    // exact posture this product rejects (#117).
+    //
+    // And `continue-on-error: true` is a named anti-pattern (`13 §4.6`): *if it
+    // is not worth failing on, delete it.* So the journeys are not a GitHub job
+    // at all, and "nightly" in #117's words means a scheduled job on the
+    // developer's own machine. The recipe is in README.md.
+    for (final FileSystemEntity f in Directory('.github/workflows').listSync()) {
+      if (f is! File) {
+        continue;
+      }
+      final String yml = f.readAsStringSync();
+      expect(
+        yml,
+        isNot(
+          contains(
+            'integration'
+            '_test',
+          ),
+        ),
+        reason: '${f.path} runs the journeys — they need a real device (13 §4.2)',
+      );
+      // Comments stripped first: `ci.yml` names the anti-pattern in order to
+      // say it is not there, and a scan of the raw text fires on the sentence
+      // that documents the rule. The fifteenth time this project has caught a
+      // prohibition matching itself.
+      expect(
+        yml.split('\n').where((String l) => !l.trimLeft().startsWith('#')).join('\n'),
+        isNot(contains('continue-on-error')),
+        reason: '\${f.path}: if it is not worth failing on, delete it (13 §4.6)',
+      );
+    }
+  });
+
+  test('make integration exists and refuses to run without DEVICE', () {
+    final String makefile = File(_makefile).readAsStringSync();
+
+    expect(makefile, contains('integration:'));
+    expect(makefile, contains(r'test integration_test -d $(DEVICE)'));
+
+    // **THE GUARD, AND IT IS NOT TIDINESS.** An unguarded run picks an
+    // arbitrary attached device — on a laptop with a simulator running, that is
+    // the simulator, and journey 1's *fresh install* then proves nothing about
+    // a phone.
+    expect(
+      makefile,
+      contains(r'@[ -n "$(DEVICE)" ]'),
+      reason: 'an unguarded run picks a simulator and journey 1 stops meaning anything',
+    );
+  });
 }

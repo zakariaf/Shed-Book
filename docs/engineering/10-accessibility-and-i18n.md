@@ -590,17 +590,35 @@ Why every action needs a plain button somewhere, in one sentence: Switch Control
 
 Declare a feature **only** when all seven common tasks (§1.1) complete with it. Re-evaluate every release; put it in the release checklist, not in someone's memory.
 
-| Feature | Declare? | What must be true | Evidence |
-|---|---|---|---|
-| **VoiceOver** | Yes | Every task completable eyes-closed; every tap surface named; chart has a text alternative; headings navigable; the save receipt announces | §7.2 row 7 on 14 variants + `test/design/` guideline runs |
-| **Voice Control** | Yes | Every visible control's spoken name matches its visible words; no gesture-only action | §7.2 row 8 |
-| **Larger Text** | Yes | No clamp anywhere; readable and operable at AX5 / Android 200% + largest display size | §7.2 row 2 + the 252-cell overflow matrix |
-| **Dark Interface** | Yes | The app is dark-only and correct in it; no white flash at any launch layer | §7.2 row 1 + `06-design-system.md` §9.4 |
-| **Differentiate Without Color Alone** | Yes | §5.2's table holds in grayscale, on every screen | §7.2 row 6 |
-| **Sufficient Contrast** | Yes | Measured ratios, not eyeballed; re-checked with Bold Text, Increase Contrast and Reduce Transparency on | `test/design/contrast_test.dart` + §7.2 rows 1, 3, 5 |
-| **Reduced Motion** | Yes | Both platform flags honoured; no meaning carried only by motion | §7.2 row 4 + the two-branch unit test |
-| **Captions** | **No** | — | See below |
-| **Audio Descriptions** | **No** | — | No video anywhere in the app |
+> **AMENDED 2026-08-05 (N33-T06): the table below is no longer the declaration.**
+> [`docs/store/accessibility-nutrition-label.md`](../store/accessibility-nutrition-label.md) is, on
+> [`offline-honesty.md`](../store/offline-honesty.md)'s precedent — a public claim is authored in one
+> file a test can read, and `test/policy/accessibility_label_test.dart` walks it claim-by-claim,
+> asserting that every cited test file exists and every cited test **name appears verbatim inside
+> it**. A renamed test unholds its claim loudly instead of silently.
+>
+> What changed materially, and it is not a formatting move: **three of these rows are `pending`
+> there, not `Yes`.** VoiceOver, Voice Control and Differentiate Without Color Alone are held partly
+> by §7.2's hand pass, and that pass has not been run — it is an evening on two physical phones in a
+> dark room and it cannot move onto a laptop. `Yes` in a table nobody executes is how a claim about
+> accessibility becomes the same defect as a claim about privacy with no gate behind it. The
+> declaration file carries `pending`, refuses to let it be read as a soft yes, and names
+> `/shed-release` (N34-T04) as the task that moves it.
+>
+> The rows below are kept as the **requirement** — *what must be true* — which is this document's
+> job. The Declare and Evidence columns are the store file's.
+
+| Feature | What must be true | Where §7.2 proves it |
+|---|---|---|
+| **VoiceOver** | Every task completable eyes-closed; every tap surface named; chart has a text alternative; headings navigable; the save receipt announces | row 7 on every variant + `test/design/` guideline runs |
+| **Voice Control** | Every visible control's spoken name matches its visible words; no gesture-only action | row 8 |
+| **Larger Text** | No clamp anywhere; readable and operable at AX5 / Android 200% + largest display size | row 2 + the overflow matrix |
+| **Dark Interface** | The app is dark-only and correct in it; no white flash at any launch layer | row 1 + `06-design-system.md` §9.4 |
+| **Differentiate Without Color Alone** | §5.2's table holds in grayscale, on every screen | row 6 |
+| **Sufficient Contrast** | Measured ratios, not eyeballed; re-checked with Bold Text, Increase Contrast and Reduce Transparency on | `test/design/contrast_test.dart` + rows 1, 3, 5 |
+| **Reduced Motion** | Both platform flags honoured; no meaning carried only by motion | row 4 + the two-branch unit test |
+| **Captions** | — | See below |
+| **Audio Descriptions** | — | No video anywhere in the app |
 
 **Captions is left undeclared, and the reason is a consequence of an earlier decision.** The app records voice notes (`record` 7.1.1, AAC-LC `.m4a`) and cannot transcribe them: on-device speech recognition was cut from v1 because the recognizer runs in another process whose network access our manifest cannot constrain (owner ruling §7.0 #6). An untranscribed recording is inaccessible to a deaf user **and** to the shepherd's own future self reading the season back. So the rule is a design constraint rather than a caption track:
 

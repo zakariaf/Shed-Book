@@ -48,6 +48,22 @@ import 'package:shed_book/domain/time/local_date.dart';
 /// of its own and nothing else in their setup creates one.
 Future<SeasonId> seedSeason(AppDatabase db) => _season(db);
 
+/// A season **and** `app_settings.current_season`, which is what a fresh
+/// notebook has after the shepherd presses `START A SEASON`.
+///
+/// **[seedSeason] DOES NOT SET `current_season`, AND THAT IS THE DIFFERENCE
+/// THIS HELPER EXISTS FOR.** Most tests want a season row to hang records off;
+/// the 3am path wants the column, because `LambingRepository._currentSeason()`
+/// reads the column and refuses to invent one. A test that seeds the row and
+/// asserts a lambing lands is a test that passes for the wrong reason.
+Future<SeasonId> seedSeasonForFreshNotebook(AppDatabase db) async {
+  final SeasonId season = await _season(db);
+  await db
+      .update(db.appSettings)
+      .write(AppSettingsCompanion(currentSeason: Value<int?>(season.value)));
+  return season;
+}
+
 Future<SeasonId> _season(AppDatabase db) async {
   final List<Season> existing = await db.select(db.seasons).get();
   if (existing.isNotEmpty) {

@@ -1972,6 +1972,12 @@ abstract class AppLocalizations {
   /// **'No season started.'**
   String get settingsSeasonNone;
 
+  /// 07 §14.3 row 4, Settings ▸ Season. The one act that a fresh notebook cannot record anything without: `LambingRepository` refuses to invent a season on the 3am path, correctly, so this row is where one comes from. Calm-gated — it is the second and last place the free tier may honestly refuse.
+  ///
+  /// In en, this message translates to:
+  /// **'START A SEASON'**
+  String get settingsSeasonStart;
+
   /// 11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe.
   ///
   /// In en, this message translates to:

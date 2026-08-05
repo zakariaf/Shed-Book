@@ -546,11 +546,27 @@ class _ConfirmBar extends ConsumerWidget {
     return ShedTapTarget(
       semanticLabel: label,
       minSize: context.tokens.tapHero,
-      onTap: () {
+      // **CREATING SELECTS HER, AND WITHOUT THAT LINE THE NEXT TAP DID
+      // NOTHING.** Measured 2026-08-05: type 412, `Create 412`, `Lambing` — the
+      // ewe was written and no lambing was, because the event button reads
+      // `quickEntryControllerProvider.selected` and a create left it null. No
+      // exception, no message, nothing on screen. It is the create-on-the-fly
+      // journey — *type an unknown tag, one confirm creates the ewe, straight
+      // into Lambing Entry* — failing at the word *straight*.
+      //
+      // The id comes off the committed outcome rather than from a re-query of
+      // the tag index: the index is a stream and may not have re-emitted yet,
+      // and `07 §5.3` names that race by name.
+      onTap: () async {
         if (exact) {
           ref.read(quickEntryControllerProvider.notifier).select(top.eweId);
-        } else {
-          ref.read(quickEntryWriteControllerProvider.notifier).createEwe(state.query).ignore();
+          return;
+        }
+        await ref.read(quickEntryWriteControllerProvider.notifier).createEwe(state.query);
+        if (ref.read(quickEntryWriteControllerProvider) case WriteDone(
+          outcome: WriteCommitted(insertedId: final int id?),
+        )) {
+          ref.read(quickEntryControllerProvider.notifier).select(EweId(id));
         }
       },
       child: ExcludeSemantics(

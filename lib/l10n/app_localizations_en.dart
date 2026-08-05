@@ -1201,6 +1201,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSeasonNone => 'No season started.';
 
   @override
+  String get settingsSeasonStart => 'START A SEASON';
+
+  @override
   String get settingsSeasonCapRefused =>
       'The free notebook holds one season. Unlock to start another.';
 

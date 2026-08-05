@@ -83,6 +83,10 @@ const List<String> kWrittenAhead = <String>[
   'matchCountClosest',
   'nAnimals',
   'declareTypeAcknowledged',
+  // Word for word `capRefusedSecondSeason`, which the season section renders.
+  // Two names for one sentence, and the one that ships is the one the free
+  // tier's own switch reaches for.
+  'settingsSeasonCapRefused',
   'fosterBirthDamNote',
   'detailAssistedBy',
   'detailPresentationNote',
@@ -99,7 +103,6 @@ const List<String> kWrittenAhead = <String>[
   // the file did not have — *"the only way a problem travels — and it travels
   // because the shepherd sent it"* — while the log and the records file could
   // be read on the phone and never got off it.
-  'settingsSeasonCapRefused',
   'exportFailed',
 
   // ── 4. PHOTOS ARE NOT IN A BACKUP IN THIS VERSION. ────────────────────────

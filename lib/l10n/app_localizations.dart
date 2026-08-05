@@ -1614,6 +1614,54 @@ abstract class AppLocalizations {
   /// **'REPEAT LAST'**
   String get treatmentsRepeatLast;
 
+  /// 07 §10.4 row 1. The entry that N20's seven tasks never built — every one of them is the countdowns, the clear date, the repeat sheet or the void.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW TREATMENT'**
+  String get treatmentNewTitle;
+
+  /// 07 §10.4: every field except the animal is skippable, so this is the only heading in the sheet over something required.
+  ///
+  /// In en, this message translates to:
+  /// **'WHICH ANIMAL'**
+  String get treatmentNewAnimal;
+
+  /// The spoken label on one animal row in the new-treatment sheet. It names the consequence — which animal the treatment lands on — rather than the act.
+  ///
+  /// In en, this message translates to:
+  /// **'Treat {tag}'**
+  String treatmentNewOnto({required String tag});
+
+  /// 07 §10.4. Free text, because the app ships no product database and never will: decision #51 rejects a medicines lookup outright, since a withdrawal period can change for the same medicine and differ between products with the same active ingredient.
+  ///
+  /// In en, this message translates to:
+  /// **'PRODUCT'**
+  String get treatmentNewProduct;
+
+  /// 07 §10.4, skippable. NO UNIT HINT in the field — a pre-filled `ml` is the app suggesting a unit it does not know. The label carries what is wanted; the field carries only what they typed.
+  ///
+  /// In en, this message translates to:
+  /// **'DOSE'**
+  String get treatmentNewDose;
+
+  /// 07 §10.4, skippable. Free text off the bottle, and the app never validates its shape: batch formats vary by manufacturer and a refused batch number is a record nobody could make.
+  ///
+  /// In en, this message translates to:
+  /// **'BATCH NUMBER'**
+  String get treatmentNewBatch;
+
+  /// 07 §10.4, skippable. A closed list from `vocab_terms`, never free text — typing it would make `rt_subcutaneous` and `sub cut` two different routes in the export.
+  ///
+  /// In en, this message translates to:
+  /// **'ROUTE'**
+  String get treatmentNewRoute;
+
+  /// The committing tap. It names the act, not a tick: at 03:20 a tick asks the shepherd to remember what they were confirming.
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD THIS TREATMENT'**
+  String get treatmentNewCommit;
+
   /// One animal target in the repeat flow. One tap commits, which is the second of the two taps 07 10 budgets.
   ///
   /// In en, this message translates to:

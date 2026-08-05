@@ -56,6 +56,16 @@ const List<String> kWrittenAhead = <String>[
   // after it is fixed is a finding nobody trusts the next time.
 
   // ── 2. A SECOND NAME FOR COPY THAT ALREADY RENDERS. ───────────────────────
+  //
+  // **FIVE ENTRIES WERE MISFILED HERE AND THE CORRECTION IS THE INTERESTING
+  // PART.** `withdrawalLabel`, `withdrawalEnterDays`, `withdrawalNotApplicable`,
+  // `withdrawalNotRecorded` and `withdrawalUnit` were read as duplicates of the
+  // `treatments*` strings the medicine book prints. They were not duplicates —
+  // they are `WithdrawalControl`'s labels, and the control had never been built
+  // into a screen. Filed as *a second name for copy* they looked harmless;
+  // filed correctly they were safety rule §12.1's control, missing.
+  //
+  // A finding written down in the wrong group is a finding nobody acts on.
   // An earlier ARB draft; the widget was built against a different key and the
   // draft was never removed. `treatmentsNotApplicable` and
   // `treatmentsNoWithdrawal` are what `_BookLine` prints; `withdrawal_control`
@@ -63,11 +73,6 @@ const List<String> kWrittenAhead = <String>[
   // deleted — `disclaimer_is_defined_once_test` names it as the one place
   // `as entered by you` is allowed to exist besides `Disclaimers`.
   'withdrawalSource',
-  'withdrawalLabel',
-  'withdrawalEnterDays',
-  'withdrawalNotApplicable',
-  'withdrawalNotRecorded',
-  'withdrawalUnit',
   'withdrawalDisagrees',
   'withdrawalStored',
   'withdrawalRecomputed',

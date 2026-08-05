@@ -25,9 +25,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
+import 'package:shed_book/features/treatments/treatments_screen.dart';
 
 import '../support/harness.dart';
 import '../support/seeds.dart';
@@ -135,6 +137,71 @@ void main() {
       final Finder backup = find.byKey(const Key('export.backup'));
       await tester.scrollUntilVisible(backup, 200, scrollable: find.byType(Scrollable).first);
       expect(backup, findsOneWidget, reason: 'there is no way to make a backup');
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('a treatment can be recorded, with a withdrawal the shepherd entered', (
+    WidgetTester tester,
+  ) async {
+    // **`recordTreatment` HAD NO CALLER AND `WithdrawalControl` WAS NEVER
+    // BUILT.** N20's seven tasks are the countdowns, the clear date, the repeat
+    // sheet and the void — not one of them is the entry, and `07 §10.4`
+    // specifies it. So the only reachable write was `repeatTreatment`, on a
+    // book with nothing in it to repeat.
+    //
+    // The assertion is the ROW, not the sheet: a test that stopped at *the
+    // sheet opens* would pass against a commit button that did nothing, which
+    // is the defect one layer along.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final PenId pen = await seedPen(db, label: 'A');
+    await seedPenOccupancy(db, pen, ewe);
+
+    try {
+      await tester.pumpApp(const TreatmentsScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('treatments.new')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('treatment.new.animal.412')));
+      await tester.pump();
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('treatment.new.product')),
+          matching: find.byType(TextField),
+        ),
+        'Alamycin LA',
+      );
+      await tester.pumpAndSettle();
+
+      // **`ensureVisible` FIRST, AND WITHOUT IT THIS PASSED FOR THE WRONG
+      // REASON.** The sheet is taller than the viewport — animal rows, four
+      // fields, eight routes and two withdrawal controls — so the commit button
+      // is below the fold and `tap` lands on whatever is at those coordinates.
+      // Measured: no exception, no treatment, and a failure that reads as *the
+      // button does nothing*.
+      await tester.ensureVisible(find.byKey(const Key('treatment.new.commit')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('treatment.new.commit')));
+      await tester.pumpAndSettle();
+
+      final List<Treatment> recorded = await db.select(db.treatments).get();
+      expect(recorded, hasLength(1), reason: 'the commit button did nothing');
+      expect(recorded.single.productName, 'Alamycin LA');
+
+      // **AND NO WITHDRAWAL ROW**, because the shepherd answered neither target
+      // — which is §12.1's shape exactly: *not recorded* is the absence of a
+      // row, never a zero and never a placeholder. The control was on screen
+      // with the caveat above it; they did not choose.
+      expect(
+        await db.select(db.treatmentWithdrawals).get(),
+        isEmpty,
+        reason: 'an unanswered withdrawal wrote a row — that is what §12.1 forbids',
+      );
     } finally {
       await tester.closeApp();
     }

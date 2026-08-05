@@ -937,6 +937,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get treatmentsRepeatLast => 'REPEAT LAST';
 
   @override
+  String get treatmentNewTitle => 'NEW TREATMENT';
+
+  @override
+  String get treatmentNewAnimal => 'WHICH ANIMAL';
+
+  @override
+  String treatmentNewOnto({required String tag}) {
+    return 'Treat $tag';
+  }
+
+  @override
+  String get treatmentNewProduct => 'PRODUCT';
+
+  @override
+  String get treatmentNewDose => 'DOSE';
+
+  @override
+  String get treatmentNewBatch => 'BATCH NUMBER';
+
+  @override
+  String get treatmentNewRoute => 'ROUTE';
+
+  @override
+  String get treatmentNewCommit => 'RECORD THIS TREATMENT';
+
+  @override
   String treatmentsRepeatOnto({required String tag}) {
     return 'ONTO $tag';
   }

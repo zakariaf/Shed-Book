@@ -34,6 +34,8 @@ import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/features/treatments/treatments_controller.dart';
+import 'package:shed_book/data/settings_repository.dart';
+import 'package:shed_book/features/treatments/widgets/new_treatment_sheet.dart';
 import 'package:shed_book/features/treatments/widgets/treatment_disclosures.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -177,6 +179,15 @@ class TreatmentsScreen extends ConsumerWidget {
               // `--t-ctl-lg` 22px. The hand-rolled version used `titleMedium`,
               // which is not that role.
               child: ShedPrimaryButton(
+                key: const Key('treatments.new'),
+                label: l10n.treatmentNewTitle,
+                semanticLabel: l10n.treatmentNewTitle,
+                onTap: () => _openNew(context, ref, l10n, candidates),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
+              child: ShedPrimaryButton(
                 key: const Key('treatments.repeat_last'),
                 label: l10n.treatmentsRepeatLast,
                 semanticLabel: l10n.treatmentsRepeatLast,
@@ -184,6 +195,45 @@ class TreatmentsScreen extends ConsumerWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// **THE ENTRY N20 NEVER BUILT.** `recordTreatment` landed at N20-T01 and had
+  /// no caller anywhere in `lib/`; `WithdrawalControl` — safety rule §12.1's
+  /// control — landed at N20-T02 and was never built into a screen. The only
+  /// reachable write was `repeatTreatment`, and on an empty book there is
+  /// nothing to repeat. `07 §10.4` specifies this row and nobody wrote it.
+  void _openNew(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    List<DeckEntry> candidates,
+  ) {
+    final List<VocabEntry> vocab = ref.read(vocabProvider).value ?? const <VocabEntry>[];
+    unawaited(
+      showRepeatSheet(
+        context,
+        child: NewTreatmentSheet(
+          candidates: candidates,
+          routes: treatmentRoutes(vocab, l10n),
+          l10n: l10n,
+          onCommit: (NewTreatment entry) {
+            unawaited(
+              ref
+                  .read(treatmentRepositoryProvider)
+                  .recordTreatment(
+                    TreatEwe(entry.ewe),
+                    productName: entry.productName,
+                    doseText: entry.doseText,
+                    routeKey: entry.routeKey,
+                    batchNo: entry.batchNo,
+                    withdrawals: entry.withdrawals,
+                  ),
+            );
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );

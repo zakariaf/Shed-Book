@@ -18,6 +18,9 @@ import 'package:drift/drift.dart' show GeneratedColumn, Table, TableInfo;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/data/export_repository.dart';
+import 'package:shed_book/data/restore_service.dart';
+import 'package:shed_book/core/log/local_log.dart';
+import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/backup_format.dart';
 import 'package:shed_book/data/export_limits.dart';
@@ -598,4 +601,88 @@ void main() {
       expect(source, isNot(contains(banned)), reason: banned);
     }
   });
+
+  test(
+    'every app_settings column survives a round trip, including the ones nothing sets',
+    () async {
+      // **THE CONTRACT P15 RESTS ON, ASSERTED END TO END RATHER THAN PER SETTER.**
+      // A `v1.0.0` backup has to restore into `v1.1.0` unchanged, and
+      // `app_settings` is where that is most easily lost: it is a singleton, it is
+      // written by `updateRestoredSingleton` rather than by an insert, and three
+      // of its columns are read by no `v1.0.0` screen at all — `cycle_days`,
+      // `percentage_definition` and `last_reconcile_scheduled`.
+      //
+      // **THIS CASE REPLACED THREE PER-SETTER ROUND TRIPS.** Those asserted that a
+      // repository verb wrote a column and read it back, which is a property of
+      // the verb; this asserts the property that matters, which is a property of
+      // the FORMAT — and it holds for a column whose setter does not exist yet.
+      // `recordReconcileScheduled` was deleted on 2026-08-05 for that reason:
+      // nothing in `v1.0.0` reconciles, the column's own doc says *never
+      // reconciled* is a real state, and a verb writing it would have been
+      // claiming a projection nobody made. N24 adds it back beside the reconciler.
+      final AppDatabase source = testDatabase();
+
+      // Every column set to something distinguishable from its default, by raw
+      // statement rather than through repository verbs — the point is the FORMAT,
+      // and routing through the verbs would only test the ones that exist.
+      await source.customStatement(
+        'UPDATE app_settings SET cycle_days = 21, percentage_definition = ?, '
+        'last_reconcile_scheduled = 1700000000000, weight_unit = ?, left_handed = 1 '
+        'WHERE id = 1',
+        <Object?>['reared_per_ewe_to_ram', 'lb'],
+      );
+      final AppSetting before = await source.select(source.appSettings).getSingle();
+
+      final Directory dir = Directory.systemTemp.createTempSync('shed_settings_round_trip');
+      addTearDown(() => dir.deleteSync(recursive: true));
+
+      final ExportArtifact artefact = await ExportRepository(source).writeBackup(
+        envelope: ExportEnvelope.standard(now: appNow(), appVersion: kAppVersion),
+        outputDir: dir,
+      );
+      await source.close();
+
+      // **`seedOnCreate: false`, LIKE EVERY OTHER RESTORE TARGET IN THE SUITE.**
+      // The real path builds its staging file the same way: `onCreate`'s seeded
+      // vocabulary collides with the backup's own rows on `vocab_terms.key`,
+      // which is what that UNIQUE constraint is for.
+      final AppDatabase restored = testDatabase(seedOnCreate: false);
+      addTearDown(restored.close);
+      await _restoreFile(restored, File(artefact.path));
+
+      final AppSetting after = await restored.select(restored.appSettings).getSingle();
+
+      expect(
+        after.cycleDays,
+        before.cycleDays,
+        reason: 'N28 reads this and nothing sets it in v1.0.0',
+      );
+      expect(after.percentageDefinition, before.percentageDefinition);
+      expect(
+        after.lastReconcileScheduled,
+        before.lastReconcileScheduled,
+        reason: 'N24 reads this and NOTHING in v1.0.0 writes it — the format still has to carry it',
+      );
+      expect(after.weightUnit, before.weightUnit);
+      expect(after.leftHanded, before.leftHanded);
+    },
+  );
+}
+
+/// Restore a written backup into [target], through the real reader.
+Future<void> _restoreFile(AppDatabase target, File file) async {
+  final Map<String, Object?> decoded = jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+  final BackupHeaderOutcome outcome = readBackupHeader(decoded);
+  final Map<String, Object?> raw = decoded['tables']! as Map<String, Object?>;
+
+  await RestoreService(Directory.systemTemp).importInto(
+    target,
+    (outcome as BackupHeaderAccepted).header,
+    <String, List<Map<String, Object?>>>{
+      for (final MapEntry<String, Object?> e in raw.entries)
+        e.key: <Map<String, Object?>>[
+          for (final Object? row in e.value! as List<Object?>) row! as Map<String, Object?>,
+        ],
+    },
+  );
 }

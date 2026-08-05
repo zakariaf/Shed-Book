@@ -191,16 +191,23 @@ final class SettingsRepository {
   Future<WriteOutcome> dismissExportPromptForSeason(SeasonId season) =>
       _write(AppSettingsCompanion(exportPromptDismissedForSeason: Value<int?>(season.value)));
 
-  /// Written by `ReminderReconciler.reconcile()` in the same transaction that
-  /// records the projection (R40) — N24.
-  ///
-  /// **DELETED ON 2026-08-05 AND RESTORED THE SAME DAY**, on the same reasoning
-  /// as the two setters above: its caller is the case asserting that
-  /// `last_reconcile_scheduled` round-trips, and that column is in the backup —
-  /// which is exactly what has to hold for a `v1.0.0` backup to restore into
-  /// `v1.1.0` unchanged (P15, all 21 tables whole).
-  Future<WriteOutcome> recordReconcileScheduled(Instant at) =>
-      _write(AppSettingsCompanion(lastReconcileScheduled: Value<Instant>(at)));
+  // **`recordReconcileScheduled` WAS DELETED ON 2026-08-05, AND IT IS THE ONE
+  // VERB IN THIS REPOSITORY WHOSE CALLER GENUINELY COULD NOT EXIST YET.**
+  //
+  // It would have been written by `ReminderReconciler.reconcile()` in the same
+  // transaction that records the projection (R40) — and nothing in `v1.0.0`
+  // reconciles: no notification channel is created, and `13 §11`'s freeze is
+  // why reminders are N24's. The column's own doc says *never reconciled* is a
+  // real state, so a verb writing it here would have claimed a projection
+  // nobody made, which is the shape §12.5 exists to prevent.
+  //
+  // It survived two hours on the argument that its caller was the case
+  // asserting the column round-trips. That property is real and it is a
+  // property of the **format** rather than of this class, so it moved to
+  // `backup_format_test.dart`'s end-to-end case: every `app_settings` column
+  // survives a round trip **including the ones nothing sets**. That holds for a
+  // column whose setter does not exist, which is stronger than what it
+  // replaced. N24 adds the verb back beside the reconciler that calls it.
 
   /// One transaction, one `shedFailureFrom`.
   ///

@@ -94,12 +94,6 @@ final List<Setting> _settings = <Setting>[
     get: (AppSetting s) => s.lastExportPromptedAt,
     expected: _at,
   ),
-  (
-    name: 'lastReconcileScheduled',
-    set: (SettingsRepository r) => r.recordReconcileScheduled(_at),
-    get: (AppSetting s) => s.lastReconcileScheduled,
-    expected: _at,
-  ),
 ];
 
 void main() {
@@ -143,7 +137,6 @@ void main() {
       'recordExported',
       'recordExportPrompted',
       'dismissExportPromptForSeason',
-      'recordReconcileScheduled',
     ];
 
     // **`setCurrentSeason` LEFT THIS LIST ON 2026-08-05 BECAUSE THE VERB WAS

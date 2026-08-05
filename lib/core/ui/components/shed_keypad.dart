@@ -17,6 +17,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_backspace_mark.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
@@ -145,10 +146,10 @@ class ShedKeypad extends StatelessWidget {
                 ? <Widget>[
                     _thirdKey(context, side),
                     _digitKey('0', side, digitStyle),
-                    _backspaceKey(side, digitStyle),
+                    _backspaceKey(side, digitStyle, t.outlineWidth),
                   ]
                 : <Widget>[
-                    _backspaceKey(side, digitStyle),
+                    _backspaceKey(side, digitStyle, t.outlineWidth),
                     _digitKey('0', side, digitStyle),
                     _thirdKey(context, side),
                   ],
@@ -171,13 +172,18 @@ class ShedKeypad extends StatelessWidget {
 
   /// **No key repeat.** Hold-to-repeat is a banned gesture, and a cold thumb
   /// resting here must delete one digit rather than empty the buffer.
-  Widget _backspaceKey(double side, TextStyle style) => ShedTapTarget(
+  Widget _backspaceKey(double side, TextStyle style, double strokeWidth) => ShedTapTarget(
     key: const Key('quick_entry.keypad.backspace'),
     semanticLabel: backspaceLabel,
     onTapHint: backspaceHint,
     minSize: side,
     onTap: onBackspace,
-    child: ExcludeSemantics(child: Text('⌫', style: style)),
+    // **DRAWN, NOT TYPED.** The glyph rendered as a tofu box on every device —
+    // the bundled family has nothing at U+232B and there is no second family to
+    // fall back to. See `shed_backspace_mark.dart`.
+    child: ExcludeSemantics(
+      child: ShedBackspaceMark(colour: style.color!, strokeWidth: strokeWidth),
+    ),
   );
 
   Widget _thirdKey(BuildContext context, double side) {

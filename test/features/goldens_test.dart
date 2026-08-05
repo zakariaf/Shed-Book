@@ -109,6 +109,12 @@ void main() {
       await atFixed(kGoldenNight, () async {
         await tester.pumpApp(const QuickEntryScreen(), db: db, device: Device.small);
       });
+      // **SETTLED, AND THE FIRST BASELINE PROVED WHY.** Without it the image is
+      // the frame before the providers resolve: a keypad on an empty page, no
+      // deck, no strips, no confirm bar. It is a real state — decision #21's
+      // promise that frame 1 is interactive — and it is not the screen these
+      // goldens are for, and nothing in the log distinguishes the two.
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(QuickEntryScreen),
         matchesGoldenFile('goldens/quick_entry_default.png'),
@@ -136,6 +142,12 @@ void main() {
           textScale: 2.0,
         );
       });
+      // **SETTLED, AND THE FIRST BASELINE PROVED WHY.** Without it the image is
+      // the frame before the providers resolve: a keypad on an empty page, no
+      // deck, no strips, no confirm bar. It is a real state — decision #21's
+      // promise that frame 1 is interactive — and it is not the screen these
+      // goldens are for, and nothing in the log distinguishes the two.
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(QuickEntryScreen),
         matchesGoldenFile('goldens/quick_entry_scale_2_0.png'),
@@ -162,6 +174,12 @@ void main() {
           palette: ShedPaletteId.deepRed,
         );
       });
+      // **SETTLED, AND THE FIRST BASELINE PROVED WHY.** Without it the image is
+      // the frame before the providers resolve: a keypad on an empty page, no
+      // deck, no strips, no confirm bar. It is a real state — decision #21's
+      // promise that frame 1 is interactive — and it is not the screen these
+      // goldens are for, and nothing in the log distinguishes the two.
+      await tester.pumpAndSettle();
       await expectLater(
         find.byType(QuickEntryScreen),
         matchesGoldenFile('goldens/quick_entry_deep_red.png'),
@@ -216,34 +234,47 @@ void main() {
     try {
       await atFixed(kGoldenNight, () async {
         await tester.pumpApp(
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              ShedCountdown(
-                clearsOn: ClearsOn(LocalDate.of(now).plusDays(14), now, WithdrawalTarget.meat),
-                now: now,
-                productName: 'Alamycin LA',
-                clearsOnLabel: 'CLEAR 25 FEB',
-                semanticLabel: 'Alamycin LA, clear on 25 February',
-              ),
-              const ShedCountdown.notApplicable(
-                productName: 'Spot-on',
-                words: 'NOT APPLICABLE',
-                semanticLabel: 'Spot-on, no withdrawal applies',
-              ),
-              const ShedCountdown.notRecorded(
-                productName: 'Footbath',
-                words: 'NOT RECORDED',
-                semanticLabel: 'Footbath, withdrawal not recorded',
-              ),
-            ],
+          // **A `Scaffold`, BECAUSE `pumpApp` PUTS THE WIDGET STRAIGHT INTO
+          // `MaterialApp.home` AND EVERY REAL SCREEN BRINGS ITS OWN.** The first
+          // baseline pumped a bare `Column` and captured three states of grey
+          // ink on white — an app with no light theme, photographed in one.
+          // An image that cannot be judged for legibility is not worth
+          // committing.
+          Scaffold(
+            body: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                ShedCountdown(
+                  clearsOn: ClearsOn(LocalDate.of(now).plusDays(14), now, WithdrawalTarget.meat),
+                  now: now,
+                  productName: 'Alamycin LA',
+                  clearsOnLabel: 'CLEAR 25 FEB',
+                  semanticLabel: 'Alamycin LA, clear on 25 February',
+                ),
+                const ShedCountdown.notApplicable(
+                  productName: 'Spot-on',
+                  words: 'NOT APPLICABLE',
+                  semanticLabel: 'Spot-on, no withdrawal applies',
+                ),
+                const ShedCountdown.notRecorded(
+                  productName: 'Footbath',
+                  words: 'NOT RECORDED',
+                  semanticLabel: 'Footbath, withdrawal not recorded',
+                ),
+              ],
+            ),
           ),
           db: db,
           device: Device.small,
         );
       });
+      // **THE `Scaffold`, NOT THE `Column`.** The first baseline captured the
+      // Column's own bounds, which have no background — three states of grey
+      // ink on white, in an app that has no light theme and whose whole claim
+      // about this widget is that you can read it at 30% brightness. An image
+      // that cannot be judged for legibility is not worth committing.
       await expectLater(
-        find.byType(Column).first,
+        find.byType(Scaffold),
         matchesGoldenFile('goldens/withdrawal_countdown_three_states.png'),
       );
     } finally {

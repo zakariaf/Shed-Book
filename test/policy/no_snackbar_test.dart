@@ -74,7 +74,17 @@ void main() {
         .where((String l) => l.contains('::'))
         .toList();
 
-    expect(keys, hasLength(4));
+    // **FIVE SINCE 2026-08-04** (decision-record §7.0d). The fifth is
+    // `lib/data/purchase_service.dart :: copy.banned_word` —
+    // `PurchaseStatus.pending` is the `in_app_purchase` plugin's own enum member,
+    // in the acknowledgement guard and the exhaustive switch arm, and neither is
+    // removable or ours.
+    //
+    // **R56 WAS NEVER ABOUT THE NUMBER FOUR.** It was about a new line requiring
+    // somebody to say why, in front of a reader — which is why FOUR SEPARATE
+    // TESTS assert this count and all four had to be edited, deliberately, in
+    // the commit that added it. The sixth costs the same.
+    expect(keys, hasLength(5));
     for (final String key in keys) {
       expect(key, isNot(contains('raw_snackbar')));
     }

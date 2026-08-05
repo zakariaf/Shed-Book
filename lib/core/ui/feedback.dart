@@ -170,14 +170,64 @@ void showFailure(BuildContext context, String userMessage) {
 /// (decision #91) and buzzing at somebody for hitting a commercial boundary is
 /// the app taking a side.
 ///
-/// This task lands the signature and its two GUARDS; the pixels are N30-T05's,
-/// which owns the two static upgrade rows.
-void showCapRow(BuildContext context, RefusalReason reason, {required bool onShedScreen}) {
+/// **THE REFUSAL RENDERS IN PLACE AND THE APP NEVER NAVIGATES ON ITS OWN.**
+/// `11 §8` constraint 4 allows one self-navigation — to Settings ▸ Unlock, after
+/// a user-initiated calm tap — rate-limited to once a civil day by
+/// `app_settings.last_unlock_prompted_at`. **That column does not exist**:
+/// `11 §2` flagged it as needing to land before the first schema snapshot, no
+/// task in N00–N29 added it, and N07-T08 froze `v1` without it.
+///
+/// **Ruled at N30-T05 (decision-record §7.0e): ship without the
+/// self-navigation.** The refusal is a row where the shepherd already is. A
+/// migration is the one change this project cannot undo on somebody else's
+/// phone, and the thing it would buy is the closest thing in the whole design to
+/// an interruption — #92 bans the modal, the interstitial, the self-appearing
+/// sheet and the timed prompt, and a screen that moves under you on a refusal is
+/// the same family. The rest of constraint 4 is unaffected: a **user-initiated**
+/// tap on an upgrade row was never rate-limited, and the rule cannot fire in the
+/// quiet window because nothing is refused there.
+///
+/// **No haptic** (`06 §10.1`), no dialog, no snackbar (P2), no navigation.
+/// **`copyFor` IS A PARAMETER BECAUSE `lib/core/ui/` MAY NOT RESOLVE COPY**
+/// (layer rule 7: it cannot import `lib/l10n/` or `lib/data/`). It is the same
+/// shape `ShedKeypad` and `ShedTapTarget` already use — a component in the
+/// shared tier renders what it is handed, and the screen that knows the locale
+/// and the shepherd's own noun for their animals is the screen that supplies the
+/// words. R30 fixes the first three parameters; this is the fourth, and it is
+/// the only way the function can render a `RefusalReason` at all.
+/// **`now` IS A PARAMETER FOR THE SAME REASON `copyFor` IS.** `lib/core/ui/` may
+/// not import `lib/core/` (layer rule 7), so it cannot call `appNow()` — and
+/// `ShedBanner` already takes its instant the same way, which is what makes the
+/// quiet-hours rule testable at 21:59 and 22:00 without waiting for either.
+void showCapRow(
+  BuildContext context,
+  RefusalReason reason, {
+  required bool onShedScreen,
+  required Instant now,
+  required String Function(RefusalReason) copyFor,
+}) {
   // NEVER ON A SHED SCREEN, at any entitlement state (decision #90), and NEVER
   // between 22:00 and 06:00 (§7.0 ruling 8). Both guards are here rather than at
   // the call sites, because a guard at a call site is a guard somebody forgets
   // at the thirteenth call site.
-  if (onShedScreen) {
+  if (onShedScreen || isQuietHours(now)) {
     return;
   }
+
+  // **THE SAME CHANNEL A COMMITTED ROW USES, AND THAT IS THE POINT.** P2: the
+  // confirmation is the committed row, in ink, one line above the one being
+  // written — so a refusal is a line in the same place, in the same ink. It is
+  // not an overlay, it cannot scroll away from what caused it, and there is
+  // nothing to dismiss.
+  //
+  // **THE CAP IS A PLACEHOLDER, NEVER A TYPED NUMBER.** `kFreeEweCap` is the
+  // source; a literal here goes stale the day it moves, in the one sentence a
+  // paying user reads most carefully.
+  ShedReceiptScope.maybeOf(context)?.value = SaveReceipt(
+    term: '',
+    tag: '',
+    summary: copyFor(reason),
+    at: '',
+    undoLabel: '',
+  );
 }

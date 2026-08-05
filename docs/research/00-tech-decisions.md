@@ -181,7 +181,7 @@ Every row is final and implementable. "Source" names the primary evidence; the b
 | 90 | First frame vs entitlement | **The first frame renders the unlocked-neutral Quick Entry shell.** No screen on the 3am path ever branches on `unlocked`, so a late entitlement read is unobservable. Enforced by a widget test: no upgrade widget renders on Quick Entry, Lambing Entry, Lamb Card, Foster or Pen Board with `unlocked: false, ewesInCurrentSeason: 99`. | Decisions #21 and #88 are compatible only if the first frame is entitlement-agnostic — which it is, and which nobody wrote down. The failure mode is a paywall flash at 3am. [c3 C6] | Reading the entitlement before `runApp` |
 | 91 | Free-tier cap | **One policy object consulted by the repository, with `EntryContext` as an explicit parameter.** `EntryContext.liveEntry` is structurally incapable of returning `BlockedByCap` — it returns `Allow(overFreeCap: true)` and the row is flagged. Only two calm-UI actions are gated: adding ewe #16 from the Flock screen, and starting a second season. Rows over the cap are real rows; on unlock the flags clear in one transaction; on *not* paying nothing is ever deleted, hidden, greyed out or made read-only. | Spec §7.1: "Never block an entry to make the user go and set something up first." A repository guard that blocks `createEwe` regardless of caller is exactly the 03:20 failure that "kills the app's one promise". The cap is **not** a schema `CHECK` — that would fire on a paying user mid-lambing. [c3 D7, c4 §15, note 07 §3.2] | A UI-only check; a bare `data/`-layer guard; a schema `CHECK` |
 | 92 | Upgrade affordance | **No modal, ever.** Two static rows: one pinned at the top of the Flock screen, one in Settings. Always present, in the same pixels, at 3 ewes or at 15. **Nothing monetization-related renders on Quick Entry, Lambing Entry, Lamb Card, Foster or Pen Board.** | Spec §5's "zero interruptions" is written as a shipping gate. A permanent static row converts worse than a well-timed modal; that is the deliberate trade, because this audience is described as vocally hostile and will punish an app that nags. The conversion mechanism is the season wall, not the prompt. [note 07 §3.3] | Timed modals; interstitials; self-appearing bottom sheets |
-| 93 | Store privacy declarations | **"Data Not Collected"** on Apple, **"No data collected or shared"** on Play. Ship `PrivacyInfo.xcprivacy` declaring `C617.1` (file timestamp) + `CA92.1` (user defaults), and `E174.1` **only if** free disk space is actually queried. A hosted privacy-policy URL is mandatory on both stores; the full policy text also ships as static Dart strings so the in-app requirement is met without `url_launcher`. | Apple defines "collect" as transmitting off-device; Play exempts payment-service data and on-device processing. `0A2A.1`/`C56D.1` are third-party-SDK codes and must not be used. Apple 5.1.1(i) requires the link in App Store Connect **and** in-app. [note 07 §4] | Any analytics; `url_launcher` |
+| 93 | Store privacy declarations | **"Data Not Collected"** on Apple, **"No data collected or shared"** on Play. ~~Ship `PrivacyInfo.xcprivacy` declaring `C617.1` (file timestamp) + `CA92.1` (user defaults), and `E174.1` **only if** free disk space is actually queried.~~ **AMENDED 2026-08-04, N30-T07 — two dicts, and `CA92.1` is struck.** `CA92.1` is the user-defaults reason, and this app has **no user defaults**: `shared_preferences` is forbidden by entitlement rule 3, is not in §5.1, and N30-T05 refused it again rather than fake a rate limit with it. Declaring an API the app cannot call is a false statement in a legal document, and it is the kind that looks harmless. `C617.1` **is** required — `LocalLog` rotates on file size and reads `FileStat`, `connection.dart` measures the database before a pre-migration snapshot. `E174.1` is declared **for a statically linked library rather than for our own Dart**: no code under `lib/` queries free space (the four call sites read file *size*, a different API), but `sqlite3_flutter_libs` links SQLite into the app binary and SQLite calls `statfs` to detect a full disk — and a statically linked library has no separate privacy manifest of its own, so its API use is the app's to declare. A hosted privacy-policy URL is mandatory on both stores; the full policy text also ships as static Dart strings so the in-app requirement is met without `url_launcher`. | Apple defines "collect" as transmitting off-device; Play exempts payment-service data and on-device processing. `0A2A.1`/`C56D.1` are third-party-SDK codes and must not be used. Apple 5.1.1(i) requires the link in App Store Connect **and** in-app. [note 07 §4] | Any analytics; `url_launcher` |
 
 ### J. Design system, accessibility, i18n
 
@@ -525,6 +525,79 @@ These were put to the owner and answered. They are **no longer open**, and the e
 | 13 | Does a lamb kept as a breeding ewe become a `Ewe` row? — **ruled 2026-08-01** | **Yes.** `lambs.became_ewe`, nullable, in the v1 schema. | A nullable FK to `ewes(id)` with `onDelete: KeyAction.setNull`, plus a hand-written `@TableIndex(name: 'idx_lamb_became_ewe', columns: {#becameEwe})` — SQLite creates no child-key index automatically (#31). It re-opens the cross-table tag rule at `03 §6`, whose sentence *"a lamb tagged 412 and an active ewe tagged 412 can coexist… v1 has no lamb→ewe promotion"* is only true while the answer is no: `03 §6` is amended in the same commit and **no cross-table trigger is added to paper over it**, by that section's own instruction. The partial unique index on active tags is unchanged — promotion writes a `ewes` row that takes its own tag through the same create-on-the-fly path every other ewe does. |
 | 19 | Does the whole remaining backlog ship as one release? — **ruled 2026-08-03** | **No. Two releases: `v1.0.0` before 1 February 2027, `v1.1.0` on 1 June 2027.** Twenty-six of ninety remaining tasks move; nothing is cut. Long form in §7.0c (**P15**); scope in [`docs/RELEASE-SCOPE.md`](../RELEASE-SCOPE.md). | `13 §11`'s freeze is the binding constraint, not effort: 1 Feb – 30 Apr is the only time of year the app is used, so a release that misses 31 January 2027 slips by a **year**. The freeze blocks releases and not work, so `v1.1.0` is built Feb–May 2027 and costs no calendar. Three things `v1.0.0` must build for a release it does not contain: the backup format ships **whole** (all 21 tables — `unknown_json` carries an unknown *column* forward, never an unknown *table*); **no notification channel is created**, so #63/#65's *ids frozen at release* freezes nothing; and `android/expected_permissions.txt` is `v1.0.0`'s strictly smaller set with the three `v1.1.0` adds named in the same file, because G1 asserts set equality and going red must be answerable from a file. Every epic header carries a `**Ships in**` row and `tool/validate_epics.py` fails while one disagrees with the scope table. |
 | 15 | Lambing ease: 5 points or SRUC's 6? — **ruled 2026-08-01** | **Five**, and point 5 covers elective caesarean. | `lambings.ease` stays `integer().nullable()` with `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)`; `LambingEase` stays validated 1..5 (R44); the five labels stay `vocab_terms` rows `ease_1`…`ease_5` with ARB defaults; the CSV column stays `lambing_ease_1_5` (`09 §3.1`); `assistedRate`'s *"ease ≥ 2"* numerator and its verbatim `definition` string are unchanged (`05 §6.7`); `ShedChoiceRow`'s *ease 1–5 only* contract from N10-T06 stands. `lambings.ease` is deliberately **not** a vocabulary foreign key, so widening the scale is a migration somebody has to think about, and that friction is the feature. **A blank ease is not "unassisted"** — it means not scored, and `05 §6.7` excludes unscored lambings from both sides of the assisted rate and reports coverage. |
+
+### 7.0e `last_unlock_prompted_at`, and the migration `v1.0.0` does not make. RULED 2026-08-04 (N30-T05).
+
+**The question.** `11 §2` flags `app_settings.last_unlock_prompted_at` on R40's precedent — a nullable
+`INTEGER` instant a screen needs and `03` did not declare — and says in bold that it **must land before
+the first schema snapshot**. It did not. `03 §5.13` declares fourteen `AppSettings` columns and this is
+not one of them; no task in N00–N29 adds it; `kSchemaVersion` is `1` and `from1To2` is still N08-T01's
+commented-out stub.
+
+It exists for exactly one rule, `11 §8` constraint 4: when a calm-UI action returns `WriteRefused`, the
+app may navigate to Settings ▸ Unlock **once per civil day** — the tap was user-initiated, so the
+navigation is a response rather than an interruption, but somebody tapping *+* ten times must not be
+sent there ten times.
+
+**Ruling: option 2. Ship `v1.0.0` without the self-navigation, and without the migration.**
+
+**What it costs.** Nothing the shepherd can name. `showCapRow` renders the refusal where they already
+are, in the same channel a committed row uses — which is what P2 asks of every other confirmation in
+the app. The rest of constraint 4 is untouched: a **user-initiated** tap on an upgrade row was never
+rate-limited (*"the row is always tappable"*), and the rule cannot fire in the quiet window anyway
+because nothing is refused there.
+
+**What it avoids, and this is the argument.** A migration is the one change this project cannot undo on
+somebody else's phone — `04 §1` lists it among the four — and the first committed snapshot froze `v1`
+forever, so every later version is diffed against both on phones that have never been online. Spending
+that on a rate limit is a poor trade at any time; spending it in the release that must ship before
+1 February 2027 is worse.
+
+**And the thing it would buy is the closest thing in the whole design to an interruption.** #92 bans
+the modal, the interstitial, the self-appearing sheet and the timed prompt; `07 §19.2` makes the two
+upgrade rows static precisely so a shepherd never learns that their appearance means anything. A screen
+that moves under you on a refusal is the same family. Ruling it out is not a compromise forced by a
+missing column — on this reading the column was the compromise.
+
+**Recorded as an open item against `11`'s Definition of Done.** The column, and the self-navigation it
+enables, are `v1.1.0`'s if anybody still wants them — and `v1.1.0` carries reminders, which may need a
+migration of their own, so the cost is shared rather than paid twice.
+
+**What was not done, and must not be.** No `shared_preferences` (entitlement rule 3 forbids it, it is
+not in §5.1, and it re-introduces the `NSPrivacyAccessedAPICategoryUserDefaults` obligation N30-T07 is
+about to declare away). No in-memory field either: a rate limit that resets on every cold launch is not
+a rate limit, and it would read as one to whoever maintained it.
+
+### 7.0d The fifth `[exempt]` line. RULED 2026-08-04 (the owner, during N30-T01).
+
+**The question.** `copy.banned_word` bans `pending` under `lib/` as a model-state word (`CONVENTIONS
+§5`), and the rule already strips comments. `lib/data/purchase_service.dart` contains two hits, both
+`PurchaseStatus.pending` — the `in_app_purchase` plugin's own enum member:
+
+- **the acknowledgement guard.** Google auto-refunds and revokes a purchase not acknowledged within
+  three days, and its own wording is *"don't acknowledge it while a purchase is in PENDING state"*.
+  On Android `completePurchase` **is** `acknowledgePurchase()`. Removing the guard costs a shepherd
+  their unlock, three days later, silently, with nothing to repair it.
+- **the exhaustive switch arm.** Five members, five arms, no catch-all — so a sixth status in a future
+  plugin major is a compile error rather than a purchase nobody notices.
+
+Neither is removable. Neither is a name this project chose. `CONVENTIONS` R56 says the `[exempt]` list
+has four lines and *"a fifth is a review conversation, not a keystroke"*, and `CLAUDE.md` says never
+to add one to silence a gate — *"if a gate is genuinely wrong, say so and stop."* Work stopped for one
+task while the conversation was had.
+
+**Ruling: a fifth line, scoped to that one file.** The gate is **not wrong about our vocabulary** — it
+simply cannot tell a third-party identifier from one of ours, and no source scan can.
+
+**Why a per-file waiver rather than narrowing the pattern.** An exception for `PurchaseStatus.` inside
+the rule would weaken the vocabulary rule in **every file in the project**, permanently, for one
+dependency — and the next person to want `pending` would find the precedent already set. The waiver
+cannot spread: `layer.in_app_purchase` refuses the plugin and its five type names everywhere except
+this file, so there is nowhere else the exemption could apply even deliberately.
+
+**What R56 was actually protecting, and what survives.** Not the number four — the requirement that a
+fifth line means somebody says why, in front of a reader, in writing. That happened. `R56` is amended
+with this reasoning, the allowlist carries it inline, and the sixth needs the same.
 
 ### 7.0c P15 — the two releases. RULED 2026-08-03 (the owner, after N20).
 

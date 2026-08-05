@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- A LEGAL DECLARATION. Every value here is checked against what the app
+	     actually does, not against what would be convenient.
+
+	     NSPrivacyTracking = false and an EMPTY NSPrivacyTrackingDomains: there is
+	     no tracking, no advertising identifier, no attribution SDK, and no
+	     domain this app contacts. The Android build ships without the internet
+	     permission at all; on iOS there is no network code to remove. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+
+	<!-- **EMPTY BUT PRESENT, AND THE DIFFERENCE MATTERS.** An absent key is an
+	     unanswered question; an empty array is the answer "none". Apple defines
+	     "collect" as transmitting off-device, and this app transmits nothing —
+	     records leave the phone only when the shepherd deliberately exports and
+	     shares them, which is the share sheet acting as another process. -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<!-- C617.1 — file timestamps, read to display to the user or for
+		     app-internal purposes. `LocalLog` rotates on file size and reads
+		     `FileStat`; `connection.dart` measures the database before a
+		     pre-migration snapshot. Both are on-device and neither result
+		     leaves the phone. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<!-- E174.1 — disk space, checked to write a file the user asked for.
+		     **Declared for a library rather than for our own Dart**, and that is
+		     the honest reason: no code under `lib/` queries free space — the
+		     four call sites read file SIZE, which is a different API — but
+		     `sqlite3_flutter_libs` links SQLite into the app binary, and SQLite
+		     calls `statfs` on the database path to detect a full disk. A
+		     statically linked library's API use is the app's to declare, because
+		     it has no separate privacy manifest of its own. -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>E174.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

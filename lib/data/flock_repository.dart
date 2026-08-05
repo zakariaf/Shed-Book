@@ -25,6 +25,7 @@ import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/write_outcome.dart';
+import 'package:shed_book/data/entitlement_repository.dart';
 import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -91,12 +92,28 @@ final class FlockRepository {
   /// make the PUBLIC parameter name `_db`, so every caller would be writing a
   /// private name.
   // ignore_for_file: prefer_initializing_formals
-  FlockRepository({required AppDatabase db, required FreeTierPolicy policy})
-    : _db = db,
-      _policy = policy;
+  FlockRepository({
+    required AppDatabase db,
+    required FreeTierPolicy policy,
+    EntitlementRepository? entitlements,
+  }) : _db = db,
+       _policy = policy,
+       _entitlements = entitlements;
 
   final AppDatabase _db;
   final FreeTierPolicy _policy;
+
+  /// **THE ONE READER OF THE ENTITLEMENT ON THIS PATH, AND IT IS OPTIONAL FOR
+  /// ONE REASON.** `EntitlementRepository` is the only writer of
+  /// `entitlements.unlocked` (`11 §4.3`), and reading through it rather than
+  /// off the table keeps that ownership true in both directions.
+  ///
+  /// `null` falls back to reading the row directly, which is what every test
+  /// that predates N30 does — and what `tool/seed.dart` does, a plain Dart
+  /// script with no provider graph. The fallback reads the SAME row through the
+  /// same database, so it cannot disagree; what it lacks is the store
+  /// subscription, which a write path has no business holding open anyway.
+  final EntitlementRepository? _entitlements;
 
   /// The whole active flock's tags, held in memory and ranked in Dart.
   ///
@@ -464,7 +481,9 @@ final class FlockRepository {
   /// `getSingle()`, not `getSingleOrNull()`: the table has `CHECK (id = 1)` and
   /// `seedFirstRun` seeds the row in `onCreate`, so it can never find nothing.
   /// A null branch here would have to guess an entitlement.
-  Future<bool> _readUnlocked() async => (await _db.select(_db.entitlements).getSingle()).unlocked;
+  Future<bool> _readUnlocked() async => _entitlements != null
+      ? (await _entitlements.read()).unlocked
+      : (await _db.select(_db.entitlements).getSingle()).unlocked;
 
   Future<int> _countEwesInCurrentSeason() async {
     final AppSetting settings = await _db.select(_db.appSettings).getSingle();

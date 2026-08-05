@@ -389,6 +389,7 @@ void main() {
 
     expect(files, <String>[
       'decision_record.dart',
+      'fake_purchase_service.dart', // N30-T01, the seventh and last of the seven
       'fake_share_service.dart', // N21-T06, the first of the seven to land
       'flock_generator.dart', // N23-T04, 12 §5.3's twelfth support file
       'harness.dart',
@@ -468,6 +469,7 @@ void main() {
     // The twenty-second self-match in this project.
     const Map<String, String> homes = <String, String>{
       'fake_share_service.dart': 'FakeShareService', // N21-T06
+      'fake_purchase_service.dart': 'FakePurchaseService', // N30-T01
     };
 
     for (final File f in Directory('test/support').listSync().whereType<File>()) {

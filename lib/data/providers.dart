@@ -25,6 +25,9 @@
 //   penRepositoryProvider       N19-T02  Provider<PenRepository>
 //   seasonRepositoryProvider    N27-T06  Provider<SeasonRepository>   (N28's file, one verb early)
 //   seasonsProvider             N29-T05  StreamProvider<List<Season>>
+//   purchaseServiceProvider     N30-T01  Provider<PurchaseService>            keepAlive
+//   entitlementRepositoryProvider N30-T02 FutureProvider<EntitlementRepository> keepAlive
+//   entitlementProvider         N30-T02  StreamProvider<Entitlement>          keepAlive
 //   settleThresholdHoursProvider N19-T02 Provider<int>
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
@@ -64,6 +67,8 @@ import 'package:shed_book/data/restore_service.dart';
 import 'package:shed_book/data/share_service.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/data/entitlement_repository.dart';
+import 'package:shed_book/data/purchase_service.dart';
 import 'package:shed_book/data/season_repository.dart';
 import 'package:shed_book/data/treatment_repository.dart';
 import 'package:shed_book/data/voice_recorder.dart';
@@ -231,10 +236,69 @@ final StreamProvider<List<Season>> seasonsProvider = StreamProvider<List<Season>
       .watch();
 });
 
+/// The store seam.
+///
+/// **A PLAIN `Provider`, AND THAT IS WHAT KEEPS #90 TRUE ONCE T04 PUTS THIS ON
+/// THE QUICK ENTRY PATH.** Constructing a `PurchaseService` starts nothing:
+/// subscribing to the plugin's stream is what initialises the Android billing
+/// client, and that happens in `attach()`, which no shed screen calls.
+/// `FakePurchaseService`'s call list is the tripwire that proves it.
+///
+/// keepAlive (R74): `detach()` cancels the plugin subscription and deliberately
+/// does not close the fan-out, so a later `attach()` must find the same instance.
+///
+/// `lib/main.dart` and `lib/app.dart` may not name it — `launch.store_call`.
+final Provider<PurchaseService> purchaseServiceProvider = Provider<PurchaseService>(
+  (ref) => PurchaseService(),
+);
+
+/// The one writer of `entitlements.unlocked`.
+///
+/// `ref.onDispose(repo.detach)` is what stops the plugin subscription outliving
+/// the container — and `detach()` deliberately leaves `PurchaseService`'s
+/// fan-out open, because that provider is keepAlive and a later `attach()` must
+/// find the same instance.
+final FutureProvider<EntitlementRepository> entitlementRepositoryProvider =
+    FutureProvider<EntitlementRepository>((ref) async {
+      final AppDatabase db = await ref.watch(databaseProvider.future);
+      final EntitlementRepository repo = EntitlementRepository(
+        db,
+        ref.watch(purchaseServiceProvider),
+      );
+      ref.onDispose(repo.detach);
+      return repo;
+    });
+
+/// The row, as a stream.
+///
+/// **NOTHING ON A SHED SCREEN MAY WATCH THIS** (#90). The two gated verbs
+/// consult `FreeTierPolicy` inside the repository, so a screen never needs the
+/// entitlement — and a screen that watched it is a paywall flash waiting for a
+/// slow first frame.
+final StreamProvider<Entitlement> entitlementProvider = StreamProvider<Entitlement>((ref) async* {
+  final EntitlementRepository repo = await ref.watch(entitlementRepositoryProvider.future);
+  yield* repo.watch();
+});
+
 final Provider<SeasonRepository> seasonRepositoryProvider = Provider<SeasonRepository>(
   (ref) => SeasonRepository(db: ref.watch(databaseProvider).requireValue),
 );
 
+/// **THE TWO GATED REPOSITORIES DO NOT WATCH `entitlementRepositoryProvider`,
+/// AND THE REASON IS MEASURED.** The obvious wiring — pass it in from the
+/// provider — makes these rebuild when the entitlement future resolves, which
+/// constructs a NEW repository and restarts every stream it owns.
+/// `quick_entry_test.dart` caught it immediately: the tag index came back empty
+/// mid-frame, on the one screen whose whole promise is that typing reorders the
+/// match list in the same frame with no database read.
+///
+/// So they read the row directly, which is what `_readUnlocked`'s fallback does
+/// — the SAME row, through the same database, so it cannot disagree with the
+/// repository that owns the writes. What the fallback lacks is the store
+/// subscription, and a write path has no business holding one open.
+///
+/// The constructor parameter stays for callers that already hold the repository
+/// — the tests that assert unlocking reaches these verbs, and N30-T05's section.
 final Provider<FlockRepository> flockRepositoryProvider = Provider<FlockRepository>(
   (ref) => FlockRepository(
     db: ref.watch(databaseProvider).requireValue,

@@ -60,6 +60,29 @@ class ExportBanner extends ConsumerStatefulWidget {
 class _ExportBannerState extends ConsumerState<ExportBanner> {
   bool _armed = false;
 
+  /// **THE ONCE-A-DAY RULE NEVER FIRED, BECAUSE NOTHING WROTE THE COLUMN.**
+  /// `shouldPrompt`'s rule 3 reads `last_export_prompted_at` and returns false
+  /// when it is today — and `SettingsRepository.recordExportPrompted`, the only
+  /// writer, had no caller anywhere in `lib/`. So the column stayed null
+  /// forever and a shepherd who ignored the banner got it again on the next
+  /// cold launch, and the next, all day.
+  ///
+  /// **STAMPED WHEN IT IS SHOWN, NOT WHEN IT IS ACTED ON.** The rule is *have I
+  /// asked today*, and asking is what this widget does; dismissing has its own
+  /// column, and exporting has a third. Three different facts.
+  bool _stamped = false;
+
+  /// **ONCE SHOWN, IT STAYS UNTIL IT IS ANSWERED**, and the latch is not
+  /// cosmetic: `recordExportPrompted` writes the column that `shouldPrompt`'s
+  /// rule 3 reads, so stamping at show-time made the banner remove itself on the
+  /// very next emission. Measured — the banner stopped rendering at all, and
+  /// three other tests went red with it.
+  ///
+  /// The rule is *have I asked today*, and the answer becomes yes the moment it
+  /// is on screen. What must not follow is the question vanishing while the
+  /// shepherd is reading it. Dismissing and exporting have their own columns.
+  bool _shown = false;
+
   @override
   void initState() {
     super.initState();
@@ -76,11 +99,22 @@ class _ExportBannerState extends ConsumerState<ExportBanner> {
       return const SizedBox.shrink();
     }
     final ExportPromptState? p = ref.watch(exportPromptProvider).value;
-    if (p == null || !p.show) {
+    if (p != null && p.show) {
+      _shown = true;
+    }
+    if (p == null || !(p.show || _shown)) {
       // NOT AN EMPTY BOX WITH A HEIGHT. The slot takes no space at all when the
       // banner is not shown, so the record column below it is the same size on
       // the days nothing is prompted — which is most of them.
       return const SizedBox.shrink();
+    }
+
+    // Once per mount, after the decision to show is made. `unawaited` because
+    // nothing here waits on it: the banner is already on screen and the stamp
+    // only changes what happens on the next launch.
+    if (!_stamped) {
+      _stamped = true;
+      unawaited(ref.read(settingsRepositoryProvider).recordExportPrompted(p.now));
     }
 
     final Instant? lastExportedAt = p.lastExportedAt;

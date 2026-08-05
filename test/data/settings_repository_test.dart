@@ -140,17 +140,22 @@ void main() {
       'setTurnOutThresholdHours',
       'setCycleDays',
       'setPercentageDefinition',
-      'setCurrentSeason',
       'recordExported',
       'recordExportPrompted',
       'dismissExportPromptForSeason',
       'recordReconcileScheduled',
     ];
 
-    // setCurrentSeason and dismissExportPromptForSeason take a SeasonId and
-    // need a real season row, so they are exercised in their own case below
-    // rather than in the parameterised table.
-    expect(_settings, hasLength(setters.length - 2));
+    // **`setCurrentSeason` LEFT THIS LIST ON 2026-08-05 BECAUSE THE VERB WAS
+    // DELETED.** `03 §5.14` gives `app_settings.current_season` to
+    // `SeasonRepository.switchSeason`, which also checks the season exists
+    // before pointing at it; this class wrote the column raw and had no caller
+    // at all. A second writer for one column is `layer.single_writer` waiting
+    // to happen.
+    //
+    // dismissExportPromptForSeason takes a SeasonId and needs a real season row,
+    // so it is exercised in its own case below rather than in the table.
+    expect(_settings, hasLength(setters.length - 1));
   });
 
   test('reading before any write returns the seeded defaults', () async {
@@ -179,11 +184,17 @@ void main() {
     await sawIt;
   });
 
-  test('a nullable season pointer accepts null', () async {
+  test('a fresh notebook has no season pointer, and that is a real state', () async {
     // The "no current season" state is a real one — a fresh install has no
-    // season until the shepherd starts one — so the column is nullable and the
-    // setter must be able to say so.
-    expect(await repo.setCurrentSeason(null), isA<WriteCommitted>());
+    // season until the shepherd starts one — so the column is nullable and
+    // everything downstream has to cope with the null.
+    //
+    // **THIS ASSERTED THE SETTER AND NOW ASSERTS THE STATE**, because
+    // `setCurrentSeason` was deleted: `03 §5.14` gives the column to
+    // `SeasonRepository`. The property the case was really about — *null is
+    // legal here* — survives, and it is the one that matters, since
+    // `LambingRepository._currentSeason()` refuses to invent a season on the
+    // 3am path precisely because this can be null.
     expect((await repo.read()).currentSeason, isNull);
   });
 

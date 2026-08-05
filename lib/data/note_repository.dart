@@ -173,22 +173,12 @@ final class NoteRepository {
   /// record that a photo existed, and Indelible Rule 1 does not stop applying
   /// because the bytes did. A media asset the app quietly forgot is a photo the
   /// shepherd remembers taking and cannot find.
-  Future<WriteOutcome> markMediaMissing(String relativePath) => _write(() async {
-    final Instant now = appNow();
-    return (_db.update(
-      _db.mediaAssets,
-    )..where(($MediaAssetsTable t) => t.relativePath.equals(relativePath))).write(
-      MediaAssetsCompanion(missingSince: Value<Instant?>(now), updatedAt: Value<Instant>(now)),
-    );
-  });
+  // **`markMediaMissing` WAS DELETED HERE ON 2026-08-05.**
+  // `MediaSweeper.sweepMissingFiles` writes `missing_since` itself and CLEARS
+  // it when the file comes back (`04 §5.2`) — two writers for one column, and
+  // only one of them knows how to un-write it. The manual route had no caller
+  // and could only ever have disagreed with the sweep.
 
-  /// One transaction, one `shedFailureFrom`.
-  ///
-  /// A CHECK violation arrives as `SQLITE_CONSTRAINT` and correctly falls
-  /// through to `UnexpectedFailure`: it is a programmer error — a subject that
-  /// is null when it must not be, a body that is blank — and dressing it as a
-  /// known failure would give the shepherd a sentence about a thing they did
-  /// not do.
   Future<WriteOutcome> _write(Future<int> Function() body) async {
     try {
       final int rows = await _db.transaction(body);

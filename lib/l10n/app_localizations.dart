@@ -964,6 +964,18 @@ abstract class AppLocalizations {
   /// **'STOP'**
   String get lambingEntryVoiceStop;
 
+  /// Printed while the recorder reports sound above the noise floor. It is the only feedback a shepherd gets that the microphone is not muffled by a coat — and it is a WORD rather than a waveform, because §6 has six marks and none of them is a meter.
+  ///
+  /// In en, this message translates to:
+  /// **'HEARING YOU'**
+  String get lambingEntryVoiceHearing;
+
+  /// The other half. Silence during a voice note is worth saying out loud: the recording is still running and still being written, and the shepherd is the only one who can tell whether that is right.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT HEARING ANYTHING'**
+  String get lambingEntryVoiceSilent;
+
   /// Shown when `hasPermission` is false. It states the fact and asks for nothing — the OS prompt is another process and appears once, on first use.
   ///
   /// In en, this message translates to:

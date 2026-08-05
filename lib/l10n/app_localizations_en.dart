@@ -528,6 +528,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lambingEntryVoiceStop => 'STOP';
 
   @override
+  String get lambingEntryVoiceHearing => 'HEARING YOU';
+
+  @override
+  String get lambingEntryVoiceSilent => 'NOT HEARING ANYTHING';
+
+  @override
   String get lambingEntryVoiceNoPermission => 'The microphone is not available.';
 
   @override

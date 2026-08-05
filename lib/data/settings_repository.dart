@@ -145,6 +145,19 @@ final class SettingsRepository {
   Future<WriteOutcome> setTurnOutThresholdHours(int hours) =>
       _write(AppSettingsCompanion(turnOutThresholdHours: Value<int>(hours)));
 
+  /// Read by Season Summary's `lambingSpread` (N28, `v1.1.0`) and by nothing in
+  /// `v1.0.0`.
+  ///
+  /// **THEY WERE DELETED ON 2026-08-05 AND RESTORED THE SAME DAY**, and the
+  /// round trip is worth the four lines it costs. The reasoning that removed
+  /// them was the project's own — *the epic that writes the class adds it in the
+  /// same commit* — and it was wrong here for a reason the deletion surfaced:
+  /// their callers are the cases in `settings_repository_test.dart` that assert
+  /// these columns **round-trip**, which is exactly what has to be true for a
+  /// `v1.0.0` backup to restore into `v1.1.0` unchanged (P15, all 21 tables
+  /// whole).
+  ///
+  /// A verb whose only caller is the test that states a rule is not dead code.
   Future<WriteOutcome> setCycleDays(int days) =>
       _write(AppSettingsCompanion(cycleDays: Value<int>(days)));
 
@@ -153,8 +166,13 @@ final class SettingsRepository {
 
   // -- season pointer — N28 reads it, N23's restore rewrites it --------------
 
-  Future<WriteOutcome> setCurrentSeason(SeasonId? season) =>
-      _write(AppSettingsCompanion(currentSeason: Value<int?>(season?.value)));
+  // **`setCurrentSeason` WAS DELETED HERE ON 2026-08-05, AND ITS ABSENCE IS
+  // THE RULE.** `03 §5.14` assigns `app_settings.current_season` to
+  // `SeasonRepository`, which owns it through `switchSeason` — a verb that also
+  // checks the season exists before pointing at it. This one wrote the column
+  // raw, from a second class, and had no caller: a second writer for one column
+  // is `layer.single_writer` waiting to happen, and keeping it "for later" is
+  // how the second one eventually gets used.
 
   // -- the export banner's three columns — N21 (critique defect S6) ----------
 
@@ -175,6 +193,12 @@ final class SettingsRepository {
 
   /// Written by `ReminderReconciler.reconcile()` in the same transaction that
   /// records the projection (R40) — N24.
+  ///
+  /// **DELETED ON 2026-08-05 AND RESTORED THE SAME DAY**, on the same reasoning
+  /// as the two setters above: its caller is the case asserting that
+  /// `last_reconcile_scheduled` round-trips, and that column is in the backup —
+  /// which is exactly what has to hold for a `v1.0.0` backup to restore into
+  /// `v1.1.0` unchanged (P15, all 21 tables whole).
   Future<WriteOutcome> recordReconcileScheduled(Instant at) =>
       _write(AppSettingsCompanion(lastReconcileScheduled: Value<Instant>(at)));
 

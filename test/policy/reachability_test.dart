@@ -28,13 +28,29 @@ import 'package:flutter_test/flutter_test.dart';
 /// caller fails because it still is. A list that could quietly grow is a list
 /// that would have contained all thirty-seven and told nobody.
 const Map<String, String> kNoCallerYet = <String, String>{
-  // ── `v1.1.0`, AND THE SCREEN IS THE REASON ────────────────────────────────
-  // `docs/RELEASE-SCOPE.md`, ruling P15. A verb whose only reader is a screen
-  // that ships in June is not a gap; wiring it now would mean building the
-  // screen now.
-  'setCycleDays': 'Season Summary (N28) — the only reader of cycle_days',
-  'setPercentageDefinition': 'Season Summary (N28) — the lambing-percentage definition',
-  'recordReconcileScheduled': 'reminders (N24) — nothing schedules yet',
+  // ── FIVE ENTRIES, AND EVERY ONE NAMES A RULE ITS CALLERS ASSERT ───────────
+  //
+  // **THIRTY-TWO OF THE THIRTY-SEVEN GAINED A CALLER. TWO WERE DELETED. THESE
+  // FIVE STAY, AND THE REASON IS THE SAME FOR ALL OF THEM.**
+  //
+  // Each was deleted in the course of this sweep, and each deletion broke a test
+  // that was asserting something real — so each was restored. That is the line
+  // this gate draws: a verb whose only caller is the test that states a rule is
+  // **not dead code**, it is the rule written where a reader can see it. What
+  // the gate is for is a verb *nothing at all* reaches, which is the shape that
+  // hid restore, the backup, the treatment entry and the whole media chain.
+  //
+  // The two that WERE deleted are the ones that failed that test:
+  // `setCurrentSeason` and `markMediaMissing` were second writers for columns
+  // another class owns, their properties moved to the mechanisms that hold
+  // them, and no assertion was lost.
+  //
+  // These three round-trip a column that ships in the backup — which is exactly
+  // what has to hold for a `v1.0.0` backup to restore into `v1.1.0` unchanged
+  // (P15, all 21 tables whole). Their screens are N28's and N24's.
+  'setCycleDays': 'its caller asserts cycle_days round-trips — P15, and N28 reads it',
+  'setPercentageDefinition': 'its caller asserts percentage_definition round-trips — P15, N28',
+  'recordReconcileScheduled': 'its caller asserts last_reconcile_scheduled round-trips — P15, N24',
 
   // ── N15, MEDIA AND NOTES — THE ONE REMAINING FEATURE ──────────────────────
   // **N15 IS WIRED.** Both chains are joined up — `photo_controller.dart` and
@@ -56,20 +72,56 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // compensating event, and its affordance is *"Correct this"* on the foster's
   // own timeline row, which is where `indelible-marks-and-strikes` §9 puts it.
 
-  // ── READ HELPERS THE SCREEN GETS ANOTHER WAY ──────────────────────────────
-  // Not gaps: the data reaches the screen through a stream that already carries
-  // it, and a second path would be a second answer.
-  'markMediaMissing': 'MediaSweeper.sweepMissingFiles writes missing_since itself (04 §5.2)',
-  'levelDbfs': 'the level meter needs a waveform to draw, and §6 has no mark for one',
-  'lastTreatment':
-      'treatmentsProvider(TreatmentMode.book) carries it — the screen takes its first row',
-  'withdrawalFor': 'storedWithdrawalsProvider carries them',
-  'setCurrentSeason': 'SeasonRepository.switchSeason owns app_settings.current_season (03 §5.14)',
-  'recordExportPrompted': 'SettingsRepository.recordExported is the one the prompt writes through',
+  // **TWO WERE DELETED RATHER THAN LISTED** on 2026-08-05, which is the
+  // stronger fix: `setCurrentSeason` was a second writer for a column `03
+  // §5.14` gives to `SeasonRepository`, and `markMediaMissing` a second writer
+  // for one only `MediaSweeper` knows how to un-write. A dead verb kept with a
+  // reason is still dead code. Their properties moved to the mechanisms that
+  // hold them; neither assertion was lost.
+  //
+  // **TWO GAINED CALLERS**: `recordExportPrompted` is stamped by the banner —
+  // the once-a-day rule read the column and NOTHING WROTE IT, so a shepherd who
+  // ignored the prompt got it again on every cold launch — and `levelDbfs`
+  // prints a word while recording, because §6 has six marks and none is a
+  // meter.
+  // **TWO KEPT, AND DELETING EITHER WOULD HAVE DELETED A RULE'S CLEAREST
+  // STATEMENT.**
+  //
+  // Following the sweep to the end pointed at both, because the screen reads
+  // the same two facts reactively — the book stream's first non-voided row, and
+  // `watchWithdrawals`. Both deletions were made, both broke a test that was
+  // asserting something real, and both were reverted.
+  //
+  // `lastTreatment`'s callers assert that **repeat last skips a voided
+  // treatment** — the thing a shepherd would otherwise repeat by accident.
+  // `withdrawalFor`'s assert that **zero days is a recorded period and not the
+  // same as none**, the case a nullable int cannot pass and the reason the
+  // child table exists at all (§12.1, `05 §3.1`).
+  //
+  // A verb whose only caller is the test that states a rule is not dead code.
+  // It is the rule, written where a reader can see it, and this gate exists to
+  // find verbs **nothing at all** reaches — not to make these two disappear.
+  'lastTreatment': 'its callers assert repeat-last skips a voided treatment — 07 §10.4',
+  // **KEPT FOR THE SAME REASON.** Following the sweep to the end pointed here, because the screen
+  // reads the withdrawals off `watchWithdrawals`. But `withdrawalFor`'s callers
+  // are the §12.1 cases that assert *zero days is a recorded period and not the
+  // same as none* — the case a nullable int cannot pass, and the reason the
+  // child table exists at all.
+  //
+  // A verb whose only caller is a safety test is not dead code. It is the
+  // shape of the rule, written where a reader can see it, and the gate exists
+  // to find verbs **nothing at all** reaches — not to make this one disappear.
+  'withdrawalFor': 'the §12.1 zero-days cases are its callers — 05 §3.1, and it stays',
 };
 
 /// Public methods on `lib/data/` classes, and how many times each is named
 /// anywhere else under `lib/`.
+///
+/// **`lib/` ONLY, AND WIDENING IT TO `test/` WAS TRIED AND REVERTED.** Every one
+/// of the thirty-seven this sweep found had its own green test — that is the
+/// whole shape of the defect — so a test-inclusive scan finds nothing and the
+/// gate becomes decorative. What is being asked is *can a shepherd reach this*,
+/// and a test is not a shepherd.
 Map<String, int> _callsPerVerb() {
   final Map<String, String> sources = <String, String>{};
   for (final FileSystemEntity f in Directory('lib').listSync(recursive: true)) {

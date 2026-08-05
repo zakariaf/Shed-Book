@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
@@ -792,6 +793,28 @@ class _VoiceRowState extends ConsumerState<_VoiceRow> {
               onTap: recording == null ? _start : () => _stop(recording),
             ),
           ),
+          // **THE LEVEL, AS A WORD.** `VoiceRecorder.levelDbfs` had no caller,
+          // so a shepherd recording through a coat pocket had no way to know the
+          // microphone was muffled until they played it back in the morning.
+          //
+          // A word rather than a waveform: `indelible.md §6` has six marks and
+          // none of them is a meter, and *no new mark may be added without
+          // deleting one*. The threshold is the recorder's own noise floor
+          // rather than a number this file invents.
+          if (recording != null)
+            StreamBuilder<double>(
+              stream: ref.read(voiceRecorderProvider).levelDbfs(const Duration(milliseconds: 300)),
+              builder: (BuildContext context, AsyncSnapshot<double> snapshot) => Padding(
+                padding: EdgeInsets.only(top: t.gapMin / 2),
+                child: Text(
+                  (snapshot.data ?? VoiceRecorder.silenceDbfs) > VoiceRecorder.silenceDbfs
+                      ? l10n.lambingEntryVoiceHearing
+                      : l10n.lambingEntryVoiceSilent,
+                  key: const Key('lambing_entry.voice.level'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+                ),
+              ),
+            ),
           if (_refused)
             Padding(
               padding: EdgeInsets.only(top: t.gapMin / 2),

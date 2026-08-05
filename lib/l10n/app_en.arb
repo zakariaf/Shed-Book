@@ -772,6 +772,14 @@
   "@lambingEntryVoiceStop": {
     "description": "Ends the recording. A separate word rather than a toggle: at 03:20 a control that means two things depending on a state you cannot see is a control that records nothing or never stops."
   },
+  "lambingEntryVoiceHearing": "HEARING YOU",
+  "@lambingEntryVoiceHearing": {
+    "description": "Printed while the recorder reports sound above the noise floor. It is the only feedback a shepherd gets that the microphone is not muffled by a coat — and it is a WORD rather than a waveform, because §6 has six marks and none of them is a meter."
+  },
+  "lambingEntryVoiceSilent": "NOT HEARING ANYTHING",
+  "@lambingEntryVoiceSilent": {
+    "description": "The other half. Silence during a voice note is worth saying out loud: the recording is still running and still being written, and the shepherd is the only one who can tell whether that is right."
+  },
   "lambingEntryVoiceNoPermission": "The microphone is not available.",
   "@lambingEntryVoiceNoPermission": {
     "description": "Shown when `hasPermission` is false. It states the fact and asks for nothing — the OS prompt is another process and appears once, on first use."

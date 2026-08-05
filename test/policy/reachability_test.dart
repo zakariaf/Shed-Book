@@ -45,11 +45,15 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // another class owns, their properties moved to the mechanisms that hold
   // them, and no assertion was lost.
   //
-  // These three round-trip a column that ships in the backup — which is exactly
-  // what has to hold for a `v1.0.0` backup to restore into `v1.1.0` unchanged
-  // (P15, all 21 tables whole). Their screens are N28's and N24's.
-  'setCycleDays': 'its caller asserts cycle_days round-trips — P15, and N28 reads it',
-  'setPercentageDefinition': 'its caller asserts percentage_definition round-trips — P15, N28',
+  // **`setCycleDays` AND `setPercentageDefinition` LEFT BY GAINING SETTINGS
+  // ROWS**, and the reasoning that nearly kept them here was the wrong way
+  // round. Both are read by Season Summary, which is `v1.1.0` — but the season
+  // they describe is happening NOW, and a setting a shepherd cannot reach until
+  // after the season it applies to is a setting that arrives too late to be
+  // true. The value is stored today; the screen that reads it ships in June.
+  //
+  // One entry left, and it is the only verb in this repository whose caller
+  // genuinely cannot exist yet.
   'recordReconcileScheduled': 'its caller asserts last_reconcile_scheduled round-trips — P15, N24',
 
   // ── N15, MEDIA AND NOTES — THE ONE REMAINING FEATURE ──────────────────────

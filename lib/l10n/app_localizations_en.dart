@@ -1381,6 +1381,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionSeason => 'Season';
 
   @override
+  String settingsSeasonCycleDays({required String days}) {
+    return 'CYCLE $days DAYS';
+  }
+
+  @override
+  String get settingsSeasonCycleShorter => 'SHORTER';
+
+  @override
+  String get settingsSeasonCycleLonger => 'LONGER';
+
+  @override
+  String get settingsSeasonPercentage => 'LAMBING PERCENTAGE';
+
+  @override
   String get settingsSectionPens => 'Pens';
 
   @override

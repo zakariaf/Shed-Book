@@ -26,6 +26,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/domain/stats/definitions.dart';
 import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/flock/ewe_card_screen.dart';
@@ -401,6 +402,48 @@ void main() {
       // of when it happened — `EDITED` on the one stamp §12.5 rests on would
       // mean nothing if every keystroke set it.
       expect(notes.single.timeSource, 'auto');
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('the cycle and the percentage definition are the shepherd\'s to set', (
+    WidgetTester tester,
+  ) async {
+    // **STORED NOW, READ IN JUNE.** Both are read by Season Summary (N28,
+    // `v1.1.0`) and neither had a caller — but the season they describe is
+    // happening NOW, and a setting a shepherd cannot reach until after the
+    // season it applies to is a setting that arrives too late to be true.
+    //
+    // `lambingSpread`'s own doc is blunt about the cycle: the parameter *"has a
+    // default and the app must never use it"*. 17 is what `onCreate` seeds, and
+    // this row is how a shepherd whose tup ratio says otherwise changes it.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+
+    try {
+      await tester.pumpApp(const SettingsScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      final Finder longer = find.byKey(const Key('settings.season.cycle.longer'));
+      await tester.scrollUntilVisible(longer, 200, scrollable: find.byType(Scrollable).first);
+      await tester.tap(longer);
+      await tester.pumpAndSettle();
+      expect((await db.select(db.appSettings).getSingle()).cycleDays, 18);
+
+      final Finder reared = find.byKey(
+        Key('settings.season.percentage.${LambingPercentageChoice.rearedPerEweToRam.key}'),
+      );
+      await tester.scrollUntilVisible(reared, 200, scrollable: find.byType(Scrollable).first);
+      await tester.tap(reared);
+      await tester.pumpAndSettle();
+      expect(
+        (await db.select(db.appSettings).getSingle()).percentageDefinition,
+        LambingPercentageChoice.rearedPerEweToRam.key,
+        reason:
+            'four honest definitions give different numbers off one flock — '
+            'the app states which, and never picks',
+      );
     } finally {
       await tester.closeApp();
     }

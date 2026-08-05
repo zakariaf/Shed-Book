@@ -22,6 +22,7 @@ import 'package:shed_book/core/time/app_clock.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
+import 'package:shed_book/domain/stats/definitions.dart';
 import 'package:shed_book/domain/terminology/animal_class.dart';
 import 'package:shed_book/domain/terminology/term_label.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -113,6 +114,87 @@ class _SeasonSectionState extends ConsumerState<SeasonSection> {
                 said,
                 key: const Key('settings.season.refused'),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+          SizedBox(height: t.gapMin),
+
+          // **THE CYCLE, AND THE DEFAULT IS THE SHEPHERD'S RATHER THAN THE
+          // APP'S.** `lambingSpread` reads `cycle_days` to say how many ewes
+          // lambed in the first cycle, and its own doc is blunt that the
+          // parameter *"has a default and the app must never use it"* — 17 is
+          // what `onCreate` seeds, and this row is how a shepherd whose tup
+          // ratio says otherwise changes it.
+          //
+          // **STORED NOW, READ IN JUNE.** Season Summary is `v1.1.0` (N28), and
+          // the season this number describes is happening now — a setting a
+          // shepherd cannot reach until after the season it applies to is a
+          // setting that arrives too late to be true.
+          //
+          // Two words rather than a stepper: `indelible.md §6` has no icon set,
+          // and hold-to-repeat is a banned gesture. One press, one day.
+          Padding(
+            padding: EdgeInsets.only(bottom: t.gapMin / 2),
+            child: Text(
+              l10n.settingsSeasonCycleDays(days: formatShedCount(settings.cycleDays, locale)),
+              key: const Key('settings.season.cycle'),
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+          Wrap(
+            spacing: t.gapMin,
+            runSpacing: t.gapMin,
+            children: <Widget>[
+              for (final ({String key, String label, int delta}) step
+                  in <({String key, String label, int delta})>[
+                    (key: 'shorter', label: l10n.settingsSeasonCycleShorter, delta: -1),
+                    (key: 'longer', label: l10n.settingsSeasonCycleLonger, delta: 1),
+                  ])
+                ShedWordButton(
+                  key: Key('settings.season.cycle.${step.key}'),
+                  label: step.label,
+                  semanticLabel: step.label,
+                  selected: false,
+                  // **CLAMPED, AND THE FLOOR IS NOT A JUDGEMENT.** A cycle of
+                  // zero or of a year is not a shorter cycle, it is a number
+                  // that breaks the spread's arithmetic — so the control cannot
+                  // produce one. It is a range on a count, not a suggestion
+                  // about sheep.
+                  onTap: () => ref
+                      .read(settingsRepositoryProvider)
+                      .setCycleDays((settings.cycleDays + step.delta).clamp(1, 60))
+                      .ignore(),
+                ),
+            ],
+          ),
+          SizedBox(height: t.gapMin),
+
+          // **WHICH PERCENTAGE, STATED RATHER THAN PICKED.** There are four
+          // honest definitions and they give different numbers off the same
+          // flock — *born alive per ewe to the ram* and *reared per ewe to the
+          // ram* can be twenty points apart in a hard year. The app does not
+          // choose; it says which one it is using, in the shepherd's own words,
+          // and the four sentences are the domain's rather than this file's.
+          Padding(
+            padding: EdgeInsets.only(bottom: t.gapMin / 2),
+            child: Text(
+              l10n.settingsSeasonPercentage,
+              key: const Key('settings.season.percentage'),
+              style: Theme.of(context).textTheme.labelMedium,
+            ),
+          ),
+          for (final LambingPercentageChoice choice in LambingPercentageChoice.values)
+            Padding(
+              padding: EdgeInsets.only(bottom: t.gapMin),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ShedWordButton(
+                  key: Key('settings.season.percentage.${choice.key}'),
+                  label: choice.definition,
+                  semanticLabel: choice.definition,
+                  selected: settings.percentageDefinition == choice.key,
+                  onTap: () =>
+                      ref.read(settingsRepositoryProvider).setPercentageDefinition(choice).ignore(),
+                ),
               ),
             ),
           SizedBox(height: t.gapMin),

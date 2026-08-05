@@ -2290,6 +2290,30 @@ abstract class AppLocalizations {
   /// **'Season'**
   String get settingsSectionSeason;
 
+  /// 07 §14.3 row 4. The ewe cycle length, which the lambing spread reads to say how many lambed in the first cycle. The DEFAULT IS THE SHEPHERD'S, not the app's: 17 days is what onCreate seeds and this row is how they change it. Read by Season Summary (N28, v1.1.0); the value is stored now because the season it describes is happening now.
+  ///
+  /// In en, this message translates to:
+  /// **'CYCLE {days} DAYS'**
+  String settingsSeasonCycleDays({required String days});
+
+  /// One day off the cycle. A word rather than a stepper's minus: indelible.md §6 has no icon set, and hold-to-repeat is a banned gesture — one press, one day.
+  ///
+  /// In en, this message translates to:
+  /// **'SHORTER'**
+  String get settingsSeasonCycleShorter;
+
+  /// One day on. See SHORTER.
+  ///
+  /// In en, this message translates to:
+  /// **'LONGER'**
+  String get settingsSeasonCycleLonger;
+
+  /// 07 §14.3 row 4. WHICH percentage — there are four honest definitions and they give different numbers off the same flock, so the app states which one it is using rather than picking. Read by Season Summary (N28, v1.1.0).
+  ///
+  /// In en, this message translates to:
+  /// **'LAMBING PERCENTAGE'**
+  String get settingsSeasonPercentage;
+
   /// 07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold.
   ///
   /// In en, this message translates to:

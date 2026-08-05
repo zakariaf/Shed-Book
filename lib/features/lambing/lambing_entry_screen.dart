@@ -25,6 +25,7 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/features/lambing/photo_controller.dart';
+import 'package:shed_book/features/lambing/voice_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/domain/birth_type.dart';
@@ -323,6 +324,7 @@ class _Regions extends ConsumerWidget {
               ),
             ),
           ),
+          _VoiceRow(lambing: data.lambing.id),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
             child: ShedTextField(
@@ -741,3 +743,88 @@ class _Regions extends ConsumerWidget {
 /// else. Deriving anything more than the first character would be editing their
 /// word.
 String _titleCase(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+/// The voice note's two words and its one sentence.
+///
+/// **START AND STOP ARE TWO WORDS, NOT A TOGGLE.** At 03:20 a control that means
+/// two things depending on a state you cannot see is a control that records
+/// nothing or never stops — so `STOP` appears only while recording, and it is a
+/// different word in a different place from the one that started it.
+class _VoiceRow extends ConsumerStatefulWidget {
+  const _VoiceRow({required this.lambing});
+
+  final LambingId lambing;
+
+  @override
+  ConsumerState<_VoiceRow> createState() => _VoiceRowState();
+}
+
+class _VoiceRowState extends ConsumerState<_VoiceRow> {
+  /// The path being recorded to, or `null` when nothing is.
+  String? _recording;
+
+  /// **THE REFUSAL IS A SENTENCE, NOT A PROMPT.** The OS permission dialog is
+  /// another process and appears once, on first use; this line says what is
+  /// true when the answer was no, and asks for nothing.
+  bool _refused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String? recording = _recording;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ShedWordButton(
+              key: const Key('lambing_entry.voice'),
+              label: recording == null ? l10n.lambingEntryVoiceStart : l10n.lambingEntryVoiceStop,
+              semanticLabel: recording == null
+                  ? l10n.lambingEntryVoiceStart
+                  : l10n.lambingEntryVoiceStop,
+              selected: false,
+              onTap: recording == null ? _start : () => _stop(recording),
+            ),
+          ),
+          if (_refused)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryVoiceNoPermission,
+                key: const Key('lambing_entry.voice.no_permission'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _start() async {
+    final VoiceAttempt attempt = await startVoiceNote(ref, widget.lambing);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _refused = attempt is VoiceNoPermission;
+      _recording = attempt is VoiceRecording ? attempt.relativePath : null;
+    });
+  }
+
+  Future<void> _stop(String path) async {
+    await stopVoiceNote(ref, path);
+    if (!mounted) {
+      return;
+    }
+    // **THE ROW IS ALREADY WRITTEN**, so there is nothing to confirm here:
+    // `beginVoiceNote` landed it before the first byte, and `completeVoiceNote`
+    // has just filled in what the row could not know at the start.
+    setState(() => _recording = null);
+  }
+}

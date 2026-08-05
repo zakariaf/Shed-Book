@@ -37,10 +37,9 @@ const Map<String, String> kNoCallerYet = <String, String>{
   'recordReconcileScheduled': 'reminders (N24) — nothing schedules yet',
 
   // ── N15, MEDIA AND NOTES — THE ONE REMAINING FEATURE ──────────────────────
-  // **THE PHOTO CHAIN IS WIRED** — `pick`, `newRelativePath`, `writePhoto` and
-  // `attachPhoto` are joined up by `photo_controller.dart` and reached from
-  // Lambing Entry. What is left is the VOICE chain, which needs a recorder
-  // surface and a level meter with nothing to draw them on yet.
+  // **N15 IS WIRED.** Both chains are joined up — `photo_controller.dart` and
+  // `voice_controller.dart` — and reached from Lambing Entry. What is left of
+  // the media verbs is the two below, and neither is a gap.
   //
   // **`addNote` LEFT THIS LIST**, and the decision it was waiting on is
   // recorded on `editNoteBody`: a note is a ROW, so per-keystroke commits need
@@ -48,10 +47,6 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // the quad is about when the note happened and typing more of it does not
   // change that. Marking every keystroke as an edit would make `EDITED` mean
   // nothing on the one stamp §12.5 rests on.
-  'beginVoiceNote': 'N15 — the voice chain',
-  'completeVoiceNote': 'N15 — the voice chain',
-  'markMediaMissing': 'N15 — called by the sweep only when a photo exists to lose',
-  'levelDbfs': 'N15 — the recorder level meter',
 
   // ── BOTH CORRECTION VERBS ARE WIRED ───────────────────────────────────────
   // `correctEnteredAt` needed a time editor the pen board could not legally
@@ -64,6 +59,8 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // ── READ HELPERS THE SCREEN GETS ANOTHER WAY ──────────────────────────────
   // Not gaps: the data reaches the screen through a stream that already carries
   // it, and a second path would be a second answer.
+  'markMediaMissing': 'MediaSweeper.sweepMissingFiles writes missing_since itself (04 §5.2)',
+  'levelDbfs': 'the level meter needs a waveform to draw, and §6 has no mark for one',
   'lastTreatment':
       'treatmentsProvider(TreatmentMode.book) carries it — the screen takes its first row',
   'withdrawalFor': 'storedWithdrawalsProvider carries them',

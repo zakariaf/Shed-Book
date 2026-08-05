@@ -522,6 +522,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lambingEntryPhoto => 'PHOTO';
 
   @override
+  String get lambingEntryVoiceStart => 'VOICE NOTE';
+
+  @override
+  String get lambingEntryVoiceStop => 'STOP';
+
+  @override
+  String get lambingEntryVoiceNoPermission => 'The microphone is not available.';
+
+  @override
   String get detailUnset => 'NOT RECORDED · SKIPPABLE';
 
   @override

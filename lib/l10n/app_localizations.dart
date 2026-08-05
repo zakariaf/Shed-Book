@@ -952,6 +952,24 @@ abstract class AppLocalizations {
   /// **'PHOTO'**
   String get lambingEntryPhoto;
 
+  /// 07 §7. Starts a voice note on a lambing. The chain — permission, start, stop, complete — landed at N15 with tests and had no caller.
+  ///
+  /// In en, this message translates to:
+  /// **'VOICE NOTE'**
+  String get lambingEntryVoiceStart;
+
+  /// Ends the recording. A separate word rather than a toggle: at 03:20 a control that means two things depending on a state you cannot see is a control that records nothing or never stops.
+  ///
+  /// In en, this message translates to:
+  /// **'STOP'**
+  String get lambingEntryVoiceStop;
+
+  /// Shown when `hasPermission` is false. It states the fact and asks for nothing — the OS prompt is another process and appears once, on first use.
+  ///
+  /// In en, this message translates to:
+  /// **'The microphone is not available.'**
+  String get lambingEntryVoiceNoPermission;
+
   /// Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value.
   ///
   /// In en, this message translates to:

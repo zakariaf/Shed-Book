@@ -414,75 +414,82 @@ class _QuickEntryPage extends ConsumerWidget {
                       child: _ConfirmBar(),
                     ),
 
-                    // **`INDEX` LIVES IN THE SHEET, AND THAT IS A CORRECTION
-                    // MADE ON A SIMULATOR RATHER THAN A PREFERENCE.**
+                    // **`INDEX` AND THE EVENT VERB SHARE ONE ROW, AND THE
+                    // SHARING IS THE FIX RATHER THAN THE ARRANGEMENT.**
                     //
-                    // `indelible.md §7.17` pins it bottom-left of the BAND —
-                    // and the band is 152 px sitting under an opaque sheet that
-                    // is open on frame 1, so `INDEX` and the corner slab were
+                    // `indelible.md §7.17` pins `INDEX` bottom-left of the BAND
+                    // — and the band is 152 px sitting under an opaque sheet
+                    // that is open on frame 1, so both thumb anchors were
                     // painted over on every frame this app has ever drawn.
-                    // Measured: from Quick Entry a shepherd could reach Flock,
-                    // the pens, the medicine book, Export and Settings — not one
-                    // of them.
+                    // Measured on a simulator: from Quick Entry a shepherd
+                    // could reach Flock, the pens, the medicine book, Export
+                    // and Settings — not one of them.
                     //
-                    // Moving the sheet up by the band's height was tried first
-                    // and is worse: the sheet is nearly full height, so its top
-                    // then covered the page header. The band's geometry is
-                    // `07 §16`'s and not this session's to re-cut.
+                    // **TWO FIXES WERE TRIED AND BOTH COST THE HEADER.** Moving
+                    // the sheet up by the band's height put its top over the
+                    // page header; giving `INDEX` its own 64 px row did the
+                    // same thing 64 px later. The sheet is already within a row
+                    // of the viewport on a 375 × 667 device — 64 live row + 336
+                    // keypad + 88 confirm + 88 event — so it has no spare
+                    // height to give, and the band's geometry is `07 §16`'s
+                    // rather than this session's to re-cut.
                     //
-                    // So the affordance goes where the thumb already is. It is
-                    // still bottom-left of what is on screen, which is what
-                    // §4.5's reach rule is about, and the slab does not move.
-                    SizedBox(
-                      key: const Key('quick_entry.index'),
-                      height: t.tapIndelible,
-                      width: double.infinity,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: ShedTapTarget(
-                          key: const Key('quick_entry.index.open'),
-                          semanticLabel: l10n.quickEntryIndex,
-                          minSize: t.tapIndelible,
-                          onTap: () => _openIndex(context, l10n),
-                          child: ExcludeSemantics(
-                            child: Padding(
-                              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-                              child: Text(
-                                l10n.quickEntryIndex,
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-
+                    // Sharing the event verb's row costs nothing: `INDEX` is
+                    // 96 × 64 in §7.17 and the row is `tapHero` 88, so both
+                    // clear their floors, `INDEX` is bottom-LEFT as the design
+                    // says, and the event verb keeps the width its label needs.
                     SizedBox(
                       key: const Key('quick_entry.event'),
                       height: t.tapHero,
                       width: double.infinity,
-                      child: ShedTapTarget(
-                        key: const Key('quick_entry.event.lambing'),
-                        semanticLabel: l10n.quickEntryLambing,
-                        minSize: t.tapHero,
-                        onTap: () {
-                          final EweId? selected = ref.read(quickEntryControllerProvider).selected;
-                          if (selected == null) {
-                            return;
-                          }
-                          ref
-                              .read(quickEntryWriteControllerProvider.notifier)
-                              .beginLambing(selected)
-                              .ignore();
-                        },
-                        child: ExcludeSemantics(
-                          child: Center(
-                            child: Text(
-                              l10n.quickEntryLambing,
-                              style: Theme.of(context).textTheme.labelLarge,
+                      child: Row(
+                        children: <Widget>[
+                          SizedBox(
+                            key: const Key('quick_entry.index'),
+                            width: _Grid.indexWidth,
+                            child: ShedTapTarget(
+                              key: const Key('quick_entry.index.open'),
+                              semanticLabel: l10n.quickEntryIndex,
+                              minSize: t.tapIndelible,
+                              onTap: () => _openIndex(context, l10n),
+                              child: ExcludeSemantics(
+                                child: Center(
+                                  child: Text(
+                                    l10n.quickEntryIndex,
+                                    style: Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          Expanded(
+                            child: ShedTapTarget(
+                              key: const Key('quick_entry.event.lambing'),
+                              semanticLabel: l10n.quickEntryLambing,
+                              minSize: t.tapHero,
+                              onTap: () {
+                                final EweId? selected = ref
+                                    .read(quickEntryControllerProvider)
+                                    .selected;
+                                if (selected == null) {
+                                  return;
+                                }
+                                ref
+                                    .read(quickEntryWriteControllerProvider.notifier)
+                                    .beginLambing(selected)
+                                    .ignore();
+                              },
+                              child: ExcludeSemantics(
+                                child: Center(
+                                  child: Text(
+                                    l10n.quickEntryLambing,
+                                    style: Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     SizedBox(height: MediaQuery.paddingOf(context).bottom),

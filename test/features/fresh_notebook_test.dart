@@ -28,6 +28,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
+import 'package:shed_book/features/flock/ewe_card_screen.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
@@ -351,6 +352,55 @@ void main() {
       // or recompute it. The medicine book shows it struck through, still
       // carrying the figure it was saved with.
       expect(await db.select(db.treatmentWithdrawals).get(), hasLength(1));
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('a note commits on the first keystroke and updates on the rest', (
+    WidgetTester tester,
+  ) async {
+    // **`addNote` HAD NO CALLER** — the one verb for a fact the schema has no
+    // column for, with nowhere to write it.
+    //
+    // **ONE ROW, NOT ONE PER KEYSTROKE**, which is the assertion that matters:
+    // insert-only would leave a shepherd typing *limping* with seven notes
+    // reading `l`, `li`, `lim`… and batching into a commit would be a draft.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+
+    try {
+      await tester.pumpApp(
+        EweCardScreen(eweId: ewe, tag: '412'),
+        db: db,
+      );
+      await tester.pumpAndSettle();
+
+      final Finder note = find.byKey(const Key('ewe_card.action.note'));
+      await tester.ensureVisible(note);
+      await tester.pumpAndSettle();
+      await tester.tap(note);
+      await tester.pumpAndSettle();
+
+      final Finder field = find.descendant(
+        of: find.byKey(const Key('ewe_card.note.field')),
+        matching: find.byType(TextField),
+      );
+      for (final String typed in <String>['l', 'li', 'limping']) {
+        await tester.enterText(field, typed);
+        await tester.pumpAndSettle();
+      }
+
+      final List<Note> notes = await db.select(db.notes).get();
+      expect(notes, hasLength(1), reason: 'one row per sheet, not one per keystroke');
+      expect(notes.single.body, 'limping');
+      expect(notes.single.ewe, ewe.value);
+
+      // AND THE PROVENANCE IS THE NOTE'S OWN. Typing more of it is not an edit
+      // of when it happened — `EDITED` on the one stamp §12.5 rests on would
+      // mean nothing if every keystroke set it.
+      expect(notes.single.timeSource, 'auto');
     } finally {
       await tester.closeApp();
     }

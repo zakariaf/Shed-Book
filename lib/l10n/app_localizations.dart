@@ -2326,6 +2326,30 @@ abstract class AppLocalizations {
   /// **'OBSERVE'**
   String get eweCardActionObserve;
 
+  /// The general note on an animal. `addNote` landed at N15-T04 and had no caller — the one verb for a fact the schema has no column for, with nowhere to write it.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTE'**
+  String get eweCardActionNote;
+
+  /// The note field's label, and the same words the lambing screen uses for its own note (indelible.md §8 screen 4). One phrase per concept — a second wording would read as a second kind of note.
+  ///
+  /// In en, this message translates to:
+  /// **'ANYTHING ELSE'**
+  String get eweCardNoteHeading;
+
+  /// The note sheet's dismiss word.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get eweCardNoteClose;
+
+  /// Spoken hint on the note sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the note'**
+  String get eweCardNoteCloseHint;
+
   /// Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing.
   ///
   /// In en, this message translates to:

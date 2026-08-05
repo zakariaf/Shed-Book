@@ -37,12 +37,16 @@ const Map<String, String> kNoCallerYet = <String, String>{
   'recordReconcileScheduled': 'reminders (N24) — nothing schedules yet',
 
   // ── N15, MEDIA AND NOTES — THE ONE REMAINING FEATURE ──────────────────────
-  // The camera, the recorder and the photo store are a chain, and `addNote`
-  // needs a decision this sweep should not make at speed: a note is a ROW, not
-  // a column, so per-keystroke commits need an update-by-id that does not
-  // exist — and `notes` carries the provenance quad, so an edited note owes an
-  // `EDITED` stamp. `setNote` on the lambing screen is a column and is wired.
-  'addNote': 'N15 — needs an edit-by-id verb and its §12.5 provenance ruling',
+  // The camera, the recorder and the photo store are a chain: each needs a
+  // native surface, and `12 §4.1`'s fakes exist for exactly that. What is left
+  // is the screen, not the seam.
+  //
+  // **`addNote` LEFT THIS LIST**, and the decision it was waiting on is
+  // recorded on `editNoteBody`: a note is a ROW, so per-keystroke commits need
+  // an update-by-id — and that verb does NOT touch the provenance quad, because
+  // the quad is about when the note happened and typing more of it does not
+  // change that. Marking every keystroke as an edit would make `EDITED` mean
+  // nothing on the one stamp §12.5 rests on.
   'attachPhoto': 'N15 — the photo chain',
   'beginVoiceNote': 'N15 — the voice chain',
   'completeVoiceNote': 'N15 — the voice chain',

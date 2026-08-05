@@ -1399,6 +1399,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eweCardActionObserve => 'OBSERVE';
 
   @override
+  String get eweCardActionNote => 'NOTE';
+
+  @override
+  String get eweCardNoteHeading => 'ANYTHING ELSE';
+
+  @override
+  String get eweCardNoteClose => 'CLOSE';
+
+  @override
+  String get eweCardNoteCloseHint => 'Close the note';
+
+  @override
   String get eweCardActionBarren => 'BARREN';
 
   @override

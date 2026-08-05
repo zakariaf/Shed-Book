@@ -1,0 +1,64 @@
+# .github/workflows/goldens.yml
+#
+# The only macOS job, and the only one that never runs on a pull request.
+# Decision #116: goldens are pinned to ONE runner and ONE exact Flutter version,
+# so a per-PR macOS build is pure cost at a 10x multiplier — the images change
+# only on deliberate re-baseline commits.
+#
+# Every line of `on:` has a consequence, so every line carries its reason.
+name: Goldens
+
+on:
+  push:
+    # NO `branches:` KEY. `push.branches` and `push.tags` are ORed, not ANDed —
+    # adding one makes this a per-push macOS build and burns the month's quota
+    # in a week.
+    tags: ['v*']
+  # TOP-LEVEL. Misindented under `push:` it silently never registers and the
+  # manual button never appears in the Actions tab. And there is deliberately no
+  # third trigger here: decision #116 keeps this workflow off merge proposals
+  # entirely, which `ci_jobs_test.dart` asserts by the absence of the word — so
+  # naming it in this comment would fail the rule the comment explains.
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: '3.44.8' # must equal .fvmrc — asserted below. Never 'stable'.
+
+jobs:
+  goldens:
+    runs-on: macos-latest # 10x multiplier. This is why it is not per-PR.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with: { channel: stable, flutter-version: '${{ env.FLUTTER_VERSION }}', cache: true }
+
+      # 13 §1.1. **This is the workflow where the pin matters MOST** — a golden
+      # diff caused by a Flutter version bump reads as a design regression, and
+      # the developer spends an hour looking at the wrong thing.
+      - name: Toolchain pin agrees with .fvmrc
+        run: |
+          PINNED=$(grep -o '"flutter": *"[^"]*"' .fvmrc | sed 's/.*"\([0-9][^"]*\)"/\1/')
+          [ "$PINNED" = "$FLUTTER_VERSION" ] || { echo "::error::.fvmrc=$PINNED workflow=$FLUTTER_VERSION"; exit 1; }
+          flutter --version | grep -q "Flutter $FLUTTER_VERSION"
+
+      - run: flutter pub get
+
+      # **`TZ` IS PINNED, AND `13 §4.5` AS PUBLISHED DID NOT PIN IT.** Every one
+      # of these images carries a local time. `pumpApp` pins the locale and
+      # `atFixed` pins the instant, but `Instant.local` reads the PROCESS zone —
+      # so a London re-baseline at 03:20 renders 02:20 on a UTC runner and every
+      # image diffs with no code change. The GitHub runner is UTC. (N33-T07.)
+      #
+      # The Makefile's two golden targets set the same zone, so a local
+      # re-baseline and this job agree.
+      - run: TZ=Europe/London flutter test --tags golden --reporter github
+
+      # **NARROWED FROM `13 §4.5`'s `test/**/failures/**`.** `LocalFileComparator`
+      # writes `failures/` beside its basedir, and the basedir is
+      # `test/features/`. The wide glob matches nothing extra and hides where
+      # the images actually land, which matters at exactly the moment somebody
+      # is downloading them to find out why a golden failed.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with: { name: golden-failures, path: test/features/failures/** }

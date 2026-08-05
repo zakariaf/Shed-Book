@@ -64,10 +64,10 @@ test:                     ## 12 §11.4. Two commands, because TZ is per-process.
 	TZ=Europe/London $(FLUTTER) test --tags uk-zone
 
 goldens:                  ## VERIFY against the committed PNGs. Never a per-PR gate (#116)
-	$(FLUTTER) test --tags golden
+	TZ=Europe/London $(FLUTTER) test --tags golden
 
 goldens-update:           ## RE-BASELINE. A deliberate act, its own commit (12 §8.5)
-	$(FLUTTER) test --tags golden --update-goldens
+	TZ=Europe/London $(FLUTTER) test --tags golden --update-goldens
 
 perf:                     ## decision #126 — needs a real device, profile mode
 	$(FLUTTER) run --profile --trace-startup -d $(DEVICE)

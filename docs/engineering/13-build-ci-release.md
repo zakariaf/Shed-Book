@@ -835,13 +835,27 @@ jobs:
           flutter --version | grep -q "Flutter $FLUTTER_VERSION"
 
       - run: flutter pub get
-      - run: flutter test --tags golden --reporter github
+
+      # **`TZ` IS PINNED — ADDED 2026-08-05 AT N33-T09, AND THE PUBLISHED FORM
+      # DID NOT HAVE IT.** Every golden carries a local time. `pumpApp` pins the
+      # locale and `atFixed` pins the instant, but `Instant.local` reads the
+      # PROCESS zone — so a London re-baseline at 03:20 renders 02:20 on a UTC
+      # runner, which is what a GitHub runner is, and every image diffs with no
+      # code change. The Makefile's two golden targets pin the same zone, so a
+      # local re-baseline and this job agree.
+      - run: TZ=Europe/London flutter test --tags golden --reporter github
+
+      # **NARROWED FROM `test/**/failures/**`, SAME COMMIT.**
+      # `LocalFileComparator` writes `failures/` beside its BASEDIR, and the
+      # basedir is `test/features/`. The wide glob matches nothing extra and
+      # hides where the images land — at exactly the moment somebody is
+      # downloading the artefact to find out why a golden failed.
       - uses: actions/upload-artifact@v7
         if: failure()
-        with: { name: golden-failures, path: test/**/failures/** }
+        with: { name: golden-failures, path: test/features/failures/** }
 ```
 
-Eight images, dark theme, pinned to one runner and one exact Flutter version (#116); [`12-testing.md`](12-testing.md) §8.2 owns the list and `ci-golden` is its `dart_test.yaml` preset. They change only on deliberate re-baseline commits, so per-PR macOS is pure cost. Re-baseline locally with `make goldens-update`, look at every changed pixel, commit.
+**`v1.0.0` ships five of the eight** — the three lambing-spread shapes are Season Summary's, and Season Summary is `v1.1.0` (N33-T07). Dark theme, pinned to one runner and one exact Flutter version (#116); [`12-testing.md`](12-testing.md) §8.2 owns the list and `ci-golden` is its `dart_test.yaml` preset. They change only on deliberate re-baseline commits, so per-PR macOS is pure cost. Re-baseline locally with `make goldens-update`, look at every changed pixel, commit.
 
 ### 4.6 What is deliberately not automated
 

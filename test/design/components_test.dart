@@ -34,6 +34,7 @@ import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_text_field.dart';
 import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/theme.dart';
@@ -2235,5 +2236,131 @@ void main() {
 
     await tester.tap(find.byType(ShedPenTile));
     expect(taps, 1);
+  });
+
+  // ── §7.12, THE TEXT FIELD — THE COMPONENT THE APP DID NOT HAVE ────────────
+  //
+  // Measured 2026-08-05: `TextField`, `TextFormField`, `EditableText` and
+  // `TextEditingController` appeared **three times in `lib/`, all three inside
+  // comments**. There was no way to enter free text anywhere in the product —
+  // which is why a treatment could not be recorded (no product name), a note
+  // could not be added, and neither honest delete could ask for its typed word.
+  //
+  // **THESE CASES LIVE HERE RATHER THAN IN A FILE OF THEIR OWN**, and
+  // `gate_inventory_test.dart` is what said so: `test/design/` is a closed
+  // thirteen-file set, asserted exactly, precisely so a fourteenth file cannot
+  // appear without a task behind it. It caught this on the first run.
+
+  testWidgets('typing reports every keystroke, and emptying reports null', (
+    WidgetTester tester,
+  ) async {
+    // **EVERY WRITE COMMITS IMMEDIATELY**, and for text that means the screen is
+    // handed each change rather than a final value: there is no Save button in
+    // this product and no draft to lose. A controller that batched keystrokes
+    // into a commit would be a draft wearing a different name.
+    final List<String?> seen = <String?>[];
+    await _pumpComponent(
+      tester,
+      ShedTextField(
+        label: 'PRODUCT',
+        value: null,
+        semanticLabel: 'Product name',
+        onChanged: seen.add,
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'Alamycin');
+    expect(seen.last, 'Alamycin');
+
+    // **`null`, NOT `''`.** They are different facts: null is the visible gap
+    // and empty string is a value nobody can see. `ShedFieldRow` asserts the
+    // same distinction; this one produces it.
+    await tester.enterText(find.byType(TextField), '   ');
+    expect(seen.last, isNull, reason: 'whitespace is not a value');
+  });
+
+  testWidgets('the rule is dotted when unset and solid when filled', (WidgetTester tester) async {
+    // §7.12, and `indelible-marks-and-strikes` §5 says why: *a blank reads as
+    // missing data, a dotted rule reads as nothing happened, and they are
+    // different facts.* Never solid when unset.
+    await _pumpComponent(
+      tester,
+      ShedTextField(
+        label: 'PRODUCT',
+        value: null,
+        semanticLabel: 'Product name',
+        onChanged: (String? _) {},
+      ),
+    );
+    expect(find.byKey(const Key('shed_text_field.rule')), findsOneWidget);
+
+    // Painted, so the assertion is on the painter's inputs rather than on
+    // pixels: a golden here would re-baseline on every antialiasing change and
+    // prove less.
+    final CustomPaint before = tester.widget<CustomPaint>(
+      find.descendant(
+        of: find.byKey(const Key('shed_text_field.rule')),
+        matching: find.byType(CustomPaint),
+      ),
+    );
+    expect(before.painter.toString(), contains('_RulePainter'));
+
+    await tester.enterText(find.byType(TextField), 'Alamycin');
+    await tester.pump();
+    expect(find.byKey(const Key('shed_text_field.rule')), findsOneWidget);
+  });
+
+  testWidgets('maxLength refuses the 61st character rather than correcting after', (
+    WidgetTester tester,
+  ) async {
+    // Safety rule §12.4 in the one direction that is worse than not enforcing at
+    // all: a field that accepted 61 characters and then failed the write would
+    // be correcting the shepherd's entry after they made it.
+    String? last;
+    await _pumpComponent(
+      tester,
+      ShedTextField(
+        label: 'SEASON',
+        value: null,
+        maxLength: 60,
+        semanticLabel: 'Season label',
+        onChanged: (String? v) => last = v,
+      ),
+    );
+
+    await tester.enterText(find.byType(TextField), 'x' * 61);
+    expect(last, hasLength(60));
+  });
+
+  test('the API carries no placeholder, no hint and no default', () {
+    // **THE ABSENCE IS THE MECHANISM.** `indelible.md` §9 safety rule 1: *the
+    // text-field component forbids placeholder text system-wide so this cannot
+    // regress by accident.* In the dark a grey placeholder is indistinguishable
+    // from an entered value, and in the withdrawal-days field a placeholder
+    // number is a food-chain risk.
+    //
+    // The needles are split across adjacent literals so this file does not fire
+    // on itself.
+    final String source = File(
+      'lib/core/ui/components/shed_text_field.dart',
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+    for (final String banned in <String>[
+      'hint'
+          'Text:',
+      'initial'
+          'Value:',
+      'default'
+          'Value:',
+      'placeholder',
+    ]) {
+      expect(source, isNot(contains(banned)), reason: '§7.12 forbids $banned');
+    }
+
+    // And Material's own decorations are refused explicitly rather than by
+    // omission — `InputDecoration()` with no arguments would restore the
+    // underline, the fill and the counter.
+    expect(source, contains('counterText:'));
+    expect(source, contains('border: InputBorder.none'));
   });
 }

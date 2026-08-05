@@ -1189,9 +1189,16 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   await _loadAppFonts();
 
   // basedir resolves off the file URI, so golden keys are written relative to
-  // test/features/ — which is where golden_test.dart and goldens/ both live.
+  // test/features/ — which is where goldens_test.dart and goldens/ both live.
+  //
+  // **AMENDED 2026-08-05 (N33-T07): the literal below said `golden_test.dart`,
+  // singular, and no such file has ever existed.** The BEHAVIOUR was right —
+  // only the directory part of the URI is read, so golden keys resolved
+  // correctly regardless — but a path literal naming a file that is not there
+  // is a lie the next reader has to disprove before they can trust the line
+  // above it.
   goldenFileComparator = TolerantFileComparator(
-    Uri.parse('${Directory.current.path}/test/features/golden_test.dart'),
+    Uri.parse('${Directory.current.path}/test/features/goldens_test.dart'),
     tolerance: 0.005,   // 0.5% of pixels may differ
   );
 

@@ -93,3 +93,11 @@ app.*.map.json
 /merged-manifest.xml
 /actual-permissions.txt
 /expected-sorted.txt
+
+# **GOLDEN FAILURE OUTPUT, WHICH IS A CI ARTEFACT AND NEVER A COMMIT**
+# (`12 §8.4` rule 5). `matchesGoldenFile` writes `<name>_testImage.png`,
+# `_masterImage.png` and `_isolatedDiff.png` here on a mismatch, and the
+# tempting mistake is committing one as "the new baseline" — it is a rendering
+# of the failure, not of the screen. Re-baselining is `make goldens-update`,
+# alone, in its own commit.
+test/features/failures/

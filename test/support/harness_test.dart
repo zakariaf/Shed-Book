@@ -396,6 +396,11 @@ void main() {
       'harness_test.dart',
       'reads.dart', // N14-T02
       'seeds.dart',
+      // **N33-T07, AND `12 §5.3` ALREADY EXPECTED IT.** The closed twelve-file
+      // list names `tolerant_comparator.dart`; it arrives with the goldens
+      // because it has nothing to compare until there are images. Fifteen lines
+      // of subclass rather than `alchemist` on the dependency allowlist.
+      'tolerant_comparator.dart',
     ]);
   });
 

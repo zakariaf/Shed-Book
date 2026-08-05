@@ -288,7 +288,17 @@ class _ArtefactRow extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+      // **`gapMin / 2` PER SIDE, WHICH IS `gapMin` BETWEEN TWO ROWS — R86.**
+      // It was `gapMin / 4`, so two adjacent CSV choices sat **8 pt** apart:
+      // the exact middle of the band the separation rule forbids, on a screen
+      // where the wrong tap shares the wrong file.
+      //
+      // Found by N33-T03's geometric sweep only after N33-T07 loaded the real
+      // font into the test engine — under Ahem the rows were far enough apart
+      // that the pair was never compared. Which is the argument for the font
+      // loader in one line: a gate measuring tofu is measuring the wrong
+      // layout.
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
       child: ShedTapTarget(
         key: Key(id),
         semanticLabel: l10n.exportSemantics(label: label, count: count ?? 0),

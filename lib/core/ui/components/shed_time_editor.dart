@@ -1,4 +1,16 @@
-// lib/features/lambing/widgets/time_editor_sheet.dart
+// lib/core/ui/components/shed_time_editor.dart
+//
+// **MOVED OUT OF `lib/features/lambing/widgets/` ON 2026-08-05, AND THE MOVE IS
+// WHAT UNBLOCKED TWO §12.5 EDIT PATHS.** `PenRepository.correctEnteredAt` and
+// `FosterRepository.correctFoster` both landed with tests and neither had a
+// caller: each needs a time editor, and `layer.sibling` forbids one feature
+// importing another's widget. So the pen board could not correct a penning time
+// and there was no legal way for it to reuse the sheet that already existed.
+//
+// It qualified for `lib/core/ui/` unchanged: it imports only `shed_keypad.dart`,
+// `shed_tap_target.dart` and the tokens, and it takes every string as a
+// parameter — *a shared component renders what it is handed and never resolves
+// copy*, which is the rule that put `TimeEditorLabels` there in the first place.
 //
 // NOT `showTimePicker` AND NOT `showDatePicker`, AND THIS IS THE SINGLE MOST
 // LIKELY SHORTCUT ON THE WHOLE SCREEN. Three separate rules forbid them:
@@ -31,12 +43,17 @@ typedef TimeEditorLabels = ({
 
 /// Four digits, `HHmm`, on the app's own pad.
 ///
+/// **RENAMED FROM `TimeEditorSheet` IN THE SAME MOVE.** `CONVENTIONS §4.1`
+/// gives every shared component the `Shed` prefix, and a `…Sheet` suffix in
+/// `lib/core/ui/components/` would be the only one — this is a widget the
+/// caller puts inside a sheet, not the sheet itself.
+///
 /// **NO PLACEHOLDER AND NO PRE-FILL** — the field starts empty exactly like the
 /// colostrum volume, for the same reason (`indelible.md §7.12`): in the dark a
 /// grey value is indistinguishable from an entered one, and pre-filling the
 /// current time would make *keeping it* and *retyping it* look identical.
-class TimeEditorSheet extends StatefulWidget {
-  const TimeEditorSheet({required this.labels, required this.onCorrect, super.key});
+class ShedTimeEditor extends StatefulWidget {
+  const ShedTimeEditor({required this.labels, required this.onCorrect, super.key});
 
   final TimeEditorLabels labels;
 
@@ -46,10 +63,10 @@ class TimeEditorSheet extends StatefulWidget {
   final void Function(int hour, int minute) onCorrect;
 
   @override
-  State<TimeEditorSheet> createState() => _TimeEditorSheetState();
+  State<ShedTimeEditor> createState() => _ShedTimeEditorState();
 }
 
-class _TimeEditorSheetState extends State<TimeEditorSheet> {
+class _ShedTimeEditorState extends State<ShedTimeEditor> {
   String _digits = '';
 
   /// `null` until four digits form a real time. **Nothing is clamped and nothing

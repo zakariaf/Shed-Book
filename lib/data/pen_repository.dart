@@ -372,6 +372,33 @@ final class PenRepository {
     return movePen(PenOccupancyId(open.id), to: to);
   }
 
+  /// Correct the penning time of whatever is in [pen], keeping its day.
+  ///
+  /// **THE DAY COMES OFF THE RECORD, NEVER OFF THE CLOCK.** A shepherd
+  /// correcting at 03:47 means *it was 03:20 that night*; taking the day from
+  /// `appNow()` would move a 3am penning across a date boundary the moment they
+  /// corrected it after midnight. Lambing Entry's time editor does the same
+  /// thing for the same reason, and doing it here rather than in the screen is
+  /// what stops the two drifting apart.
+  ///
+  /// Same seam as [turnOutFrom]: the occupancy id never crosses into
+  /// `lib/features/`.
+  Future<WriteOutcome> correctEnteredAtFrom(
+    PenId pen, {
+    required int hour,
+    required int minute,
+  }) async {
+    final PenOccupancy? open = await openOccupancyFor(pen);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    final DateTime day = open.enteredAt.local;
+    return correctEnteredAt(
+      PenOccupancyId(open.id),
+      Instant.fromDateTime(DateTime(day.year, day.month, day.day, hour, minute).toUtc()),
+    );
+  }
+
   Future<SeasonId> _currentSeason() async {
     final AppSetting settings = await (_db.select(
       _db.appSettings,

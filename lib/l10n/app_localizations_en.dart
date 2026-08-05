@@ -692,6 +692,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get penSheetMove => 'MOVE PEN';
 
   @override
+  String get penSheetCorrectTime => 'CORRECT THE TIME';
+
+  @override
   String penSheetMoveTo({required String label}) {
     return 'MOVE TO PEN $label';
   }

@@ -1252,6 +1252,12 @@ abstract class AppLocalizations {
   /// **'MOVE PEN'**
   String get penSheetMove;
 
+  /// 07 §9.6. The §12.5 edit path on a penning time: the board marks the corrected row EDITED and keeps the captured time beside it, because a time the shepherd corrected is a fact about the record and travels with it.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT THE TIME'**
+  String get penSheetCorrectTime;
+
   /// One destination row in the move list. It names the consequence rather than the act.
   ///
   /// In en, this message translates to:

@@ -36,7 +36,7 @@ import 'package:shed_book/features/lambing/widgets/colostrum_detail.dart';
 import 'package:shed_book/features/lambing/widgets/declare_type_sheet.dart';
 import 'package:shed_book/features/lambing/widgets/provenance_header.dart';
 import 'package:shed_book/features/lambing/widgets/query_mark.dart';
-import 'package:shed_book/features/lambing/widgets/time_editor_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_time_editor.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/features/lambing/widgets/detail_rows.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
@@ -452,7 +452,7 @@ class _Regions extends ConsumerWidget {
         dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
         barrierLabel: l10n.timeEditorHeading,
         fillsViewport: true,
-        child: TimeEditorSheet(
+        child: ShedTimeEditor(
           labels: (
             heading: l10n.timeEditorHeading,
             hint: l10n.timeEditorHint,

@@ -52,14 +52,15 @@ const Map<String, String> kNoCallerYet = <String, String>{
   'pick': 'N15 — CameraService, and a native surface integration_test cannot drive',
   'levelDbfs': 'N15 — the recorder level meter',
 
-  // ── CORRECTION VERBS: BUILT, SPECIFIED, NOT YET REACHED ───────────────────
-  // Both are §12.5 edit paths and both need a time editor the owning feature
-  // does not have. `TimeEditorSheet` lives under `lib/features/lambing/` and
-  // `layer.sibling` forbids the pen board importing it — moving it to
-  // `lib/core/ui/components/` is the fix and it is a component move with its
-  // own ruling, not a line.
-  'correctEnteredAt': 'N19-T06 — needs TimeEditorSheet moved to lib/core/ui/',
-  'correctFoster': 'N18 — the same shared-sheet move',
+  // ── ONE CORRECTION VERB LEFT ──────────────────────────────────────────────
+  // **THE BLOCKER IS GONE.** Both were §12.5 edit paths waiting on a time
+  // editor the owning feature could not legally import: it lived under
+  // `lib/features/lambing/` and `layer.sibling` forbids one feature reaching
+  // into another. It moved to `lib/core/ui/components/shed_time_editor.dart`,
+  // unchanged — it imports only the keypad, the tap target and the tokens, and
+  // takes every string as a parameter. `correctEnteredAt` is wired; Foster's is
+  // the same shape and has not been done.
+  'correctFoster': 'N18 — needs the Foster screen to reach ShedTimeEditor, which now exists',
 
   // ── READ HELPERS THE SCREEN GETS ANOTHER WAY ──────────────────────────────
   // Not gaps: the data reaches the screen through a stream that already carries

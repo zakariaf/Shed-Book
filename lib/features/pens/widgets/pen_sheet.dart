@@ -45,6 +45,16 @@ final class MoveTo extends PenAction {
   final PenId pen;
 }
 
+/// The §12.5 edit path. **`correctEnteredAt` had no caller** — it landed at
+/// N19-T06 with tests, and the board could MARK a corrected penning time
+/// (`TimeSource.edited` is one of the tile's states) without being able to make
+/// one.
+final class CorrectEnteredAt extends PenAction {
+  const CorrectEnteredAt(this.hour, this.minute);
+  final int hour;
+  final int minute;
+}
+
 /// One pen's verbs, opened by pressing its tile.
 class PenSheet extends StatelessWidget {
   const PenSheet({
@@ -53,6 +63,7 @@ class PenSheet extends StatelessWidget {
     required this.otherPens,
     required this.l10n,
     required this.onAction,
+    required this.onCorrectTime,
     super.key,
   });
 
@@ -68,6 +79,11 @@ class PenSheet extends StatelessWidget {
 
   final AppLocalizations l10n;
   final ValueChanged<PenAction> onAction;
+
+  /// Opens the time editor. **A separate callback rather than a `PenAction`**,
+  /// because it is the only verb here that asks a question before it writes —
+  /// the other three commit on the tap.
+  final VoidCallback onCorrectTime;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +147,19 @@ class PenSheet extends StatelessWidget {
                 l10n.penSheetMove,
                 key: const Key('pen_sheet.move_heading'),
                 style: Theme.of(context).textTheme.labelMedium,
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.all(t.gapMin),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: ShedWordButton(
+                  key: const Key('pen_sheet.correct_time'),
+                  label: l10n.penSheetCorrectTime,
+                  semanticLabel: l10n.penSheetCorrectTime,
+                  selected: false,
+                  onTap: onCorrectTime,
+                ),
               ),
             ),
             for (final ({PenId id, String label}) pen in otherPens)

@@ -31,6 +31,7 @@ import 'package:shed_book/features/pens/pen_board_controller.dart';
 import 'dart:async';
 
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_time_editor.dart';
 import 'package:shed_book/data/flock_repository.dart';
 import 'package:shed_book/data/pen_repository.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -159,6 +160,7 @@ class PenBoardScreen extends ConsumerWidget {
               if (p.penId != tile.penId) (id: p.penId, label: p.penLabel),
           ],
           l10n: l10n,
+          onCorrectTime: () => _openTimeEditor(context, ref, l10n, tile),
           onAction: (PenAction action) {
             final PenRepository pens = ref.read(penRepositoryProvider);
             // EXHAUSTIVE, no `_` arm: a fourth verb must fail to compile here
@@ -168,7 +170,51 @@ class PenBoardScreen extends ConsumerWidget {
               PenAnimal(ewe: final EweId ewe) => pens.enterPen(tile.penId, ewe: ewe),
               TurnOut() => pens.turnOutFrom(tile.penId),
               MoveTo(pen: final PenId to) => pens.movePenFrom(tile.penId, to),
+              // Reached through `onCorrectTime`, which asks first — the arm
+              // exists so the switch stays exhaustive rather than growing a
+              // wildcard that would swallow a fifth verb.
+              CorrectEnteredAt(hour: final int h, minute: final int m) => pens.correctEnteredAtFrom(
+                tile.penId,
+                hour: h,
+                minute: m,
+              ),
             });
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  /// The §12.5 edit path on a penning time.
+  ///
+  /// **THE DAY IS THE ONE ALREADY ON THE RECORD**, exactly as on Lambing Entry:
+  /// a shepherd correcting at 03:47 means *it was 03:20 that night*, and taking
+  /// the day from the clock would move a 3am penning across a date boundary the
+  /// moment they corrected it after midnight.
+  void _openTimeEditor(BuildContext context, WidgetRef ref, AppLocalizations l10n, PenTile tile) {
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.timeEditorHeading,
+        fillsViewport: true,
+        child: ShedTimeEditor(
+          labels: (
+            heading: l10n.timeEditorHeading,
+            hint: l10n.timeEditorHint,
+            confirmLabel: l10n.timeEditorConfirm,
+            confirmSemanticLabel: l10n.timeEditorConfirmSemantics,
+            padLabel: l10n.timeEditorHeading,
+            backspaceLabel: l10n.keypadBackspace,
+            backspaceHint: l10n.hintDeleteLastDigit,
+          ),
+          onCorrect: (int hour, int minute) {
+            ref
+                .read(penRepositoryProvider)
+                .correctEnteredAtFrom(tile.penId, hour: hour, minute: minute)
+                .ignore();
             Navigator.of(context).pop();
           },
         ),

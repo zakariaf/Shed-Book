@@ -28,6 +28,7 @@ import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
+import 'package:shed_book/features/pens/pen_board_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
 import 'package:shed_book/features/treatments/treatments_screen.dart';
 
@@ -202,6 +203,64 @@ void main() {
         isEmpty,
         reason: 'an unanswered withdrawal wrote a row — that is what §12.1 forbids',
       );
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('a ewe can be penned and turned out', (WidgetTester tester) async {
+    // **THE BOARD COULD READ AND NOT WRITE.** Every tile carried
+    // `onTap: () {}` with a comment saying T07 would open the row; T07 landed
+    // the board and not the sheet. `enterPen`, `exitPen` and `movePen` all had
+    // their own tests and no caller in `lib/`, so a shepherd could add a pen and
+    // could not put an animal in it or take one out.
+    //
+    // `TURN OUT` is one of the five words `indelible.md §6` names, and it is the
+    // daily act on this screen.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    await seedPen(db, label: 'A');
+    // **A TOUCH, NOT A LAMBING.** The deck's recents are built from
+    // `ewe_touches` — a cache with one row per ewe — and a seeded lambing does
+    // not write one, because the repository writes the touch and the seeder
+    // writes the row. The sheet picks from the same deck every other picker in
+    // the app uses.
+    await seedTouch(db, ewe);
+
+    try {
+      await tester.pumpApp(const PenBoardScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('pen_board.tile.A')));
+      await tester.pumpAndSettle();
+
+      final Finder her = find.byKey(const Key('pen_sheet.animal.412'));
+      await tester.ensureVisible(her);
+      await tester.pumpAndSettle();
+      await tester.tap(her);
+      await tester.pumpAndSettle();
+
+      expect(
+        (await db.select(db.penOccupancies).get()).where((PenOccupancy o) => o.exitedAt == null),
+        hasLength(1),
+        reason: 'penning wrote nothing',
+      );
+
+      // And out again. **`turned_out` IS ITS OWN EXIT REASON** — the occupancy
+      // is closed, never deleted, because nothing is removed from this book.
+      await tester.tap(find.byKey(const Key('pen_board.tile.A')));
+      await tester.pumpAndSettle();
+      final Finder out = find.byKey(const Key('pen_sheet.turn_out'));
+      await tester.ensureVisible(out);
+      await tester.pumpAndSettle();
+      await tester.tap(out);
+      await tester.pumpAndSettle();
+
+      final List<PenOccupancy> all = await db.select(db.penOccupancies).get();
+      expect(all, hasLength(1), reason: 'the occupancy was deleted rather than closed');
+      expect(all.single.exitedAt, isNotNull);
+      expect(all.single.exitReason, 'turned_out');
     } finally {
       await tester.closeApp();
     }

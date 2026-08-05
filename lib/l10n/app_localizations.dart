@@ -1234,6 +1234,36 @@ abstract class AppLocalizations {
   /// **'+ PEN'**
   String get penBoardAddPen;
 
+  /// 07 §9.5. The heading over the deck in an empty pen — the only thing an empty pen can be asked.
+  ///
+  /// In en, this message translates to:
+  /// **'WHICH ANIMAL'**
+  String get penSheetPenAnimal;
+
+  /// indelible.md §6: every action is a WORD, and this is one of the five the design names. `turn out` is the verb, `turn-out` the adjective, and `turnout` is never written (CLAUDE.md).
+  ///
+  /// In en, this message translates to:
+  /// **'TURN OUT'**
+  String get penSheetTurnOut;
+
+  /// 07 §9.5. A ewe moved to a bigger pen has not been turned out — `moved` is its own exit reason and the entered time carries forward.
+  ///
+  /// In en, this message translates to:
+  /// **'MOVE PEN'**
+  String get penSheetMove;
+
+  /// One destination row in the move list. It names the consequence rather than the act.
+  ///
+  /// In en, this message translates to:
+  /// **'MOVE TO PEN {label}'**
+  String penSheetMoveTo({required String label});
+
+  /// 07 §9.5. Not an error state — a free pen before lambing starts is the commonest thing on the board.
+  ///
+  /// In en, this message translates to:
+  /// **'THIS PEN IS EMPTY'**
+  String get penSheetEmpty;
+
   /// The add-pen target for a screen reader. A bare plus is unreadable aloud.
   ///
   /// In en, this message translates to:

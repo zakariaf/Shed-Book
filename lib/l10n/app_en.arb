@@ -1008,6 +1008,31 @@
   "@penBoardAddPen": {
     "description": "The add-pen target. ONE TAP, no wizard and no naming step: the shepherd is standing in front of a pen at 03:20 and asking what to call it is asking for a decision they do not have. The number is chosen for them and renaming happens in daylight."
   },
+  "penSheetPenAnimal": "WHICH ANIMAL",
+  "@penSheetPenAnimal": {
+    "description": "07 §9.5. The heading over the deck in an empty pen — the only thing an empty pen can be asked."
+  },
+  "penSheetTurnOut": "TURN OUT",
+  "@penSheetTurnOut": {
+    "description": "indelible.md §6: every action is a WORD, and this is one of the five the design names. `turn out` is the verb, `turn-out` the adjective, and `turnout` is never written (CLAUDE.md)."
+  },
+  "penSheetMove": "MOVE PEN",
+  "@penSheetMove": {
+    "description": "07 §9.5. A ewe moved to a bigger pen has not been turned out — `moved` is its own exit reason and the entered time carries forward."
+  },
+  "penSheetMoveTo": "MOVE TO PEN {label}",
+  "@penSheetMoveTo": {
+    "description": "One destination row in the move list. It names the consequence rather than the act.",
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "penSheetEmpty": "THIS PEN IS EMPTY",
+  "@penSheetEmpty": {
+    "description": "07 §9.5. Not an error state — a free pen before lambing starts is the commonest thing on the board."
+  },
   "penBoardAddPenSemantics": "Add a pen",
   "@penBoardAddPenSemantics": {
     "description": "The add-pen target for a screen reader. A bare plus is unreadable aloud."

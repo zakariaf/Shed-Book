@@ -683,6 +683,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get penBoardAddPen => '+ PEN';
 
   @override
+  String get penSheetPenAnimal => 'WHICH ANIMAL';
+
+  @override
+  String get penSheetTurnOut => 'TURN OUT';
+
+  @override
+  String get penSheetMove => 'MOVE PEN';
+
+  @override
+  String penSheetMoveTo({required String label}) {
+    return 'MOVE TO PEN $label';
+  }
+
+  @override
+  String get penSheetEmpty => 'THIS PEN IS EMPTY';
+
+  @override
   String get penBoardAddPenSemantics => 'Add a pen';
 
   @override

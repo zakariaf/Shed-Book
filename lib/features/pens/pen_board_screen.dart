@@ -28,6 +28,13 @@ import 'package:shed_book/core/time/ticker.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/pens/pen_board_controller.dart';
+import 'dart:async';
+
+import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
+import 'package:shed_book/data/flock_repository.dart';
+import 'package:shed_book/data/pen_repository.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/pens/widgets/pen_sheet.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class PenBoardScreen extends ConsumerWidget {
@@ -38,6 +45,13 @@ class PenBoardScreen extends ConsumerWidget {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final List<PenTile> tiles = ref.watch(penBoardProvider).value ?? const <PenTile>[];
+
+    // **WATCHED HERE, NOT READ IN THE SHEET, AND THE DIFFERENCE IS A LOADING
+    // VALUE.** `ref.read` on a `StreamProvider` nobody is listening to starts it
+    // and returns `AsyncLoading` — so the first draft opened the sheet on an
+    // empty deck every time, with the heading rendered over nothing. Watching it
+    // in `build` means it is already resolved when a tile is pressed.
+    final QuickEntryDeck? deck = ref.watch(quickEntryDeckProvider).value;
 
     // THE TICK, WATCHED HERE. When the route pops, the last listener goes and
     // the ticker stops — which is the whole point of it being autoDispose.
@@ -95,10 +109,14 @@ class PenBoardScreen extends ConsumerWidget {
                                   status: _statusOf(tile),
                                   lambCount: tile.lambCount,
                                   labels: _labelsFor(context, tile, l10n),
-                                  // T07 OPENS THE ROW; the verbs inside it are
-                                  // the sheet's, and each is one tap once it is
-                                  // open (`07 §9.5`).
-                                  onTap: () {},
+                                  // **THIS WAS `onTap: () {}` AND THE COMMENT
+                                  // SAID T07 WOULD OPEN THE ROW.** T07 landed
+                                  // the board and not the sheet, so every verb
+                                  // N19 built — `enterPen`, `exitPen`,
+                                  // `movePen` — had no caller: a shepherd could
+                                  // add a pen and could not put an animal in
+                                  // it, take one out, or move one.
+                                  onTap: () => _openPen(context, ref, l10n, tile, resolved, deck),
                                 ),
                               _AddPen(l10n: l10n),
                             ],
@@ -108,6 +126,51 @@ class PenBoardScreen extends ConsumerWidget {
                     ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// One pen's verbs. **Each is one tap once the sheet is open** (`07 §9.5`).
+  void _openPen(
+    BuildContext context,
+    WidgetRef ref,
+    AppLocalizations l10n,
+    PenTile tile,
+    List<PenTile> all,
+    QuickEntryDeck? deck,
+  ) {
+    final List<DeckEntry> candidates = <DeckEntry>[...?deck?.penned, ...?deck?.recents];
+
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.colostrumSheetClose,
+        dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
+        barrierLabel: l10n.penBoardTitle,
+        child: PenSheet(
+          // **`tag == null && lambCount == 0` IS EMPTY**, and the two halves
+          // matter: a pen with lambs and no ewe is an ORPHAN pen, which is
+          // occupied and whose verbs are turn-out and move.
+          occupied: tile.tag != null || tile.lambCount > 0,
+          candidates: candidates,
+          otherPens: <({PenId id, String label})>[
+            for (final PenTile p in all)
+              if (p.penId != tile.penId) (id: p.penId, label: p.penLabel),
+          ],
+          l10n: l10n,
+          onAction: (PenAction action) {
+            final PenRepository pens = ref.read(penRepositoryProvider);
+            // EXHAUSTIVE, no `_` arm: a fourth verb must fail to compile here
+            // rather than silently do nothing, which is the defect this whole
+            // sheet exists to undo.
+            unawaited(switch (action) {
+              PenAnimal(ewe: final EweId ewe) => pens.enterPen(tile.penId, ewe: ewe),
+              TurnOut() => pens.turnOutFrom(tile.penId),
+              MoveTo(pen: final PenId to) => pens.movePenFrom(tile.penId, to),
+            });
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );

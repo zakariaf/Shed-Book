@@ -341,6 +341,37 @@ final class PenRepository {
             ..where(($PenOccupanciesTable t) => t.pen.equals(pen.value) & t.exitedAt.isNull()))
           .getSingleOrNull();
 
+  /// Turn out whatever is in [pen]. **`null` occupancy is not a failure** — a
+  /// pen that is already empty is the commonest state before lambing starts,
+  /// and a screen that reported it as an error would be reporting the shed.
+  ///
+  /// **THE OCCUPANCY ID NEVER CROSSES INTO `lib/features/`, AND THAT IS WHY
+  /// THIS VERB EXISTS.** `openOccupancyFor` returns `PenOccupancy`, a drift row
+  /// class, and `layer.features` forbids the screen from naming it. A verb
+  /// keyed on the pen is the seam: the board knows which pen was pressed and
+  /// nothing else, which is all it should know.
+  Future<WriteOutcome> turnOutFrom(PenId pen) async {
+    final PenOccupancy? open = await openOccupancyFor(pen);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    return exitPen(PenOccupancyId(open.id), reason: PenExitReason.turnedOut);
+  }
+
+  /// Move whatever is in [from] to [to]. Same seam, same reason.
+  ///
+  /// **`moved` IS ITS OWN EXIT REASON AND NOT A TURN-OUT.** A ewe moved to a
+  /// bigger pen has not been turned out, and the pen board's hours-since-penned
+  /// is the number a shepherd reads to decide — `movePen` carries the entered
+  /// time forward rather than restarting it.
+  Future<WriteOutcome> movePenFrom(PenId from, PenId to) async {
+    final PenOccupancy? open = await openOccupancyFor(from);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    return movePen(PenOccupancyId(open.id), to: to);
+  }
+
   Future<SeasonId> _currentSeason() async {
     final AppSetting settings = await (_db.select(
       _db.appSettings,

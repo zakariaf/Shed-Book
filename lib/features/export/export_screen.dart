@@ -157,6 +157,30 @@ class ExportScreen extends ConsumerWidget {
                   onTap: () => unawaited(_share(context, ref, counts)),
                 ),
               ),
+              // **THE BACKUP, WHICH THIS SCREEN DID NOT OFFER.** Three CSVs and
+              // no way to make the one file a restore reads: `writeBackup`
+              // landed at N22, was tested at its own tier, and had no caller
+              // anywhere in `lib/`. So the restore path wired the same week had
+              // nothing to restore from.
+              Padding(
+                padding: EdgeInsets.all(t.gapMin),
+                child: ShedPrimaryButton(
+                  key: const Key('export.backup'),
+                  label: l10n.exportBackup,
+                  semanticLabel: l10n.exportBackup,
+                  onTap: () => unawaited(_shareBackup(context, ref)),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                child: Text(
+                  l10n.exportBackupWhat,
+                  key: const Key('export.backup_what'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.textSecondary),
+                ),
+              ),
+              SizedBox(height: t.gapMin),
+
               if (counts != null)
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: t.gapMin),
@@ -201,6 +225,38 @@ class ExportScreen extends ConsumerWidget {
   /// `RenderBox` at the moment of the tap. `share_plus` needs it on iPad, where
   /// the sheet is a popover that has to point at something — and a zero rect
   /// puts it in the top-left corner over the heading.
+  /// The backup. **No `counts` guard**, and that is the difference from
+  /// [_share]: the CSVs are per-season and cannot be built before a season
+  /// exists, but a backup of an empty notebook is a valid backup of an empty
+  /// notebook — and a shepherd who has just set the app up and wants to know the
+  /// backup works should be able to find out then rather than in March.
+  Future<void> _shareBackup(BuildContext context, WidgetRef ref) async {
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    final Rect origin = box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size;
+
+    ref.read(exportControllerProvider.notifier).building('export.backup');
+    try {
+      await ref
+          .read(exportWriteControllerProvider.notifier)
+          .shareBackup(origin: origin, appVersion: kAppVersion);
+    } finally {
+      ref.read(exportControllerProvider.notifier).idle();
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    if (ref.read(exportWriteControllerProvider) case WriteDone(
+      outcome: WriteFailed(failure: final ShedFailure failure),
+    )) {
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      showFailure(
+        context,
+        '${l10n.exportFailed(artefact: l10n.exportBackup)} ${failure.userMessage}',
+      );
+    }
+  }
+
   Future<void> _share(BuildContext context, WidgetRef ref, ExportCounts? counts) async {
     if (counts == null) {
       return;

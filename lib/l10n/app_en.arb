@@ -1091,6 +1091,14 @@
   "@exportCsvAll": {
     "description": "One tap for all three CSVs, which is what a shepherd exporting at the end of a day actually wants - three separate share sheets is three chances to send the wrong one."
   },
+  "exportBackup": "SAVE A BACKUP",
+  "@exportBackup": {
+    "description": "09 §5. The JSON backup — the only file a restore reads. Deliberately not called an export in the button: the three CSVs above are exports, for somebody else's software, and this is the file that comes back. A shepherd who confuses the two loses the provenance quad, the withdrawal rows and every strike, silently."
+  },
+  "exportBackupWhat": "A backup holds everything, in the form this app reads back. The three files above hold what a spreadsheet reads. Keep a backup somewhere other than this phone.",
+  "@exportBackupWhat": {
+    "description": "09 §5, printed under the backup button. It says the two things a shepherd has to know and no more: a backup is complete and a CSV is not, and a backup that never leaves the phone it was made on protects nothing. It must never claim the file is verified or secure — offline_wording_test refuses both words in this file."
+  },
   "exportCounts": "{eweCount} {ewePlural}, {lambCount} {lambPlural}, {treatments} treatments",
   "@exportCounts": {
     "description": "The counts, READ and never estimated. No LIMIT, no sampling, no 'about 400' - a count the shepherd can compare against their own flock list is a count that has to be right. The two animal nouns are PLACEHOLDERS fed from Terminology (10 8.5): a shepherd who renamed ewe to gimmer sees gimmers here, and a literal noun in an ARB value is what l10n_bootstrap_test refuses. Treatment is not an animal class and stays a literal.",

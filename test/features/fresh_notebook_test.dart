@@ -25,6 +25,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/features/export/export_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/settings/settings_screen.dart';
 
@@ -106,6 +107,34 @@ void main() {
         hasLength(1),
         reason: 'the 3am path recorded nothing and said nothing',
       );
+    } finally {
+      await tester.closeApp();
+    }
+  });
+
+  testWidgets('the export screen offers a backup, which is the only file a restore reads', (
+    WidgetTester tester,
+  ) async {
+    // **THE OTHER HALF OF THE RESTORE GAP.** `writeBackup` landed at N22 and had
+    // no caller anywhere in `lib/`: the export screen offered three CSVs and no
+    // backup, so a shepherd could get their records out in a form a spreadsheet
+    // reads and never in the form this app reads back.
+    //
+    // Wiring restore without this would have been wiring a door to a room with
+    // no key. A CSV is not a backup and the two are not interchangeable — the
+    // backup is all 21 tables with the provenance quad, the withdrawal child
+    // rows and the strikes, and restoring from a CSV would lose every one of
+    // those silently.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+
+    try {
+      await tester.pumpApp(const ExportScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      final Finder backup = find.byKey(const Key('export.backup'));
+      await tester.scrollUntilVisible(backup, 200, scrollable: find.byType(Scrollable).first);
+      expect(backup, findsOneWidget, reason: 'there is no way to make a backup');
     } finally {
       await tester.closeApp();
     }

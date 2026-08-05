@@ -744,6 +744,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get exportCsvAll => 'EXPORT ALL THREE';
 
   @override
+  String get exportBackup => 'SAVE A BACKUP';
+
+  @override
+  String get exportBackupWhat =>
+      'A backup holds everything, in the form this app reads back. The three files above hold what a spreadsheet reads. Keep a backup somewhere other than this phone.';
+
+  @override
   String exportCounts({
     required int eweCount,
     required String ewePlural,

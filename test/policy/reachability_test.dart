@@ -52,15 +52,13 @@ const Map<String, String> kNoCallerYet = <String, String>{
   'pick': 'N15 — CameraService, and a native surface integration_test cannot drive',
   'levelDbfs': 'N15 — the recorder level meter',
 
-  // ── ONE CORRECTION VERB LEFT ──────────────────────────────────────────────
-  // **THE BLOCKER IS GONE.** Both were §12.5 edit paths waiting on a time
-  // editor the owning feature could not legally import: it lived under
-  // `lib/features/lambing/` and `layer.sibling` forbids one feature reaching
-  // into another. It moved to `lib/core/ui/components/shed_time_editor.dart`,
-  // unchanged — it imports only the keypad, the tap target and the tokens, and
-  // takes every string as a parameter. `correctEnteredAt` is wired; Foster's is
-  // the same shape and has not been done.
-  'correctFoster': 'N18 — needs the Foster screen to reach ShedTimeEditor, which now exists',
+  // ── BOTH CORRECTION VERBS ARE WIRED ───────────────────────────────────────
+  // `correctEnteredAt` needed a time editor the pen board could not legally
+  // import — it lived under `lib/features/lambing/` and `layer.sibling` forbids
+  // one feature reaching into another. It moved to `lib/core/ui/components/`
+  // unchanged. `correctFoster` turned out not to need one at all: it writes a
+  // compensating event, and its affordance is *"Correct this"* on the foster's
+  // own timeline row, which is where `indelible-marks-and-strikes` §9 puts it.
 
   // ── READ HELPERS THE SCREEN GETS ANOTHER WAY ──────────────────────────────
   // Not gaps: the data reaches the screen through a stream that already carries

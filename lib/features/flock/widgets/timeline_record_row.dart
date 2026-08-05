@@ -17,6 +17,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/formatters.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/data/providers.dart';
@@ -26,6 +27,7 @@ import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/domain/withdrawal/withdrawal_period.dart';
 import 'package:shed_book/features/flock/ewe_card_controller.dart';
 import 'package:shed_book/features/flock/widgets/withdrawal_note.dart';
+import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class TimelineRecordRow extends ConsumerWidget {
@@ -74,6 +76,35 @@ final class TimelineRecordRow extends ConsumerWidget {
                     // a treatment always has one of three answers, and one of
                     // them is *nobody looked*.
                     if (row.withdrawal case final WithdrawalPeriod w) WithdrawalNote(period: w),
+                    // **`correctFoster` HAD NO CALLER**, and this row is where
+                    // `indelible-marks-and-strikes` §9 puts the affordance:
+                    // *"Correct this"* is undo's per-verb label, in the record's
+                    // own line rather than in an overlay.
+                    //
+                    // **IT WRITES A COMPENSATING EVENT AND EDITS NOTHING.** The
+                    // foster stays in the timeline and the correction sits
+                    // beside it — `05 §7.5`: the correction restores what
+                    // `lamb_rearing` WOULD have said, ordered by
+                    // `(effective_at, id)` exactly as the view orders, rather
+                    // than what a separate rule thinks it should say.
+                    //
+                    // Only on a foster, and only on one that is not already
+                    // struck: a struck row's correction is a second correction
+                    // of a thing already taken back.
+                    if (row.kind == TimelineKind.foster && !row.struck)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: ShedWordButton(
+                          key: Key('ewe_card.correct_foster.${row.ref}'),
+                          label: l10n.timelineCorrectFoster,
+                          semanticLabel: l10n.timelineCorrectFoster,
+                          selected: false,
+                          onTap: () => ref
+                              .read(fosterRepositoryProvider)
+                              .correctFoster(FosterEventId(row.ref))
+                              .ignore(),
+                        ),
+                      ),
                   ],
                 ),
               ),

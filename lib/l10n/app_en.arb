@@ -2129,6 +2129,10 @@
   "@eweCardActionBarren": {
     "description": "Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing."
   },
+  "timelineCorrectFoster": "CORRECT THIS",
+  "@timelineCorrectFoster": {
+    "description": "indelible-marks-and-strikes §9: the per-verb undo label for a foster. It writes a COMPENSATING event rather than editing the original — nothing is removed from this book, so the foster stays in the timeline and the correction sits beside it."
+  },
   "eweCardActionCull": "CULL",
   "@eweCardActionCull": {
     "description": "Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row."

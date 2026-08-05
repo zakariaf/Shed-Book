@@ -2332,6 +2332,12 @@ abstract class AppLocalizations {
   /// **'BARREN'**
   String get eweCardActionBarren;
 
+  /// indelible-marks-and-strikes §9: the per-verb undo label for a foster. It writes a COMPENSATING event rather than editing the original — nothing is removed from this book, so the foster stays in the timeline and the correction sits beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT THIS'**
+  String get timelineCorrectFoster;
+
   /// Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row.
   ///
   /// In en, this message translates to:

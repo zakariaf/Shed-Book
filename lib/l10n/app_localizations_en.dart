@@ -1402,6 +1402,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eweCardActionBarren => 'BARREN';
 
   @override
+  String get timelineCorrectFoster => 'CORRECT THIS';
+
+  @override
   String get eweCardActionCull => 'CULL';
 
   @override

@@ -12,11 +12,19 @@
 // day a fourteenth variant lands.
 library;
 
+import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
+import 'package:shed_book/domain/ids.dart';
+import 'package:shed_book/features/lambing/foster_screen.dart';
+import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/routing/routes.dart';
 
 import '../support/harness.dart';
+import '../support/seeds.dart';
 
 void main() {
   test('the matrix count equals kPumpableVariants.length times the device, scale and bold '
@@ -192,6 +200,326 @@ void main() {
 
     await db.close();
   });
+
+  // ── N33-T04: REACHABILITY ─────────────────────────────────────────────────
+  //
+  // **OVERFLOW IS NECESSARY AND NOT SUFFICIENT** (`12 §6.4`): a layout can
+  // avoid overflowing by pushing the primary action below the fold. The 198
+  // cells above cannot see that, and this is the screen the whole fifteen-second
+  // claim rests on.
+  //
+  // **1.3, NOT 2.0, AND THE DIFFERENCE IS DELIBERATE.** Decision #114 fixes
+  // reachability at textScaler 1.3 on the smallest device. At 2.0 the screen is
+  // *allowed* to scroll; what is never allowed is an action reachable **only**
+  // behind a scroll, and that is the manual sweep's row, not an assertion.
+  // Strengthening these to 2.0 either breaks a correct layout or weakens the
+  // rule to make it pass.
+
+  /// The bottom edge of the usable page: the smallest device, less the home
+  /// indicator `pumpApp` insets for.
+  ///
+  /// **Values, not the literals `667` and `34`.** A device list that gains a
+  /// smaller phone must move this assertion with it, and a typed 667 is a
+  /// number that stays right-looking after it stops being true.
+  /// Run `body`, and close the app whether it threw or not.
+  ///
+  /// **A `finally` AND NOT `addTearDown`, AND BOTH HALVES WERE MEASURED.**
+  ///
+  /// Without any protection, a reachability assertion that fails throws before
+  /// the trailing `closeApp()`, the provider container is never disposed, and
+  /// the case sits until flutter_test's **ten-minute** timeout — so the first
+  /// red arrives as a `TimeoutException` with the real failure scrolled off the
+  /// top, four cases over, forty minutes later.
+  ///
+  /// With `addTearDown` it fails differently and just as usefully: *"A Timer is
+  /// still pending even after the widget tree was disposed"*, `minuteTick`'s
+  /// sixty-second one. `harness.dart` wrote the reason down at `closeApp` —
+  /// an `UncontrolledProviderScope` does not own its container, so a tear-down
+  /// disposes it **after** `_verifyInvariants` has already run. It has to
+  /// happen inside the body, and it has to happen on the failing path too.
+  Future<void> withApp(WidgetTester tester, Future<void> Function() body) async {
+    try {
+      await body();
+    } finally {
+      await tester.closeApp();
+    }
+  }
+
+  double floorOf(WidgetTester tester) =>
+      Device.small.size.height - tester.view.padding.bottom / tester.view.devicePixelRatio;
+
+  testWidgets('the primary action is reachable without scrolling on the smallest device at '
+      'textScaler 1.3, including with the banner shown', (WidgetTester tester) async {
+    final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
+    await armExportBanner(db);
+
+    // **08:00, AND THE HOUR IS PART OF THE ASSERTION.** `07 §16.2` gates the
+    // banner on the clock as well as on the counts: pinned into the
+    // 22:00–06:00 window it never renders, and this case becomes the
+    // no-banner case run twice — which is exactly the failure the variant
+    // exists to prevent. The free tier and the banner are both silent at
+    // night, on purpose.
+    await atFixed(DateTime.utc(2026, 2, 11, 8), () async {
+      await tester.pumpApp(const QuickEntryScreen(), db: db, device: Device.small, textScale: 1.3);
+    });
+
+    expect(
+      find.byKey(const Key('quick_entry.export_banner')),
+      findsOneWidget,
+      reason: 'unarmed, this is the no-banner assertion run twice',
+    );
+
+    await withApp(tester, () async {
+      final Finder confirm = find.byKey(const Key('quick_entry.confirm'));
+      expect(confirm, findsOneWidget);
+
+      expect(
+        tester.getRect(confirm).bottom,
+        lessThanOrEqualTo(floorOf(tester)),
+        reason: 'the confirm key is behind the home indicator',
+      );
+
+      // **`ScrollableState.position`, NEVER `Scrollable.controller`.** A
+      // `Scrollable` built without an explicit controller has `controller ==
+      // null`, so a `.where((s) => s.controller?.position…)` filter is empty on
+      // every screen in this app and the assertion passes without asserting
+      // anything. `12 §6.4`: *a reachability assertion that cannot fail is
+      // worse than no reachability assertion, because it occupies the slot
+      // where a real one would go.*
+      //
+      // **THE CLAUSE IS ABOUT THE CHROME, NOT ABOUT THE PAGE — `12 §6.4` AMENDED
+      // AT N33-T04.** As published it asserted that NO `ScrollableState` on the
+      // screen has a scroll extent, and with the banner armed that is red on the
+      // first run: the record column reports `0..432` in a 96 pt viewport. It is
+      // not a defect. N21-T08 put the banner **inside** that scroll view
+      // deliberately — above it, the banner takes height from a `Column` whose
+      // other children are fixed and overflowed by **665 px** at textScaler 2.0
+      // on this device — so the record column has been a scrolling surface ever
+      // since, and the published form forbids the layout the screen already has.
+      //
+      // What `07 §5.3` actually claims is that *the keypad, the confirm bar and
+      // the recents strip never give up anything*, which is a statement about the
+      // chrome. Checkable exactly: the confirm key is not inside a `Scrollable`.
+      // It can still fail — move the confirm bar into the record column and it
+      // goes red — and it is the assertion that matches the claim.
+      final List<ScrollableState> scrollables = tester
+          .stateList<ScrollableState>(find.byType(Scrollable))
+          .toList();
+      expect(scrollables, isNotEmpty, reason: 'nothing scrolls — the filter would be vacuous');
+      expect(
+        scrollables.where((ScrollableState s) => s.position.maxScrollExtent > 0),
+        isNotEmpty,
+        reason: 'the record column is what gives when the banner takes height (07 §16.2)',
+      );
+
+      bool insideAScrollable(Finder f) {
+        bool found = false;
+        tester.element(f).visitAncestorElements((Element a) {
+          if (a.widget is Scrollable) {
+            found = true;
+            return false;
+          }
+          return true;
+        });
+        return found;
+      }
+
+      expect(
+        insideAScrollable(confirm),
+        isFalse,
+        reason:
+            '07 §5.3: the keypad, the confirm bar and the recents strip never give '
+            'up anything — the filtered-match list gives up rows first',
+      );
+    });
+  });
+
+  testWidgets('Lambing Entry: the slab is on screen without scrolling at 375x667 x 1.3', (
+    WidgetTester tester,
+  ) async {
+    // **THIS SCREEN SCROLLS AND THAT IS CORRECT**, so the Quick Entry form of
+    // the assertion would be wrong here: a lambing with five lambs is longer
+    // than a page by design. What may never scroll away is the one act that
+    // records the next lamb, and the slab is at the TOP of the record — so a
+    // shepherd who has scrolled to read lamb 4 must not have to scroll back.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId ewe = await seedEwe(db, tag: '412');
+    final LambingId lambing = await seedLambing(db, ewe);
+    for (int i = 0; i < 5; i++) {
+      await seedLamb(db, lambing, ewe);
+    }
+
+    await tester.pumpApp(
+      LambingEntryScreen(lambingId: lambing),
+      db: db,
+      device: Device.small,
+      textScale: 1.3,
+    );
+    await tester.pumpAndSettle();
+
+    await withApp(tester, () async {
+      final Finder slab = find.byKey(const Key('lambing_entry.tally.stroke'));
+      expect(slab, findsOneWidget);
+
+      // **NO `ensureVisible` — THAT IS THE WHOLE POINT.** The file's other
+      // reachability cases use it and make the weaker claim: *can this be scrolled
+      // to.* This one asserts the rect where the screen opens.
+      final Rect rect = tester.getRect(slab);
+      expect(rect.top, greaterThanOrEqualTo(0.0), reason: 'the slab starts above the page');
+      expect(
+        rect.bottom,
+        lessThanOrEqualTo(floorOf(tester)),
+        reason: 'the slab that records the next lamb needs a scroll to reach',
+      );
+    });
+  });
+
+  testWidgets('Foster: the reassign action is on screen without scrolling at 375x667 x 1.3', (
+    WidgetTester tester,
+  ) async {
+    // Foster's primary action is a one-tap reassignment onto a ewe in the deck
+    // (N18-T02) — there is no confirm, so the row IS the write, and a row below
+    // the fold is a write that cannot happen.
+    // **THE BIRTH DAM IS PENNED AND THAT IS WHAT PUTS A ROW ON THE SCREEN.**
+    // The first draft penned a second ewe instead and found nothing: the deck is
+    // pen occupancy, so an unpenned ewe is not a foster target and the assertion
+    // failed on `findsOneWidget` rather than on a rect. Which is the right
+    // failure — `findsNothing` would have passed silently.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    final EweId birthDam = await seedEwe(db, tag: '412');
+    final PenId pen = await seedPen(db, label: 'A');
+    await seedPenOccupancy(db, pen, birthDam);
+    final LambingId lambing = await seedLambing(db, birthDam);
+    final LambId lamb = await seedLamb(db, lambing, birthDam);
+
+    await tester.pumpApp(
+      FosterScreen(lambId: lamb),
+      db: db,
+      device: Device.small,
+      textScale: 1.3,
+    );
+    await tester.pumpAndSettle();
+
+    await withApp(tester, () async {
+      // **THE DECK IS EMPTY UNTIL A TAG IS TYPED, WHICH IS THE SCREEN'S OWN
+      // SHAPE AND CHANGES WHAT THIS ASSERTS.** Foster does not list the flock;
+      // it narrows it. So the claim is not *"the first row is on screen when the
+      // screen opens"* — there is no first row then — but *"once the shepherd
+      // has typed the tag, the row that commits the foster is on screen without
+      // scrolling"*, which is the moment the tap actually happens.
+      for (final String digit in <String>['4', '1', '2']) {
+        await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+
+      final Finder onto = find.byKey(const Key('foster.target.412'));
+      expect(onto, findsOneWidget);
+      expect(
+        tester.getRect(onto).bottom,
+        lessThanOrEqualTo(floorOf(tester)),
+        reason: 'the first ewe you can foster onto needs a scroll to reach',
+      );
+    });
+  });
+
+  testWidgets('CANARY: 200 pt of padding above the confirm bar fails the reachability assertion', (
+    WidgetTester tester,
+  ) async {
+    // **WITHOUT THIS, THE VACUOUS-FILTER BUG IS UNDETECTABLE.** The three cases
+    // above are only worth their lines if they can go red, and the way they
+    // silently stop being able to is a filter that matches nothing. Rather than
+    // edit Quick Entry and revert — which proves it once, for whoever happened
+    // to be watching — the canary pumps the same screen pushed below the fold
+    // and asserts the assertion FIRES.
+    //
+    // **PADDING DOES NOT PUSH ANYTHING BELOW THE FOLD, AND THE FIRST DRAFT OF
+    // THIS CANARY USED IT.** `Padding(top: 200)` around the screen leaves 467 pt
+    // for the `Scaffold`, which lays out into 467 and puts the confirm bar at
+    // the bottom of *that* — still above the home indicator, so the canary
+    // passed while claiming to prove the assertion could fail. A canary that
+    // cannot fire is the exact bug it exists to catch, one level up.
+    //
+    // What genuinely pushes an action below the fold is unbounded height: the
+    // screen laid out at 867 pt inside a 667 pt viewport, which is what a
+    // primary action sitting under a long scrolling page actually is.
+    final AppDatabase db = await fixtureDatabase('flock_400_3seasons.json');
+    await atFixed(DateTime.utc(2026, 2, 11, 8), () async {
+      await tester.pumpApp(
+        SingleChildScrollView(
+          child: SizedBox(height: Device.small.size.height + 200, child: const QuickEntryScreen()),
+        ),
+        db: db,
+        device: Device.small,
+        textScale: 1.3,
+      );
+    });
+
+    await withApp(tester, () async {
+      final Finder confirm = find.byKey(const Key('quick_entry.confirm'));
+      expect(confirm, findsOneWidget, reason: 'the canary must pump the same screen');
+
+      final bool wouldPass = tester.getRect(confirm).bottom <= floorOf(tester);
+      expect(
+        wouldPass,
+        isFalse,
+        reason:
+            'a confirm bar at 867 pt in a 667 pt viewport still passes — the '
+            'reachability assertion asserts nothing',
+      );
+
+      // And the chrome clause fires too, which is the other half of the same
+      // proof: below a scroll is exactly where `07 §5.3` says the confirm bar
+      // never goes.
+      bool insideAScrollable(Finder f) {
+        bool found = false;
+        tester.element(f).visitAncestorElements((Element a) {
+          if (a.widget is Scrollable) {
+            found = true;
+            return false;
+          }
+          return true;
+        });
+        return found;
+      }
+
+      expect(insideAScrollable(confirm), isTrue);
+    });
+  });
+
+  test(
+    'the reachability assertions read ScrollableState.position, never Scrollable.controller',
+    () {
+      // **THE TRAP, HELD BY A MACHINE RATHER THAN BY MEMORY.** `12 §6.4` spends a
+      // paragraph on it because the wrong read is the natural one to write and its
+      // failure mode is silence: the assertion passes, forever, having looked at
+      // an empty list.
+      //
+      // Comments are stripped first, so the paragraph above — which has to name
+      // the thing it forbids — does not fail the rule it explains. The fourteenth
+      // time this project has caught a prohibition matching itself.
+      final String body = File(
+        'test/features/overflow_matrix_test.dart',
+      ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
+
+      expect(body, contains('s.position.maxScrollExtent'));
+      expect(
+        body,
+        // Split across two adjacent literals so this file does not fire on
+        // itself: Dart concatenates them at compile time, so the runtime needle is
+        // whole while the source text is not. The fourteenth time.
+        isNot(
+          contains(
+            '.controller'
+            '?.position',
+          ),
+        ),
+        reason: 'a controller-based filter is empty on every screen in this app',
+      );
+    },
+  );
 
   for (final MapEntry<String, PumpableVariant> variant in kPumpableVariants.entries) {
     for (final Device device in Device.all) {

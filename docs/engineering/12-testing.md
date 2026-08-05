@@ -972,6 +972,30 @@ testWidgets('Quick Entry: the confirm key is on screen without scrolling, banner
 
 That vacuous-filter trap is worth more than the one line it costs. A reachability assertion that cannot fail is worse than no reachability assertion, because it occupies the slot where a real one would go — and this is the screen the whole 15-second claim rests on.
 
+**AMENDED 2026-08-04 (N33-T04): the `isEmpty` above becomes a claim about the CHROME, not about the page.** As printed it asserts that no `ScrollableState` on the screen has a scroll extent, and with the banner armed it is red on its first run — the record column reports `0..432` in a 96 pt viewport. That is not a defect. N21-T08 put the export banner **inside** the record column's scroll view deliberately, because above it the banner takes height from a `Column` whose other children are fixed and overflowed by **665 px** at textScaler 2.0 on the 375 × 667 device. The record column has been a scrolling surface ever since, and the form above forbids the layout the screen already has.
+
+What `07 §5.3` claims is that *the keypad, the confirm bar and the recents strip never give up anything* — a statement about the fixed chrome, which is checkable exactly and can still fail:
+
+```dart
+// The confirm key is not inside a Scrollable at all. Move the confirm bar into
+// the record column and this goes red; leave the record column scrolling, which
+// it must, and it stays green.
+bool insideAScrollable(Finder f) {
+  var found = false;
+  tester.element(f).visitAncestorElements((a) {
+    if (a.widget is Scrollable) { found = true; return false; }
+    return true;
+  });
+  return found;
+}
+expect(insideAScrollable(confirm), isFalse, reason: '07 §5.3');
+```
+
+Two further corrections the first run earned, both of them the same lesson — **an assertion is only worth its line if you have seen it fail**:
+
+- **The canary must push the action below the fold, and padding does not.** `Padding(top: 200)` around the screen leaves 467 pt for the `Scaffold`, which lays out into 467 and puts the confirm bar at the bottom of *that* — above the home indicator, so the canary passed while claiming to prove the assertion could fail. Unbounded height is what actually reproduces it: the screen at 867 pt inside a 667 pt viewport, which is what a primary action under a long scrolling page is.
+- **`closeApp()` belongs in a `finally`, not in a tear-down and not at the end of the body.** At the end of the body a failing assertion skips it, the provider container is never disposed, and the case sits until flutter_test's **ten-minute** timeout — the first red arrives as a `TimeoutException` with the real failure scrolled off the top. From a tear-down it runs after `_verifyInvariants` and the case fails on *"A Timer is still pending"* — `minuteTick`'s, for the reason §5.1 already records at `closeApp`: an `UncontrolledProviderScope` does not own its container.
+
 ---
 
 ## 7. Accessibility as an executable gate

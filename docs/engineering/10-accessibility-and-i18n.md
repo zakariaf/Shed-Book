@@ -518,7 +518,13 @@ Three rules that fall out of the table and are easy to get wrong:
 ### 5.3 The gate
 
 - **Grayscale.** Turn on the OS grayscale filter and read the board. If you cannot, it fails. This is a per-release manual pass (§7.2 row 6), because no automated check exists for it.
-- **Non-text contrast (WCAG 1.4.11, 3:1)** for tile outlines, status glyphs and chart bars. `06-design-system.md` §3.5's `test/design/contrast_test.dart` covers text; non-text carriers are checked against the palette table by hand **unless** the 3.44 in-framework evaluation is public. **UNVERIFIED:** the 3.44 release notes list new evaluations in `packages/flutter/lib/src/widgets/_accessibility_evaluations.dart` — non-text colour contrast (`kMinimumRatioNonText = 3.0`), `UnlabeledLeafNodeEvaluation`, title evaluation — but the leading underscore means they may still be private. **Action before writing any hand-rolled non-text contrast check: grep the installed SDK for `kMinimumRatioNonText` and for exported `AccessibilityGuideline` constants.** If public, wire them into the `test/design/` loop and delete the manual step. If private, keep measuring by hand and re-check on every SDK bump.
+- **Non-text contrast (WCAG 1.4.11, 3:1)** for tile outlines, status glyphs and chart bars. `06-design-system.md` §3.5's `test/design/contrast_test.dart` covers text.
+
+  **CLOSED 2026-08-04 (N33-T04), by grepping the installed 3.44.8 SDK rather than by reading the release notes.** The constant is **private and doubly so**: `_kMinimumRatioNonText = 3.0` sits at `packages/flutter/lib/src/widgets/_accessibility_evaluations.dart:525`, a leading underscore on the identifier *and* on the file, and it is not re-exported by `widgets.dart`. `UnlabeledLeafNodeEvaluation` is private on the same terms. So there is no `nonTextContrastGuideline` to reach for and there will not be one on this pin.
+
+  **What is public is `CustomMinimumContrastGuideline`** in `package:flutter_test/src/accessibility.dart` — `{required Finder finder, double minimumRatio = 4.5, double tolerance = 0.01}` — which renders the tree to an image and measures real pixels. Passing `minimumRatio: 3.0` with a finder over the non-text carrier gives the 1.4.11 check with **no hand-rolled arithmetic**, which is the outcome this note was holding out for: `12 §1.4` bans re-implementing a rule as a `RegExp` inside a `test()`, and re-deriving a contrast formula that already exists twice in this repo is the same mistake in colour.
+
+  **The manual step is therefore deleted for measured carriers and kept for grayscale.** They are different claims — 3:1 is arithmetic on two colours and a machine does it better; *"can you read this screen with the hue channel gone"* is a judgement and `§7.2` row 6 keeps it as a per-release pass. Re-check `CustomMinimumContrastGuideline`'s signature on the next SDK bump; it is public API, so it will be a deprecation rather than a surprise.
 
 ---
 
@@ -1167,7 +1173,7 @@ Tick every line before calling this area finished.
 - [ ] §7.1 #11 — whether a temperature field ships at all, and therefore whether °C/°F formatting exists.
 - [ ] §7.1 #15 — lambing ease 5 or 6, and therefore 40 or 41 vocabulary messages.
 - [ ] §7.1 #18 — the voice-note cap, which bounds the Captions gap in §7.1.
-- [ ] **UNVERIFIED:** whether 3.44's in-framework accessibility evaluations are public API (§5.3).
+- [x] ~~**UNVERIFIED:** whether 3.44's in-framework accessibility evaluations are public API (§5.3).~~ **Closed 2026-08-04 at N33-T04: they are private, and `CustomMinimumContrastGuideline` is the public route. See §5.3.**
 - [x] **VERIFIED 2026-08-01 (N09-T09):** `HapticFeedback.successNotification()` — and `warningNotification()` and `errorNotification()` — exist on Flutter 3.44.8. Read off `packages/flutter/lib/src/services/haptic_feedback.dart` in the installed SDK. The `heavyImpact()` fallback is not needed and nothing in this document changes.
 
 **Cross-document defects this document raises — live**

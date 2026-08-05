@@ -318,12 +318,56 @@ void main() {
     await expectLater(seedLambing(db, const EweId(9999)), throwsA(anything));
   });
 
-  test('seedTreatment has no default withdrawalDays', () {
+  test('seedTreatment has no default withdrawalDays, and its null writes no row', () {
     // Safety rule §12.1 at the test tier. Source text, because the absence of a
     // default is not observable from a call that supplies one.
+    //
+    // **`int?` RATHER THAN `int`, WIDENED AT N33-T04, AND THE RULE IS NOT
+    // WEAKENED BY IT.** The case asserted `required int withdrawalDays`, which
+    // pinned two different properties in one string: *the caller must say*, and
+    // *the value is a number*. The first is §12.1. The second was pinning a
+    // seeder that could produce only ONE of the three states the child table
+    // has — `10 §5.2`'s redundancy sweep needs *not applicable* and *not
+    // recorded* as well, and neither is a number.
+    //
+    // What makes the widening safe is that `null` here never becomes a figure.
+    // It is not coerced to `0`, and it does not write a `days` row: it writes
+    // either a `not_applicable` row or **no row at all**, which is `03 §5.8`'s
+    // own shape — a withdrawal is a child table, and absence is the state. The
+    // confusion §12.1 fears is *the label says zero* against *I did not look*,
+    // and a seeder that cannot write a zero it was not given cannot cause it.
     final String source = File('test/support/seeds.dart').readAsStringSync();
-    expect(source, contains('required int withdrawalDays'));
-    expect(source, isNot(contains('int withdrawalDays =')));
+
+    expect(source, contains('required int? withdrawalDays'));
+    // `'withdrawalDays = '` and not `'withdrawalDays ='` — the trailing space
+    // is load-bearing. Without it the needle matches `withdrawalDays == null`,
+    // which is the guard three lines below that MAKES the absent state absent,
+    // so the assertion fired on the mechanism it was written to protect.
+    expect(
+      source,
+      isNot(contains('withdrawalDays = ')),
+      reason: '§12.1: no default, and `required` is what says so',
+    );
+
+    // **AND NO COERCION, ANYWHERE IN THE FILE.** The reflexive repair for a
+    // nullable withdrawal is the one line safety rule §12.1 exists to forbid.
+    expect(
+      source,
+      isNot(
+        contains(
+          'withdrawalDays '
+          '?? 0',
+        ),
+      ),
+      reason: 'a coerced zero is indistinguishable from a label that says zero',
+    );
+
+    // The absent state is the ABSENCE of a row, not a written placeholder.
+    expect(
+      source,
+      contains('if (withdrawalDays != null || notApplicable)'),
+      reason: 'not recorded must write no row — a placeholder row is the confusion itself',
+    );
   });
 
   test('test/support/ holds exactly the files this task lands', () {

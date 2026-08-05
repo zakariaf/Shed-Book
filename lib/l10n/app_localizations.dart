@@ -946,6 +946,12 @@ abstract class AppLocalizations {
   /// **'ANYTHING ELSE'**
   String get detailNote;
 
+  /// 07 §7. The photo action on a lambing. The whole chain — pick, compress, write, attach — landed at N15 with tests and fakes and nothing joined it up, so a shepherd could not photograph a lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'PHOTO'**
+  String get lambingEntryPhoto;
+
   /// Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value.
   ///
   /// In en, this message translates to:

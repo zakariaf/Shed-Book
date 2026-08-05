@@ -519,6 +519,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailNote => 'ANYTHING ELSE';
 
   @override
+  String get lambingEntryPhoto => 'PHOTO';
+
+  @override
   String get detailUnset => 'NOT RECORDED · SKIPPABLE';
 
   @override

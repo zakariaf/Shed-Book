@@ -37,9 +37,10 @@ const Map<String, String> kNoCallerYet = <String, String>{
   'recordReconcileScheduled': 'reminders (N24) — nothing schedules yet',
 
   // ── N15, MEDIA AND NOTES — THE ONE REMAINING FEATURE ──────────────────────
-  // The camera, the recorder and the photo store are a chain: each needs a
-  // native surface, and `12 §4.1`'s fakes exist for exactly that. What is left
-  // is the screen, not the seam.
+  // **THE PHOTO CHAIN IS WIRED** — `pick`, `newRelativePath`, `writePhoto` and
+  // `attachPhoto` are joined up by `photo_controller.dart` and reached from
+  // Lambing Entry. What is left is the VOICE chain, which needs a recorder
+  // surface and a level meter with nothing to draw them on yet.
   //
   // **`addNote` LEFT THIS LIST**, and the decision it was waiting on is
   // recorded on `editNoteBody`: a note is a ROW, so per-keystroke commits need
@@ -47,13 +48,9 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // the quad is about when the note happened and typing more of it does not
   // change that. Marking every keystroke as an edit would make `EDITED` mean
   // nothing on the one stamp §12.5 rests on.
-  'attachPhoto': 'N15 — the photo chain',
   'beginVoiceNote': 'N15 — the voice chain',
   'completeVoiceNote': 'N15 — the voice chain',
   'markMediaMissing': 'N15 — called by the sweep only when a photo exists to lose',
-  'writePhoto': 'N15 — the photo chain',
-  'newRelativePath': 'N15 — the photo chain',
-  'pick': 'N15 — CameraService, and a native surface integration_test cannot drive',
   'levelDbfs': 'N15 — the recorder level meter',
 
   // ── BOTH CORRECTION VERBS ARE WIRED ───────────────────────────────────────

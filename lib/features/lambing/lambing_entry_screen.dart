@@ -12,6 +12,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_text_field.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
@@ -23,6 +24,7 @@ import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/photo_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/domain/birth_type.dart';
@@ -305,6 +307,22 @@ class _Regions extends ConsumerWidget {
           // **EVERY KEYSTROKE COMMITS.** There is no Save button and no draft:
           // each `onChanged` is its own write, which is the same contract the
           // ease buttons and the care checks hold to.
+          // **THE PHOTO, WHOSE WHOLE CHAIN HAD NO CALLER.** `pick`,
+          // `newRelativePath`, `writePhoto` and `attachPhoto` each landed with
+          // tests and fakes; nothing joined them up.
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: ShedWordButton(
+                key: const Key('lambing_entry.photo'),
+                label: AppLocalizations.of(context).lambingEntryPhoto,
+                semanticLabel: AppLocalizations.of(context).lambingEntryPhoto,
+                selected: false,
+                onTap: () => attachPhotoTo(ref, data.lambing.id).ignore(),
+              ),
+            ),
+          ),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
             child: ShedTextField(

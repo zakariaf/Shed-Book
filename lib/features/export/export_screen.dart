@@ -32,6 +32,10 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/export/export_controller.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/ui/feedback.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/export/export_write_controller.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -230,6 +234,32 @@ class ExportScreen extends ConsumerWidget {
           );
     } finally {
       ref.read(exportControllerProvider.notifier).idle();
+    }
+
+    // **A FAILED EXPORT SAID NOTHING, ON THE ONE SCREEN WHOSE JOB IS GETTING
+    // RECORDS OFF THE PHONE.** This screen had no outcome handling at all — no
+    // `ref.listen`, no `WriteFailed` arm — so a disk-full or a read-only volume
+    // ran the spinner, cleared it, and left the shepherd looking at a button
+    // they had just pressed with no idea whether anything had gone.
+    //
+    // Found by N33-T05's ARB orphan sweep: `exportFailed` was written and never
+    // rendered.
+    //
+    // **THE ARTEFACT IS NAMED, WHICH IS WHY THE MESSAGE TAKES A PLACEHOLDER.**
+    // *Something could not be built* sends a shepherd nowhere; *the treatments
+    // CSV could not be built* tells them the rest of the export is fine and
+    // which one to try again.
+    if (!context.mounted) {
+      return;
+    }
+    if (ref.read(exportWriteControllerProvider) case WriteDone(
+      outcome: WriteFailed(failure: final ShedFailure failure),
+    )) {
+      showFailure(
+        context,
+        '${AppLocalizations.of(context).exportFailed(artefact: AppLocalizations.of(context).exportCsvAll)} '
+        '${failure.userMessage}',
+      );
     }
   }
 

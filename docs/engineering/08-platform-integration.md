@@ -967,7 +967,7 @@ Java 17 is the toolchain AGP 8.x requires; it is a consequence of the AGP row, n
 | `NSPhotoLibraryUsageDescription` | "Shed Book lets you attach a photo you have already taken to a lambing record." | `image_picker`, App Store policy (the picker itself needs no authorisation) |
 | `NSMicrophoneUsageDescription` | "Shed Book records voice notes you attach to a lambing record." | `record` |
 | `UIUserInterfaceStyle` = `Dark` | No light appearance ([`06-design-system.md`](06-design-system.md) §9.2) | — |
-| `PrivacyInfo.xcprivacy` | `C617.1` (file timestamp) + `CA92.1` (user defaults); `E174.1` only if free disk space is actually queried | Decision #93 · owned by 11 |
+| `PrivacyInfo.xcprivacy` | ~~`C617.1` (file timestamp) + `CA92.1` (user defaults); `E174.1` only if free disk space is actually queried~~ **`C617.1` + `E174.1`, and no `CA92.1`** — amended at N30-T07 with decision #93. The app has no user defaults (`shared_preferences` is forbidden), so `CA92.1` would be a false statement in a legal document; `E174.1` is declared for SQLite, statically linked and therefore without a manifest of its own | Decision #93 · owned by 11 |
 | **No `NSAppTransportSecurity` key** | Its absence is part of gate **G5** | — |
 
 There is no notification entitlement, no background mode, no `UIBackgroundModes`, and no push capability. `AppDelegate` sets `UNUserNotificationCenter.current().delegate = self` and nothing more.

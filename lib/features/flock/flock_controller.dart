@@ -12,7 +12,11 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/flock_repository.dart';
+import 'package:flutter/widgets.dart';
 import 'package:shed_book/domain/ewe_status.dart';
+import 'package:shed_book/domain/terminology/animal_class.dart';
+import 'package:shed_book/domain/terminology/term_label.dart';
+import 'package:shed_book/l10n/app_localizations.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/data/providers.dart';
@@ -187,3 +191,23 @@ final StreamProviderFamily<List<FlockRow>, FlockFilters> flockListProvider =
             : rows,
       );
     });
+
+/// The refusal's words, resolved where the locale and the shepherd's own noun
+/// are known.
+///
+/// **`lib/core/ui/` CANNOT DO THIS** (layer rule 7), which is why `showCapRow`
+/// takes it as a parameter — the same shape `ShedKeypad` uses for its four
+/// labels.
+String capRefusalCopy(BuildContext context, WidgetRef ref, RefusalReason reason) {
+  final AppLocalizations l10n = AppLocalizations.of(context);
+  final TermLabel term =
+      ref.read(terminologyProvider).overrideFor(AnimalClass.ewe) ??
+      TermLabel(l10n.termEweSingular, l10n.termEwePlural);
+  // **THE CAP IS A PLACEHOLDER, NEVER A TYPED NUMBER.** `kFreeEweCap` is the
+  // source; a literal goes stale the day it moves, in the one sentence a paying
+  // user reads most carefully.
+  return switch (reason) {
+    RefusalReason.eweCap => l10n.capRefusedEweCap(cap: kFreeEweCap, term: term.plural),
+    RefusalReason.secondSeason => l10n.capRefusedSecondSeason,
+  };
+}

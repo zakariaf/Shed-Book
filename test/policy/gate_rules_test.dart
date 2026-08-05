@@ -193,6 +193,32 @@ final Map<String, Planted> firesOn = <String, Planted>{
   // -- the single writer's text half, streams and statistics -----------------
   'db.raw_statement': _at('lib/data/pen_repository.dart', 'void f() => customStatement(sql);'),
   'db.save_verb': _at('lib/data/flock_repository.dart', 'Future<void> saveEwe(Ewe e) async {}'),
+  // **THE ONE RULE HERE THAT GUARDS SOMEBODY'S MONEY.** An entitlement is never
+  // revoked (`11 §12.2`): a shed has no signal most of the time the store is
+  // asked, so *"the store did not confirm"* is the normal case, and an app that
+  // downgraded on it would take the unlock away from a shepherd in a barn at
+  // 03:20 for a network they never had.
+  // **THE `firesOn` ENTRY AS WELL AS THE DESIGN GROUP'S.** The two inventories
+  // ask different questions — *does this design row have a planting* and *has
+  // every rule in the table been seen to fire* — and a rule proved in one but
+  // not the other is a rule nobody has watched fail.
+  // **A CURRENCY SYMBOL FOLLOWED BY A DIGIT, ANYWHERE UNDER `lib/`.** The price
+  // arrives from the store already localised and currency-formatted for the
+  // account that will be charged; a literal is wrong for most of the world the
+  // day it ships, and a `NumberFormat.currency` call is wrong more subtly — it
+  // formats the number correctly in the wrong currency.
+  'copy.currency_literal': _at(
+    'lib/features/settings/settings_screen.dart',
+    "const p = 'Unlock for £24.99';",
+  ),
+  'ui.monetization_surface': _at(
+    'lib/features/quick_entry/quick_entry_screen.dart',
+    'final u = ref.watch(entitlementProvider);',
+  ),
+  'db.entitlement_revoke': _at(
+    'lib/data/entitlement_repository.dart',
+    'final c = EntitlementsCompanion(unlocked: const Value<bool>(false));',
+  ),
   'stream.combine': _at('lib/data/season_repository.dart', 'final s = combineLatest(a, b);'),
   'stream.invalidate': _at(
     'lib/features/season/season_controller.dart',
@@ -1135,20 +1161,27 @@ http             # via timezone AND via package_info_plus. Two regular edges.
       'ui.show_dialog': 'void f() => showDialog(context: c, builder: b);',
     };
 
-    /// Two rows are scoped narrower than `lib/` and need their own path.
+    /// The rows scoped narrower than `lib/`, each needing its own path.
     const Map<String, String> scopedPath = <String, String>{
       'token.color_scheme_read': 'lib/features/flock/flock_screen.dart',
       'token.color_scheme_read_ui': 'lib/core/ui/components/shed_pen_tile.dart',
       'theme.deprecated_scheme_role': 'lib/core/ui/theme.dart',
       'ui.spinner': 'lib/features/flock/flock_screen.dart',
+      // **SCOPED TO THE 3AM SCREEN, WHICH IS THE WHOLE RULE.** #90: nothing
+      // monetization-related renders there at any entitlement state — and a
+      // screen that merely WATCHES the entitlement is the shape that ships,
+      // because it renders nothing today and flashes a paywall on the first slow
+      // frame after somebody adds a row to it.
+      'ui.monetization_surface': 'lib/features/quick_entry/quick_entry_screen.dart',
     };
 
-    /// The body each narrowly-scoped row needs, since the three do not share one.
+    /// The body each narrowly-scoped row needs, since they do not share one.
     const Map<String, String> scopedBody = <String, String>{
       'token.color_scheme_read': 'final c = Theme.of(context).colorScheme;',
       'token.color_scheme_read_ui': 'final c = Theme.of(context).colorScheme;',
       'theme.deprecated_scheme_role': 'const s = ColorScheme(background: c);',
       'ui.spinner': 'Widget b() => CircularProgressIndicator();',
+      'ui.monetization_surface': 'final u = ref.watch(entitlementProvider);',
     };
 
     test('design.raw_hex, design.magic_size, design.banned_gesture, design.snackbar, '
@@ -2054,7 +2087,7 @@ lib/core/ui/palettes.dart          :: token.primitives_import
       );
     });
 
-    test('the [exempt] allowlist still has exactly four lines', () {
+    test('the [exempt] allowlist still has exactly five lines', () {
       // R56. Neither new rule bought itself an exemption: both name their one
       // permitted file inside the rule.
       final List<String> exempt = File('tool/policy_allowlist.txt')
@@ -2063,7 +2096,17 @@ lib/core/ui/palettes.dart          :: token.primitives_import
           .skipWhile((String l) => l != '[exempt]')
           .where((String l) => l.contains('::'))
           .toList();
-      expect(exempt, hasLength(4));
+      // **FIVE SINCE 2026-08-04** (decision-record §7.0d). The fifth is
+      // `lib/data/purchase_service.dart :: copy.banned_word` —
+      // `PurchaseStatus.pending` is the `in_app_purchase` plugin's own enum member,
+      // in the acknowledgement guard and the exhaustive switch arm, and neither is
+      // removable or ours.
+      //
+      // **R56 WAS NEVER ABOUT THE NUMBER FOUR.** It was about a new line requiring
+      // somebody to say why, in front of a reader — which is why FOUR SEPARATE
+      // TESTS assert this count and all four had to be edited, deliberately, in
+      // the commit that added it. The sixth costs the same.
+      expect(exempt, hasLength(5));
     });
   });
 }

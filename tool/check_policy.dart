@@ -913,6 +913,62 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
     'lib/data/',
     'repositories are event verbs; there is no save(aggregate) — CONVENTIONS §4.7',
   ),
+  // **AN ENTITLEMENT IS NEVER REVOKED** (`11 §12.2`). There is no verb that sets
+  // `unlocked` back to false, and this refuses one being written.
+  //
+  // The failure it prevents is not a bug somebody argues for — it is the
+  // reasonable-looking fix. A shed has no signal most of the time the store is
+  // asked, so *"the store did not confirm the purchase"* is the NORMAL case; an
+  // app that downgraded on it takes the unlock away from a shepherd standing in
+  // a barn at 03:20, for a network they never had. It reads as defensive and it
+  // is theft.
+  //
+  // Scoped to `lib/data/` because that is the only tier that can write the
+  // column at all, and matched on the assignment rather than the word so a
+  // comment explaining the rule does not fire it (`_declarationsOnly`).
+  // **NOTHING MONETIZATION-RELATED RENDERS ON A SHED SCREEN, AT ANY ENTITLEMENT
+  // STATE** (#90) — and the reason is the whole product: at 03:20, one-handed,
+  // with a lamb in the other hand, a shepherd must never be shown a price.
+  //
+  // **IT MATCHES THE PROVIDERS AND NOT THE COMPONENT, AND THE FIRST DRAFT HAD IT
+  // THE OTHER WAY ROUND.** `11 §12.1` describes the surface as `ShedBanner` on a
+  // shed screen — but `ShedBanner` is the SHARED component, and Quick Entry's
+  // own export banner is built from it legitimately (`12 §6.4` gives that state
+  // its own matrix variant). Banning the component would have banned the export
+  // prompt, which is a safety feature.
+  //
+  // What actually identifies monetization is the DATA: a screen that watches the
+  // entitlement, the store or the unlock controller. And a screen that merely
+  // watches is the shape that ships, because it renders nothing today and
+  // flashes a paywall on the first slow frame after somebody adds a row to it.
+  // **THE PRICE IS NEVER A LITERAL, AND IT IS NEVER FORMATTED HERE EITHER.**
+  // `ProductDetails.price` arrives from the store already localised and
+  // currency-formatted for the account that will be charged — this app knows
+  // neither the currency nor the tier nor the tax treatment, and every one of
+  // those differs by territory. A hard-coded `£24.99` is wrong for most of the
+  // world the day it ships, and a `NumberFormat.currency` call is wrong more
+  // subtly: it formats the number correctly in the wrong currency.
+  //
+  // Matched on a currency symbol followed by a digit, under `lib/` and
+  // `assets/`, so the ARB is covered too.
+  (
+    'copy.currency_literal',
+    RegExp(r'[£\$€¥]\s?\d'),
+    'lib/',
+    'the price is the store — never a literal, never formatted here — 11 §9',
+  ),
+  (
+    'ui.monetization_surface',
+    RegExp(r'\bentitlementProvider\b|\bpurchaseServiceProvider\b|\bunlockControllerProvider\b'),
+    'lib/features/quick_entry/',
+    'nothing monetization-related renders on a shed screen — decision #90',
+  ),
+  (
+    'db.entitlement_revoke',
+    RegExp(r'unlocked:\s*(const\s+)?Value(<bool>)?\(false\)'),
+    'lib/data/',
+    'an entitlement is never revoked — 11 §12.2',
+  ),
   (
     'copy.tier3_claim',
     RegExp(_tier3Claims.map(RegExp.escape).join('|'), caseSensitive: false),
@@ -942,6 +998,8 @@ final List<(String, RegExp, String, String)> _bannedPattern = <(String, RegExp, 
 /// question 12"* tripped `copy.banned_word` on the ordinary English word.
 const Set<String> _declarationsOnly = <String>{
   'copy.banned_word',
+  'db.entitlement_revoke',
+  'ui.monetization_surface',
   'type.error_name',
   'db.save_verb',
 };

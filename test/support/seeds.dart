@@ -568,3 +568,29 @@ Future<void> seedEweSummary(
         ),
       );
 }
+
+/// A participation row for an existing ewe, in the current season.
+///
+/// **THE FREE TIER COUNTS `ewe_seasons` ROWS, NOT `ewes` ROWS**, so a test that
+/// creates animals through `createEwe` and expects the cap to bite has to write
+/// these too — `createEwe` deliberately does not, because putting a ewe to the
+/// ram is a separate act from adding her to the notebook.
+///
+/// Separate from [seedEweInSeason], which creates the animal as well: this one
+/// takes an id that already exists, which is what a cap-boundary loop needs.
+Future<void> seedEweSeasonFor(AppDatabase db, EweId ewe, {String status = 'to_ram'}) async {
+  final SeasonId season = await _season(db);
+  final Instant now = appNow();
+  await db
+      .into(db.eweSeasons)
+      .insert(
+        EweSeasonsCompanion.insert(
+          season: season.value,
+          ewe: ewe.value,
+          status: status,
+          uid: newUid(),
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+}

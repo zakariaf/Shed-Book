@@ -1233,6 +1233,59 @@ class AppLocalizationsEn extends AppLocalizations {
       'The records file reported a problem. Save a copy of it before doing anything else.';
 
   @override
+  String get unlockContactingStore => 'CONTACTING THE STORE';
+
+  @override
+  String get unlockAwaitingPayment => 'Your payment is being confirmed. This can take a few days.';
+
+  @override
+  String get unlockStoreUnreachable =>
+      'The store did not answer. Everything else in Shed Book works without it.';
+
+  @override
+  String get unlockProductNotFound => 'This unlock is not available on your store account yet.';
+
+  @override
+  String get unlockUserCancelled => 'Nothing was charged.';
+
+  @override
+  String get unlockStoreError => 'The store could not complete that. Nothing was charged.';
+
+  @override
+  String get unlockUnlocked => 'UNLOCKED';
+
+  @override
+  String get unlockRestore => 'RESTORE PURCHASES';
+
+  @override
+  String upgradeRowFree({required num ewes, required num cap, required String term}) {
+    return 'Free version · covers this season · $ewes of $cap $term';
+  }
+
+  @override
+  String get upgradeRowUnlock => 'UNLOCK';
+
+  @override
+  String get upgradeRowUnlockSemantics => 'Unlock Shed Book';
+
+  @override
+  String capRefusedEweCap({required num cap, required String term}) {
+    return 'The free notebook holds $cap $term in a season. Unlock to add more.';
+  }
+
+  @override
+  String get capRefusedSecondSeason =>
+      'The free notebook holds one season. Unlock to start another.';
+
+  @override
+  String unlockBuyPriced({required String price}) {
+    return 'UNLOCK — $price';
+  }
+
+  @override
+  String get unlockBuyUnpriced => 'UNLOCK';
+
+  @override
   String get settingsSectionUnits => 'Units';
 
   @override
@@ -1255,6 +1308,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get settingsSectionLeftHanded => 'Left-handed';
+
+  @override
+  String get settingsSectionUnlock => 'Unlock';
 
   @override
   String get settingsSectionDiagnostics => 'Diagnostics';

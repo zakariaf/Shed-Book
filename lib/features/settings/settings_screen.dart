@@ -17,10 +17,10 @@
 //   5  Pens             HERE        11  Data             N23-T02 + N29-T06
 //   6  Appearance       N29-T04     12  About            N29-T07
 //
-// **Section 9 is ABSENT, NOT STUBBED.** `purchaseServiceProvider` is N30-T01's
-// and nothing here may reach it — #90: nothing branches on `unlocked` outside
-// the two gated verbs, and an empty Unlock row would be the paywall's outline
-// showing through on a screen that has no business knowing about one.
+// **ALL TWELVE SINCE N30-T05.** Section 9 was absent rather than stubbed for
+// five epics, because an empty Unlock row would have been the paywall's outline
+// showing through on a screen that had no business knowing about one. It is here
+// now, with the section that gives it meaning.
 //
 // **Sections 2 and 11's deletes ship in `v1.1.0`** (`docs/RELEASE-SCOPE.md`):
 // terminology editing is N29-T03 and the two deletes are N29-T06. The sections
@@ -39,6 +39,7 @@ import 'package:shed_book/features/settings/widgets/about_section.dart';
 import 'package:shed_book/features/settings/widgets/diagnostics_section.dart';
 import 'package:shed_book/features/settings/widgets/season_section.dart';
 import 'package:shed_book/features/settings/widgets/settings_section.dart';
+import 'package:shed_book/features/settings/widgets/unlock_section.dart';
 import 'package:shed_book/features/settings/widgets/units_section.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -56,6 +57,9 @@ enum SettingsSectionId {
   appearance,
   keepScreenOn,
   leftHanded,
+  // **SECTION 9 OF TWELVE, FILLED AT N30-T05.** T01 rendered eleven and left a
+  // ledger comment naming this task as the twelfth's home; this is that.
+  unlock,
   diagnostics,
   data,
   about,
@@ -155,6 +159,7 @@ class SettingsScreen extends ConsumerWidget {
       _HighContrastRow(),
     ],
     SettingsSectionId.keepScreenOn => const <Widget>[_KeepScreenOnRow()],
+    SettingsSectionId.unlock => const <Widget>[UnlockSection()],
     SettingsSectionId.leftHanded => const <Widget>[_LeftHandedRow()],
     _ => const <Widget>[],
   };
@@ -170,6 +175,7 @@ class SettingsScreen extends ConsumerWidget {
     SettingsSectionId.appearance => l10n.settingsSectionAppearance,
     SettingsSectionId.keepScreenOn => l10n.settingsSectionKeepScreenOn,
     SettingsSectionId.leftHanded => l10n.settingsSectionLeftHanded,
+    SettingsSectionId.unlock => l10n.settingsSectionUnlock,
     SettingsSectionId.diagnostics => l10n.settingsSectionDiagnostics,
     SettingsSectionId.data => l10n.settingsSectionData,
     SettingsSectionId.about => l10n.settingsSectionAbout,

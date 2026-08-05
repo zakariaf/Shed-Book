@@ -171,7 +171,17 @@ class _QuickEntryPage extends ConsumerWidget {
           case WriteRefused(:final RefusalReason reason):
             // Both guards live inside showCapRow rather than here: a guard at a
             // call site is a guard somebody forgets at the thirteenth call site.
-            showCapRow(context, reason, onShedScreen: true);
+            showCapRow(
+              context,
+              reason,
+              onShedScreen: true,
+              now: appNow(),
+              // Unreachable by construction on this screen — the guard returns
+              // before the copy is asked for — and supplied rather than
+              // faked, because a `throw` here would be a landmine in the one
+              // file that must never surprise anybody at 03:20.
+              copyFor: (RefusalReason r) => '',
+            );
           // UNREACHABLE ON THIS SCREEN, and the arm exists to prove it stays
           // that way. createEwe passes EntryContext.liveEntry, and
           // FreeTierPolicy.decide cannot reach a BlockedByCap on that arm

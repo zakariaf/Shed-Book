@@ -34,19 +34,26 @@ import '../support/seeds.dart';
 import '../support/harness.dart';
 
 void main() {
-  test('the screen renders eleven of §14.3s twelve sections, and Unlock is the absent one', () {
-    // **DERIVED, NOT REMEMBERED.** `expect(11)` alone would pass the day
-    // somebody deleted a section and added another.
+  test('the screen renders all twelve of §14.3s sections', () {
+    // **DERIVED, NOT REMEMBERED.** `expect(12)` alone would pass the day somebody
+    // deleted a section and added another.
+    //
+    // **ELEVEN UNTIL N30-T05, AND THE LEDGER IS WHY THIS EDIT EXISTS.** Section 9
+    // was absent rather than stubbed for five epics: an empty Unlock row would
+    // have been the paywall's outline showing through on a screen that had no
+    // business knowing a purchase existed, and `purchaseServiceProvider` did not
+    // exist yet. It arrives with the section that gives it meaning, and this
+    // assertion is what made that arrival a deliberate edit rather than a quiet
+    // one.
     expect(
       kSettingsSections.length,
-      11,
-      reason:
-          '07 §14.3 lists twelve; Unlock (9) is N30-T05 — see the ledger in settings_screen.dart',
+      12,
+      reason: '07 §14.3 lists twelve; Unlock (9) landed at N30-T05',
     );
     expect(
       kSettingsSections.map((SettingsSectionId s) => s.name),
-      isNot(contains('unlock')),
-      reason: 'nothing on this screen may know a purchase exists until N30 — #90',
+      contains('unlock'),
+      reason: 'section 9 is the one the ledger in settings_screen.dart named',
     );
   });
 

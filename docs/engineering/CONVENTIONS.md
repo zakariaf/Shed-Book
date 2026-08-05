@@ -251,7 +251,17 @@ The corresponding `_mayImport` entries:
 ```
 
 `lib/data/** → lib/domain/validation/**` is a *path-pair* ban, not a layer ban; it is its own rule row
-`layer.data_no_validation`.
+`layer.data_no_validation`, `db.entitlement_revoke` (N30-T02 — `unlocked: Value(false)` under
+`lib/data/`; an entitlement is never revoked, `11 §12.2`) and `ui.monetization_surface` (N30-T05).
+
+> **`ui.monetization_surface` matches the PROVIDERS, not `ShedBanner`, and the first draft had it the
+> other way round.** `11 §12.1` describes the surface as the banner on a shed screen — but `ShedBanner`
+> is the **shared** component and Quick Entry's own export banner is built from it legitimately
+> (`12 §6.4` gives that state its own matrix variant), so banning the component would have banned the
+> export prompt, which is a safety feature. What identifies monetization is the **data**:
+> `entitlementProvider`, `purchaseServiceProvider`, `unlockControllerProvider`. Scoped to
+> `lib/features/quick_entry/`, and a screen that merely *watches* one is the shape that ships — it
+> renders nothing today and flashes a paywall on the first slow frame after somebody adds a row to it.
 
 ---
 
@@ -665,6 +675,9 @@ spellings only. Production has zero overrides.
 | `databaseProvider` | `FutureProvider<AppDatabase>` | keepAlive | opens via `openAppDatabase()` on the first post-frame callback; `ref.onDispose(db.close)`. Never `Provider<AppDatabase>`, never `overrideWithValue` in `lib/`. |
 | `seasonRepositoryProvider` | `FutureProvider<SeasonRepository>` | keepAlive | |
 | `seasonsProvider` | `StreamProvider<List<Season>>` | keepAlive | N29-T05 — every season, oldest first, so Settings can render one row per season. A list rather than a count: `seasons` is two or three rows on a real notebook, and a count would need a second read the moment anything wanted to name one |
+| `purchaseServiceProvider` | `Provider<PurchaseService>` | keepAlive | N30-T01 — the store seam. A plain `Provider` because constructing it starts nothing: subscribing to the plugin stream is what initialises Android billing, and that happens in `attach()`, which no shed screen calls |
+| `entitlementRepositoryProvider` | `FutureProvider<EntitlementRepository>` | keepAlive | N30-T02 — the only writer of `entitlements.unlocked`. `ref.onDispose(repo.detach)` stops the plugin subscription outliving the container |
+| `entitlementProvider` | `StreamProvider<Entitlement>` | keepAlive | N30-T02 — **nothing on a shed screen may watch it** (#90); the two gated verbs consult the policy inside the repository |
 | `flockRepositoryProvider` | `FutureProvider<FlockRepository>` | keepAlive | |
 | `lambingRepositoryProvider` | `FutureProvider<LambingRepository>` | keepAlive | takes `NotificationScheduler` + `MediaStore` |
 | `fosterRepositoryProvider` | `FutureProvider<FosterRepository>` | keepAlive | |
@@ -893,9 +906,20 @@ Rows this file adds that no document had as a row: `ui.spinner`
 (`CircularProgressIndicator` under `lib/features/`), `ui.show_dialog` (`showDialog(` outside the two
 allowlisted destructive files), `copy.currency_literal` (a currency symbol followed by a digit under
 `lib/` or `assets/`), `db.save_verb` (`save\w*\(` under `lib/data/`),
-`layer.data_no_validation`.
+`layer.data_no_validation`, `db.entitlement_revoke` (N30-T02 — `unlocked: Value(false)` under
+`lib/data/`; an entitlement is never revoked, `11 §12.2`) and `ui.monetization_surface` (N30-T05).
 
-`tool/policy_allowlist.txt`'s `[exempt]` section has exactly **four** lines on day one (R56):
+> **`ui.monetization_surface` matches the PROVIDERS, not `ShedBanner`, and the first draft had it the
+> other way round.** `11 §12.1` describes the surface as the banner on a shed screen — but `ShedBanner`
+> is the **shared** component and Quick Entry's own export banner is built from it legitimately
+> (`12 §6.4` gives that state its own matrix variant), so banning the component would have banned the
+> export prompt, which is a safety feature. What identifies monetization is the **data**:
+> `entitlementProvider`, `purchaseServiceProvider`, `unlockControllerProvider`. Scoped to
+> `lib/features/quick_entry/`, and a screen that merely *watches* one is the shape that ships — it
+> renders nothing today and flashes a paywall on the first slow frame after somebody adds a row to it.
+
+`tool/policy_allowlist.txt`'s `[exempt]` section had exactly **four** lines on day one and has **five**
+since 2026-08-04 (R56, amended; decision-record §7.0d):
 
 ```
 lib/core/time/app_clock.dart       :: time.dart_clock
@@ -1532,6 +1556,18 @@ one place a shared widget would hide one. 06 widens them.
 
 **Ruling.** Four, exactly as printed in §4.7. A fifth is a review conversation.
 **Files:** 01 (Definition of Done).
+
+> **Amended — the review conversation was held, 2026-08-04, and produced a fifth.** Decision-record
+> §7.0d. `copy.banned_word` fires on `PurchaseStatus.pending` in
+> `lib/data/purchase_service.dart` — the `in_app_purchase` plugin's own enum member, in the
+> acknowledgement guard and the exhaustive switch arm, neither of which is removable and neither of
+> which is ours.
+>
+> **Five, and the count is still the point.** R56 was never about the number four; it was about a
+> fifth line requiring somebody to say why in front of a reader. That happened, it is written down in
+> two places, and the next line needs the same. The waiver is **scoped to one file**, which
+> `layer.in_app_purchase` already fences off, so it cannot spread — narrowing the rule's pattern
+> instead would have weakened the vocabulary rule in every file in the project for one dependency.
 
 ### R57 — The test tree
 

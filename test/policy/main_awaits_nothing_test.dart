@@ -142,6 +142,13 @@ void main() {
       // this name cannot appear in a second file even if this list forgot to
       // say so. (N21-T06)
       'SharePlus.instance',
+      // The same reading, one plugin later: `in_app_purchase`'s entry point is
+      // `InAppPurchase.instance`, and R52 is about singletons WE declare — our
+      // own statics survive a torn-down container, and a package's entry point
+      // is not that. `layer.in_app_purchase` already refuses the import outside
+      // `lib/data/purchase_service.dart`, so this name cannot reach a second
+      // file even if this list forgot to say so. (N30-T01)
+      'InAppPurchase.instance',
     ];
 
     for (final String path in _authoredDart('lib')) {

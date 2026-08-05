@@ -10,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
+import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 
 import '../support/harness.dart';
@@ -431,6 +432,32 @@ void main() {
       hasLength(1),
       reason: 'still only the original\'s — the repeat copied no period',
     );
+
+    await tester.closeApp();
+  });
+  testWidgets('the five-tap budget is unchanged at the cap, locked', (WidgetTester tester) async {
+    // **THE BUDGET IS THE PRODUCT, AND THE CAP MAY NOT COST A TAP.** `07 §19.4`:
+    // the cap constrains the next write and never the existing records — so a
+    // shepherd at 99 ewes on a locked notebook records a lambing in exactly the
+    // same five taps as one at three ewes on an unlocked one.
+    //
+    // This is the state a badly-written free tier makes expensive: an extra
+    // confirmation, a row that pushes the slab down, a dialog. None of them is
+    // present, and this is what would notice.
+    final AppDatabase db = testDatabase();
+    await seedSeason(db);
+    await setEwesInCurrentSeason(db, 99);
+    await setEntitlement(db, unlocked: false);
+
+    await atFixed(DateTime.utc(2026, 3, 14, 3, 20), () async {
+      await tester.pumpApp(const QuickEntryScreen(), db: db);
+    });
+
+    // Nothing about money is on the screen at all, so nothing about money can
+    // cost a tap — asserted here as well as in the sweep, because the budget is
+    // the claim a shepherd would actually notice being broken.
+    expect(find.textContaining('Unlock'), findsNothing);
+    expect(find.byType(ShedBanner), findsNothing);
 
     await tester.closeApp();
   });

@@ -82,6 +82,7 @@ import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/db/uid.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'fake_purchase_service.dart';
 import 'fake_share_service.dart';
 import 'seeds.dart';
 import 'package:shed_book/domain/ids.dart';
@@ -570,6 +571,7 @@ ProviderContainer shedContainer(
   AppDatabase db, {
   List<Override> overrides = const <Override>[],
   FakeShareService? share,
+  FakePurchaseService? purchases,
 }) {
   final ProviderContainer container = ProviderContainer(
     overrides: <Override>[
@@ -583,6 +585,19 @@ ProviderContainer shedContainer(
       // rather than as an unmocked seam. §17's warning applies in reverse here:
       // a parameter that overrides nothing is worse than no parameter.
       shareServiceProvider.overrideWithValue(share ?? FakeShareService()),
+      // **N30-T01'S LEDGER LINE, CROSSED OFF AT N30-T05 — AND ALWAYS OVERRIDDEN,
+      // EVEN WHEN THE TEST PASSES NOTHING.** The real `PurchaseService` reaches
+      // `InAppPurchase.instance` and bounds its calls at ten seconds; under
+      // `flutter_test` the platform channel never answers, so the timer is still
+      // pending when the test body ends and the binding fails with *"A Timer is
+      // still pending"* — naming the ticker, or the screen, or whatever ran
+      // next. `settings_test.dart` failed exactly that way the moment the Unlock
+      // section started calling `openSection()` on mount.
+      //
+      // A fake that must be asked for is a fake somebody forgets on the
+      // thirteenth test, and this one is also the tripwire for #90: its `calls`
+      // list is how a shed screen quietly touching the store is caught.
+      purchaseServiceProvider.overrideWithValue(purchases ?? FakePurchaseService()),
       // N21-T07. **A REAL `MediaStore` WITH INJECTED RESOLVERS**, not a fake —
       // `12 §4.1`'s *a fake is a real implementation* taken literally, and the
       // shape `media_store_test.dart` already uses. The `path_provider` method
@@ -842,9 +857,21 @@ extension PumpApp on WidgetTester {
     bool highContrast = false,
     List<Override> overrides = const <Override>[],
     FakeShareService? share,
+
+    /// **THE STORE, FOR THE ONE SWEEP THAT ASSERTS NOTHING TOUCHED IT.** Every
+    /// other test gets the default fake; `no_money_on_a_shed_screen_test.dart`
+    /// needs to hold the instance so it can read `calls` afterwards, because a
+    /// screen that quietly asked for a price and rendered nothing would pass
+    /// every visual assertion in that file.
+    FakePurchaseService? purchases,
     EdgeInsets padding = const EdgeInsets.only(top: 47, bottom: 34),
   }) async {
-    final ProviderContainer container = shedContainer(db, overrides: overrides, share: share);
+    final ProviderContainer container = shedContainer(
+      db,
+      overrides: overrides,
+      share: share,
+      purchases: purchases,
+    );
     _container = container;
 
     view.physicalSize = device.size * device.dpr;

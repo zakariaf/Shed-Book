@@ -238,3 +238,27 @@ lib/core/time/app_clock.dart       :: time.dart_clock
 lib/core/ui/night_error_panel.dart :: token.raw_color
 lib/core/ui/primitives.dart        :: token.raw_color
 lib/core/ui/palettes.dart          :: token.primitives_import
+#
+# THE FIFTH, AND IT IS THE REVIEW CONVERSATION R56 ASKS FOR — held 2026-08-04,
+# ruled by the owner, recorded as decision-record §7.0d.
+#
+# `copy.banned_word` bans `pending` under lib/ as a MODEL STATE word, and it is
+# right to. The two hits in purchase_service.dart are `PurchaseStatus.pending` —
+# the in_app_purchase plugin's own enum member — in the only two places it can
+# appear:
+#
+#   * the acknowledgement guard. Google auto-refunds and revokes a purchase not
+#     acknowledged within three days, and its own wording is "don't acknowledge
+#     it while a purchase is in PENDING state". On Android completePurchase IS
+#     acknowledgePurchase(). Removing the guard costs a shepherd their unlock,
+#     three days later, silently.
+#   * the exhaustive switch arm. Five members, five arms, no catch-all — so a
+#     sixth status in a future plugin major is a compile error rather than a
+#     purchase nobody notices.
+#
+# Neither is removable and neither is ours. Scoped to ONE FILE rather than
+# narrowing the pattern: `layer.in_app_purchase` already refuses the plugin
+# everywhere else, so this waiver cannot spread even if somebody wanted it to —
+# whereas an exception for `PurchaseStatus.` in the rule itself would weaken the
+# vocabulary rule in every file in the project, for one dependency.
+lib/data/purchase_service.dart     :: copy.banned_word

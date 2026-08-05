@@ -84,25 +84,22 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // ignored the prompt got it again on every cold launch — and `levelDbfs`
   // prints a word while recording, because §6 has six marks and none is a
   // meter.
-  // **TWO KEPT, AND DELETING EITHER WOULD HAVE DELETED A RULE'S CLEAREST
-  // STATEMENT.**
+  // **`lastTreatment` AND `withdrawalFor` LEFT THIS LIST BY GAINING CALLERS,
+  // WHICH IS BETTER THAN THE REASON THEY NEARLY STAYED FOR.**
   //
-  // Following the sweep to the end pointed at both, because the screen reads
-  // the same two facts reactively — the book stream's first non-voided row, and
-  // `watchWithdrawals`. Both deletions were made, both broke a test that was
-  // asserting something real, and both were reverted.
+  // Both were nearly kept on the argument that a verb whose only caller is the
+  // test stating a rule is not dead code. True, and it was the wrong place to
+  // stop: the screen was reimplementing both, so there were two answers to each
+  // question and the tests were only holding one of them.
   //
-  // `lastTreatment`'s callers assert that **repeat last skips a voided
-  // treatment** — the thing a shepherd would otherwise repeat by accident.
-  // `withdrawalFor`'s assert that **zero days is a recorded period and not the
-  // same as none**, the case a nullable int cannot pass and the reason the
-  // child table exists at all (§12.1, `05 §3.1`).
-  //
-  // A verb whose only caller is the test that states a rule is not dead code.
-  // It is the rule, written where a reader can see it, and this gate exists to
-  // find verbs **nothing at all** reaches — not to make these two disappear.
-  'lastTreatment': 'its callers assert repeat-last skips a voided treatment — 07 §10.4',
-  // **KEPT FOR THE SAME REASON.** Following the sweep to the end pointed here, because the screen
+  // The repeat flow now asks the repository at tap time. `lastTreatment` is the
+  // one answer to *what does repeat last offer*, so the rule that **a voided
+  // treatment is never repeated** lives in one place. And `withdrawalFor` is
+  // asked **per target**, which fixed a real defect on the way past: the sheet
+  // rendered whatever withdrawal ROWS existed, so a target nobody recorded was
+  // invisible — one line about meat and nothing about milk, which reads as
+  // *there is nothing to say* rather than *nobody looked*. Those are the two
+  // facts §12.1 exists to keep apart. Following the sweep to the end pointed here, because the screen
   // reads the withdrawals off `watchWithdrawals`. But `withdrawalFor`'s callers
   // are the §12.1 cases that assert *zero days is a recorded period and not the
   // same as none* — the case a nullable int cannot pass, and the reason the
@@ -111,7 +108,6 @@ const Map<String, String> kNoCallerYet = <String, String>{
   // A verb whose only caller is a safety test is not dead code. It is the
   // shape of the rule, written where a reader can see it, and the gate exists
   // to find verbs **nothing at all** reaches — not to make this one disappear.
-  'withdrawalFor': 'the §12.1 zero-days cases are its callers — 05 §3.1, and it stays',
 };
 
 /// Public methods on `lib/data/` classes, and how many times each is named

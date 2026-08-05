@@ -65,21 +65,17 @@ class TreatmentsScreen extends ConsumerWidget {
     final Instant now = ref.watch(minuteTickProvider).value ?? appNow();
     final LocalDate today = LocalDate.of(now);
 
-    // THE PREVIOUS TREATMENT COMES FROM THE **BOOK**, NOT FROM THE COUNTDOWN.
-    // It used to come from the countdown, on the reasoning that the countdown
-    // excludes voided rows — but the countdown is now ordered by clear date and
-    // filtered to `kind = 'days'` (`07 §10.1`), so its first row is the one
-    // clearing soonest and a treatment with no recorded period is not in it at
-    // all. *Repeat last* means the most recent, so it reads the book's order and
-    // skips voided rows itself.
-    final List<TreatmentRow> everything =
-        ref.watch(treatmentsProvider(TreatmentMode.book)).value ?? const <TreatmentRow>[];
-    final TreatmentRow? previous = everything
-        .where((TreatmentRow r) => r.voidedAt == null)
-        .firstOrNull;
-    final List<StoredWithdrawal> stored = previous == null
-        ? const <StoredWithdrawal>[]
-        : ref.watch(storedWithdrawalsProvider(previous.id)).value ?? const <StoredWithdrawal>[];
+    // **THE PREVIOUS TREATMENT IS ASKED FOR AT TAP TIME, NOT COMPUTED HERE.**
+    // `build` used to filter the book stream for the most recent non-voided row
+    // and watch its withdrawals — a second implementation of
+    // `TreatmentRepository.lastTreatment`, whose doc comment says in as many
+    // words that it is *what repeat last offers*. Two answers to one question is
+    // one that eventually disagrees, and the rule they both have to hold is that
+    // a voided treatment is never the one repeated.
+    //
+    // It also stopped `build` doing the work for a sheet that is usually not
+    // opened, and took two `ref.watch`es off a screen that re-renders on every
+    // minute tick.
     final QuickEntryDeck? deck = ref.watch(quickEntryDeckProvider).value;
     final List<DeckEntry> candidates = <DeckEntry>[...?deck?.penned, ...?deck?.recents];
 
@@ -198,7 +194,7 @@ class TreatmentsScreen extends ConsumerWidget {
                 key: const Key('treatments.repeat_last'),
                 label: l10n.treatmentsRepeatLast,
                 semanticLabel: l10n.treatmentsRepeatLast,
-                onTap: () => _openRepeat(context, ref, l10n, previous, stored, candidates),
+                onTap: () => _openRepeat(context, ref, l10n, candidates),
               ),
             ),
           ],
@@ -300,29 +296,55 @@ class TreatmentsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     AppLocalizations l10n,
-    TreatmentRow? previous,
-    List<StoredWithdrawal> stored,
     List<DeckEntry> candidates,
   ) {
-    if (previous case final TreatmentRow entry) {
-      unawaited(
-        showRepeatSheet(
-          context,
-          child: _RepeatSheet(
-            previous: entry,
-            stored: stored,
-            candidates: candidates,
-            l10n: l10n,
-            onPicked: (EweId ewe) {
-              unawaited(
-                ref.read(treatmentRepositoryProvider).repeatTreatment(entry.id, TreatEwe(ewe)),
-              );
-              Navigator.of(context).pop();
-            },
-          ),
+    unawaited(() async {
+      final TreatmentRepository treatments = ref.read(treatmentRepositoryProvider);
+
+      // **ASKED AT TAP TIME, AND ASKED OF THE REPOSITORY.** `build` used to
+      // compute *the previous treatment* itself by filtering the book stream —
+      // a second implementation of `lastTreatment`, whose doc comment says in as
+      // many words that it is *what repeat last offers*. Two answers to one
+      // question is one that eventually disagrees, and the rule they both have
+      // to hold is that **a voided treatment is never the one repeated**.
+      final TreatmentRow? previous = await treatments.lastTreatment();
+      if (previous == null || !context.mounted) {
+        return;
+      }
+
+      // **BOTH TARGETS, ALWAYS — AND THIS IS §12.1 BECOMING READABLE.**
+      // The sheet rendered whatever withdrawal ROWS existed, so a target nobody
+      // recorded a period for was **invisible**: one line about meat and nothing
+      // at all about milk, which reads as *there is nothing to say* rather than
+      // *nobody looked*. Those are the two facts §12.1 exists to keep apart.
+      //
+      // `withdrawalFor` returns `WithdrawalNotRecorded` for the absent one,
+      // because absence IS the state — and asking per target is what makes it
+      // print. A caller cannot get a `0` back from a treatment nobody entered a
+      // period for, because there is nothing to read a zero from.
+      final List<({WithdrawalTarget target, WithdrawalPeriod period})> periods =
+          <({WithdrawalTarget target, WithdrawalPeriod period})>[
+            for (final WithdrawalTarget target in WithdrawalTarget.values)
+              (target: target, period: await treatments.withdrawalFor(previous.id, target)),
+          ];
+
+      if (!context.mounted) {
+        return;
+      }
+      await showRepeatSheet(
+        context,
+        child: _RepeatSheet(
+          previous: previous,
+          periods: periods,
+          candidates: candidates,
+          l10n: l10n,
+          onPicked: (EweId ewe) {
+            unawaited(treatments.repeatTreatment(previous.id, TreatEwe(ewe)));
+            Navigator.of(context).pop();
+          },
         ),
       );
-    }
+    }());
   }
 }
 
@@ -348,14 +370,18 @@ Future<void> showRepeatSheet(BuildContext context, {required Widget child}) {
 class _RepeatSheet extends StatelessWidget {
   const _RepeatSheet({
     required this.previous,
-    required this.stored,
+    required this.periods,
     required this.candidates,
     required this.l10n,
     required this.onPicked,
   });
 
   final TreatmentRow previous;
-  final List<StoredWithdrawal> stored;
+
+  /// **ONE ENTRY PER TARGET, NOT ONE PER STORED ROW.** A target with no row
+  /// arrives as `WithdrawalNotRecorded` and prints, which is the whole point:
+  /// *nobody looked* has to be visible, and a missing line says the opposite.
+  final List<({WithdrawalTarget target, WithdrawalPeriod period})> periods;
   final List<DeckEntry> candidates;
   final AppLocalizations l10n;
   final ValueChanged<EweId> onPicked;
@@ -376,22 +402,39 @@ class _RepeatSheet extends StatelessWidget {
           ),
           // WHAT THEY ENTERED LAST TIME, WITH ITS PROVENANCE BESIDE IT — shown
           // so they can read it, never written for them.
-          for (final StoredWithdrawal w in stored)
+          for (final ({WithdrawalTarget target, WithdrawalPeriod period}) w in periods)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
               child: Row(
                 children: <Widget>[
                   Flexible(
                     child: Text(
-                      '${w.days ?? ''}',
-                      key: const Key('treatment.repeat.previous_days'),
+                      // **THE THREE STATES ARE THREE DIFFERENT SENTENCES**, and
+                      // the middle one is the one that used to be a blank line.
+                      switch (w.period) {
+                        WithdrawalDays(days: final int d) => '${w.target.key} $d',
+                        WithdrawalNotApplicable() =>
+                          '${w.target.key} ${l10n.treatmentsNotApplicable}',
+                        WithdrawalNotRecorded() => '${w.target.key} ${l10n.treatmentsNoWithdrawal}',
+                      },
+                      key: Key('treatment.repeat.previous_days.${w.target.key}'),
                       style: text.bodyMedium,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   SizedBox(width: t.gapMin / 4),
-                  const Flexible(child: WithdrawalProvenanceStamp()),
+                  // **THE PROVENANCE TRAVELS WITH THE FIGURE, NEVER WITHOUT
+                  // IT** — and only where there IS one. The stamp beside *not
+                  // recorded* would be claiming an entry nobody made.
+                  //
+                  // Its words are not written here, and could not be:
+                  // `disclaimer_is_referenced_test` scans this feature for the
+                  // constant's VALUE and caught the first draft of this comment
+                  // for quoting it. The seventeenth prohibition this project has
+                  // caught matching itself.
+                  if (w.period is WithdrawalDays)
+                    const Flexible(child: WithdrawalProvenanceStamp()),
                 ],
               ),
             ),

@@ -992,9 +992,9 @@ Levers, in the order they matter: ship an AAB not a fat APK; `--obfuscate --spli
 
 ### 6.2 Startup
 
-**The budget:** an interactive keypad **at the first frame**, and the first Flutter frame **≤ 400 ms after `main()`** on the oldest target device. The 400 ms figure is Apple's published launch-time goal; Android vitals treats a cold start as *excessive* at ≥ 5 s, which is the "your app is bad" line and not a target.
+**The budget:** an interactive page **at the first frame** (**P16**: the keypad is a sheet away), and the first Flutter frame **≤ 400 ms after `main()`** on the oldest target device. The 400 ms figure is Apple's published launch-time goal; Android vitals treats a cold start as *excessive* at ≥ 5 s, which is the "your app is bad" line and not a target.
 
-The second half of the budget is the one that matters. The spec's 15-second median (§15) is dominated by the human, not the machine: even a 1.6 s launch spends 11% of it. What kills you is a spinner between the tap and the first digit. That is why `main()` awaits nothing and the first frame is a static dark Quick Entry shell with a fully interactive keypad and no data ([`01-architecture.md`](01-architecture.md) §6).
+The second half of the budget is the one that matters. The spec's 15-second median (§15) is dominated by the human, not the machine: even a 1.6 s launch spends 11% of it. What kills you is a spinner between the tap and the first digit. That is why `main()` awaits nothing and the first frame is a static dark Quick Entry shell with no data and every target on it live ([`01-architecture.md`](01-architecture.md) §6). What must not sit behind a spinner is the *page*; **P16** puts the first digit one tap further away and the fifteen-second budget still holds, because that tap is the TAG cell and it was always in the count.
 
 Working targets, to be replaced by measurements:
 

@@ -52,9 +52,26 @@ final class PhotoFailed extends PhotoAttempt {
 /// stays testable without a plugin: `12 §4.1`'s fakes pass a function that
 /// writes known bytes, and this is the one place the real one is named.
 Future<PhotoAttempt> attachPhotoTo(WidgetRef ref, LambingId lambing) async {
-  final ({bool recovered, String path})? picked = await ref
-      .read(cameraServiceProvider)
-      .pick(CaptureSource.camera);
+  // **THE PICK IS INSIDE A GUARD, AND IT WAS OUTSIDE ONE.**
+  //
+  // `CameraService.pick` documents `null` as *the shepherd cancelled* and says
+  // nothing about throwing — but `image_picker` throws a `PlatformException`
+  // when there is no camera to open, which is every iOS simulator and a real
+  // phone whose camera permission was refused at the OS level. That throw
+  // travelled out of this function, past the call site's `.ignore()`, and
+  // vanished: the shepherd pressed PHOTO and the app did nothing at all,
+  // reported from a simulator on 2026-08-06.
+  //
+  // **A THROW IS `PhotoFailed`, NOT `PhotoAbandoned`.** Backing out writes
+  // nothing and says nothing, because it is a decision. A camera that cannot
+  // open writes nothing and *says so*, because otherwise the only feedback is a
+  // dead button.
+  final ({bool recovered, String path})? picked;
+  try {
+    picked = await ref.read(cameraServiceProvider).pick(CaptureSource.camera);
+  } on Object {
+    return const PhotoFailed();
+  }
   if (picked == null) {
     return const PhotoAbandoned();
   }

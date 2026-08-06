@@ -560,23 +560,23 @@ abstract class AppLocalizations {
   /// **'Close the index'**
   String get indexCloseHint;
 
+  /// The margin's SHORT stamp for a time the shepherd typed. indelible-page-and-screens §1.2: an 18px caps-tracked word does not fit the 68px margin cell — six characters is already ~84px — so the long provenance label ('time entered by you') prints in the RECORD COLUMN and the margin keeps only AUTO / ENTERED / EDITED at --t-stamp. Both say the same fact; neither replaces the other.
+  ///
+  /// In en, this message translates to:
+  /// **'ENTERED'**
+  String get quickEntryStampEntered;
+
+  /// The margin's short stamp for an edited time (indelible.md §8: the AUTO stamp is replaced by EDITED, and BOTH times stay). Safety rule §12.5 with nothing hidden — the original is never overwritten, in the record or the export.
+  ///
+  /// In en, this message translates to:
+  /// **'EDITED'**
+  String get quickEntryStampEdited;
+
   /// The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1).
   ///
   /// In en, this message translates to:
   /// **'Tag first'**
   String get quickEntrySlabTagFirst;
-
-  /// The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing penned yet.'**
-  String get quickEntryPennedEmpty;
-
-  /// The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No recent animals.'**
-  String get quickEntryRecentsEmpty;
 
   /// Shown when the deck stream carries a failure. It names no code and no cause, because neither is actionable at 03:20.
   ///
@@ -602,23 +602,149 @@ abstract class AppLocalizations {
   /// **'Tag {tag}'**
   String quickEntryRecentRowLabel({required String tag});
 
+  /// Event word 2 of 5 on §8's event line. The word is the EVENT, not an intention — never 'Add treatment', never 'Treat'.
+  ///
+  /// In en, this message translates to:
+  /// **'Treatment'**
+  String get quickEntryEventTreatment;
+
+  /// Event word 3 of 5 on §8's event line.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get quickEntryEventNote;
+
+  /// Event word 4 of 5. The word is plain and it stays plain: 'Loss', 'Casualty' and 'Mortality' are all softer than the fact, and a record that is coy about a dead lamb is a record somebody has to decode a year later.
+  ///
+  /// In en, this message translates to:
+  /// **'Death'**
+  String get quickEntryEventDeath;
+
+  /// Event word 5 of 5. Two words, matching indelible.md §8's MOVE PEN — never 'Pen', which reads as a noun.
+  ///
+  /// In en, this message translates to:
+  /// **'Move pen'**
+  String get quickEntryEventMovePen;
+
+  /// The event line's group label for a screen reader. It names the QUESTION the five words answer, so the group is announced once and each word is not prefixed with 'event'.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened'**
+  String get quickEntryEventLine;
+
+  /// The corner slab once an animal is chosen (indelible.md §8): one press, one of them, one stroke in the tally. It is the product's central act. Never '+ Add' and never 'New' — the plus already says add. The noun is USER-EDITABLE from the terminology overlay (10 §8.5) and arrives as a placeholder; never hard-code it.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {term}'**
+  String quickEntrySlabAddLamb({required String term});
+
+  /// Spoken label on the live row's tag cell — the target that opens the tag sheet (§8: 'Tap the TAG cell. The sheet rises 160ms into the bottom half.'). The visible cell shows the tag or the prompt; this says what pressing it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an animal'**
+  String get quickEntryTagCell;
+
+  /// What the live row's tag cell prints before an animal is chosen. A word in the pixels the tag will occupy — never a placeholder inside a field, and never blank, because a blank reads as missing data rather than as nothing-chosen-yet.
+  ///
+  /// In en, this message translates to:
+  /// **'TAG'**
+  String get quickEntryTagPrompt;
+
+  /// The tag sheet's heading line (indelible.md §8: 'TAG · 3 MATCHES · IN THE PENS FIRST'). It states the count so a shepherd knows whether the list below is everything.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Tag · no matches} =1{Tag · 1 match} other{Tag · {count} matches}}'**
+  String quickEntryTagSheetHeading({required int count});
+
+  /// The sheet's LAST PRINTED LINE, present even when there are matches (indelible.md §8): 'at 3am the ewe you are holding might genuinely be a tag you have never entered and the app must never stop to make you go and set something up first.' Never a modal, never a confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'No such tag — write {tag} into the book'**
+  String quickEntryTagSheetCreate({required String tag});
+
+  /// The create line before any digit is typed, when there is no tag to write into the book. It names both routes because pressing a listed animal is the common case and costs one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a tag, or press one above'**
+  String get quickEntryTagSheetCreateEmpty;
+
+  /// The second half of the tag sheet's heading, printed only while the list is the recents rather than typed matches. indelible.md §8 orders penned animals first because a ewe in a pen is the one you are most likely to be standing in front of at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'In the pens first'**
+  String get quickEntryTagSheetPennedFirst;
+
+  /// A sheet row's summary for a penned animal (indelible.md §8: '412 · penned 2h · pen 4'). Naming the pen is what makes a row worth pressing rather than reading — it is how a shepherd tells two similar tags apart.
+  ///
+  /// In en, this message translates to:
+  /// **'In {pen}'**
+  String quickEntryTagSheetInPen({required String pen});
+
+  /// A sheet row's summary for an animal in the recents bucket rather than a pen. It states what the deck actually knows and NOT a history it has not read — never 'lambed yesterday · twins' unless that was queried.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen recently'**
+  String get quickEntryTagSheetSeenRecently;
+
+  /// The tag sheet before the deck has been read — frame 1, when the database has not opened yet (decision #21). DISTINCT from the empty copy, and the distinction is the day-one bug: an empty list means the book WAS read and there is nothing in it, and collapsing the two tells a shepherd on their first night that the app lost their flock.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the book…'**
+  String get quickEntryTagSheetReading;
+
+  /// The tag sheet when the deck has been read and is genuinely empty. It never blocks: the create line below is still there, which is how the first ewe of the first season gets written.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals in the book yet'**
+  String get quickEntryTagSheetNoAnimals;
+
+  /// The tag sheet's dismiss word (indelible.md §7.16's 88x64 CLOSE). Never 'Cancel' — nothing is being cancelled, the sheet just goes away and the digits stay.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get quickEntryTagSheetClose;
+
+  /// Spoken hint on the tag sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the tag sheet'**
+  String get quickEntryTagSheetCloseHint;
+
+  /// Birth type derived from one stroke (P8 — there is no chooser anywhere). Sentence case, because it prints as a value in the record voice rather than as a stamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get quickEntryDerivedSingle;
+
+  /// Birth type derived from two strokes.
+  ///
+  /// In en, this message translates to:
+  /// **'Twin'**
+  String get quickEntryDerivedTwin;
+
+  /// Birth type derived from three strokes.
+  ///
+  /// In en, this message translates to:
+  /// **'Triplet'**
+  String get quickEntryDerivedTriplet;
+
+  /// Four or more strokes. English has no single word past triplet that a shepherd uses, and inventing 'quadruplet' would be the app choosing a term the terminology table cannot edit. The plural noun is user-editable and arrives as a placeholder (10 §8.5); ICU cannot pluralise a runtime string, so the caller supplies the plural form.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {term}'**
+  String quickEntryDerivedMultiple({required int count, required String term});
+
+  /// The unboxed stamp beside a derived birth type (indelible.md §6, ruling P8). Unboxed because it is a note about the RECORD, not a state of the animal. It is what turns safety rule §12.4 from a validation routine into structure: the app never picked, it counted.
+  ///
+  /// In en, this message translates to:
+  /// **'COUNTED'**
+  String get quickEntryDerivedStamp;
+
   /// The event button that begins a lambing. It is the product's central write: the tap commits the row BEFORE any screen is pushed, so the label names the event rather than an intention — never 'New lambing', never 'Record lambing'.
   ///
   /// In en, this message translates to:
   /// **'Lambing'**
   String get quickEntryLambing;
-
-  /// The confirm key when the typed tag matches no active animal. Labelled with the OUTCOME, never a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to remember what they were confirming.
-  ///
-  /// In en, this message translates to:
-  /// **'Create {tag}'**
-  String quickEntryConfirmCreate({required String tag});
-
-  /// The confirm key when the typed tag matches an existing active animal. The counterpart to quickEntryConfirmCreate — the two words are the whole difference between finding an animal and making one.
-  ///
-  /// In en, this message translates to:
-  /// **'Use {tag}'**
-  String quickEntryConfirmUse({required String tag});
 
   /// The in-stream word button in the just-committed row's margin. STRIKE, never 'Undo': 07 §15.3 reserves 'Undo' for where the record DISAPPEARS, and after P1 the record never disappears — the row stays in position, legible, permanently marked. Capitals because it is the control voice.
   ///
@@ -1047,6 +1173,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'NOT HEARING ANYTHING'**
   String get lambingEntryVoiceSilent;
+
+  /// Shown when the camera could not be reached at all — no camera on the device, or the picker threw. It states the fact and names the consequence, because the shepherd's real question is whether anything was saved. NOT shown when they simply backed out of the picker: that is a decision, not a failure, and rendering it as an error tells somebody they did something wrong when they did not.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera did not open. Nothing was written.'**
+  String get lambingEntryPhotoFailed;
+
+  /// Shown when the recorder threw after the row was opened. DISTINCT from lambingEntryVoiceNoPermission: 'no microphone' is answerable (the OS prompt), 'it did not start' is not, and collapsing them would send a shepherd to a settings screen that cannot help.
+  ///
+  /// In en, this message translates to:
+  /// **'The recording did not start. Nothing was written.'**
+  String get lambingEntryVoiceFailed;
 
   /// Shown when `hasPermission` is false. It states the fact and asks for nothing — the OS prompt is another process and appears once, on first use.
   ///

@@ -312,19 +312,7 @@ class _Regions extends ConsumerWidget {
           // **THE PHOTO, WHOSE WHOLE CHAIN HAD NO CALLER.** `pick`,
           // `newRelativePath`, `writePhoto` and `attachPhoto` each landed with
           // tests and fakes; nothing joined them up.
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: ShedWordButton(
-                key: const Key('lambing_entry.photo'),
-                label: AppLocalizations.of(context).lambingEntryPhoto,
-                semanticLabel: AppLocalizations.of(context).lambingEntryPhoto,
-                selected: false,
-                onTap: () => attachPhotoTo(ref, data.lambing.id).ignore(),
-              ),
-            ),
-          ),
+          _PhotoRow(lambing: data.lambing.id),
           _VoiceRow(lambing: data.lambing.id),
           Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
@@ -768,6 +756,7 @@ class _VoiceRowState extends ConsumerState<_VoiceRow> {
   /// another process and appears once, on first use; this line says what is
   /// true when the answer was no, and asks for nothing.
   bool _refused = false;
+  bool _failed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -824,6 +813,19 @@ class _VoiceRowState extends ConsumerState<_VoiceRow> {
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
               ),
             ),
+          // **DISTINCT FROM `_refused`, DELIBERATELY.** *No microphone* is
+          // answerable — the OS prompt appears once, on first use. *It did not
+          // start* is not, and collapsing the two would send a shepherd to a
+          // settings screen that cannot help them.
+          if (_failed)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryVoiceFailed,
+                key: const Key('lambing_entry.voice.failed'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
         ],
       ),
     );
@@ -836,6 +838,12 @@ class _VoiceRowState extends ConsumerState<_VoiceRow> {
     }
     setState(() {
       _refused = attempt is VoiceNoPermission;
+      // **`VoiceFailed` HAD NO ARM AND SO HAD NO PIXELS.** The switch set
+      // `_refused` from one variant and `_recording` from another, and the third
+      // fell through both: the recorder threw, the row was already open, and the
+      // screen showed exactly what it showed before the press. A shepherd cannot
+      // tell that from a button that does not work.
+      _failed = attempt is VoiceFailed;
       _recording = attempt is VoiceRecording ? attempt.relativePath : null;
     });
   }
@@ -849,5 +857,68 @@ class _VoiceRowState extends ConsumerState<_VoiceRow> {
     // `beginVoiceNote` landed it before the first byte, and `completeVoiceNote`
     // has just filled in what the row could not know at the start.
     setState(() => _recording = null);
+  }
+}
+
+/// The `PHOTO` word and, when the camera could not be reached, one line saying
+/// so.
+///
+/// **IT EXISTS BECAUSE `.ignore()` DID NOT.** The button called
+/// `attachPhotoTo(...).ignore()`, which discards all three outcomes — so a
+/// camera that threw, a camera that failed and a shepherd who backed out were
+/// pixel-identical: nothing. Reported from a simulator on 2026-08-06, where
+/// there is no camera at all and the press did visibly nothing.
+///
+/// **BACKING OUT STILL SAYS NOTHING**, and that is not an oversight. `§8`'s
+/// optional cells print as visible gaps; a decision to not take a photo is not
+/// an error, and rendering it as one tells somebody they did something wrong
+/// when they did not.
+class _PhotoRow extends ConsumerStatefulWidget {
+  const _PhotoRow({required this.lambing});
+
+  final LambingId lambing;
+
+  @override
+  ConsumerState<_PhotoRow> createState() => _PhotoRowState();
+}
+
+class _PhotoRowState extends ConsumerState<_PhotoRow> {
+  bool _failed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          ShedWordButton(
+            key: const Key('lambing_entry.photo'),
+            label: l10n.lambingEntryPhoto,
+            semanticLabel: l10n.lambingEntryPhoto,
+            selected: false,
+            onTap: () async {
+              final PhotoAttempt attempt = await attachPhotoTo(ref, widget.lambing);
+              if (!mounted) {
+                return;
+              }
+              setState(() => _failed = attempt is PhotoFailed);
+            },
+          ),
+          if (_failed)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryPhotoFailed,
+                key: const Key('lambing_entry.photo.failed'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

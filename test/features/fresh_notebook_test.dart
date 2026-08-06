@@ -98,20 +98,22 @@ void main() {
       await tester.pumpApp(const QuickEntryScreen(), db: db);
       await tester.pumpAndSettle();
 
-      for (final String digit in <String>['4', '1', '2']) {
-        await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('quick_entry.confirm')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
-      await tester.pumpAndSettle();
+      await walkThe3amPath(tester, '412');
 
       expect(
         await db.select(db.lambings).get(),
         hasLength(1),
         reason: 'the 3am path recorded nothing and said nothing',
+      );
+      // **AND A LAMB, WHICH THE OLD PATH NEVER WROTE.** `§8`: *"Press the slab.
+      // One stroke prints in the lamb column ... and the row is now a complete,
+      // valid, honestly timestamped lambing."* The slab's handler was `() {}`
+      // until P16, so the product's central act wrote nothing at all and this
+      // assertion could not have been made.
+      expect(
+        await db.select(db.lambs).get(),
+        hasLength(1),
+        reason: 'the slab pressed and no lamb landed on the row',
       );
     } finally {
       await tester.closeApp();
@@ -469,13 +471,16 @@ void main() {
       await tester.pumpApp(const QuickEntryScreen(), db: db);
       await tester.pumpAndSettle();
 
-      for (final String digit in <String>['4', '1', '2']) {
-        await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
-        await tester.pump();
-      }
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('quick_entry.confirm')));
-      await tester.pumpAndSettle();
+      await walkThe3amPath(tester, '412');
+      expect(await db.select(db.lambings).get(), hasLength(1));
+
+      // **THE WORD, NOT THE SLAB — AND THAT SWAPPED AT P16.** The slab now
+      // writes a lamb in place and opens nothing, which is `§8`'s whole claim:
+      // three taps, about six seconds, no screen change. Opening the row is the
+      // `LAMBING` event word, and the property this test was written for is
+      // unchanged: **there is a way from Quick Entry into the open lambing and
+      // it works.** Every other test on this path asserts the row, and the row
+      // was always fine — which is why nothing caught the original defect.
       await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
       await tester.pumpAndSettle();
 
@@ -484,9 +489,33 @@ void main() {
         findsOneWidget,
         reason: 'the row committed and the screen never opened',
       );
-      expect(await db.select(db.lambings).get(), hasLength(1));
     } finally {
       await tester.closeApp();
     }
   });
+}
+
+/// The 3am path as `indelible.md §8` draws it, **since P16**.
+///
+/// Tap the TAG cell → the sheet rises → type the digits → the create line writes
+/// the ewe and drops the sheet → press the slab, which is the lambing.
+///
+/// Before P16 the keypad and a confirm bar sat on the page and this was four
+/// taps on four widgets that no longer exist. The *number* of taps is unchanged,
+/// which is the point: the sheet costs one tap and gives back the page.
+Future<void> walkThe3amPath(WidgetTester tester, String tag) async {
+  await tester.tap(find.byKey(const Key('quick_entry.live_row.tag_cell')));
+  await tester.pumpAndSettle();
+
+  for (final String digit in tag.split('')) {
+    await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
+    await tester.pump();
+  }
+  await tester.pumpAndSettle();
+
+  await tester.tap(find.byKey(const Key('quick_entry.tag_sheet.create')));
+  await tester.pumpAndSettle();
+
+  await tester.tap(find.byKey(const Key('quick_entry.slab')));
+  await tester.pumpAndSettle();
 }

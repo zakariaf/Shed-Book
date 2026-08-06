@@ -13,39 +13,33 @@
 // key, and the thumb is already committed by the time the data arrives.
 //
 // ---------------------------------------------------------------------------
-// THE KEYPAD AND THE CONFIRM BAR ARE IN THE SHEET, AND THAT IS A RULING
+// THE KEYPAD IS NOT ON FRAME 1 (ruling P16, owner, 2026-08-06, §7.0e)
 // ---------------------------------------------------------------------------
 //
-// MEASURED, and it is arithmetic rather than taste. N13-T05 §5.2's band table
-// makes all of these always-on: header 44 + live row 128 + two 96 strips +
-// keypad ~336 + confirm 88 + band 152 + 34 safe-area inset = 974 pt. The
-// reference viewport is 852 and Device.small is 667. The record column is
-// Expanded and can flex to zero, and the page STILL overflows by 122 before a
-// single record is drawn. The table over-commits the viewport.
+// N13-T05 ruled the entry sheet OPEN on frame 1, reconciling decision #21's
+// *"fully interactive keypad"* with indelible §8's sheet-on-demand by keeping
+// both on screen at once. What it shipped was a keypad covering the page: on a
+// 667 pt device the record column was left 125 px, one and a half rows, so the
+// app's own records were a sliver behind the sheet.
 //
-// Three sources disagree and the ruling reconciles them rather than picking one:
+// **#21's keypad clause is struck. Frame 1 is the page.** #21's actual subject —
+// nothing awaited, no splash, no white flash, a dark frame before the database
+// opens — is untouched, and the page satisfies it better than the keypad did:
+// tonight's records, the five event words, the TAG cell, INDEX and the slab are
+// all on frame 1 and all live, none of them waiting on data.
 //
-//   * decision #21 — frame 1 is interactive, with a usable keypad;
-//   * indelible.md §7.2 and §8 — the keypad lives in the bottom sheet that opens
-//     when you enter a tag, which is what makes the arithmetic work;
-//   * N13-T05 §5.4 — `quick_entry.keypad` is one of the boxes the anchor pins.
-//
-// RULED: the keypad and the confirm bar move into the entry sheet, AND THE SHEET
-// IS OPEN ON FRAME 1. Decision #21's promise is honoured exactly — the shepherd
-// sees a usable keypad on the first painted frame — and §5.4's box is still
-// findable and still pinned, because an open sheet is on screen. The page's own
-// chrome comes to 550 pt, which fits 667 with room for records.
-//
-// The sheet is a Stack layer anchored to the bottom rather than a child of the
-// column: it OVERLAYS the bottom band the way indelible §8 draws it, and a sheet
-// that pushed the band would move the slab, which is the one target the shepherd
-// aims at without looking.
+// **The arithmetic that beat N13-T05 was never the keypad — it was the strips.**
+// §8 puts the six recents INSIDE the sheet as full-width ruled lines; they were
+// built as two permanent 96 pt bands on the page. With them where the design puts
+// them: header 44 + event line 64 + live row 128 + band 152 = 388 fixed, leaving
+// 279 for records on a 667 pt device. Sheet open: 128 + 336 + 64 = 528 fixed,
+// leaving 139 for matches — and the match list giving up rows first is 06 §8.2's
+// documented shrink order rather than an improvisation.
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_corner_slab.dart';
-import 'package:shed_book/core/ui/components/shed_keypad.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/failure.dart';
 import 'package:shed_book/core/time/app_clock.dart';
@@ -56,14 +50,12 @@ import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/domain/free_tier.dart';
 import 'package:shed_book/domain/ids.dart';
-import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/domain/time/instant.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
-import 'package:shed_book/features/quick_entry/widgets/in_pens_strip.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.dart';
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
@@ -71,8 +63,10 @@ import 'package:shed_book/features/quick_entry/widgets/export_banner.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/features/quick_entry/widgets/index_sheet.dart';
 import 'package:shed_book/features/quick_entry/widgets/tonight_rows.dart';
+import 'package:shed_book/features/quick_entry/widgets/event_word_line.dart';
+import 'package:shed_book/features/quick_entry/widgets/live_row.dart';
+import 'package:shed_book/features/quick_entry/widgets/tag_sheet_body.dart';
 import 'package:shed_book/routing/routes.dart';
-import 'package:shed_book/features/quick_entry/widgets/recents_strip.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// The reference geometry, from `indelible.md` §4.3–§4.4 at the 393 × 852
@@ -82,8 +76,6 @@ import 'package:shed_book/l10n/app_localizations.dart';
 class _Grid {
   static const double headerHeight = 44;
   static const double marginWidth = 68;
-  static const double rowHeight = 64;
-  static const double liveRowHeight = 128;
   static const double bandHeight = 152;
   static const double indexWidth = 96;
   static const double indexHeight = 64;
@@ -92,7 +84,6 @@ class _Grid {
   // contract that will disagree with itself the first time one of them moves.
   static const double slabWidth = ShedCornerSlab.width;
   static const double slabHeight = ShedCornerSlab.height;
-  static const double stripHeight = 96;
 }
 
 class QuickEntryScreen extends StatelessWidget {
@@ -195,25 +186,24 @@ class _QuickEntryPage extends ConsumerWidget {
       }
     });
 
+    // **NOT ONE `ref.watch` IN THIS METHOD, AND THAT IS THE SCREEN'S ONE
+    // STRUCTURAL PROMISE.** `02 §10.1`: a widget that watches nothing cannot be
+    // rebuilt by a keystroke or by an emission, and that — not any layout
+    // constant — is what makes every box here immovable under a thumb.
+    //
+    // Everything that needs to notice something notices it for itself:
+    // `TonightRows`, `LiveRow`, `ExportBanner` and the band each read their own
+    // provider, and each sits in a box whose size does not depend on what it
+    // read. `ref.read` inside a tap handler is not a subscription, and it is how
+    // the write path gets the current selection.
     return Scaffold(
       backgroundColor: t.surfaceBase,
       // **THE ONE SCREEN WITHOUT A `SafeArea`, AND IT IS THE SCREEN THE WHOLE
       // PRODUCT IS.** Seen on a simulator on 2026-08-05: the page header drew
-      // UNDER the status bar and behind the Dynamic Island — `NIGHT OF · P`
-      // and then nothing, with the clock printed through it. Every other screen
-      // in `lib/features/` already had one.
-      //
-      // **NO TEST COULD SEE IT.** `pumpApp` passes
-      // `EdgeInsets.only(top: 47, bottom: 34)` as a MediaQuery inset, which is
-      // exactly right — and a widget that ignores the inset lays out and
-      // measures perfectly inside it. The overflow matrix asks *did anything
-      // overflow*, the geometric sweep asks *is anything too small or too
-      // close*; neither asks *is anything underneath the notch*, because that
-      // is not a property of the layout, it is a property of the layout's
-      // relationship to a cut-out the test view does not draw.
-      //
-      // `indelible.md §4.3`'s 393 × 852 grid is the SAFE viewport, and `§4.4`'s
-      // 44 px sticky header is measured from the top of it.
+      // UNDER the status bar and behind the Dynamic Island. Every other screen in
+      // `lib/features/` already had one, and no test could see it — `pumpApp`
+      // passes the inset as a MediaQuery padding, which is exactly right, and a
+      // widget that ignores an inset lays out perfectly inside it.
       body: SafeArea(
         child: Stack(
           children: <Widget>[
@@ -225,68 +215,32 @@ class _QuickEntryPage extends ConsumerWidget {
             Column(
               children: <Widget>[
                 QuickEntryPageHeader(
-                  // The night and page are the record column's, and the column is
-                  // T06's. Until then the header renders its own shape at its own
-                  // height, which is what the anchor pins.
-                  text: l10n.quickEntryPageHeader(night: '', page: 1),
+                  // **THE NIGHT, WHICH PRINTED AS A GAP.** `NIGHT OF · PAGE 1`
+                  // was on screen for weeks: the argument was `night: ''`, so the
+                  // one line stating which night you are on stated nothing.
+                  text: l10n.quickEntryPageHeader(
+                    night: formatShedDate(LocalDate.of(appNow()), context.localeName),
+                    page: 1,
+                  ),
                   height: _Grid.headerHeight,
                 ),
 
-                // THE BANNER'S SLOT, above the record column and below the page
-                // header (`07 §16.2`). It renders here and nowhere else.
-                //
-                // **IT IS OUTSIDE THE `Expanded` BELOW**, which is the shrink
-                // order made structural: the record column is what gives when the
-                // banner takes height, and the keypad, the confirm bar and the two
-                // strips never shrink. `06 §8.2` sets that trade one level down —
-                // *"the match list above it gives up rows"* — and this is the same
-                // trade one level up.
-                // The record column takes the remainder, and the remainder is what
-                // gives. That is the design's own answer rather than an invention:
-                // 06 §8.2 says of the keypad growing that "the match list above it
-                // gives up rows". Same trade, one level up — the chrome the thumb
-                // aims at is fixed, the reading surface flexes.
-                //
-                // Its rows share edges — 64 pt, no gaps — because a ruled page has
-                // no gutters.
+                // The record column takes the remainder, and the remainder is
+                // what gives (`06 §8.2`, one level up): the chrome the thumb aims
+                // at is fixed, the reading surface flexes.
                 Expanded(
                   child: ClipRect(
                     child: SingleChildScrollView(
                       key: const Key('quick_entry.record_column'),
                       child: Column(
                         children: <Widget>[
-                          // THE BANNER'S SLOT: the top of the record column, which
-                          // is the reading surface above the tag readout
-                          // (`07 §16.2`) — and, structurally, the one part of this
-                          // screen that already scrolls.
-                          //
-                          // **INSIDE THE SCROLL VIEW AND NOT ABOVE IT**, and that
-                          // is measured rather than preferred. Placed above the
-                          // record column it takes height from a `Column` whose
-                          // other children are fixed, and at textScaler 2.0 on a
-                          // 375 × 667 device it overflowed by **665 pixels** —
-                          // there is no shrink order that survives that, because
-                          // the keypad, the confirm bar and the recents strip may
-                          // never give. Inside, it cannot take height from the
-                          // chrome at all: the banner scrolls, and the thumb
-                          // targets stay exactly where they were.
+                          // Inside the scroll view and not above it — measured at
+                          // N21-T08, where placing it above overflowed a
+                          // 375 x 667 device by 665 px at textScaler 2.0.
                           const ExportBanner(),
-
-                          // **TONIGHT'S PAGE, WHICH WAS TWELVE EMPTY BOXES.**
-                          // `for (int i = 0; i < 12; i++) SizedBox(...)` stood
-                          // here — so the design's central promise, *the
-                          // confirmation IS the committed row, in ink, one line
-                          // above the one being written*, had no row to be, and
-                          // the screen read as a keypad on a black page.
-                          //
-                          // Reported from a simulator on 2026-08-06: a lambing
-                          // was recorded, the shepherd went back, typed the tag
-                          // again, and the page was empty.
                           TonightRows(
                             locale: context.localeName,
                             l10n: l10n,
-                            // Tapping a row opens what it is a record OF. The
-                            // row is the receipt and the way back into it.
                             onOpen: (TonightRow row) =>
                                 unawaited(Routes.lambingEntry(context, row.lambing)),
                           ),
@@ -296,31 +250,110 @@ class _QuickEntryPage extends ConsumerWidget {
                   ),
                 ),
 
-                // The deck's two strips. T06 fills them; the sizes are final now,
-                // which is what makes frame 1 and frame 2 identical.
-                //
-                // **THE IN-PENS STRIP IS THE SECOND THING THAT GIVES**, and only
-                // when the export banner is up. `07 §16.2` fixes the shrink order
-                // — the filtered-match list loses a row, then this strip — and the
-                // keypad, the confirm bar and the recents strip never shrink.
-                //
-                // The `Flexible` stays from N21-T08's first attempt even though the
-                // banner no longer needs it: the record column reaches zero on a
-                // 375 × 667 device before anything is added, so a strip that
-                // cannot give is a strip that overflows the day anything else
-                // does. It costs nothing while nothing needs it.
-                const Flexible(child: InPensStrip(height: _Grid.stripHeight)),
-                const RecentsStrip(height: _Grid.stripHeight),
+                // **THE FIVE EVENT WORDS.** `§8`: one 64 px ruled line directly
+                // above the live row, at the top of the thumb band, with Lambing
+                // pre-selected *"because that is what tonight is"*.
+                EventWordLine(
+                  semanticLabel: l10n.quickEntryEventLine,
+                  words: <ShedEventWord>[
+                    (
+                      id: 'lambing',
+                      label: l10n.quickEntryLambing,
+                      selected: true,
+                      // The row is already a lambing; pressing the selected word
+                      // opens it rather than starting a second one.
+                      onTap: () => _openRow(context, ref),
+                    ),
+                    (
+                      id: 'treatment',
+                      label: l10n.quickEntryEventTreatment,
+                      selected: false,
+                      onTap: () => unawaited(Routes.treatments(context)),
+                    ),
+                    (
+                      id: 'note',
+                      label: l10n.quickEntryEventNote,
+                      selected: false,
+                      onTap: () => _openRow(context, ref),
+                    ),
+                    (
+                      id: 'death',
+                      label: l10n.quickEntryEventDeath,
+                      selected: false,
+                      // A death is recorded against a lamb, and the lamb is on
+                      // the lambing. There is no route that takes a death
+                      // directly, and inventing one here would be a second way to
+                      // write the same fact.
+                      onTap: () => _openRow(context, ref),
+                    ),
+                    (
+                      id: 'move_pen',
+                      label: l10n.quickEntryEventMovePen,
+                      selected: false,
+                      onTap: () => unawaited(Routes.penBoard(context)),
+                    ),
+                  ],
+                ),
+
+                // **THE LIVE ROW: THE PERSISTENT LOADED SUBJECT.** Welded above
+                // the band, never a scrolling child — `indelible.html:1138` puts
+                // it inside the stream, which is the design's one genuine safety
+                // gap (`00-comparison.md §4.1`): the open row scrolls away and you
+                // lose track of whose it is.
+                LiveRow(
+                  time: formatShedTime(appNow(), context.localeName),
+                  provenance: l10n.quickEntryStampAuto,
+                  tagPrompt: l10n.quickEntryTagPrompt,
+                  tagCellSemanticLabel: l10n.quickEntryTagCell,
+                  onTagCell: () => _openTagSheet(context, ref, l10n),
+                  derivedType: (int strokes) => _derivedType(l10n, strokes),
+                  derivedStamp: l10n.quickEntryDerivedStamp,
+                  marginWidth: _Grid.marginWidth,
+                  // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY (P2 — there
+                  // is no SnackBar). It reads the scope rather than watching a
+                  // provider, because a feedback function has a BuildContext and
+                  // no WidgetRef.
+                  trailing: ValueListenableBuilder<SaveReceipt?>(
+                    valueListenable: ShedReceiptScope.of(context),
+                    builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
+                        receipt == null
+                        ? const SizedBox.shrink()
+                        : _StrikeAffordance(receipt: receipt),
+                  ),
+                ),
 
                 QuickEntryBottomBand(
                   indexLabel: l10n.quickEntryIndex,
-                  slabLabel: l10n.quickEntrySlabTagFirst,
-                  // **THIS WAS `() {}` AND IT MADE THE APP A SINGLE SCREEN.**
-                  // Flock, the pens, the medicine book, Export and Settings
-                  // were all built, all tested, all in the matrix — and
-                  // unreachable. `indelible.md §7.17`: `INDEX` opens the index.
+                  // **THE SLAB ARMS WHEN THE TAG LANDS** (`§8`): its label
+                  // changes from `TAG FIRST` to `+ LAMB`. It is never disabled —
+                  // pressing `TAG FIRST` opens the sheet, because a dead key
+                  // under a cold thumb is indistinguishable from a missed tap.
+                  slabLabelUnarmed: l10n.quickEntrySlabTagFirst,
+                  slabLabelArmed: l10n.quickEntrySlabAddLamb(term: l10n.termLambSingular),
                   onIndex: () => _openIndex(context, l10n),
-                  onSlab: () {},
+                  // **THIS WAS `() {}`, AND IT IS THE PRODUCT'S CENTRAL ACT.**
+                  // `§8`: *"Press the slab. One stroke prints in the lamb column
+                  // ... Three taps. About six seconds."* The three taps were
+                  // there; the third did nothing at all.
+                  onSlab: () async {
+                    final QuickEntryState state = ref.read(quickEntryControllerProvider);
+                    final EweId? ewe = state.selected;
+                    if (ewe == null) {
+                      _openTagSheet(context, ref, l10n);
+                      return;
+                    }
+                    await ref
+                        .read(quickEntryWriteControllerProvider.notifier)
+                        .addLamb(ewe: ewe, into: state.openLambing);
+                    // The id comes off the committed outcome. The row must be
+                    // remembered or the next press opens a SECOND lambing, and a
+                    // set of triplets is filed as three singles.
+                    if (ref.read(quickEntryWriteControllerProvider) case WriteDone(
+                      outcome: WriteCommitted(insertedId: final int id?),
+                    )) {
+                      ref.read(quickEntryControllerProvider.notifier).openedLambing(LambingId(id));
+                    }
+                  },
                   bandHeight: _Grid.bandHeight,
                   indexWidth: _Grid.indexWidth,
                   indexHeight: _Grid.indexHeight,
@@ -329,226 +362,62 @@ class _QuickEntryPage extends ConsumerWidget {
                 ),
               ],
             ),
-
-            // THE ENTRY SHEET, OPEN ON FRAME 1. See the ruling in this file's
-            // header. It overlays the band rather than pushing it, because a sheet
-            // that moved the slab would move the one target the shepherd aims at
-            // without looking.
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: ColoredBox(
-                color: t.surfaceRaised,
-                child: Column(
-                  key: const Key('quick_entry.entry_sheet'),
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    // THE LIVE ROW LIVES AT THE TOP OF THE SHEET, AND THAT IS A CORRECTION
-                    // MEASURED AT N14-T05. As a sibling of the bottom band it was
-                    // COVERED by the sheet — the hit test landed on the sheet's own
-                    // background, which means the shepherd could neither see the
-                    // receipt nor press the strike word. indelible §8's whole claim
-                    // is "you can see it, in ink, one line above the one being
-                    // written", and a row under an opaque sheet is not one line
-                    // above anything.
-                    //
-                    // It is still a FIXED LAYER, NOT A SCROLLING CHILD, and this
-                    // task owns that correction. indelible.html:1138 puts it inside the
-                    // scrolling stream, so the open row scrolls away — the audit
-                    // block's Indelible artefact defect 1. The corrected rule is that
-                    // it is welded above the bottom band, and the reason is the
-                    // mechanism §8 describes: "you can see it, in ink, one line above."
-                    // A row you have to scroll to find is not a receipt.
-                    SizedBox(
-                      key: const Key('quick_entry.live_row'),
-                      height: _Grid.liveRowHeight,
-                      child: Row(
-                        children: <Widget>[
-                          QuickEntryMarginCell(
-                            time: '',
-                            stampAuto: l10n.quickEntryStampAuto,
-                            width: _Grid.marginWidth,
-                            height: _Grid.rowHeight,
-                          ),
-                          // THE RECEIPT LIVES IN THE ROW, NOT IN AN OVERLAY. It reads
-                          // the scope rather than watching a provider, because a
-                          // feedback function has a BuildContext and no WidgetRef.
-                          Expanded(
-                            child: ValueListenableBuilder<SaveReceipt?>(
-                              valueListenable: ShedReceiptScope.of(context),
-                              builder: (BuildContext context, SaveReceipt? receipt, Widget? _) =>
-                                  receipt == null
-                                  ? const SizedBox.expand()
-                                  : _StrikeAffordance(receipt: receipt),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    // FRAME 1 IS INTERACTIVE, and that is decision #21's promise:
-                    // the keypad is fully usable before the database has opened,
-                    // because it watches nothing and needs nothing.
-                    ShedKeypad(
-                      // WIRED HERE, and it was a stub until N14-T06 found it. The
-                      // budget test is what noticed: with a no-op onDigit the query
-                      // never fills, so the confirm bar renders nothing and tap 4
-                      // lands on empty space. A screen test that only asserted
-                      // "the keypad is present" would never have caught it.
-                      onDigit: (String d) =>
-                          ref.read(quickEntryControllerProvider.notifier).appendDigit(d),
-                      onBackspace: () =>
-                          ref.read(quickEntryControllerProvider.notifier).backspace(),
-                      thirdKey: ShedKeypadThirdKey.newTag,
-                      // The third key clears the selection and starts a fresh tag:
-                      // "new tag" at 03:20 means the animal in front of you is not
-                      // the one on screen.
-                      onThirdKey: () =>
-                          ref.read(quickEntryControllerProvider.notifier).clearSelection(),
-                      padLabel: l10n.keypadTagEntry,
-                      backspaceLabel: l10n.keypadBackspace,
-                      backspaceHint: l10n.hintDeleteLastDigit,
-                      thirdKeyLabel: l10n.keypadNewTag,
-                    ),
-                    // THE LAMBING EVENT BUTTON, in the confirm slot the shell
-                    // reserved. It is the product's central write: the tap commits
-                    // the row BEFORE any screen is pushed, which is why the label
-                    // names the event rather than an intention.
-                    //
-                    // N16 pushes LambingEntryScreen from the outcome's id. There
-                    // is no route helper for a screen that does not exist yet.
-                    // THE CONFIRM BAR AND THE EVENT BUTTON ARE TWO CONTROLS, and
-                    // T06's budget is what says so: tap 4 confirms WHICH animal,
-                    // tap 5 commits WHAT happened. Merging them would read as four
-                    // taps and would mean the shepherd cannot see which ewe they
-                    // are about to file a lambing against before they file it.
-                    //
-                    // Labelled with the OUTCOME — "Use 412" / "Create 412" — never
-                    // a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to
-                    // remember what they were confirming.
-                    SizedBox(
-                      key: const Key('quick_entry.confirm'),
-                      height: t.tapHero,
-                      width: double.infinity,
-                      child: _ConfirmBar(),
-                    ),
-
-                    // **`INDEX` AND THE EVENT VERB SHARE ONE ROW, AND THE
-                    // SHARING IS THE FIX RATHER THAN THE ARRANGEMENT.**
-                    //
-                    // `indelible.md §7.17` pins `INDEX` bottom-left of the BAND
-                    // — and the band is 152 px sitting under an opaque sheet
-                    // that is open on frame 1, so both thumb anchors were
-                    // painted over on every frame this app has ever drawn.
-                    // Measured on a simulator: from Quick Entry a shepherd
-                    // could reach Flock, the pens, the medicine book, Export
-                    // and Settings — not one of them.
-                    //
-                    // **TWO FIXES WERE TRIED AND BOTH COST THE HEADER.** Moving
-                    // the sheet up by the band's height put its top over the
-                    // page header; giving `INDEX` its own 64 px row did the
-                    // same thing 64 px later. The sheet is already within a row
-                    // of the viewport on a 375 × 667 device — 64 live row + 336
-                    // keypad + 88 confirm + 88 event — so it has no spare
-                    // height to give, and the band's geometry is `07 §16`'s
-                    // rather than this session's to re-cut.
-                    //
-                    // Sharing the event verb's row costs nothing: `INDEX` is
-                    // 96 × 64 in §7.17 and the row is `tapHero` 88, so both
-                    // clear their floors, `INDEX` is bottom-LEFT as the design
-                    // says, and the event verb keeps the width its label needs.
-                    SizedBox(
-                      key: const Key('quick_entry.event'),
-                      height: t.tapHero,
-                      width: double.infinity,
-                      child: Row(
-                        children: <Widget>[
-                          SizedBox(
-                            key: const Key('quick_entry.index'),
-                            width: _Grid.indexWidth,
-                            child: ShedTapTarget(
-                              key: const Key('quick_entry.index.open'),
-                              semanticLabel: l10n.quickEntryIndex,
-                              minSize: t.tapIndelible,
-                              onTap: () => _openIndex(context, l10n),
-                              child: ExcludeSemantics(
-                                child: Center(
-                                  child: Text(
-                                    l10n.quickEntryIndex,
-                                    style: Theme.of(context).textTheme.labelLarge,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: ShedTapTarget(
-                              key: const Key('quick_entry.event.lambing'),
-                              semanticLabel: l10n.quickEntryLambing,
-                              minSize: t.tapHero,
-                              // **THE ROW COMMITS, THEN THE SCREEN OPENS — AND
-                              // THE OPENING WAS MISSING ENTIRELY.**
-                              //
-                              // `CLAUDE.md`: *Quick Entry's "Lambing" tap calls
-                              // `beginLambing(ewe)` **before** Lambing Entry is
-                              // pushed.* The commit was there and the push was
-                              // not, so on a simulator the tap wrote a lambing,
-                              // published its receipt — *20 seconds to strike* —
-                              // and left the shepherd on Quick Entry with no
-                              // sign anything had opened. The ewe card has done
-                              // this correctly since N27; this screen never did.
-                              //
-                              // **THE PUSH IS HERE AND NOT IN THE `ref.listen`
-                              // ABOVE**, and that is the whole reason it needs
-                              // its own await: the listener fires for EVERY
-                              // committed write on this screen, `createEwe`
-                              // included, so pushing from it would open Lambing
-                              // Entry the moment a shepherd created a ewe. Same
-                              // shape as the confirm bar's create-then-select.
-                              onTap: () async {
-                                final EweId? selected = ref
-                                    .read(quickEntryControllerProvider)
-                                    .selected;
-                                if (selected == null) {
-                                  return;
-                                }
-                                await ref
-                                    .read(quickEntryWriteControllerProvider.notifier)
-                                    .beginLambing(selected);
-
-                                if (!context.mounted) {
-                                  return;
-                                }
-                                // The id comes off the committed outcome. There
-                                // is nothing else to read it from: the lambing
-                                // is one row among tonight's and no stream
-                                // carries *the one I just started*.
-                                if (ref.read(quickEntryWriteControllerProvider) case WriteDone(
-                                  outcome: WriteCommitted(insertedId: final int id?),
-                                )) {
-                                  await Routes.lambingEntry(context, LambingId(id));
-                                }
-                              },
-                              child: ExcludeSemantics(
-                                child: Center(
-                                  child: Text(
-                                    l10n.quickEntryLambing,
-                                    style: Theme.of(context).textTheme.labelLarge,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: MediaQuery.paddingOf(context).bottom),
-                  ],
-                ),
-              ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Opens the row the slab is writing into, if there is one.
+  ///
+  /// **THREE OF THE FIVE EVENT WORDS LAND HERE**, and that is honest rather than
+  /// lazy: a note and a death are both recorded against the open lambing, on the
+  /// screen that owns it. Inventing a second route to write the same fact would
+  /// be a second place for it to disagree with itself.
+  void _openRow(BuildContext context, WidgetRef ref) {
+    if (ref.read(quickEntryControllerProvider).openLambing case final LambingId id) {
+      unawaited(Routes.lambingEntry(context, id));
+    }
+  }
+
+  /// `SINGLE` / `TWIN` / `TRIPLET`, **counted, never chosen** (ruling P8).
+  ///
+  /// Nobody ever picks "triplet" from a list. The type is a count of things that
+  /// happened, which is what turns safety rule §12.4 from a validation routine
+  /// into the structure of the interaction — and it is why there is no chooser
+  /// anywhere in this file for it to contradict.
+  String? _derivedType(AppLocalizations l10n, int strokes) => switch (strokes) {
+    0 => null,
+    1 => l10n.quickEntryDerivedSingle,
+    2 => l10n.quickEntryDerivedTwin,
+    3 => l10n.quickEntryDerivedTriplet,
+    _ => l10n.quickEntryDerivedMultiple(count: strokes, term: l10n.termLambPlural),
+  };
+
+  /// `§8`'s tag sheet, from the TAG cell or from an unarmed slab.
+  ///
+  /// **IT RISES IN FRONT OF THE PAGE AND GOES AWAY WHEN A TAG LANDS.** Before
+  /// P16 it was open on every frame the app ever drew, which is what left the
+  /// record column 125 px on a 667 pt device.
+  void _openTagSheet(BuildContext context, WidgetRef ref, AppLocalizations l10n) {
+    unawaited(
+      showShedBottomSheet<void>(
+        context,
+        dismissLabel: l10n.quickEntryTagSheetClose,
+        dismissSemanticLabel: l10n.quickEntryTagSheetCloseHint,
+        barrierLabel: l10n.quickEntryTagCell,
+        // The keypad needs more than Flutter's 9/16 default cap, and §8's sheet
+        // needs more than §7.14's 60%: the heading, the digits, the match list
+        // and the create line all sit above those twelve keys. Measured: 60%
+        // overflowed by 87 px with the list already at zero rows.
+        //
+        // The list is what gives, which is `06 §8.2`'s documented shrink order —
+        // on the smallest supported device it goes to zero rows and the create
+        // line is still there, so an unknown tag can always be written into the
+        // book.
+        fillsViewport: true,
+        viewportFraction: _kTagSheetFraction,
+        child: const TagSheetBody(),
       ),
     );
   }
@@ -712,57 +581,11 @@ class _StrikeAffordanceState extends State<_StrikeAffordance> {
   }
 }
 
-/// Tap 4 of the five-tap path: **which animal**.
+/// How much of the viewport `§8`'s tag sheet takes.
 ///
-/// It reads the controller's top match and commits the selection. When the tag
-/// matches no active animal it reads "Create 412" and creates one through
-/// `EntryContext.liveEntry`, which is the parameter that makes a refusal
-/// unreachable here (decision #91).
-class _ConfirmBar extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final AppLocalizations l10n = AppLocalizations.of(context);
-    final QuickEntryState state = ref.watch(quickEntryControllerProvider);
-
-    if (state.query.isEmpty) {
-      return const SizedBox.expand();
-    }
-
-    final TagIndexEntry? top = state.matches.isEmpty ? null : state.matches.first;
-    final bool exact = top != null && top.tag == state.query;
-    final String label = exact
-        ? l10n.quickEntryConfirmUse(tag: top.tag)
-        : l10n.quickEntryConfirmCreate(tag: state.query);
-
-    return ShedTapTarget(
-      semanticLabel: label,
-      minSize: context.tokens.tapHero,
-      // **CREATING SELECTS HER, AND WITHOUT THAT LINE THE NEXT TAP DID
-      // NOTHING.** Measured 2026-08-05: type 412, `Create 412`, `Lambing` — the
-      // ewe was written and no lambing was, because the event button reads
-      // `quickEntryControllerProvider.selected` and a create left it null. No
-      // exception, no message, nothing on screen. It is the create-on-the-fly
-      // journey — *type an unknown tag, one confirm creates the ewe, straight
-      // into Lambing Entry* — failing at the word *straight*.
-      //
-      // The id comes off the committed outcome rather than from a re-query of
-      // the tag index: the index is a stream and may not have re-emitted yet,
-      // and `07 §5.3` names that race by name.
-      onTap: () async {
-        if (exact) {
-          ref.read(quickEntryControllerProvider.notifier).select(top.eweId);
-          return;
-        }
-        await ref.read(quickEntryWriteControllerProvider.notifier).createEwe(state.query);
-        if (ref.read(quickEntryWriteControllerProvider) case WriteDone(
-          outcome: WriteCommitted(insertedId: final int id?),
-        )) {
-          ref.read(quickEntryControllerProvider.notifier).select(EweId(id));
-        }
-      },
-      child: ExcludeSemantics(
-        child: Center(child: Text(label, style: Theme.of(context).textTheme.labelLarge)),
-      ),
-    );
-  }
-}
+/// `§7.14`'s 60% is the bare keypad's figure and the tag sheet is the case that
+/// proves it is not every sheet's: `§8` puts a heading, the typed digits, a
+/// match list AND the create line above those same twelve keys. Measured at P16
+/// on the reference viewport, 60% overflowed by **87 px** with the list already
+/// at zero rows — a sheet that obeyed §7.14 could not render §8's own contents.
+const double _kTagSheetFraction = 0.88;

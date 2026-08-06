@@ -14,13 +14,26 @@
 // INDEX is the ONLY navigation affordance in the app. P3's affordance half went
 // to indelible.md, so there is no back chevron anywhere (decision record §7.0a).
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
+import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 
-class QuickEntryBottomBand extends StatelessWidget {
+/// **A `ConsumerWidget`, AND IT WATCHES ONE BOOLEAN.**
+///
+/// `§8`: *"the slab arms — its border goes to `--ink-full`, a madder tick prints
+/// at its corner, and its label changes to `+ LAMB`."* Something has to notice
+/// that an animal was chosen, and it may not be the screen: the shell watching
+/// nothing is what makes every box on it immovable (`02 §10.1`).
+///
+/// So the band notices, and a rebuild here can move nothing — the band is 152 pt,
+/// `INDEX` is 96 × 64 and the slab is 160 × 140, all fixed, none of them derived
+/// from the thing being watched. Only the word inside the slab changes.
+class QuickEntryBottomBand extends ConsumerWidget {
   const QuickEntryBottomBand({
     required this.indexLabel,
-    required this.slabLabel,
+    required this.slabLabelUnarmed,
+    required this.slabLabelArmed,
     required this.onIndex,
     required this.onSlab,
     required this.bandHeight,
@@ -33,7 +46,14 @@ class QuickEntryBottomBand extends StatelessWidget {
   });
 
   final String indexLabel;
-  final String slabLabel;
+
+  /// `TAG FIRST` — and it is **never disabled**. Pressing it opens the tag
+  /// sheet, because a dead key under a cold thumb is indistinguishable from a
+  /// missed tap (`§7.2`).
+  final String slabLabelUnarmed;
+
+  /// `+ LAMB`, once an animal is chosen.
+  final String slabLabelArmed;
   final VoidCallback onIndex;
 
   /// **Never null.** The slab before an animal is chosen reads "Tag first" and
@@ -52,9 +72,16 @@ class QuickEntryBottomBand extends StatelessWidget {
   final bool leftHanded;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final ShedTokens t = context.tokens;
     final double safeBottom = MediaQuery.paddingOf(context).bottom;
+
+    // `.select`, so a keystroke in the tag sheet does not rebuild the band —
+    // only the transition from nothing-chosen to chosen does.
+    final bool armed = ref.watch(
+      quickEntryControllerProvider.select((QuickEntryState s) => s.selected != null),
+    );
+    final String slabLabel = armed ? slabLabelArmed : slabLabelUnarmed;
 
     final Widget index = ShedTapTarget(
       key: const Key('quick_entry.index'),

@@ -1199,7 +1199,7 @@ Twenty lines of body, no `async`, no `await`, no `overrides`.
 
 ### 6.3 What happens after the first frame
 
-The first frame is a static dark Quick Entry shell: a **fully interactive keypad and no data**. Because every theme is dark, a wrong first frame is a dark first frame, which is why the palette can be resolved after `runApp()` at no cost. The recents strip and "in the pens" list render fixed-height dark placeholders at frame 1 — the same box the content will occupy, so nothing shifts.
+The first frame is a static dark Quick Entry shell: **no data and every target on it live** — tonight's records, the five event words, the TAG cell, `INDEX` and the slab (**P16** struck the *fully interactive keypad*: the keypad is in the tag sheet, which is closed on frame 1). Because every theme is dark, a wrong first frame is a dark first frame, which is why the palette can be resolved after `runApp()` at no cost. Tonight's page renders fixed-height dark rows at frame 1 — the same boxes the content will occupy, so nothing shifts. (The recents and the "in the pens" list moved into the tag sheet at **P16**.)
 
 `app.dart` holds the boot kick:
 

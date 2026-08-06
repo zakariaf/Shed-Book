@@ -306,7 +306,7 @@ price, never a store error message. Decision #124's allowed list does not includ
 Decision #90, and it is the reason the entitlement can be read late without anyone noticing:
 
 - `main()` reads nothing (`01-architecture.md` §6.3 lists "Reading the entitlement" among the banned lines).
-- The first frame is the **unlocked-neutral** Quick Entry shell: an interactive keypad, no data, no branch on `unlocked`.
+- The first frame is the **unlocked-neutral** Quick Entry shell: tonight's page, no data, no branch on `unlocked`. **P16** moved the keypad into the tag sheet and changed nothing here — neither the page nor the sheet reads the entitlement.
 - Quick Entry, Lambing Entry, Lamb Card, Foster and Pen Board never watch `entitlementProvider` and never render a monetization widget at any entitlement state.
 - The failure mode this prevents is a **paywall flash at 3am**. It is enforced by `test/features/no_monetization_test.dart`, not by discipline.
 

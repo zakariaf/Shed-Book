@@ -78,7 +78,7 @@ Every row is final and implementable. "Source" names the primary evidence; the b
 | 18 | Banned Riverpod-3 APIs | `ProviderScope.retry`, `ProviderContainer.test()`, `WidgetTester.container`, bare `Notifier` + `.autoDispose`, Mutations, `AsyncValue.valueOrNull`, `StateProvider`, `StateNotifierProvider`, constructor-delivered family args. **CI greps for each.** | Verified compile errors on 2.6.1: `'PenWriteController' doesn't conform to the bound 'AutoDisposeNotifier<…>'`, `The named parameter 'retry' isn't defined`. On 2.6.1 there is no auto-retry to disable, so note 01's "non-negotiable" `retry:` line is both uncompilable **and** unnecessary. [c2 §2, §3; c3 A1] | Porting note 01's pitfall #4 and its CI grep for `retry:` |
 | 19 | Riverpod 2.6.1 spellings | Families: `AutoDisposeFamilyAsyncNotifier<T, Arg>` with `build(Arg arg)` / `this.arg` and a **zero-argument** constructor tear-off. Auto-disposing notifiers: `AutoDisposeNotifier`. Containers in tests: `ProviderContainer(...)` + `addTearDown(container.dispose)`. | `pub.dev/documentation/riverpod/2.6.1/riverpod/FamilyAsyncNotifier-class.html`. Constructor delivery is a Riverpod **3** change. [c2 §3] | Note 02 §4.4's snippet, which is Riverpod-3 code labelled "2.6.1 spelling" |
 | 20 | Provider shapes | `databaseProvider` is a **`FutureProvider<AppDatabase>`** opened on the first post-frame callback. Repositories are `Provider`s that `ref.watch` it. No `Provider<AppDatabase>` overridden with a value in `main()`. | The DB open path is inherently async once `databaseDirectory: getApplicationSupportDirectory` lands, so "construct eagerly, nothing is awaited" is a distinction without a difference. [c3 A5, c4 §1] | Note 01's `Provider<AppDatabase>.overrideWithValue(db)`; note 02's `await openShedBookDatabase()` |
-| 21 | Bootstrap | `main()` = `WidgetsFlutterBinding.ensureInitialized()` → install sync error handlers → `runApp()`. **Nothing awaited.** DB open, migration, `path_provider`, timezone DB, settings/palette, notification init and the purchase-stream subscription all happen after the first frame. The first frame is a static dark Quick Entry shell with a **fully interactive keypad and no data**. | It is the only bootstrap that satisfies both "no white flash" and "no error-less black screen". `runApp()` calls `ensureInitialized()` internally anyway, so omitting the explicit call moves binding init by microseconds. Because every theme is dark, a wrong first frame is a dark first frame. [c3 A5, c4 §1] | Note 01's "await nothing but construct the DB eagerly"; note 02's four awaits; `deferFirstFrame`; `flutter_native_splash.preserve` |
+| 21 | Bootstrap | `main()` = `WidgetsFlutterBinding.ensureInitialized()` → install sync error handlers → `runApp()`. **Nothing awaited.** DB open, migration, `path_provider`, timezone DB, settings/palette, notification init and the purchase-stream subscription all happen after the first frame. The first frame is a static dark Quick Entry shell with **no data and every target on it live**. ~~a fully interactive keypad~~ is **struck** — the keypad is in the tag sheet, which is closed on frame 1 (**P16**, owner, 2026-08-06, §7.0e). | It is the only bootstrap that satisfies both "no white flash" and "no error-less black screen". `runApp()` calls `ensureInitialized()` internally anyway, so omitting the explicit call moves binding init by microseconds. Because every theme is dark, a wrong first frame is a dark first frame. [c3 A5, c4 §1] | Note 01's "await nothing but construct the DB eagerly"; note 02's four awaits; `deferFirstFrame`; `flutter_native_splash.preserve` |
 | 22 | Double-tap protection | A `WriteController` base class whose `guard()` refuses to run concurrently (`if (state is WriteRunning) return;`). One `tester.tap(); tester.tap();` test per destructive action. | Cold, wet fingers on capacitive glass double-fire. Flutter's own Command pattern exists partly for this. This is a UX safety feature disguised as architecture. [note 01 §8.5] | Riverpod 3's experimental Mutations |
 | 23 | Navigation | **`Navigator` 1.0 + a static typed route-helper file** (`Routes.eweCard(context, id)`), one method per screen. | go_router's value proposition is URLs; there is no web target, no deep links, no URL bar. Three majors in ~24 months, plus open restoration bugs flutter#117683 (since 2022-12-27) and #174935. [note 01 §7.3, c1 §4.3] | `go_router` 17.3.0; named routes; `ShellRoute` bottom nav |
 | 24 | State restoration | **None.** No `RestorationMixin`, no `restorationScopeId`, no iOS storyboard restoration-ID step. Resume to Quick Entry with nothing selected after ~2 minutes backgrounded. | Restoring a stale selected ewe at 3am is a data-integrity bug, not a convenience. The database *is* the restored state. [c3 C3, note 08 §4] | Note 02's keypad-query and scroll-offset restoration |
@@ -567,6 +567,58 @@ migration of their own, so the cost is shared rather than paid twice.
 not in §5.1, and it re-introduces the `NSPrivacyAccessedAPICategoryUserDefaults` obligation N30-T07 is
 about to declare away). No in-memory field either: a rate limit that resets on every cold launch is not
 a rate limit, and it would read as one to whoever maintained it.
+
+### 7.0e P16 — the keypad is not on frame 1. RULED 2026-08-06 (the owner, after a simulator session).
+
+**The question.** Decision #21 says the first frame is a Quick Entry shell *"with a fully interactive
+keypad and no data"*. `indelible.md §8` Screen 3 says the opposite in as many words: frame 1 is
+tonight's page with the events already printed, the live row drawn, `INDEX` bottom-left and **the slab
+disabled reading `TAG FIRST`** — and the keypad arrives only when *"you tap the TAG cell"* and the
+sheet rises. #21 is rank 1 in the authority order, so N13-T05 ruled the sheet **open on frame 1** and
+cited the band arithmetic as the reason it fitted.
+
+**What that shipped.** The keypad, permanently open, covering the page. On a 667 pt device the record
+column was left **125 px** — one and a half rows — so the app's own records were a sliver behind the
+sheet. The owner's words on seeing it: *"it's just a very small line, a small view. It's behind the
+keypad, and the keypad is huge with many empty spaces."* Screenshots beside the mockup are in
+[`docs/design/mockup-vs-built.html`](../design/mockup-vs-built.html).
+
+**The ruling: `indelible.md §8` wins on this one clause and #21's keypad phrase is struck.** Frame 1
+is the page. The sheet opens on the TAG cell and closes when a tag lands.
+
+**#21's actual subject is untouched, and that is why this is narrow.** #21 is a *bootstrap* decision —
+nothing awaited, no `deferFirstFrame`, no splash, no white flash, a dark first frame before the
+database has opened. All of that survives word for word. What is struck is one illustrative clause
+about *which control* demonstrates interactivity. The property #21 was protecting is that the first
+frame is **not a loading state**, and the page satisfies it better than the keypad did: tonight's
+records, the five event words, the TAG cell, `INDEX` and the slab are all on frame 1 and all live,
+none of them waiting on data.
+
+**The arithmetic N13-T05 could not make work, and why it works now.** That ruling's table made the
+keypad, the confirm bar **and both deck strips** always-on, and totalled 974 pt against a 667 pt
+device. The error was not the keypad — it was the strips. `§8` puts the six recents **inside the
+sheet**, as *"full-width 64px ruled lines"* above the keys; they were built as two permanent 96 pt
+bands on the page. With them where the design puts them:
+
+| | frame 1 (page) | sheet open |
+|---|---|---|
+| header | 44 | — |
+| record column | **flex** | — |
+| event word line | 64 | — |
+| live row | 128 | — |
+| band | 152 | — |
+| display line | — | 128 |
+| matches | — | **flex** |
+| keypad | — | 336 |
+| create line | — | 64 |
+| **fixed** | **388** | **528** |
+
+667 − 388 = **279** for records, four rows. Sheet open: 667 − 528 = **139** for matches, two rows —
+and the match list giving up rows first is `06 §8.2`'s documented shrink order, not an improvisation.
+
+**Consequence for #90, which is compatible and stays.** The first frame is still entitlement-agnostic:
+nothing on the page branches on `unlocked`, and the export banner and cap row were already the only
+monetisation-adjacent things on the screen. Neither moves.
 
 ### 7.0d The fifth `[exempt]` line. RULED 2026-08-04 (the owner, during N30-T01).
 

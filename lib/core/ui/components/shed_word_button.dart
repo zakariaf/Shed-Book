@@ -76,37 +76,59 @@ final class ShedWordButton extends StatelessWidget {
 
     return Semantics(
       selected: selected,
-      child: ShedTapTarget(
-        semanticLabel: semanticLabel ?? label,
-        minSize: minSize ?? t.tapIndelible,
-        onTap: onTap,
-        child: ExcludeSemantics(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  // THE COLOUR CHANNEL — §7.13's own.
-                  color: selected ? t.textPrimary : t.outline,
-                  // AND THE SHAPE CHANNEL, which is the addition. A reader who
-                  // cannot separate the inks still sees a heavier rule.
-                  width: selected ? t.outlineWidth * 2 : t.outlineWidth,
+      // **THE BUTTON HUGS ITS WORD, AND WITHOUT THIS IT NEVER DID.**
+      //
+      // `ShedTapTarget` wraps its child in `Center`, and `Center` expands to the
+      // maximum width it is offered. In a `Column`, a `Wrap` or any bounded
+      // parent that is the full page — so every word button in this app rendered
+      // as a full-width row with the label centred in it and a rule running the
+      // whole way across underneath.
+      //
+      // That is the shape the owner described on 2026-08-06, looking at the
+      // running app: *"the buttons with a small word and just one line behind
+      // them."* It read as unfinished because it was: `indelible.md §7.13` draws
+      // a word with a rule **under the word**, and `§8` puts five of them on one
+      // line. Five full-width rows is a different control.
+      //
+      // `IntrinsicWidth` is the narrow fix — it tightens to the child's own
+      // intrinsic width, so the 64 pt floor inside `ShedTapTarget` still wins on
+      // a short label and the rule stops where the word does. It costs one extra
+      // layout pass on a handful of words per screen, which is the cheapest of
+      // the available fixes and the only one that leaves the target geometry
+      // exactly where the gates measure it.
+      child: IntrinsicWidth(
+        child: ShedTapTarget(
+          semanticLabel: semanticLabel ?? label,
+          minSize: minSize ?? t.tapIndelible,
+          onTap: onTap,
+          child: ExcludeSemantics(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    // THE COLOUR CHANNEL — §7.13's own.
+                    color: selected ? t.textPrimary : t.outline,
+                    // AND THE SHAPE CHANNEL, which is the addition. A reader who
+                    // cannot separate the inks still sees a heavier rule.
+                    width: selected ? t.outlineWidth * 2 : t.outlineWidth,
+                  ),
                 ),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Center(
-                child: Text(
-                  label,
-                  // THE THIRD CHANNEL: weight, not just ink.
-                  style: selected ? text.titleMedium : text.bodyMedium,
-                  maxLines: 1,
-                  // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned
-                  // (`10 §4.4`): shrinking a legend is how an 18 pt floor
-                  // becomes 9 pt on the one device whose owner turned the text
-                  // up. Five of the six copies omitted this and would clip at
-                  // 200%.
-                  overflow: TextOverflow.ellipsis,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                child: Center(
+                  child: Text(
+                    label,
+                    // THE THIRD CHANNEL: weight, not just ink.
+                    style: selected ? text.titleMedium : text.bodyMedium,
+                    maxLines: 1,
+                    // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned
+                    // (`10 §4.4`): shrinking a legend is how an 18 pt floor
+                    // becomes 9 pt on the one device whose owner turned the text
+                    // up. Five of the six copies omitted this and would clip at
+                    // 200%.
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ),
             ),

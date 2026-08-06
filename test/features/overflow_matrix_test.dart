@@ -270,13 +270,23 @@ void main() {
     );
 
     await withApp(tester, () async {
-      final Finder confirm = find.byKey(const Key('quick_entry.confirm'));
-      expect(confirm, findsOneWidget);
+      // **THE ANCHOR IS THE SLAB, AND IT MOVED AT P16.** It used to be
+      // `quick_entry.confirm` — the confirm bar, which lived on the page because
+      // the keypad did. `indelible.md §8` puts both in the tag sheet, and P16
+      // ruled the sheet closed on frame 1, so that key does not exist on this
+      // screen any more.
+      //
+      // The slab is the better anchor and always was: §8 calls it *"the primary
+      // action"* in as many words — *"Press the slab. One stroke prints in the
+      // lamb column"* — and it is the one target the shepherd aims at without
+      // looking. The confirm bar was only ever standing in for it.
+      final Finder primary = find.byKey(const Key('quick_entry.slab'));
+      expect(primary, findsOneWidget);
 
       expect(
-        tester.getRect(confirm).bottom,
+        tester.getRect(primary).bottom,
         lessThanOrEqualTo(floorOf(tester)),
-        reason: 'the confirm key is behind the home indicator',
+        reason: 'the slab is behind the home indicator',
       );
 
       // **`ScrollableState.position`, NEVER `Scrollable.controller`.** A
@@ -325,7 +335,7 @@ void main() {
       }
 
       expect(
-        insideAScrollable(confirm),
+        insideAScrollable(primary),
         isFalse,
         reason:
             '07 §5.3: the keypad, the confirm bar and the recents strip never give '
@@ -458,7 +468,7 @@ void main() {
       final double floor = floorOf(tester);
       expect(floor, greaterThan(0), reason: 'the floor collapsed — every comparison passes');
 
-      final Rect bar = tester.getRect(find.byKey(const Key('quick_entry.confirm')));
+      final Rect bar = tester.getRect(find.byKey(const Key('quick_entry.slab')));
       expect(bar.bottom <= floor, isTrue, reason: 'the real bar is above the fold');
       expect(
         (floor + 1) <= floor,

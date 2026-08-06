@@ -73,7 +73,18 @@ class DeathDateCell extends StatelessWidget {
               ),
           ],
         ),
-        SizedBox(height: t.gapMin / 4),
+        // **`gapMin`, AND IT WAS 4 pt.** Four is not on `§4.1`'s scale, and it
+        // put two adjacent 64 pt targets 4 pt apart — a mis-tap between *died
+        // today* and *step the date back one day*, which is a wrong date on a
+        // dead lamb.
+        //
+        // The geometric gate was blind to it while `ShedWordButton` expanded to
+        // full width: the three date words each took their own run, so the rect
+        // above the gap was `TWO DAYS AGO`, sitting wide of the `−` arrow. Giving
+        // the button its authored width put `TODAY` over the arrow and the gate
+        // reddened immediately. The gap was always wrong; only the geometry that
+        // exposed it is new.
+        SizedBox(height: t.gapMin),
         // THE STEPPER. Two arrows, each its own target, and the value between
         // them — never a slider and never a drag (both banned outright).
         Row(

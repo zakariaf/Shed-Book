@@ -12,7 +12,7 @@ Two files own all of it: `lib/main.dart` (~20 lines, suspends on nothing) and `l
 ## Non-negotiables
 
 - **`main()` suspends on nothing.** No `async`, no futures awaited, no `overrides:`, no `retry:`. Rule `main.no_await` fails the build on the literal word in `lib/main.dart`.
-- **The first frame is a static dark Quick Entry shell with a fully interactive keypad and no data** (decision #21). Everything else lands after it. Never a spinner (`ui.spinner`).
+- **The first frame is a static dark Quick Entry shell with no data and every target on it live** (decision #21; **P16** struck *fully interactive keypad* — the keypad is in the tag sheet, closed on frame 1). Everything else lands after it. Never a spinner (`ui.spinner`).
 - **No network path, ever — including the error path.** No Crashlytics, Sentry, Bugsnag, analytics. A crash report is a transmission and the transmission *is* the violation; gate G1 fails the moment one is wired up.
 - **Reads throw and propagate to the global net; writes return a sealed `WriteOutcome`.**
 - **One diagnostics sink, `LocalLog.instance`** (R52). `_diagnostics` is a banned identifier; this is the only non-framework `.instance` in `lib/`.

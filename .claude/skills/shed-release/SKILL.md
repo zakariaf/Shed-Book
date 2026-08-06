@@ -132,7 +132,7 @@ channel this app has.
 - **Startup is measured on two physical devices in profile mode, once per release** — the oldest
   supported iPhone and the low-end Android. Profile mode is disabled on emulators and simulators, so
   a number from a hosted runner, a simulator or a debug build is not evidence, and no CI job may ever
-  assert a frame time or a startup latency (§4.6, §6.2). The budget is an interactive keypad **at the
+  assert a frame time or a startup latency (§4.6, §6.2). The budget is an interactive page **at the
   first frame** and first frame ≤ 400 ms after `main()`; a spinner between the tap and the first
   digit is the failure, not the millisecond total.
 

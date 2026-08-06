@@ -359,17 +359,17 @@
   "@indexCloseHint": {
     "description": "Spoken hint on the index sheet's dismiss target."
   },
+  "quickEntryStampEntered": "ENTERED",
+  "@quickEntryStampEntered": {
+    "description": "The margin's SHORT stamp for a time the shepherd typed. indelible-page-and-screens §1.2: an 18px caps-tracked word does not fit the 68px margin cell — six characters is already ~84px — so the long provenance label ('time entered by you') prints in the RECORD COLUMN and the margin keeps only AUTO / ENTERED / EDITED at --t-stamp. Both say the same fact; neither replaces the other."
+  },
+  "quickEntryStampEdited": "EDITED",
+  "@quickEntryStampEdited": {
+    "description": "The margin's short stamp for an edited time (indelible.md §8: the AUTO stamp is replaced by EDITED, and BOTH times stay). Safety rule §12.5 with nothing hidden — the original is never overwritten, in the record or the export."
+  },
   "quickEntrySlabTagFirst": "Tag first",
   "@quickEntrySlabTagFirst": {
     "description": "The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1)."
-  },
-  "quickEntryPennedEmpty": "Nothing penned yet.",
-  "@quickEntryPennedEmpty": {
-    "description": "The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty."
-  },
-  "quickEntryRecentsEmpty": "No recent animals.",
-  "@quickEntryRecentsEmpty": {
-    "description": "The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty."
   },
   "quickEntryDeckUnavailable": "The deck could not be read.",
   "@quickEntryDeckUnavailable": {
@@ -408,27 +408,129 @@
       }
     }
   },
+  "quickEntryEventTreatment": "Treatment",
+  "@quickEntryEventTreatment": {
+    "description": "Event word 2 of 5 on §8's event line. The word is the EVENT, not an intention — never 'Add treatment', never 'Treat'."
+  },
+  "quickEntryEventNote": "Note",
+  "@quickEntryEventNote": {
+    "description": "Event word 3 of 5 on §8's event line."
+  },
+  "quickEntryEventDeath": "Death",
+  "@quickEntryEventDeath": {
+    "description": "Event word 4 of 5. The word is plain and it stays plain: 'Loss', 'Casualty' and 'Mortality' are all softer than the fact, and a record that is coy about a dead lamb is a record somebody has to decode a year later."
+  },
+  "quickEntryEventMovePen": "Move pen",
+  "@quickEntryEventMovePen": {
+    "description": "Event word 5 of 5. Two words, matching indelible.md §8's MOVE PEN — never 'Pen', which reads as a noun."
+  },
+  "quickEntryEventLine": "What happened",
+  "@quickEntryEventLine": {
+    "description": "The event line's group label for a screen reader. It names the QUESTION the five words answer, so the group is announced once and each word is not prefixed with 'event'."
+  },
+  "quickEntrySlabAddLamb": "+ {term}",
+  "@quickEntrySlabAddLamb": {
+    "description": "The corner slab once an animal is chosen (indelible.md §8): one press, one of them, one stroke in the tally. It is the product's central act. Never '+ Add' and never 'New' — the plus already says add. The noun is USER-EDITABLE from the terminology overlay (10 §8.5) and arrives as a placeholder; never hard-code it.",
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "quickEntryTagCell": "Choose an animal",
+  "@quickEntryTagCell": {
+    "description": "Spoken label on the live row's tag cell — the target that opens the tag sheet (§8: 'Tap the TAG cell. The sheet rises 160ms into the bottom half.'). The visible cell shows the tag or the prompt; this says what pressing it does."
+  },
+  "quickEntryTagPrompt": "TAG",
+  "@quickEntryTagPrompt": {
+    "description": "What the live row's tag cell prints before an animal is chosen. A word in the pixels the tag will occupy — never a placeholder inside a field, and never blank, because a blank reads as missing data rather than as nothing-chosen-yet."
+  },
+  "quickEntryTagSheetHeading": "{count, plural, =0{Tag · no matches} =1{Tag · 1 match} other{Tag · {count} matches}}",
+  "@quickEntryTagSheetHeading": {
+    "description": "The tag sheet's heading line (indelible.md §8: 'TAG · 3 MATCHES · IN THE PENS FIRST'). It states the count so a shepherd knows whether the list below is everything.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "quickEntryTagSheetCreate": "No such tag — write {tag} into the book",
+  "@quickEntryTagSheetCreate": {
+    "description": "The sheet's LAST PRINTED LINE, present even when there are matches (indelible.md §8): 'at 3am the ewe you are holding might genuinely be a tag you have never entered and the app must never stop to make you go and set something up first.' Never a modal, never a confirm.",
+    "placeholders": {
+      "tag": {
+        "type": "String"
+      }
+    }
+  },
+  "quickEntryTagSheetCreateEmpty": "Type a tag, or press one above",
+  "@quickEntryTagSheetCreateEmpty": {
+    "description": "The create line before any digit is typed, when there is no tag to write into the book. It names both routes because pressing a listed animal is the common case and costs one tap."
+  },
+  "quickEntryTagSheetPennedFirst": "In the pens first",
+  "@quickEntryTagSheetPennedFirst": {
+    "description": "The second half of the tag sheet's heading, printed only while the list is the recents rather than typed matches. indelible.md §8 orders penned animals first because a ewe in a pen is the one you are most likely to be standing in front of at 03:20."
+  },
+  "quickEntryTagSheetInPen": "In {pen}",
+  "@quickEntryTagSheetInPen": {
+    "description": "A sheet row's summary for a penned animal (indelible.md §8: '412 · penned 2h · pen 4'). Naming the pen is what makes a row worth pressing rather than reading — it is how a shepherd tells two similar tags apart.",
+    "placeholders": {
+      "pen": {
+        "type": "String"
+      }
+    }
+  },
+  "quickEntryTagSheetSeenRecently": "Seen recently",
+  "@quickEntryTagSheetSeenRecently": {
+    "description": "A sheet row's summary for an animal in the recents bucket rather than a pen. It states what the deck actually knows and NOT a history it has not read — never 'lambed yesterday · twins' unless that was queried."
+  },
+  "quickEntryTagSheetReading": "Reading the book…",
+  "@quickEntryTagSheetReading": {
+    "description": "The tag sheet before the deck has been read — frame 1, when the database has not opened yet (decision #21). DISTINCT from the empty copy, and the distinction is the day-one bug: an empty list means the book WAS read and there is nothing in it, and collapsing the two tells a shepherd on their first night that the app lost their flock."
+  },
+  "quickEntryTagSheetNoAnimals": "No animals in the book yet",
+  "@quickEntryTagSheetNoAnimals": {
+    "description": "The tag sheet when the deck has been read and is genuinely empty. It never blocks: the create line below is still there, which is how the first ewe of the first season gets written."
+  },
+  "quickEntryTagSheetClose": "Close",
+  "@quickEntryTagSheetClose": {
+    "description": "The tag sheet's dismiss word (indelible.md §7.16's 88x64 CLOSE). Never 'Cancel' — nothing is being cancelled, the sheet just goes away and the digits stay."
+  },
+  "quickEntryTagSheetCloseHint": "Close the tag sheet",
+  "@quickEntryTagSheetCloseHint": {
+    "description": "Spoken hint on the tag sheet's dismiss target."
+  },
+  "quickEntryDerivedSingle": "Single",
+  "@quickEntryDerivedSingle": {
+    "description": "Birth type derived from one stroke (P8 — there is no chooser anywhere). Sentence case, because it prints as a value in the record voice rather than as a stamp."
+  },
+  "quickEntryDerivedTwin": "Twin",
+  "@quickEntryDerivedTwin": {
+    "description": "Birth type derived from two strokes."
+  },
+  "quickEntryDerivedTriplet": "Triplet",
+  "@quickEntryDerivedTriplet": {
+    "description": "Birth type derived from three strokes."
+  },
+  "quickEntryDerivedMultiple": "{count} {term}",
+  "@quickEntryDerivedMultiple": {
+    "description": "Four or more strokes. English has no single word past triplet that a shepherd uses, and inventing 'quadruplet' would be the app choosing a term the terminology table cannot edit. The plural noun is user-editable and arrives as a placeholder (10 §8.5); ICU cannot pluralise a runtime string, so the caller supplies the plural form.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "quickEntryDerivedStamp": "COUNTED",
+  "@quickEntryDerivedStamp": {
+    "description": "The unboxed stamp beside a derived birth type (indelible.md §6, ruling P8). Unboxed because it is a note about the RECORD, not a state of the animal. It is what turns safety rule §12.4 from a validation routine into structure: the app never picked, it counted."
+  },
   "quickEntryLambing": "Lambing",
   "@quickEntryLambing": {
     "description": "The event button that begins a lambing. It is the product's central write: the tap commits the row BEFORE any screen is pushed, so the label names the event rather than an intention — never 'New lambing', never 'Record lambing'."
-  },
-  "quickEntryConfirmCreate": "Create {tag}",
-  "@quickEntryConfirmCreate": {
-    "description": "The confirm key when the typed tag matches no active animal. Labelled with the OUTCOME, never a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to remember what they were confirming.",
-    "placeholders": {
-      "tag": {
-        "type": "String"
-      }
-    }
-  },
-  "quickEntryConfirmUse": "Use {tag}",
-  "@quickEntryConfirmUse": {
-    "description": "The confirm key when the typed tag matches an existing active animal. The counterpart to quickEntryConfirmCreate — the two words are the whole difference between finding an animal and making one.",
-    "placeholders": {
-      "tag": {
-        "type": "String"
-      }
-    }
   },
   "quickEntryStrike": "STRIKE",
   "@quickEntryStrike": {
@@ -835,6 +937,14 @@
   "lambingEntryVoiceSilent": "NOT HEARING ANYTHING",
   "@lambingEntryVoiceSilent": {
     "description": "The other half. Silence during a voice note is worth saying out loud: the recording is still running and still being written, and the shepherd is the only one who can tell whether that is right."
+  },
+  "lambingEntryPhotoFailed": "The camera did not open. Nothing was written.",
+  "@lambingEntryPhotoFailed": {
+    "description": "Shown when the camera could not be reached at all — no camera on the device, or the picker threw. It states the fact and names the consequence, because the shepherd's real question is whether anything was saved. NOT shown when they simply backed out of the picker: that is a decision, not a failure, and rendering it as an error tells somebody they did something wrong when they did not."
+  },
+  "lambingEntryVoiceFailed": "The recording did not start. Nothing was written.",
+  "@lambingEntryVoiceFailed": {
+    "description": "Shown when the recorder threw after the row was opened. DISTINCT from lambingEntryVoiceNoPermission: 'no microphone' is answerable (the OS prompt), 'it did not start' is not, and collapsing them would send a shepherd to a settings screen that cannot help."
   },
   "lambingEntryVoiceNoPermission": "The microphone is not available.",
   "@lambingEntryVoiceNoPermission": {

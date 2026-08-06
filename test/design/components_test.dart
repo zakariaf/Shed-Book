@@ -1636,7 +1636,7 @@ void main() {
     final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
     expect(height, greaterThan(viewport * 9 / 16));
-    expect(ShedBottomSheet.viewportFraction, 0.6);
+    expect(ShedBottomSheet.defaultViewportFraction, 0.6);
   });
 
   testWidgets('a chooser sheet is content-height', (WidgetTester tester) async {
@@ -1644,7 +1644,7 @@ void main() {
     final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
     final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
-    expect(height, lessThan(viewport * ShedBottomSheet.viewportFraction));
+    expect(height, lessThan(viewport * ShedBottomSheet.defaultViewportFraction));
   });
 
   testWidgets('the sheet renders at textScale 2.0 with boldText with no overflow', (

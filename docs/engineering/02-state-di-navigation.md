@@ -361,7 +361,7 @@ final penBoardProvider = StreamProvider<List<PenTile>>((ref) async* {
 });
 ```
 
-During boot every one of these is `AsyncLoading`, which is exactly what the first-frame design wants: a dark shell with a fully interactive keypad and fixed-height placeholders where data will land.
+During boot every one of these is `AsyncLoading`, which is exactly what the first-frame design wants: a dark shell with every target live and fixed-height placeholders where data will land. **P16**: the keypad is not one of them — it is in the tag sheet, closed on frame 1 — so the page's own targets carry decision #21's *not a loading state* property.
 
 ### 5.2 Production has no overrides
 
@@ -825,7 +825,7 @@ The policy itself:
 - **Under 2 minutes:** stay where you are, keep the selection. You put the phone down to grab a towel.
 - **2 minutes or more:** land on Quick Entry with nothing selected.
 
-**Case B — the process was killed** (very plausible on a 3 GB phone after the camera, a torch app and a browser). Full cold start: `main()` awaits nothing, the dark Quick Entry shell paints with a fully interactive keypad, the database opens on the first post-frame callback, and the recents strip fills in. Nothing else is restored, and nothing else needs to be.
+**Case B — the process was killed** (very plausible on a 3 GB phone after the camera, a torch app and a browser). Full cold start: `main()` awaits nothing, the dark Quick Entry shell paints with every target live, the database opens on the first post-frame callback, and tonight's page fills in. (The recents are in the tag sheet after **P16**, not on the page.) Nothing else is restored, and nothing else needs to be.
 
 **Both cases land in the same place, which is the point.** There is one resume path to design, one to test and one to reason about at 3am.
 

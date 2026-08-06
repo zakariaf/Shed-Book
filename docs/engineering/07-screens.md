@@ -110,7 +110,7 @@ Spec §5 bans onboarding after first run. The reading that ships: **there is no 
 
 ### 2.1 What actually happens on the very first launch
 
-1. `main()` awaits nothing; the first frame is the dark Quick Entry shell with a **fully interactive keypad and no data** (decision #21).
+1. `main()` awaits nothing; the first frame is the dark Quick Entry shell with **no data and every target on it live** — tonight's records, the five event words, the TAG cell, `INDEX` and the slab (**P16** struck the *fully interactive keypad*: the keypad is in the tag sheet, which is closed on frame 1) (decision #21).
 2. The database opens on the first post-frame callback. Its `onCreate` inserts one `Season` from the device clock — `year = now.year`, `label = "<year> lambing"`, `startDate = today` — and sets `app_settings.current_season` to it **in the same transaction** (decision #42). The user is asked nothing.
 3. Pens do not exist yet. They are created lazily on first use (§9.5).
 4. **No permission is requested.** Not notifications (§11.5), not camera or microphone (first photo/voice tap), not billing (Unlock/Restore only).

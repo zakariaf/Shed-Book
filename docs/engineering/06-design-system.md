@@ -1426,7 +1426,7 @@ SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
 ));
 ```
 
-The first frame is a **static dark Quick Entry shell with a fully interactive keypad and no data** (decision #21). Nothing is awaited before `runApp()`. Because every palette is dark, a wrong first frame is a dark first frame — that is a deliberate property, not luck. Frame-1 placeholders (recents strip, "in the pens" list) are fixed-height `surfaceRaised` blocks so nothing shifts when data arrives, and **there is never a spinner**.
+The first frame is a **static dark Quick Entry shell with no data and every target on it live** (decision #21, as amended by **P16** — the keypad is in the tag sheet and the sheet is closed). Nothing is awaited before `runApp()`. Because every palette is dark, a wrong first frame is a dark first frame — that is a deliberate property, not luck. Frame-1 placeholders are fixed-height blocks so nothing shifts when data arrives — tonight's ruled rows on the page, and the recents inside the tag sheet once it is open, and **there is never a spinner**.
 
 **Do not add a minimum splash duration**, and do not adopt `flutter_native_splash`: it is a generator that would own the files above as a second source of truth, and its maintainer has been publicly seeking a new owner since March 2026.
 

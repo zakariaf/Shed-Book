@@ -26,6 +26,8 @@ import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/domain/time/recorded_time.dart';
+import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// One ruled line per lambing, most recent first.
@@ -105,26 +107,28 @@ class TonightRows extends ConsumerWidget {
                     // IT** (`§4.3`, `§12.5`). The stamp is not an exempt stamp —
                     // it is the sole statement of the §12.5 claim on its line —
                     // so it renders at the 18 px floor in `labelMedium`.
-                    SizedBox(
+                    // **THE COMPONENT, NOT A COPY.** `QuickEntryMarginCell`
+                    // is §4.3's cell, and it holds the measured reason its
+                    // height is a minimum rather than 64.
+                    //
+                    // **THE SHORT STAMP, NOT THE PROVENANCE SENTENCE.**
+                    // `indelible-page-and-screens §1.2` owns this and it is
+                    // arithmetic: an 18 px caps-tracked word does not fit the
+                    // 68 px margin — six characters is already ~84 px. Shipped
+                    // with `provenanceLabel`, the margin read `recor…` on a
+                    // simulator, which states nothing at all and is a worse
+                    // §12.5 outcome than the four-letter stamp. The long label
+                    // is not lost: it prints in the RECORD COLUMN on Lambing
+                    // Entry, where it has the width.
+                    QuickEntryMarginCell(
+                      time: formatShedTime(row.at.effective, locale),
+                      stampAuto: switch (row.at.source) {
+                        TimeSource.autoCaptured => l10n.quickEntryStampAuto,
+                        TimeSource.userEntered => l10n.quickEntryStampEntered,
+                        TimeSource.userEdited => l10n.quickEntryStampEdited,
+                      },
                       width: kMarginWidth,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            formatShedTime(row.at.effective, locale),
-                            style: text.labelMedium?.copyWith(
-                              color: row.struck ? t.textSecondary : t.textPrimary,
-                            ),
-                          ),
-                          Text(
-                            row.at.provenanceLabel,
-                            style: text.labelSmall?.copyWith(color: t.textSecondary),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
+                      height: kRecordRowHeight,
                     ),
                     Expanded(
                       child: Text(

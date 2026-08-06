@@ -269,13 +269,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get indexCloseHint => 'Close the index';
 
   @override
+  String get quickEntryStampEntered => 'ENTERED';
+
+  @override
+  String get quickEntryStampEdited => 'EDITED';
+
+  @override
   String get quickEntrySlabTagFirst => 'Tag first';
-
-  @override
-  String get quickEntryPennedEmpty => 'Nothing penned yet.';
-
-  @override
-  String get quickEntryRecentsEmpty => 'No recent animals.';
 
   @override
   String get quickEntryDeckUnavailable => 'The deck could not be read.';
@@ -296,17 +296,93 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get quickEntryEventTreatment => 'Treatment';
+
+  @override
+  String get quickEntryEventNote => 'Note';
+
+  @override
+  String get quickEntryEventDeath => 'Death';
+
+  @override
+  String get quickEntryEventMovePen => 'Move pen';
+
+  @override
+  String get quickEntryEventLine => 'What happened';
+
+  @override
+  String quickEntrySlabAddLamb({required String term}) {
+    return '+ $term';
+  }
+
+  @override
+  String get quickEntryTagCell => 'Choose an animal';
+
+  @override
+  String get quickEntryTagPrompt => 'TAG';
+
+  @override
+  String quickEntryTagSheetHeading({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tag · $count matches',
+      one: 'Tag · 1 match',
+      zero: 'Tag · no matches',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String quickEntryTagSheetCreate({required String tag}) {
+    return 'No such tag — write $tag into the book';
+  }
+
+  @override
+  String get quickEntryTagSheetCreateEmpty => 'Type a tag, or press one above';
+
+  @override
+  String get quickEntryTagSheetPennedFirst => 'In the pens first';
+
+  @override
+  String quickEntryTagSheetInPen({required String pen}) {
+    return 'In $pen';
+  }
+
+  @override
+  String get quickEntryTagSheetSeenRecently => 'Seen recently';
+
+  @override
+  String get quickEntryTagSheetReading => 'Reading the book…';
+
+  @override
+  String get quickEntryTagSheetNoAnimals => 'No animals in the book yet';
+
+  @override
+  String get quickEntryTagSheetClose => 'Close';
+
+  @override
+  String get quickEntryTagSheetCloseHint => 'Close the tag sheet';
+
+  @override
+  String get quickEntryDerivedSingle => 'Single';
+
+  @override
+  String get quickEntryDerivedTwin => 'Twin';
+
+  @override
+  String get quickEntryDerivedTriplet => 'Triplet';
+
+  @override
+  String quickEntryDerivedMultiple({required int count, required String term}) {
+    return '$count $term';
+  }
+
+  @override
+  String get quickEntryDerivedStamp => 'COUNTED';
+
+  @override
   String get quickEntryLambing => 'Lambing';
-
-  @override
-  String quickEntryConfirmCreate({required String tag}) {
-    return 'Create $tag';
-  }
-
-  @override
-  String quickEntryConfirmUse({required String tag}) {
-    return 'Use $tag';
-  }
 
   @override
   String get quickEntryStrike => 'STRIKE';
@@ -570,6 +646,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lambingEntryVoiceSilent => 'NOT HEARING ANYTHING';
+
+  @override
+  String get lambingEntryPhotoFailed => 'The camera did not open. Nothing was written.';
+
+  @override
+  String get lambingEntryVoiceFailed => 'The recording did not start. Nothing was written.';
 
   @override
   String get lambingEntryVoiceNoPermission => 'The microphone is not available.';

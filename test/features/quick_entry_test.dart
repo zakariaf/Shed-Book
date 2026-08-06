@@ -21,7 +21,6 @@ import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/time/instant.dart';
 import 'package:flutter/material.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
-import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/feedback.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_screen.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
@@ -198,7 +197,7 @@ void main() {
   });
 
   _shellTests();
-  _stripTests();
+  // _stripTests() went with the strips — see the block above its old home.
   _writePathTests();
 
   test('an empty query matches nothing', () async {
@@ -221,15 +220,24 @@ void main() {
 
 /// The named boxes the shell reserves. A failure names WHICH box moved, which is
 /// the whole reason they are enumerated rather than compared as a tree.
+/// **THE PAGE'S BOXES, AND THE LIST CHANGED AT P16.**
+///
+/// It used to name the two deck strips, the keypad and the confirm bar. `§8`
+/// puts all four in the tag sheet and P16 ruled the sheet closed on frame 1, so
+/// none of them is on this screen — and a rect anchor over widgets that do not
+/// exist is an anchor that reddens for the right reason and then gets deleted
+/// for the wrong one.
+///
+/// `quick_entry.margin_cell` came off for a different reason: it is now the same
+/// component in every record row AND in the live row, so the finder matches many
+/// and `getRect` needs exactly one. The live row pins it.
 const List<String> _shellBoxes = <String>[
   'quick_entry.page_header',
   'quick_entry.spine',
-  'quick_entry.margin_cell',
-  'quick_entry.penned_strip',
-  'quick_entry.recents_strip',
-  'quick_entry.keypad',
-  'quick_entry.confirm',
+  'quick_entry.event_line',
+  'quick_entry.live_row',
   'quick_entry.bottom_band',
+  'quick_entry.index',
   'quick_entry.slab',
 ];
 
@@ -252,15 +260,27 @@ void _shellTests() {
           for (final String id in _shellBoxes) id: tester.getRect(find.byKey(Key(id))),
         };
 
+        // **FRAME 2 NEEDS RECORDS NOW, NOT JUST A DECK.** The deck used to fill
+        // two strips on this page; since P16 it fills the tag sheet, which is a
+        // route away. What arrives on the PAGE between frame 1 and frame 2 is
+        // tonight's lambings — so those are what frame 2 must have, or the two
+        // frames are identical and the anchor asserts nothing.
         final PenId pen = await seedPen(db, label: 'A');
         for (int i = 0; i < 6; i++) {
           final EweId e = await seedEwe(db, tag: '40$i');
           await seedTouch(db, e);
+          await seedLambing(db, e);
           if (i == 0) {
             await seedPenOccupancy(db, pen, e);
           }
         }
         await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('quick_entry.tonight.empty')),
+          findsNothing,
+          reason: 'frame 2 has no records, so it is frame 1 twice',
+        );
 
         for (final String id in _shellBoxes) {
           expect(
@@ -356,17 +376,35 @@ void _shellTests() {
     await tester.closeApp();
   });
 
-  testWidgets('frame 1 is interactive — the keypad works before the database opens', (
+  testWidgets('frame 1 is interactive — the page works before the database opens', (
     WidgetTester tester,
   ) async {
-    // Decision #21's whole promise, and the reason the sheet is OPEN on frame 1
-    // rather than waiting for a tap. The keypad watches nothing and needs
-    // nothing, so it is usable on the first painted frame.
+    // **DECISION #21, AS AMENDED BY P16.** #21's subject is the bootstrap:
+    // nothing awaited, no splash, no white flash, a dark frame before the
+    // database has opened. Its illustrative clause — *"a fully interactive
+    // keypad"* — is struck, because `indelible.md §8` puts the keypad in the tag
+    // sheet and the sheet is closed on frame 1.
+    //
+    // **THE PROPERTY IS UNCHANGED AND THIS IS THE STRONGER TEST OF IT.** #21 is
+    // protecting *the first frame is not a loading state*, and the page proves
+    // that better than one control did: the live row, the five event words,
+    // `INDEX` and the slab are all there and all live, none of them waiting on
+    // data. Pressing the TAG cell reaches the keypad on the very first frame,
+    // which is what the old assertion was really claiming.
     final AppDatabase db = testDatabase();
     await tester.pumpApp(const QuickEntryScreen(), db: db);
 
-    expect(find.byKey(const Key('quick_entry.entry_sheet')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.live_row')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.slab')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.index')), findsOneWidget);
+    expect(find.byKey(const Key('quick_entry.event.lambing')), findsOneWidget);
+
+    // No pumpAndSettle before this: the tap lands on the FIRST painted frame,
+    // with no database behind it.
+    await tester.tap(find.byKey(const Key('quick_entry.live_row.tag_cell')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
+
     await tester.tap(find.byKey(const Key('quick_entry.keypad.digit_4')));
     await tester.pump();
     expect(tester.takeException(), isNull);
@@ -374,148 +412,30 @@ void _shellTests() {
   });
 }
 
-void _stripTests() {
-  testWidgets('the penned strip is ascending by entered_at and each strip has its own empty '
-      'copy', (WidgetTester tester) async {
-    // THE ANCHOR, in two halves that fail separately.
-    //
-    // HALF 1 — ORDERING. Four occupancies seeded in a deliberately shuffled
-    // order, read top to bottom. The oldest must be first, because the
-    // longest-penned ewe is the one you are standing next to (07 §5.2).
-    // Rendering both strips newest-first feels tidier and is wrong.
-    final AppDatabase db = testDatabase();
-    final Instant base = Instant.fromDateTime(DateTime.utc(2026, 3, 1, 3, 20));
-
-    final List<(String, int)> shuffled = <(String, int)>[
-      ('twelve', -12 * 60),
-      ('thirtyOne', -31 * 60),
-      ('forty', -40),
-      ('four', -4 * 60),
-    ];
-    for (final (String label, int mins) in shuffled) {
-      final PenId pen = await seedPen(db, label: label);
-      final EweId e = await seedEwe(db, tag: '${100 - mins}');
-      await seedPenOccupancy(db, pen, e, enteredAt: base.plus(Duration(minutes: mins)));
-    }
-
-    await tester.pumpApp(const QuickEntryScreen(), db: db);
-    await tester.pumpAndSettle();
-
-    final List<String> pens = tester
-        .widgetList<ShedAnimalRow>(
-          find.descendant(
-            of: find.byKey(const Key('quick_entry.penned_strip')),
-            matching: find.byType(ShedAnimalRow),
-          ),
-        )
-        .map((ShedAnimalRow r) => r.summary)
-        .toList();
-
-    // A PREFIX, NOT THE WHOLE LIST, AND THE REASON IS A CONFLICT WORTH NAMING.
-    // indelible.md §7.15 wants SIX full-width 64 px ruled lines per bucket —
-    // 384 pt each, 768 for both — and the page has 96 pt per strip to give
-    // before it over-commits the viewport again (see the screen's own header for
-    // that arithmetic). So the box shows one or two rows and the ListView builds
-    // only those.
-    //
-    // What this case is FOR is the ORDERING, and the prefix tests it completely:
-    // if the strip were descending, the first row would be `forty`. The bucket's
-    // full six-row content is asserted at the repository tier, where no box
-    // clips it.
-    expect(
-      pens.first,
-      'thirtyOne',
-      reason: 'longest-penned first — the one you are standing next to (07 §5.2)',
-    );
-    expect(
-      pens,
-      <String>['thirtyOne', 'twelve', 'four', 'forty'].take(pens.length).toList(),
-      reason: 'ascending, in order, as far as the box shows',
-    );
-
-    await tester.closeApp();
-  });
-
-  testWidgets('the two empty strings are distinct and land in the right box', (
-    WidgetTester tester,
-  ) async {
-    // HALF 2. A single shared "Nothing here yet" passes a careless test and is
-    // the defect this case exists to catch: it tells a shepherd nothing about
-    // WHICH list is empty.
-    final AppDatabase db = testDatabase();
-
-    // Neither bucket.
-    await tester.pumpApp(const QuickEntryScreen(), db: db);
-    await tester.pumpAndSettle();
-    expect(find.text('Nothing penned yet.'), findsOneWidget);
-    expect(find.text('No recent animals.'), findsOneWidget);
-    await tester.closeApp();
-
-    // Recents only.
-    final AppDatabase db2 = testDatabase();
-    final EweId e = await seedEwe(db2, tag: '412');
-    await seedTouch(db2, e);
-    await tester.pumpApp(const QuickEntryScreen(), db: db2);
-    await tester.pumpAndSettle();
-    expect(find.text('Nothing penned yet.'), findsOneWidget);
-    expect(find.text('No recent animals.'), findsNothing);
-    await tester.closeApp();
-
-    // Penned only. A pen occupancy does not touch the ewe, so recents stays
-    // empty — which is what makes this the mirror case rather than a repeat.
-    final AppDatabase db3 = testDatabase();
-    final PenId pen = await seedPen(db3, label: 'A');
-    final EweId e3 = await seedEwe(db3, tag: '128');
-    await seedPenOccupancy(db3, pen, e3);
-    await tester.pumpApp(const QuickEntryScreen(), db: db3);
-    await tester.pumpAndSettle();
-    expect(find.text('Nothing penned yet.'), findsNothing);
-    expect(find.text('No recent animals.'), findsOneWidget);
-    await tester.closeApp();
-  });
-
-  testWidgets('neither strip scrolls horizontally', (WidgetTester tester) async {
-    // THE RULING, ASSERTED. 07 §5.1 draws the strips as "fixed height,
-    // horizontally scrolling"; indelible.md §7.15 draws six full-width ruled
-    // lines, and CLAUDE.md's gesture ban names "drag and drag handles". A
-    // lateral drag on a 64 pt element is that gesture, and NO GATE ROW CATCHES
-    // IT — a horizontal scroll direction is not a banned identifier, so it would
-    // have shipped silently. Both buckets are LIMIT 6 in SQL, so there is
-    // nothing to scroll to.
-    final AppDatabase db = testDatabase();
-    final PenId pen = await seedPen(db, label: 'A');
-    final EweId e = await seedEwe(db, tag: '412');
-    await seedPenOccupancy(db, pen, e);
-    await seedTouch(db, e);
-
-    await tester.pumpApp(const QuickEntryScreen(), db: db);
-    await tester.pumpAndSettle();
-
-    for (final Scrollable s in tester.widgetList<Scrollable>(find.byType(Scrollable))) {
-      expect(s.axisDirection, isNot(AxisDirection.right), reason: 'no horizontal scroll');
-      expect(s.axisDirection, isNot(AxisDirection.left), reason: 'no horizontal scroll');
-    }
-
-    await tester.closeApp();
-  });
-
-  testWidgets('the recents strip watches no ticker', (WidgetTester tester) async {
-    // 07 §5.2: the recents strip shows no time at all, so watching the minute
-    // tick there would rebuild six rows every sixty seconds to change nothing.
-    // Source text, because "does not watch" has no runtime signature.
-    final String source = File(
-      'lib/features/quick_entry/widgets/recents_strip.dart',
-    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
-
-    expect(source, isNot(contains('minuteTickProvider')));
-    expect(source, isNot(contains('ticker')));
-  });
-}
+// **`_stripTests` IS GONE, AND SO ARE THE STRIPS.**
+//
+// The deck's two buckets rendered as permanent 96 pt bands on this page. `§8`
+// puts them INSIDE the tag sheet, as full-width 64 px ruled lines above the
+// keypad — *"one press of a recent line is the whole selection. That is the
+// common case and it costs one tap"* — and P16's arithmetic only works because
+// they moved there. `InPensStrip` and `RecentsStrip` were deleted with them.
+//
+// **Two properties they held were moved rather than dropped**, because both were
+// real and neither was about a strip:
+//
+//   * *null is not empty.* Frame 1 has not read the database; an empty list means
+//     it WAS read and there is nothing in it. Collapsing the two tells a shepherd
+//     on their first night that the app lost their flock. `TagSheetBody` now
+//     picks between `quickEntryTagSheetReading` and `quickEntryTagSheetNoAnimals`.
+//
+//   * *penned first, and each bucket has its own copy.* The sheet lists penned
+//     animals ahead of recents and deduplicates a ewe who is both.
+//
+// The third — *the strip occupies the same height empty and full* — belonged to
+// the page's immovable boxes, and `_shellBoxes` holds that directly now.
 
 void _writePathTests() {
-  testWidgets('a double tap on the lambing verb creates exactly one lambing', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('a double tap on the slab creates exactly one lambing', (WidgetTester tester) async {
     // THE ANCHOR, AND THE SHAPE OF THE TAPS IS THE TEST. NO PUMP BETWEEN THEM:
     // 02 §7.1 rule 4 spells out why — with a pump in the middle the first write
     // completes, state becomes WriteDone, and the second tap legitimately
@@ -536,21 +456,31 @@ void _writePathTests() {
     // Select her first — the verb is a no-op with nothing selected, which is
     // itself the "does the shepherd have to do anything new?" answer.
     final ProviderContainer container = ProviderScope.containerOf(
-      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+      // **THE SLAB, NOT THE KEYPAD.** The keypad moved into the tag sheet at
+      // P16 and is not on the page until the sheet is open; the slab is one of
+      // the two thumb anchors and is on every frame.
+      tester.element(find.byKey(const Key('quick_entry.slab'))),
     );
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
-    await tester.tap(lambing);
-    await tester.tap(lambing);
+    // **THE SLAB IS THE CENTRAL WRITE SINCE P16**, and it was `() {}` before it:
+    // `§8`'s *"Press the slab. One stroke prints in the lamb column"* had no
+    // handler at all, so this anchor was guarding a verb the shepherd could not
+    // reach from the page.
+    final Finder slab = find.byKey(const Key('quick_entry.slab'));
+    await tester.tap(slab);
+    await tester.tap(slab);
     await tester.pumpAndSettle();
 
     expect(await countLambings(db), 1);
+    // One lamb, not two. `addLamb` opens the row and lands the first lamb inside
+    // ONE `guard()`, so a double-fire cannot slip a second stroke past it either.
+    expect(await db.select(db.lambs).get(), hasLength(1));
     await tester.closeApp();
   });
 
-  testWidgets('a second tap after the first completes creates a second lambing', (
+  testWidgets('a second tap after the first completes lands a second lamb on the same row', (
     WidgetTester tester,
   ) async {
     // 02 §7.1 rule 1: guard() prevents CONCURRENCY, NOT REPETITION. Stated as a
@@ -565,47 +495,62 @@ void _writePathTests() {
     await tester.pumpAndSettle();
 
     final ProviderContainer container = ProviderScope.containerOf(
-      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+      // **THE SLAB, NOT THE KEYPAD.** The keypad moved into the tag sheet at
+      // P16 and is not on the page until the sheet is open; the slab is one of
+      // the two thumb anchors and is on every frame.
+      tester.element(find.byKey(const Key('quick_entry.slab'))),
     );
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    // **THE POP BETWEEN THE TWO TAPS IS THE FLOW, NOT A TEST TRICK.** Since the
-    // Lambing tap started pushing Lambing Entry — `CLAUDE.md`'s *calls
-    // `beginLambing(ewe)` before Lambing Entry is pushed*, which this screen had
-    // never done — the button is behind a route after the first tap. A shepherd
-    // recording a ewe's second lambing comes back to Quick Entry first, so the
-    // test does too.
-    final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
-    await tester.tap(lambing);
+    // **THE ROW STAYS OPEN, AND THAT IS THE PRODUCT** (`§8`): *"A lambing is a
+    // forty-minute window, not a form-filling event. You put the phone in your
+    // pocket, deliver the second lamb, take the phone out again, and press the
+    // same slab without reselecting anyone."*
+    //
+    // So the property this anchor was written for is intact and sharper: `guard()`
+    // prevents CONCURRENCY, not REPETITION — a second press after the first has
+    // completed writes, and what it writes is the right thing. Before P16 it
+    // would have opened a second lambing, and a set of twins would have been
+    // filed as two singles.
+    //
+    // Nothing pops between the taps any more, because the slab opens no screen.
+    // That is `§8`'s three-taps-six-seconds claim: the shepherd never leaves the
+    // page.
+    final Finder slab = find.byKey(const Key('quick_entry.slab'));
+    await tester.tap(slab);
+    await tester.pumpAndSettle();
+    await tester.tap(slab);
     await tester.pumpAndSettle();
 
-    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
-    nav.pop();
-    await tester.pumpAndSettle();
-
-    await tester.tap(lambing);
-    await tester.pumpAndSettle();
-
-    expect(await countLambings(db), 2);
+    expect(await countLambings(db), 1);
+    expect(await db.select(db.lambs).get(), hasLength(2));
     await tester.closeApp();
   });
 
-  testWidgets('the lambing verb is a no-op with nothing selected', (WidgetTester tester) async {
-    // Not a disabled button — no key is ever disabled. Pressing it with no
-    // animal chosen simply writes nothing, because there is nothing to write it
-    // against, and a dead-looking control under a cold thumb is worse than one
-    // that does nothing quietly.
+  testWidgets('the unarmed slab opens the tag sheet and writes nothing', (
+    WidgetTester tester,
+  ) async {
+    // **NOT A DISABLED BUTTON, AND NOT A DEAD ONE EITHER.** `§7.2`: *"No key is
+    // ever disabled — a dead key under a cold thumb is indistinguishable from a
+    // missed tap."* `§8` gives the slab's unarmed label as `TAG FIRST`, and the
+    // ARB description for it is explicit that *pressing it opens the tag sheet
+    // rather than doing nothing*.
+    //
+    // So the assertion is BOTH halves: nothing is written, and something visibly
+    // happens. Asserting only the first would pass on a slab that did nothing at
+    // all, which is the failure this test exists to prevent.
     final AppDatabase db = testDatabase();
     await _seedCurrentSeason(db);
 
     await tester.pumpApp(const QuickEntryScreen(), db: db);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
+    await tester.tap(find.byKey(const Key('quick_entry.slab')));
     await tester.pumpAndSettle();
 
     expect(await countLambings(db), 0);
+    expect(find.byKey(const Key('quick_entry.tag_sheet')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.closeApp();
   });
@@ -643,7 +588,10 @@ void _writePathTests() {
     await tester.pumpAndSettle();
 
     final ProviderContainer container = ProviderScope.containerOf(
-      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+      // **THE SLAB, NOT THE KEYPAD.** The keypad moved into the tag sheet at
+      // P16 and is not on the page until the sheet is open; the slab is one of
+      // the two thumb anchors and is on every frame.
+      tester.element(find.byKey(const Key('quick_entry.slab'))),
     );
     await atFixed(
       DateTime.utc(2026, 3, 14, 14),
@@ -671,28 +619,38 @@ void _writePathTests() {
     await tester.pumpAndSettle();
 
     final ProviderContainer container = ProviderScope.containerOf(
-      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+      // **THE SLAB, NOT THE KEYPAD.** The keypad moved into the tag sheet at
+      // P16 and is not on the page until the sheet is open; the slab is one of
+      // the two thumb anchors and is on every frame.
+      tester.element(find.byKey(const Key('quick_entry.slab'))),
     );
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
-    await tester.pumpAndSettle();
-
-    // **POPPED BACK, AND THERE IS AN OPEN QUESTION UNDER THIS.** Since the
-    // Lambing tap started pushing Lambing Entry, the receipt is published on a
-    // screen the shepherd immediately leaves — so in the real flow the
-    // twenty-second strike window is behind a route. The property this case
-    // asserts is unchanged and still worth holding; where the affordance should
-    // LIVE now is a design question, recorded rather than answered here.
-    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
-    nav.pop();
+    // **THE SLAB, AND THE OPEN QUESTION UNDER THIS CLOSED AT P16.** While the
+    // Lambing tap pushed Lambing Entry, the receipt was published on a screen the
+    // shepherd immediately left, so the twenty-second window sat behind a route
+    // and this case had to pop back to see it. The slab opens nothing: the write
+    // lands and the shepherd is still on the page, one line under the row they
+    // just wrote — which is `§8`'s mechanism working rather than being described.
+    await tester.tap(find.byKey(const Key('quick_entry.slab')));
     await tester.pumpAndSettle();
 
     // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
     // a changed constant changes the copy or this fails.
     expect(find.byKey(const Key('quick_entry.strike')), findsOneWidget);
-    expect(find.textContaining('${kStrikeWindow.inSeconds}'), findsOneWidget);
+    // **SCOPED TO THE ROW, BECAUSE THE PAGE HEADER NOW PRINTS THE YEAR.** An
+    // unscoped `textContaining('20')` matched the strike summary *and*
+    // `NIGHT OF 6 AUG 2026`. The header was `NIGHT OF · PAGE 1` with the night
+    // left blank until P16 — a gap where the one line stating which night you are
+    // on should be — so the loose finder had been passing on an absence.
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('quick_entry.live_row')),
+        matching: find.textContaining('${kStrikeWindow.inSeconds}'),
+      ),
+      findsOneWidget,
+    );
 
     // The window is tied to the widget, not to a timer that outlives the screen.
     await tester.pump(kStrikeWindow + const Duration(seconds: 1));
@@ -730,22 +688,21 @@ void _writePathTests() {
     await tester.pumpAndSettle();
 
     final ProviderContainer container = ProviderScope.containerOf(
-      tester.element(find.byKey(const Key('quick_entry.keypad'))),
+      // **THE SLAB, NOT THE KEYPAD.** The keypad moved into the tag sheet at
+      // P16 and is not on the page until the sheet is open; the slab is one of
+      // the two thumb anchors and is on every frame.
+      tester.element(find.byKey(const Key('quick_entry.slab'))),
     );
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
-    await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
-    await tester.pumpAndSettle();
-
-    // **POPPED BACK, AND THERE IS AN OPEN QUESTION UNDER THIS.** Since the
-    // Lambing tap started pushing Lambing Entry, the receipt is published on a
-    // screen the shepherd immediately leaves — so in the real flow the
-    // twenty-second strike window is behind a route. The property this case
-    // asserts is unchanged and still worth holding; where the affordance should
-    // LIVE now is a design question, recorded rather than answered here.
-    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
-    nav.pop();
+    // **THE SLAB, AND THE OPEN QUESTION UNDER THIS CLOSED AT P16.** While the
+    // Lambing tap pushed Lambing Entry, the receipt was published on a screen the
+    // shepherd immediately left, so the twenty-second window sat behind a route
+    // and this case had to pop back to see it. The slab opens nothing: the write
+    // lands and the shepherd is still on the page, one line under the row they
+    // just wrote — which is `§8`'s mechanism working rather than being described.
+    await tester.tap(find.byKey(const Key('quick_entry.slab')));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('quick_entry.strike')));

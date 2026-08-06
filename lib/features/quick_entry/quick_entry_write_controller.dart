@@ -54,6 +54,31 @@ final class QuickEntryWriteController extends WriteController {
     return WriteCommitted(insertedId: id.value);
   });
 
+  /// One press of the slab: **one lamb**.
+  ///
+  /// **THIS IS THE PRODUCT'S CENTRAL ACT AND THE SLAB HAD NO HANDLER AT ALL** —
+  /// `onSlab: () {}`. `indelible.md §8`: *"Press the slab. One stroke prints in
+  /// the lamb column with a 10ms haptic tick, and the row is now a complete,
+  /// valid, honestly timestamped lambing. Three taps. About six seconds."* The
+  /// three taps existed; the third did nothing.
+  ///
+  /// **THE SAME VERB OPENS THE ROW AND ADDS TO IT**, which is what makes the
+  /// forty-minute window work. The first press begins the lambing and lands lamb
+  /// one; every press after it lands another lamb on that same row, and the birth
+  /// type re-derives from the count — `SINGLE`, then `TWIN (COUNTED)`, then
+  /// `TRIPLET (COUNTED)`. **Nobody ever chooses "triplet" from a list** (P8), and
+  /// that is why there is no chooser here to choose it from.
+  ///
+  /// Both writes are inside **one** `guard()`, so a double tap on a cold thumb
+  /// cannot open a lambing twice — which would file a set of twins as two singles
+  /// and is the exact failure the guard exists for.
+  Future<void> addLamb({required EweId ewe, LambingId? into}) => guard(() async {
+    final LambingRepository repo = ref.read(lambingRepositoryProvider);
+    final LambingId lambing = into ?? await repo.beginLambing(ewe);
+    await repo.addLamb(lambing);
+    return WriteCommitted(insertedId: lambing.value);
+  });
+
   /// Strikes a lambing the shepherd has just committed.
   ///
   /// It goes through `guard()` like every other write: a double tap on the

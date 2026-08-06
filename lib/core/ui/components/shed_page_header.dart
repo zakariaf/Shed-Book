@@ -1,4 +1,11 @@
-// lib/features/quick_entry/widgets/quick_entry_page_header.dart
+// lib/core/ui/components/shed_page_header.dart
+//
+// **MOVED FROM `lib/features/quick_entry/widgets/` AT R87, AND THE MOVE IS A FIX
+// RATHER THAN A TIDY-UP.** `layer.sibling` forbids one feature importing another,
+// so a page component in a feature folder is a component only that feature can
+// ever have. Measured: Quick Entry was the ONLY screen in the app with a spine, a
+// margin cell or a ruled header — six screens rendered as a bare column because
+// the parts were in a room they could not reach.
 //
 // indelible.md §7.16's sticky header, naming what the page is filtered to.
 // NEVER collapses, never parallaxes, never changes height — it is one of the
@@ -14,8 +21,8 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
-class QuickEntryPageHeader extends StatelessWidget {
-  const QuickEntryPageHeader({required this.text, required this.height, super.key});
+class ShedPageHeader extends StatelessWidget {
+  const ShedPageHeader({required this.text, required this.height, super.key});
 
   /// Already formatted and already localised. `d MMM y`, never all-numeric
   /// (R60, decision #108) — the formatting authority is

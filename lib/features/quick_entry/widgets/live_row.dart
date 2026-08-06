@@ -35,7 +35,7 @@ import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/tag_match.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
+import 'package:shed_book/core/ui/components/shed_margin_cell.dart';
 import 'package:shed_book/features/quick_entry/widgets/tonight_rows.dart';
 
 /// `indelible.md §4.4`: the live row is two lines, 128 px.
@@ -157,7 +157,7 @@ final class LiveRow extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                QuickEntryMarginCell(
+                ShedMarginCell(
                   time: time,
                   stampAuto: provenance,
                   width: marginWidth,

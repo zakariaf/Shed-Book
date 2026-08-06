@@ -1,4 +1,11 @@
-// lib/features/quick_entry/widgets/quick_entry_spine.dart
+// lib/core/ui/components/shed_spine.dart
+//
+// **MOVED FROM `lib/features/quick_entry/widgets/` AT R87, AND THE MOVE IS A FIX
+// RATHER THAN A TIDY-UP.** `layer.sibling` forbids one feature importing another,
+// so a page component in a feature folder is a component only that feature can
+// ever have. Measured: Quick Entry was the ONLY screen in the app with a spine, a
+// margin cell or a ruled header — six screens rendered as a bare column because
+// the parts were in a room they could not reach.
 //
 // THE SPINE IS CONTINUOUS AND IT DOES NOT MIRROR. indelible.md §4.3: "2 px wide,
 // madder rule, continuous down the entire scroll. It does not break for headers,
@@ -22,8 +29,8 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
-class QuickEntrySpine extends StatelessWidget {
-  const QuickEntrySpine({required this.left, super.key});
+class ShedSpine extends StatelessWidget {
+  const ShedSpine({required this.left, super.key});
 
   /// Where the margin column ends. Read off the layout rather than written down.
   final double left;

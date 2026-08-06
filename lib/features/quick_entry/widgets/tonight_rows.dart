@@ -27,7 +27,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/time/recorded_time.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_margin_cell.dart';
+import 'package:shed_book/core/ui/components/shed_margin_cell.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 /// One ruled line per lambing, most recent first.
@@ -107,7 +107,7 @@ class TonightRows extends ConsumerWidget {
                     // IT** (`§4.3`, `§12.5`). The stamp is not an exempt stamp —
                     // it is the sole statement of the §12.5 claim on its line —
                     // so it renders at the 18 px floor in `labelMedium`.
-                    // **THE COMPONENT, NOT A COPY.** `QuickEntryMarginCell`
+                    // **THE COMPONENT, NOT A COPY.** `ShedMarginCell`
                     // is §4.3's cell, and it holds the measured reason its
                     // height is a minimum rather than 64.
                     //
@@ -120,7 +120,7 @@ class TonightRows extends ConsumerWidget {
                     // §12.5 outcome than the four-letter stamp. The long label
                     // is not lost: it prints in the RECORD COLUMN on Lambing
                     // Entry, where it has the width.
-                    QuickEntryMarginCell(
+                    ShedMarginCell(
                       time: formatShedTime(row.at.effective, locale),
                       stampAuto: switch (row.at.source) {
                         TimeSource.autoCaptured => l10n.quickEntryStampAuto,

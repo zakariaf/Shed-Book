@@ -1,4 +1,11 @@
-// lib/features/quick_entry/widgets/quick_entry_bottom_band.dart
+// lib/core/ui/components/shed_bottom_band.dart
+//
+// **MOVED FROM `lib/features/quick_entry/widgets/` AT R87, AND THE MOVE IS A FIX
+// RATHER THAN A TIDY-UP.** `layer.sibling` forbids one feature importing another,
+// so a page component in a feature folder is a component only that feature can
+// ever have. Measured: Quick Entry was the ONLY screen in the app with a spine, a
+// margin cell or a ruled header — six screens rendered as a bare column because
+// the parts were in a room they could not reach.
 //
 // The bottom band: INDEX bottom-left (96 x 64), the corner slab bottom-right
 // (160 x 140).
@@ -14,26 +21,26 @@
 // INDEX is the ONLY navigation affordance in the app. P3's affordance half went
 // to indelible.md, so there is no back chevron anywhere (decision record §7.0a).
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
-import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 
-/// **A `ConsumerWidget`, AND IT WATCHES ONE BOOLEAN.**
+/// **IT WATCHES NOTHING, AND THAT IS R87'S CONDITION FOR THE MOVE.**
 ///
-/// `§8`: *"the slab arms — its border goes to `--ink-full`, a madder tick prints
-/// at its corner, and its label changes to `+ LAMB`."* Something has to notice
-/// that an animal was chosen, and it may not be the screen: the shell watching
-/// nothing is what makes every box on it immovable (`02 §10.1`).
+/// Quick Entry's band swaps `TAG FIRST` for `+ LAMB` when an animal is chosen, so
+/// this widget was a `ConsumerWidget` reading `quickEntryControllerProvider`.
+/// `layer.core_ui` forbids `lib/core/ui/` importing `lib/data/`, and the rule is
+/// right beyond the gate: a shared component that watched one screen's provider
+/// would be a component with that screen's state baked into it, and the other six
+/// bands would inherit a subscription they have no use for.
 ///
-/// So the band notices, and a rebuild here can move nothing — the band is 152 pt,
-/// `INDEX` is 96 × 64 and the slab is 160 × 140, all fixed, none of them derived
-/// from the thing being watched. Only the word inside the slab changes.
-class QuickEntryBottomBand extends ConsumerWidget {
-  const QuickEntryBottomBand({
+/// So the band renders the word it is handed. Quick Entry keeps a thin
+/// feature-local `ConsumerWidget` that chooses between two strings — which is
+/// where the watching belonged, because *the slab arms* is a fact about that
+/// screen and not about a band.
+class ShedBottomBand extends StatelessWidget {
+  const ShedBottomBand({
     required this.indexLabel,
-    required this.slabLabelUnarmed,
-    required this.slabLabelArmed,
+    required this.slabLabel,
     required this.onIndex,
     required this.onSlab,
     required this.bandHeight,
@@ -47,13 +54,10 @@ class QuickEntryBottomBand extends ConsumerWidget {
 
   final String indexLabel;
 
-  /// `TAG FIRST` — and it is **never disabled**. Pressing it opens the tag
-  /// sheet, because a dead key under a cold thumb is indistinguishable from a
-  /// missed tap (`§7.2`).
-  final String slabLabelUnarmed;
-
-  /// `+ LAMB`, once an animal is chosen.
-  final String slabLabelArmed;
+  /// The word on the slab. **Never disabled, whatever it reads**: pressing an
+  /// unarmed slab does something, because a dead key under a cold thumb is
+  /// indistinguishable from a missed tap (`§7.2`).
+  final String slabLabel;
   final VoidCallback onIndex;
 
   /// **Never null.** The slab before an animal is chosen reads "Tag first" and
@@ -72,16 +76,9 @@ class QuickEntryBottomBand extends ConsumerWidget {
   final bool leftHanded;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     final double safeBottom = MediaQuery.paddingOf(context).bottom;
-
-    // `.select`, so a keystroke in the tag sheet does not rebuild the band —
-    // only the transition from nothing-chosen to chosen does.
-    final bool armed = ref.watch(
-      quickEntryControllerProvider.select((QuickEntryState s) => s.selected != null),
-    );
-    final String slabLabel = armed ? slabLabelArmed : slabLabelUnarmed;
 
     final Widget index = ShedTapTarget(
       key: const Key('quick_entry.index'),

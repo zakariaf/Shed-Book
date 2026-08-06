@@ -55,9 +55,9 @@ import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_controller.dart';
 import 'package:shed_book/features/quick_entry/quick_entry_write_controller.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_bottom_band.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.dart';
-import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
+import 'package:shed_book/features/quick_entry/widgets/quick_entry_band.dart';
+import 'package:shed_book/core/ui/components/shed_page_header.dart';
+import 'package:shed_book/core/ui/components/shed_spine.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/quick_entry/widgets/export_banner.dart';
 import 'package:shed_book/data/lambing_repository.dart';
@@ -210,11 +210,11 @@ class _QuickEntryPage extends ConsumerWidget {
             // THE SPINE IS THE BOTTOM LAYER, painted behind everything. A spine
             // assembled per row is a spine with seams, and the seams show under a
             // head torch at the moment the shepherd is scrolling.
-            const QuickEntrySpine(left: _Grid.marginWidth),
+            const ShedSpine(left: _Grid.marginWidth),
 
             Column(
               children: <Widget>[
-                QuickEntryPageHeader(
+                ShedPageHeader(
                   // **THE NIGHT, WHICH PRINTED AS A GAP.** `NIGHT OF · PAGE 1`
                   // was on screen for weeks: the argument was `night: ''`, so the
                   // one line stating which night you are on stated nothing.
@@ -322,7 +322,7 @@ class _QuickEntryPage extends ConsumerWidget {
                   ),
                 ),
 
-                QuickEntryBottomBand(
+                QuickEntryBand(
                   indexLabel: l10n.quickEntryIndex,
                   // **THE SLAB ARMS WHEN THE TAG LANDS** (`§8`): its label
                   // changes from `TAG FIRST` to `+ LAMB`. It is never disabled —

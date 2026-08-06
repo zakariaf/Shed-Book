@@ -2265,3 +2265,48 @@ than what the number is:
 · `test/design/wcag.dart` (`gapBetween`, `couldBeAdjacent`) · `test/design/tap_target_test.dart` ·
 `test/design/gate_inventory_test.dart` · and the four `lib/` sites the sweep found at 8 pt or less:
 `units_section.dart`, `appearance_section.dart`, `season_section.dart`, `lambing_entry_screen.dart`.
+
+### R87 — the page chrome is four `Shed*` components in `lib/core/ui/components/`
+
+**Ruled 2026-08-06 (P16's follow-on, after the owner asked for the remaining five screens).**
+
+`indelible.md §8`'s first sentence is that there is **one** scrolling ruled document and the twelve
+screens are that document under a filter. The chrome that makes it one document — the spine, the
+page header, the margin cell and the bottom band — was built as four widgets in
+`lib/features/quick_entry/widgets/`, prefixed `QuickEntry*`.
+
+**That is not a naming inconsistency, it is a structural one.** `layer.sibling` forbids one feature
+importing another, so a page component living in a feature folder is a component **only that feature
+can ever have** — and the measurement bears it out: Quick Entry is the only screen in the app with a
+spine, a margin cell or a ruled header. Six screens render as a bare column because the parts were
+in a room they could not reach.
+
+| Was | Is | File |
+|---|---|---|
+| `QuickEntrySpine` | **`ShedSpine`** | `lib/core/ui/components/shed_spine.dart` |
+| `QuickEntryPageHeader` | **`ShedPageHeader`** | `lib/core/ui/components/shed_page_header.dart` |
+| `QuickEntryMarginCell` | **`ShedMarginCell`** | `lib/core/ui/components/shed_margin_cell.dart` |
+| `QuickEntryBottomBand` | **`ShedBottomBand`** | `lib/core/ui/components/shed_bottom_band.dart` |
+
+Two more are **new**, because six screens had each been hand-rolling them badly or not at all:
+
+| New | Job | File |
+|---|---|---|
+| **`ShedPage`** | The document: `SafeArea` → spine → sticky header → scrolling stream → band. Every screen is this with a different stream. | `lib/core/ui/components/shed_page.dart` |
+| **`ShedRuledRow`** | `§7.3`'s 64/88 pt row: margin cell, spine gutter, record column, rows **sharing edges**. | `lib/core/ui/components/shed_ruled_row.dart` |
+
+**`ShedBottomBand` loses its Riverpod dependency in the move.** The Quick Entry band watches the
+selection to swap `TAG FIRST` for `+ LAMB`; `layer.core_ui` forbids `lib/core/ui/` importing
+`lib/data/`, and a shared component that watched a provider would be a component with one screen's
+state baked in. The band takes a `slabLabel` string, and Quick Entry keeps a thin feature-local
+`ConsumerWidget` that supplies it — which is where the watching belonged anyway.
+
+**The keys do not move.** `quick_entry.spine`, `quick_entry.page_header`, `quick_entry.margin_cell`,
+`quick_entry.bottom_band`, `quick_entry.index` and `quick_entry.slab` are pinned by the rect anchor
+and by the geometric gate, and a shared component takes its key from the caller so each screen can
+name its own boxes.
+
+**Files:** `lib/core/ui/components/shed_{spine,page_header,margin_cell,bottom_band,page,ruled_row}.dart`
+(new) · `lib/features/quick_entry/` (the four old files deleted, the screen and `live_row.dart`
+re-pointed) · `docs/engineering/06-design-system.md` §12's component table · the five screens that
+adopt them.

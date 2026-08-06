@@ -448,4 +448,45 @@ void main() {
       await tester.closeApp();
     }
   });
+
+  testWidgets('the Lambing tap opens Lambing Entry, not just the row', (WidgetTester tester) async {
+    // **THE ROW COMMITTED AND THE SCREEN NEVER OPENED.** Reported from a
+    // simulator: type 412, `Create 412`, `Lambing` — the lambing was written,
+    // its receipt appeared (*20 seconds to strike*), and the shepherd was left
+    // on Quick Entry with no sign anything had happened.
+    //
+    // `CLAUDE.md` is explicit that the tap *calls `beginLambing(ewe)` **before**
+    // Lambing Entry is pushed*. The commit was there; the push was not. The ewe
+    // card has done it correctly since N27 and this screen never did.
+    //
+    // **THE ASSERTION IS THE SCREEN, NOT THE ROW.** Every existing test on this
+    // path asserts the row — and the row was always fine. That is why nothing
+    // caught it: the whole suite was checking the half that worked.
+    final AppDatabase db = testDatabase();
+    await seedSeasonForFreshNotebook(db);
+
+    try {
+      await tester.pumpApp(const QuickEntryScreen(), db: db);
+      await tester.pumpAndSettle();
+
+      for (final String digit in <String>['4', '1', '2']) {
+        await tester.tap(find.byKey(Key('quick_entry.keypad.digit_$digit')));
+        await tester.pump();
+      }
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('quick_entry.confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(LambingEntryScreen),
+        findsOneWidget,
+        reason: 'the row committed and the screen never opened',
+      );
+      expect(await db.select(db.lambings).get(), hasLength(1));
+    } finally {
+      await tester.closeApp();
+    }
+  });
 }

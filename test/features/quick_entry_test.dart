@@ -570,9 +570,20 @@ void _writePathTests() {
     container.read(quickEntryControllerProvider.notifier).select(ewe);
     await tester.pump();
 
+    // **THE POP BETWEEN THE TWO TAPS IS THE FLOW, NOT A TEST TRICK.** Since the
+    // Lambing tap started pushing Lambing Entry — `CLAUDE.md`'s *calls
+    // `beginLambing(ewe)` before Lambing Entry is pushed*, which this screen had
+    // never done — the button is behind a route after the first tap. A shepherd
+    // recording a ewe's second lambing comes back to Quick Entry first, so the
+    // test does too.
     final Finder lambing = find.byKey(const Key('quick_entry.event.lambing'));
     await tester.tap(lambing);
     await tester.pumpAndSettle();
+
+    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.pop();
+    await tester.pumpAndSettle();
+
     await tester.tap(lambing);
     await tester.pumpAndSettle();
 
@@ -668,6 +679,16 @@ void _writePathTests() {
     await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
     await tester.pumpAndSettle();
 
+    // **POPPED BACK, AND THERE IS AN OPEN QUESTION UNDER THIS.** Since the
+    // Lambing tap started pushing Lambing Entry, the receipt is published on a
+    // screen the shepherd immediately leaves — so in the real flow the
+    // twenty-second strike window is behind a route. The property this case
+    // asserts is unchanged and still worth holding; where the affordance should
+    // LIVE now is a design question, recorded rather than answered here.
+    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.pop();
+    await tester.pumpAndSettle();
+
     // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
     // a changed constant changes the copy or this fails.
     expect(find.byKey(const Key('quick_entry.strike')), findsOneWidget);
@@ -716,6 +737,17 @@ void _writePathTests() {
 
     await tester.tap(find.byKey(const Key('quick_entry.event.lambing')));
     await tester.pumpAndSettle();
+
+    // **POPPED BACK, AND THERE IS AN OPEN QUESTION UNDER THIS.** Since the
+    // Lambing tap started pushing Lambing Entry, the receipt is published on a
+    // screen the shepherd immediately leaves — so in the real flow the
+    // twenty-second strike window is behind a route. The property this case
+    // asserts is unchanged and still worth holding; where the affordance should
+    // LIVE now is a design question, recorded rather than answered here.
+    final NavigatorState nav = tester.state<NavigatorState>(find.byType(Navigator).first);
+    nav.pop();
+    await tester.pumpAndSettle();
+
     await tester.tap(find.byKey(const Key('quick_entry.strike')));
     await tester.pumpAndSettle();
 

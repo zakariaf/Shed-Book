@@ -467,17 +467,48 @@ class _QuickEntryPage extends ConsumerWidget {
                               key: const Key('quick_entry.event.lambing'),
                               semanticLabel: l10n.quickEntryLambing,
                               minSize: t.tapHero,
-                              onTap: () {
+                              // **THE ROW COMMITS, THEN THE SCREEN OPENS — AND
+                              // THE OPENING WAS MISSING ENTIRELY.**
+                              //
+                              // `CLAUDE.md`: *Quick Entry's "Lambing" tap calls
+                              // `beginLambing(ewe)` **before** Lambing Entry is
+                              // pushed.* The commit was there and the push was
+                              // not, so on a simulator the tap wrote a lambing,
+                              // published its receipt — *20 seconds to strike* —
+                              // and left the shepherd on Quick Entry with no
+                              // sign anything had opened. The ewe card has done
+                              // this correctly since N27; this screen never did.
+                              //
+                              // **THE PUSH IS HERE AND NOT IN THE `ref.listen`
+                              // ABOVE**, and that is the whole reason it needs
+                              // its own await: the listener fires for EVERY
+                              // committed write on this screen, `createEwe`
+                              // included, so pushing from it would open Lambing
+                              // Entry the moment a shepherd created a ewe. Same
+                              // shape as the confirm bar's create-then-select.
+                              onTap: () async {
                                 final EweId? selected = ref
                                     .read(quickEntryControllerProvider)
                                     .selected;
                                 if (selected == null) {
                                   return;
                                 }
-                                ref
+                                await ref
                                     .read(quickEntryWriteControllerProvider.notifier)
-                                    .beginLambing(selected)
-                                    .ignore();
+                                    .beginLambing(selected);
+
+                                if (!context.mounted) {
+                                  return;
+                                }
+                                // The id comes off the committed outcome. There
+                                // is nothing else to read it from: the lambing
+                                // is one row among tonight's and no stream
+                                // carries *the one I just started*.
+                                if (ref.read(quickEntryWriteControllerProvider) case WriteDone(
+                                  outcome: WriteCommitted(insertedId: final int id?),
+                                )) {
+                                  await Routes.lambingEntry(context, LambingId(id));
+                                }
                               },
                               child: ExcludeSemantics(
                                 child: Center(

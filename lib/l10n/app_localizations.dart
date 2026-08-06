@@ -476,6 +476,30 @@ abstract class AppLocalizations {
   /// **'Night of {night} · page {page}'**
   String quickEntryPageHeader({required String night, required int page});
 
+  /// 07 §5.3. Quick Entry is NEVER empty (§2.2) — the deck and the keypad are always there — so this line is about the page, not the screen, and it says what is true rather than inviting an action the slab already offers.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTHING RECORDED TONIGHT'**
+  String get tonightEmpty;
+
+  /// One line of tonight's page: the tag, then the lamb tally's count. The noun is not written — the strokes beside it are what say lambs, and a word here would be the second thing saying it.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} · {count}'**
+  String tonightRow({required String tag, required String count});
+
+  /// An animal with no tag is a real state and prints as a word. It is never blank: a gap reads as missing data, and this is a fact somebody recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'UNTAGGED'**
+  String get tonightUntagged;
+
+  /// indelible-marks-and-strikes §6: an UNBOXED stamp, because it is a note about the RECORD rather than a state of the animal. The row keeps its position and its legibility — nothing is removed.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK'**
+  String get tonightStruck;
+
   /// indelible.md §3.4's stamp: at most 12 characters, all-caps, and NEVER the sole carrier of its meaning — it sits beside a time that is obviously the current time. Safety rule §12.5: auto-captured time is labelled as such. The moment this stamp is the only thing distinguishing an auto time from an edited one, the sub-18px exemption is void.
   ///
   /// In en, this message translates to:

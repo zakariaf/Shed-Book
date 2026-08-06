@@ -68,7 +68,9 @@ import 'package:shed_book/features/quick_entry/widgets/quick_entry_page_header.d
 import 'package:shed_book/features/quick_entry/widgets/quick_entry_spine.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/features/quick_entry/widgets/export_banner.dart';
+import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/features/quick_entry/widgets/index_sheet.dart';
+import 'package:shed_book/features/quick_entry/widgets/tonight_rows.dart';
 import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/features/quick_entry/widgets/recents_strip.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
@@ -269,8 +271,25 @@ class _QuickEntryPage extends ConsumerWidget {
                           // chrome at all: the banner scrolls, and the thumb
                           // targets stay exactly where they were.
                           const ExportBanner(),
-                          for (int i = 0; i < 12; i++)
-                            const SizedBox(height: _Grid.rowHeight, child: SizedBox.expand()),
+
+                          // **TONIGHT'S PAGE, WHICH WAS TWELVE EMPTY BOXES.**
+                          // `for (int i = 0; i < 12; i++) SizedBox(...)` stood
+                          // here — so the design's central promise, *the
+                          // confirmation IS the committed row, in ink, one line
+                          // above the one being written*, had no row to be, and
+                          // the screen read as a keypad on a black page.
+                          //
+                          // Reported from a simulator on 2026-08-06: a lambing
+                          // was recorded, the shepherd went back, typed the tag
+                          // again, and the page was empty.
+                          TonightRows(
+                            locale: context.localeName,
+                            l10n: l10n,
+                            // Tapping a row opens what it is a record OF. The
+                            // row is the receipt and the way back into it.
+                            onOpen: (TonightRow row) =>
+                                unawaited(Routes.lambingEntry(context, row.lambing)),
+                          ),
                         ],
                       ),
                     ),

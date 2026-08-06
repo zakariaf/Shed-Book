@@ -225,6 +225,20 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get tonightEmpty => 'NOTHING RECORDED TONIGHT';
+
+  @override
+  String tonightRow({required String tag, required String count}) {
+    return '$tag · $count';
+  }
+
+  @override
+  String get tonightUntagged => 'UNTAGGED';
+
+  @override
+  String get tonightStruck => 'STRUCK';
+
+  @override
   String get quickEntryStampAuto => 'AUTO';
 
   @override

@@ -32,6 +32,8 @@
 //   treatmentRepositoryProvider N20-T01  Provider<TreatmentRepository>
 //   exportRepositoryProvider    N21-T07  FutureProvider<ExportRepository>     keepAlive
 //   mediaSweeperProvider        N23-T03  FutureProvider<MediaSweeper>         keepAlive
+//   tonightProvider             N13-T05  StreamProvider<List<TonightRow>>
+//     (the record column's source — it had none until 2026-08-06)
 //   restoreServiceProvider      N23-T02  FutureProvider<RestoreService>       keepAlive
 //   restorePlannerProvider      N23-T02  Provider<RestorePlanner>             keepAlive
 //
@@ -151,6 +153,22 @@ final Provider<RestorePlanner> restorePlannerProvider = Provider<RestorePlanner>
   (ref) =>
       (String pickedPath) async => planRestore(pickedPath, await ref.read(databaseProvider.future)),
 );
+
+/// Tonight's page — the rows the record column draws.
+///
+/// **THE COLUMN HAD NO PROVIDER AND NO ROWS**, and drew twelve empty boxes
+/// instead. Added 2026-08-06 after a shepherd recorded a lambing on a simulator,
+/// went back to Quick Entry, typed the tag again and found the page empty.
+///
+/// Awaited FIRST, like `tagIndexProvider`: the first frame paints before the
+/// database opens, and `07 §5.3` gives the record column as the one part of the
+/// screen that may give way — never the chrome.
+final StreamProvider<List<TonightRow>> tonightProvider = StreamProvider<List<TonightRow>>((
+  ref,
+) async* {
+  await ref.watch(databaseProvider.future);
+  yield* ref.watch(lambingRepositoryProvider).watchTonight();
+});
 
 /// Pure policy: **no database, no clock** — `decide()` takes `now` as a
 /// parameter (`CONVENTIONS §2.10`, R69).

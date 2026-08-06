@@ -689,6 +689,7 @@ spellings only. Production has zero overrides.
 | `settingsRepositoryProvider` | `FutureProvider<SettingsRepository>` | keepAlive | |
 | `entitlementRepositoryProvider` | `FutureProvider<EntitlementRepository>` | keepAlive | |
 | `exportRepositoryProvider` | `FutureProvider<ExportRepository>` | keepAlive | |
+| `tonightProvider` | `StreamProvider<List<TonightRow>>` | keepAlive | **Added 2026-08-06.** The record column's source. It had none: the column drew twelve empty `SizedBox`es, so *the confirmation is the committed row* had no row to be |
 | `restoreServiceProvider` | `FutureProvider<RestoreService>` | keepAlive | Holds the application-support `Directory` the service may not look up itself (`layer.path_provider`) |
 | `restorePlannerProvider` | `Provider<RestorePlanner>` | keepAlive | **Added 2026-08-05 when the restore flow was finally wired.** A seam, not a convenience: `lib/features/` may not import `lib/core/db/`, and the restore controller needs live counts without ever holding a database handle |
 | `mediaSweeperProvider` | `FutureProvider<MediaSweeper>` | keepAlive | |

@@ -925,6 +925,56 @@ final class LambingRepository {
     );
   }
 
+  /// Tonight's page: every lambing in the current season, most recent first,
+  /// with the ewe's tag and how many lambs are on it.
+  ///
+  /// **THE RECORD COLUMN HAD NO SOURCE AND NO ROWS.** `quick_entry_screen.dart`
+  /// drew twelve empty `SizedBox`es where the page should be — so the design's
+  /// central promise, *the confirmation is the committed row, in ink, one line
+  /// above the one being written*, had no row to be. Reported from a simulator:
+  /// a shepherd recorded a lambing, went back, typed the tag again and found an
+  /// empty page.
+  ///
+  /// **STRUCK ROWS ARE INCLUDED AND MARKED.** `WHERE struck IS NULL` is the
+  /// reflex and it is the defect — Indelible rule 1: nothing is removed from
+  /// the page, ever. A struck lambing keeps its position and its legibility.
+  ///
+  /// **ORDERED BY `occurred_at DESC, id DESC`**, and the second term is not
+  /// decoration: two lambings can share a minute at 03:20, and without a
+  /// tiebreak the page reorders itself between frames — which is the one thing
+  /// `02 §10.1` says must never happen under a thumb.
+  Stream<List<TonightRow>> watchTonight() =>
+      (_db.select(_db.lambings)..orderBy(<OrderClauseGenerator<$LambingsTable>>[
+            ($LambingsTable t) => OrderingTerm(expression: t.occurredAt, mode: OrderingMode.desc),
+            ($LambingsTable t) => OrderingTerm(expression: t.id, mode: OrderingMode.desc),
+          ]))
+          .join(<Join<HasResultSet, dynamic>>[
+            leftOuterJoin(_db.ewes, _db.ewes.id.equalsExp(_db.lambings.ewe)),
+          ])
+          .watch()
+          .asyncMap((List<TypedResult> rows) async {
+            final List<Lamb> lambs = await _db.select(_db.lambs).get();
+            return <TonightRow>[
+              for (final TypedResult r in rows)
+                () {
+                  final Lambing l = r.readTable(_db.lambings);
+                  final Ewe? e = r.readTableOrNull(_db.ewes);
+                  return TonightRow(
+                    lambing: LambingId(l.id),
+                    tag: e?.tag,
+                    at: recordedTimeFromColumns(
+                      effective: l.occurredAt,
+                      capturedAt: l.capturedAt,
+                      originalEffective: l.originalEffective,
+                      sourceKey: l.timeSource,
+                    ),
+                    lambCount: lambs.where((Lamb x) => x.lambing == l.id).length,
+                    struck: l.struck,
+                  );
+                }(),
+            ];
+          });
+
   /// **Never creates a season.** A verb that invented one would give the
   /// shepherd a season they did not start, on the 3am path, silently — and the
   /// season is the unit the whole free tier is priced on.
@@ -1378,3 +1428,32 @@ Future<void> rebuildAllEweSummaries(AppDatabase db, Instant now) => db.transacti
     await writeEweSummary(db, EweId(ewe.id), now);
   }
 });
+
+/// One line of tonight's page.
+///
+/// **A record, not the drift row**: `lib/features/` may not import
+/// `lib/core/db/`, so a verb handing back `Lambing` is a verb no screen can
+/// call — the same rule that put `LambingEntryData` and `VocabEntry` here.
+@immutable
+final class TonightRow {
+  const TonightRow({
+    required this.lambing,
+    required this.tag,
+    required this.at,
+    required this.lambCount,
+    required this.struck,
+  });
+
+  final LambingId lambing;
+
+  /// `null` on an untagged animal, which is a real state and prints as a word.
+  final String? tag;
+
+  /// **THE WHOLE QUAD, NOT JUST THE INSTANT** (§12.5). The margin prints the
+  /// time and the provenance label under it, and a row that carried only the
+  /// effective time could not tell `AUTO` from `EDITED`.
+  final RecordedTime at;
+
+  final int lambCount;
+  final bool struck;
+}

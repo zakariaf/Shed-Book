@@ -107,14 +107,28 @@ class ShedBottomBand extends StatelessWidget {
       minSize: indexHeight,
       onTap: onIndex,
       child: ExcludeSemantics(
-        child: SizedBox(
-          width: indexWidth,
-          height: indexHeight,
+        // **A MINIMUM, NOT A FIXED BOX — AND THE GOLDEN IS WHAT CAUGHT IT.**
+        //
+        // `SizedBox(width: 96, height: 64)` clipped its own word at 200% text
+        // scale: `quick_entry_scale_2_0` rendered the app's ONE navigation
+        // affordance as `INDE`. `§7.17`'s 96 × 64 is the FLOOR that makes it a
+        // legal target, exactly as `§4.3`'s 68 × 64 is the margin cell's, and
+        // `§3.6` is the rule both follow — *rows grow, the grid does not move*.
+        //
+        // Growing costs nothing here: the band is a `spaceBetween` row, so the
+        // index takes the width it needs from the empty middle and the slab stays
+        // welded to its own corner. Nothing the thumb aims at moves.
+        //
+        // Before P16 this was invisible, because the entry sheet covered the band
+        // on every frame the app ever drew.
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minWidth: indexWidth, minHeight: indexHeight),
           child: Center(
             // **THE CONTROL VOICE** (§3.1, ruling P7). `INDEX` is the app's one
             // navigation affordance and one of its two thumb anchors.
             child: Text(
               controlCase(indexLabel),
+              textAlign: TextAlign.center,
               style: controlStyle(context, Theme.of(context).textTheme.labelMedium),
             ),
           ),

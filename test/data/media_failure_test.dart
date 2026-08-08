@@ -15,6 +15,7 @@ import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/data/failure_mapping.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/media_store.dart';
+import 'package:shed_book/data/media_sweeper.dart';
 import 'package:shed_book/data/note_repository.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -163,19 +164,31 @@ void main() {
     expect(resolved.existsSync(), isFalse);
   });
 
-  test('markMediaMissing keeps the row and stamps it', () async {
+  test('the sweep stamps a missing file and keeps the row', () async {
     // missing_since rather than deleting: the row is the shepherd's record that
     // a photo EXISTED, and Indelible Rule 1 does not stop applying because the
     // bytes did. A media asset the app quietly forgot is a photo they remember
     // taking and cannot find.
+    //
+    // **THIS CASE MOVED FROM `NoteRepository.markMediaMissing` TO THE SWEEP ON
+    // 2026-08-05, AND THE PROPERTY IS WHY IT MOVED RATHER THAN DIED.** That verb
+    // was a SECOND writer for `missing_since` with no caller, and only the sweep
+    // knows how to un-write it when the file comes back (`04 §5.2`) — so it was
+    // deleted and the assertion followed the mechanism that actually holds it.
     final AppDatabase db = testDatabase();
     await _seedSeason(db);
     final EweId ewe = await seedEwe(db, tag: '412');
     final LambingId lambing = await LambingRepository(db: db).beginLambing(ewe);
 
-    final NoteRepository notes = NoteRepository(db);
-    await notes.attachPhoto(lambing, relativePath: '2026/03/gone.jpg', byteSize: 100);
-    await notes.markMediaMissing('2026/03/gone.jpg');
+    final Directory dir = Directory.systemTemp.createTempSync('shed_media_missing');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final MediaStore store = MediaStore(
+      supportDirectory: () async => dir,
+      temporaryDirectory: () async => dir,
+    );
+
+    await NoteRepository(db).attachPhoto(lambing, relativePath: '2026/03/gone.jpg', byteSize: 100);
+    await MediaSweeper(db, store).sweepMissingFiles();
 
     final MediaAsset row = (await db.select(db.mediaAssets).get()).single;
     expect(row.missingSince, isNotNull);

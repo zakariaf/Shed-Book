@@ -476,6 +476,30 @@ abstract class AppLocalizations {
   /// **'Night of {night} · page {page}'**
   String quickEntryPageHeader({required String night, required int page});
 
+  /// 07 §5.3. Quick Entry is NEVER empty (§2.2) — the deck and the keypad are always there — so this line is about the page, not the screen, and it says what is true rather than inviting an action the slab already offers.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTHING RECORDED TONIGHT'**
+  String get tonightEmpty;
+
+  /// One line of tonight's page: the tag, then the lamb tally's count. The noun is not written — the strokes beside it are what say lambs, and a word here would be the second thing saying it.
+  ///
+  /// In en, this message translates to:
+  /// **'{tag} · {count}'**
+  String tonightRow({required String tag, required String count});
+
+  /// An animal with no tag is a real state and prints as a word. It is never blank: a gap reads as missing data, and this is a fact somebody recorded.
+  ///
+  /// In en, this message translates to:
+  /// **'UNTAGGED'**
+  String get tonightUntagged;
+
+  /// indelible-marks-and-strikes §6: an UNBOXED stamp, because it is a note about the RECORD rather than a state of the animal. The row keeps its position and its legibility — nothing is removed.
+  ///
+  /// In en, this message translates to:
+  /// **'STRUCK'**
+  String get tonightStruck;
+
   /// indelible.md §3.4's stamp: at most 12 characters, all-caps, and NEVER the sole carrier of its meaning — it sits beside a time that is obviously the current time. Safety rule §12.5: auto-captured time is labelled as such. The moment this stamp is the only thing distinguishing an auto time from an edited one, the sub-18px exemption is void.
   ///
   /// In en, this message translates to:
@@ -488,23 +512,71 @@ abstract class AppLocalizations {
   /// **'INDEX'**
   String get quickEntryIndex;
 
+  /// indelible.md §7.17 line 1. Quick Entry, named for what it is rather than for the screen — the shepherd is already on it, and the line closes the sheet.
+  ///
+  /// In en, this message translates to:
+  /// **'TONIGHT'**
+  String get indexTonight;
+
+  /// §7.17 line 2. Every animal, in one list — the screen a shepherd opens in year two to ask what 412 did last year.
+  ///
+  /// In en, this message translates to:
+  /// **'FLOCK'**
+  String get indexFlock;
+
+  /// §7.17 line 3. `THE PENS` and not `PEN BOARD`: the shepherd is going to the pens, not to a board.
+  ///
+  /// In en, this message translates to:
+  /// **'THE PENS'**
+  String get indexPens;
+
+  /// §7.17 line 4. The word `treatments` is the code's; `MEDICINE BOOK` is what a shepherd calls the thing they show an inspector.
+  ///
+  /// In en, this message translates to:
+  /// **'MEDICINE BOOK'**
+  String get indexMedicineBook;
+
+  /// indelible.md §7.17 line 7. It pushes Export rather than exporting: the index is a map of the book, and a line that DID something would be the one line in it that is not a place.
+  ///
+  /// In en, this message translates to:
+  /// **'EXPORT'**
+  String get indexExport;
+
+  /// §7.17 line 8, and the last. It is the only line the design draws with no summary beside it, because there is no count to give — settings are settings.
+  ///
+  /// In en, this message translates to:
+  /// **'SETTINGS'**
+  String get indexSettings;
+
+  /// The index sheet's dismiss word.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get indexClose;
+
+  /// Spoken hint on the index sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the index'**
+  String get indexCloseHint;
+
+  /// The margin's SHORT stamp for a time the shepherd typed. indelible-page-and-screens §1.2: an 18px caps-tracked word does not fit the 68px margin cell — six characters is already ~84px — so the long provenance label ('time entered by you') prints in the RECORD COLUMN and the margin keeps only AUTO / ENTERED / EDITED at --t-stamp. Both say the same fact; neither replaces the other.
+  ///
+  /// In en, this message translates to:
+  /// **'ENTERED'**
+  String get quickEntryStampEntered;
+
+  /// The margin's short stamp for an edited time (indelible.md §8: the AUTO stamp is replaced by EDITED, and BOTH times stay). Safety rule §12.5 with nothing hidden — the original is never overwritten, in the record or the export.
+  ///
+  /// In en, this message translates to:
+  /// **'EDITED'**
+  String get quickEntryStampEdited;
+
   /// The corner slab's label before an animal is chosen (indelible.md §7.1). It is STILL a 160x140 target: pressing it opens the tag sheet rather than doing nothing, because a dead key under a cold thumb is indistinguishable from a missed tap. Never 'Select an animal' — the word is tag (CONVENTIONS §5.1).
   ///
   /// In en, this message translates to:
   /// **'Tag first'**
   String get quickEntrySlabTagFirst;
-
-  /// The pens strip's empty state (07 §2.2). DISTINCT from the recents strip's, deliberately: a shared 'Nothing here yet' passes a careless test and tells a shepherd nothing about WHICH list is empty.
-  ///
-  /// In en, this message translates to:
-  /// **'Nothing penned yet.'**
-  String get quickEntryPennedEmpty;
-
-  /// The recents strip's empty state (07 §2.2). Distinct from the pens strip's — see quickEntryPennedEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No recent animals.'**
-  String get quickEntryRecentsEmpty;
 
   /// Shown when the deck stream carries a failure. It names no code and no cause, because neither is actionable at 03:20.
   ///
@@ -530,23 +602,149 @@ abstract class AppLocalizations {
   /// **'Tag {tag}'**
   String quickEntryRecentRowLabel({required String tag});
 
+  /// Event word 2 of 5 on §8's event line. The word is the EVENT, not an intention — never 'Add treatment', never 'Treat'.
+  ///
+  /// In en, this message translates to:
+  /// **'Treatment'**
+  String get quickEntryEventTreatment;
+
+  /// Event word 3 of 5 on §8's event line.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get quickEntryEventNote;
+
+  /// Event word 4 of 5. The word is plain and it stays plain: 'Loss', 'Casualty' and 'Mortality' are all softer than the fact, and a record that is coy about a dead lamb is a record somebody has to decode a year later.
+  ///
+  /// In en, this message translates to:
+  /// **'Death'**
+  String get quickEntryEventDeath;
+
+  /// Event word 5 of 5. Two words, matching indelible.md §8's MOVE PEN — never 'Pen', which reads as a noun.
+  ///
+  /// In en, this message translates to:
+  /// **'Move pen'**
+  String get quickEntryEventMovePen;
+
+  /// The event line's group label for a screen reader. It names the QUESTION the five words answer, so the group is announced once and each word is not prefixed with 'event'.
+  ///
+  /// In en, this message translates to:
+  /// **'What happened'**
+  String get quickEntryEventLine;
+
+  /// The corner slab once an animal is chosen (indelible.md §8): one press, one of them, one stroke in the tally. It is the product's central act. Never '+ Add' and never 'New' — the plus already says add. The noun is USER-EDITABLE from the terminology overlay (10 §8.5) and arrives as a placeholder; never hard-code it.
+  ///
+  /// In en, this message translates to:
+  /// **'+ {term}'**
+  String quickEntrySlabAddLamb({required String term});
+
+  /// Spoken label on the live row's tag cell — the target that opens the tag sheet (§8: 'Tap the TAG cell. The sheet rises 160ms into the bottom half.'). The visible cell shows the tag or the prompt; this says what pressing it does.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an animal'**
+  String get quickEntryTagCell;
+
+  /// What the live row's tag cell prints before an animal is chosen. A word in the pixels the tag will occupy — never a placeholder inside a field, and never blank, because a blank reads as missing data rather than as nothing-chosen-yet.
+  ///
+  /// In en, this message translates to:
+  /// **'TAG'**
+  String get quickEntryTagPrompt;
+
+  /// The tag sheet's heading line (indelible.md §8: 'TAG · 3 MATCHES · IN THE PENS FIRST'). It states the count so a shepherd knows whether the list below is everything.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =0{Tag · no matches} =1{Tag · 1 match} other{Tag · {count} matches}}'**
+  String quickEntryTagSheetHeading({required int count});
+
+  /// The sheet's LAST PRINTED LINE, present even when there are matches (indelible.md §8): 'at 3am the ewe you are holding might genuinely be a tag you have never entered and the app must never stop to make you go and set something up first.' Never a modal, never a confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'No such tag — write {tag} into the book'**
+  String quickEntryTagSheetCreate({required String tag});
+
+  /// The create line before any digit is typed, when there is no tag to write into the book. It names both routes because pressing a listed animal is the common case and costs one tap.
+  ///
+  /// In en, this message translates to:
+  /// **'Type a tag, or press one above'**
+  String get quickEntryTagSheetCreateEmpty;
+
+  /// The second half of the tag sheet's heading, printed only while the list is the recents rather than typed matches. indelible.md §8 orders penned animals first because a ewe in a pen is the one you are most likely to be standing in front of at 03:20.
+  ///
+  /// In en, this message translates to:
+  /// **'In the pens first'**
+  String get quickEntryTagSheetPennedFirst;
+
+  /// A sheet row's summary for a penned animal (indelible.md §8: '412 · penned 2h · pen 4'). Naming the pen is what makes a row worth pressing rather than reading — it is how a shepherd tells two similar tags apart.
+  ///
+  /// In en, this message translates to:
+  /// **'In {pen}'**
+  String quickEntryTagSheetInPen({required String pen});
+
+  /// A sheet row's summary for an animal in the recents bucket rather than a pen. It states what the deck actually knows and NOT a history it has not read — never 'lambed yesterday · twins' unless that was queried.
+  ///
+  /// In en, this message translates to:
+  /// **'Seen recently'**
+  String get quickEntryTagSheetSeenRecently;
+
+  /// The tag sheet before the deck has been read — frame 1, when the database has not opened yet (decision #21). DISTINCT from the empty copy, and the distinction is the day-one bug: an empty list means the book WAS read and there is nothing in it, and collapsing the two tells a shepherd on their first night that the app lost their flock.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the book…'**
+  String get quickEntryTagSheetReading;
+
+  /// The tag sheet when the deck has been read and is genuinely empty. It never blocks: the create line below is still there, which is how the first ewe of the first season gets written.
+  ///
+  /// In en, this message translates to:
+  /// **'No animals in the book yet'**
+  String get quickEntryTagSheetNoAnimals;
+
+  /// The tag sheet's dismiss word (indelible.md §7.16's 88x64 CLOSE). Never 'Cancel' — nothing is being cancelled, the sheet just goes away and the digits stay.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get quickEntryTagSheetClose;
+
+  /// Spoken hint on the tag sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the tag sheet'**
+  String get quickEntryTagSheetCloseHint;
+
+  /// Birth type derived from one stroke (P8 — there is no chooser anywhere). Sentence case, because it prints as a value in the record voice rather than as a stamp.
+  ///
+  /// In en, this message translates to:
+  /// **'Single'**
+  String get quickEntryDerivedSingle;
+
+  /// Birth type derived from two strokes.
+  ///
+  /// In en, this message translates to:
+  /// **'Twin'**
+  String get quickEntryDerivedTwin;
+
+  /// Birth type derived from three strokes.
+  ///
+  /// In en, this message translates to:
+  /// **'Triplet'**
+  String get quickEntryDerivedTriplet;
+
+  /// Four or more strokes. English has no single word past triplet that a shepherd uses, and inventing 'quadruplet' would be the app choosing a term the terminology table cannot edit. The plural noun is user-editable and arrives as a placeholder (10 §8.5); ICU cannot pluralise a runtime string, so the caller supplies the plural form.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} {term}'**
+  String quickEntryDerivedMultiple({required int count, required String term});
+
+  /// The unboxed stamp beside a derived birth type (indelible.md §6, ruling P8). Unboxed because it is a note about the RECORD, not a state of the animal. It is what turns safety rule §12.4 from a validation routine into structure: the app never picked, it counted.
+  ///
+  /// In en, this message translates to:
+  /// **'COUNTED'**
+  String get quickEntryDerivedStamp;
+
   /// The event button that begins a lambing. It is the product's central write: the tap commits the row BEFORE any screen is pushed, so the label names the event rather than an intention — never 'New lambing', never 'Record lambing'.
   ///
   /// In en, this message translates to:
   /// **'Lambing'**
   String get quickEntryLambing;
-
-  /// The confirm key when the typed tag matches no active animal. Labelled with the OUTCOME, never a bare tick (06 §8.2): at 03:20 a tick asks the shepherd to remember what they were confirming.
-  ///
-  /// In en, this message translates to:
-  /// **'Create {tag}'**
-  String quickEntryConfirmCreate({required String tag});
-
-  /// The confirm key when the typed tag matches an existing active animal. The counterpart to quickEntryConfirmCreate — the two words are the whole difference between finding an animal and making one.
-  ///
-  /// In en, this message translates to:
-  /// **'Use {tag}'**
-  String quickEntryConfirmUse({required String tag});
 
   /// The in-stream word button in the just-committed row's margin. STRIKE, never 'Undo': 07 §15.3 reserves 'Undo' for where the record DISAPPEARS, and after P1 the record never disappears — the row stays in position, legible, permanently marked. Capitals because it is the control voice.
   ///
@@ -594,11 +792,11 @@ abstract class AppLocalizations {
   /// **'Lambing'**
   String get lambingEntryTitle;
 
-  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop.
+  /// The lambs region's label. NOT a headingLevel — see lambingEntryTitle. It names the region for a screen-reader user without adding a navigation stop. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'Lambs'**
-  String get lambingEntryLambs;
+  /// **'{term}'**
+  String lambingEntryLambs({required String term});
 
   /// The care region's label. 'Care' rather than 'Treatments': a treatment is a medicine with a withdrawal period (§12.1) and care is colostrum, warming and drying. Merging the two words would put a withdrawal question on a screen that has none.
   ///
@@ -946,6 +1144,54 @@ abstract class AppLocalizations {
   /// **'ANYTHING ELSE'**
   String get detailNote;
 
+  /// 07 §7. The photo action on a lambing. The whole chain — pick, compress, write, attach — landed at N15 with tests and fakes and nothing joined it up, so a shepherd could not photograph a lambing.
+  ///
+  /// In en, this message translates to:
+  /// **'PHOTO'**
+  String get lambingEntryPhoto;
+
+  /// 07 §7. Starts a voice note on a lambing. The chain — permission, start, stop, complete — landed at N15 with tests and had no caller.
+  ///
+  /// In en, this message translates to:
+  /// **'VOICE NOTE'**
+  String get lambingEntryVoiceStart;
+
+  /// Ends the recording. A separate word rather than a toggle: at 03:20 a control that means two things depending on a state you cannot see is a control that records nothing or never stops.
+  ///
+  /// In en, this message translates to:
+  /// **'STOP'**
+  String get lambingEntryVoiceStop;
+
+  /// Printed while the recorder reports sound above the noise floor. It is the only feedback a shepherd gets that the microphone is not muffled by a coat — and it is a WORD rather than a waveform, because §6 has six marks and none of them is a meter.
+  ///
+  /// In en, this message translates to:
+  /// **'HEARING YOU'**
+  String get lambingEntryVoiceHearing;
+
+  /// The other half. Silence during a voice note is worth saying out loud: the recording is still running and still being written, and the shepherd is the only one who can tell whether that is right.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT HEARING ANYTHING'**
+  String get lambingEntryVoiceSilent;
+
+  /// Shown when the camera could not be reached at all — no camera on the device, or the picker threw. It states the fact and names the consequence, because the shepherd's real question is whether anything was saved. NOT shown when they simply backed out of the picker: that is a decision, not a failure, and rendering it as an error tells somebody they did something wrong when they did not.
+  ///
+  /// In en, this message translates to:
+  /// **'The camera did not open. Nothing was written.'**
+  String get lambingEntryPhotoFailed;
+
+  /// Shown when the recorder threw after the row was opened. DISTINCT from lambingEntryVoiceNoPermission: 'no microphone' is answerable (the OS prompt), 'it did not start' is not, and collapsing them would send a shepherd to a settings screen that cannot help.
+  ///
+  /// In en, this message translates to:
+  /// **'The recording did not start. Nothing was written.'**
+  String get lambingEntryVoiceFailed;
+
+  /// Shown when `hasPermission` is false. It states the fact and asks for nothing — the OS prompt is another process and appears once, on first use.
+  ///
+  /// In en, this message translates to:
+  /// **'The microphone is not available.'**
+  String get lambingEntryVoiceNoPermission;
+
   /// Every detail field's unset state. SKIPPABLE is on the line because a shepherd at 03:20 needs to know they may walk away without answering - the tally is the record, and everything after it is detail. Never a placeholder inside the field (indelible.md 7.12): in the dark a grey placeholder is indistinguishable from an entered value.
   ///
   /// In en, this message translates to:
@@ -1234,6 +1480,42 @@ abstract class AppLocalizations {
   /// **'+ PEN'**
   String get penBoardAddPen;
 
+  /// 07 §9.5. The heading over the deck in an empty pen — the only thing an empty pen can be asked.
+  ///
+  /// In en, this message translates to:
+  /// **'WHICH ANIMAL'**
+  String get penSheetPenAnimal;
+
+  /// indelible.md §6: every action is a WORD, and this is one of the five the design names. `turn out` is the verb, `turn-out` the adjective, and `turnout` is never written (CLAUDE.md).
+  ///
+  /// In en, this message translates to:
+  /// **'TURN OUT'**
+  String get penSheetTurnOut;
+
+  /// 07 §9.5. A ewe moved to a bigger pen has not been turned out — `moved` is its own exit reason and the entered time carries forward.
+  ///
+  /// In en, this message translates to:
+  /// **'MOVE PEN'**
+  String get penSheetMove;
+
+  /// 07 §9.6. The §12.5 edit path on a penning time: the board marks the corrected row EDITED and keeps the captured time beside it, because a time the shepherd corrected is a fact about the record and travels with it.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT THE TIME'**
+  String get penSheetCorrectTime;
+
+  /// One destination row in the move list. It names the consequence rather than the act.
+  ///
+  /// In en, this message translates to:
+  /// **'MOVE TO PEN {label}'**
+  String penSheetMoveTo({required String label});
+
+  /// 07 §9.5. Not an error state — a free pen before lambing starts is the commonest thing on the board.
+  ///
+  /// In en, this message translates to:
+  /// **'THIS PEN IS EMPTY'**
+  String get penSheetEmpty;
+
   /// The add-pen target for a screen reader. A bare plus is unreadable aloud.
   ///
   /// In en, this message translates to:
@@ -1335,6 +1617,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'EXPORT ALL THREE'**
   String get exportCsvAll;
+
+  /// 09 §5. The JSON backup — the only file a restore reads. Deliberately not called an export in the button: the three CSVs above are exports, for somebody else's software, and this is the file that comes back. A shepherd who confuses the two loses the provenance quad, the withdrawal rows and every strike, silently.
+  ///
+  /// In en, this message translates to:
+  /// **'SAVE A BACKUP'**
+  String get exportBackup;
+
+  /// 09 §5, printed under the backup button. It says the two things a shepherd has to know and no more: a backup is complete and a CSV is not, and a backup that never leaves the phone it was made on protects nothing. It must never claim the file is verified or secure — offline_wording_test refuses both words in this file.
+  ///
+  /// In en, this message translates to:
+  /// **'A backup holds everything, in the form this app reads back. The three files above hold what a spreadsheet reads. Keep a backup somewhere other than this phone.'**
+  String get exportBackupWhat;
 
   /// The counts, READ and never estimated. No LIMIT, no sampling, no 'about 400' - a count the shepherd can compare against their own flock list is a count that has to be right. The two animal nouns are PLACEHOLDERS fed from Terminology (10 8.5): a shepherd who renamed ewe to gimmer sees gimmers here, and a literal noun in an ARB value is what l10n_bootstrap_test refuses. Treatment is not an animal class and stays a literal.
   ///
@@ -1467,10 +1761,10 @@ abstract class AppLocalizations {
   /// **'This file is not a Shed Book backup. Choose the .json file the app shared when you exported.'**
   String get restoreRefusedNotABackup;
 
-  /// 04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename.
+  /// 04 7.3 statement 1 - WHAT YOU ARE ABOUT TO GAIN. It is first because a shepherd deciding whether to restore is deciding whether the backup is the right one, and they cannot judge that from a filename. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments. Made on {date} by Shed Book {version}.'**
+  /// **'{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments. Made on {date} by Shed Book {version}.'**
   String restoreBackupSummary({
     required int seasons,
     required int ewes,
@@ -1478,17 +1772,21 @@ abstract class AppLocalizations {
     required int treatments,
     required String date,
     required String version,
+    required String eweTerm,
+    required String lambTerm,
   });
 
-  /// 04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot.
+  /// 04 7.3 statement 2 - WHAT YOU ARE ABOUT TO LOSE. Read with COUNT(*) from the live database at the moment the sheet opens, NEVER from the header: rendering the backup's numbers under this heading is the one bug that makes the whole confirmation a lie, and it looks right in every screenshot. THE NOUNS ARE PLACEHOLDERS, NOT LITERALS (10 §8.5): they vary by county — ewe, gimmer, theave — and a shepherd who renamed them must see their own word here too. This one especially: it is read while deciding whether to destroy their records.
   ///
   /// In en, this message translates to:
-  /// **'{seasons} seasons, {ewes} ewes, {lambs} lambs, {treatments} treatments.'**
+  /// **'{seasons} seasons, {ewes} {eweTerm}, {lambs} {lambTerm}, {treatments} treatments.'**
   String restoreLiveSummary({
     required int seasons,
     required int ewes,
     required int lambs,
     required int treatments,
+    required String eweTerm,
+    required String lambTerm,
   });
 
   /// 04 7.3 statement 3. 'Cannot be undone FROM INSIDE THE APP' is exact and is not softened: the old database is kept for one launch by the rollback file, so a developer can recover it - and a shepherd cannot. Saying 'cannot be undone' flat would be a smaller truth than the one available.
@@ -1557,6 +1855,12 @@ abstract class AppLocalizations {
   /// **'VOIDED {date}'**
   String treatmentsVoided({required String date});
 
+  /// 07 §10.4, two taps. A SOFT void: the medicine book keeps the row and marks it, because nothing is removed from this book (indelible.md rule 1). The word is `void` and never `delete` — the only two honest deletes in the product are in Settings.
+  ///
+  /// In en, this message translates to:
+  /// **'VOID THIS'**
+  String get treatmentsVoid;
+
   /// The countdown line. It prints the STORED clear date and never recomputes one. There is no 'she is clear' copy anywhere: leaving the countdown is not the same as claiming a negative, and only the shepherd and their vet can say the second.
   ///
   /// In en, this message translates to:
@@ -1598,6 +1902,54 @@ abstract class AppLocalizations {
   /// **'REPEAT LAST'**
   String get treatmentsRepeatLast;
 
+  /// 07 §10.4 row 1. The entry that N20's seven tasks never built — every one of them is the countdowns, the clear date, the repeat sheet or the void.
+  ///
+  /// In en, this message translates to:
+  /// **'NEW TREATMENT'**
+  String get treatmentNewTitle;
+
+  /// 07 §10.4: every field except the animal is skippable, so this is the only heading in the sheet over something required.
+  ///
+  /// In en, this message translates to:
+  /// **'WHICH ANIMAL'**
+  String get treatmentNewAnimal;
+
+  /// The spoken label on one animal row in the new-treatment sheet. It names the consequence — which animal the treatment lands on — rather than the act.
+  ///
+  /// In en, this message translates to:
+  /// **'Treat {tag}'**
+  String treatmentNewOnto({required String tag});
+
+  /// 07 §10.4. Free text, because the app ships no product database and never will: decision #51 rejects a medicines lookup outright, since a withdrawal period can change for the same medicine and differ between products with the same active ingredient.
+  ///
+  /// In en, this message translates to:
+  /// **'PRODUCT'**
+  String get treatmentNewProduct;
+
+  /// 07 §10.4, skippable. NO UNIT HINT in the field — a pre-filled `ml` is the app suggesting a unit it does not know. The label carries what is wanted; the field carries only what they typed.
+  ///
+  /// In en, this message translates to:
+  /// **'DOSE'**
+  String get treatmentNewDose;
+
+  /// 07 §10.4, skippable. Free text off the bottle, and the app never validates its shape: batch formats vary by manufacturer and a refused batch number is a record nobody could make.
+  ///
+  /// In en, this message translates to:
+  /// **'BATCH NUMBER'**
+  String get treatmentNewBatch;
+
+  /// 07 §10.4, skippable. A closed list from `vocab_terms`, never free text — typing it would make `rt_subcutaneous` and `sub cut` two different routes in the export.
+  ///
+  /// In en, this message translates to:
+  /// **'ROUTE'**
+  String get treatmentNewRoute;
+
+  /// The committing tap. It names the act, not a tick: at 03:20 a tick asks the shepherd to remember what they were confirming.
+  ///
+  /// In en, this message translates to:
+  /// **'RECORD THIS TREATMENT'**
+  String get treatmentNewCommit;
+
   /// One animal target in the repeat flow. One tap commits, which is the second of the two taps 07 10 budgets.
   ///
   /// In en, this message translates to:
@@ -1628,17 +1980,11 @@ abstract class AppLocalizations {
   /// **'No animals match these filters.'**
   String get flockFilteredEmpty;
 
-  /// 07 §3.2 Error.
+  /// 07 §3.2. The flock list could not be read at all — a damaged database, not an empty one. It is deliberately not the empty state: 'no ewes yet' and 'we could not look' are different facts and a shepherd acts differently on each.
   ///
   /// In en, this message translates to:
   /// **'The flock could not be read.'**
   String get flockUnavailable;
-
-  /// The ewe row's summary line, assembled in Dart from ewe_summaries COUNTS (03 §5.13). A formatted string in the database would freeze the terminology overlay and the locale.
-  ///
-  /// In en, this message translates to:
-  /// **'{seasons} seasons · {lambings} lambings'**
-  String flockRowSummary({required int seasons, required int lambings});
 
   /// Semantics label for a flock row.
   ///
@@ -1968,6 +2314,12 @@ abstract class AppLocalizations {
   /// **'No season started.'**
   String get settingsSeasonNone;
 
+  /// 07 §14.3 row 4, Settings ▸ Season. The one act that a fresh notebook cannot record anything without: `LambingRepository` refuses to invent a season on the 3am path, correctly, so this row is where one comes from. Calm-gated — it is the second and last place the free tier may honestly refuse.
+  ///
+  /// In en, this message translates to:
+  /// **'START A SEASON'**
+  String get settingsSeasonStart;
+
   /// 11 §7.3's secondSeason refusal, rendered as a static row and never a modal (#92). It names no price and carries no currency symbol — ProductDetails.price arrives at N30-T06. 'Unlock', never purchase, buy or subscribe.
   ///
   /// In en, this message translates to:
@@ -2142,6 +2494,30 @@ abstract class AppLocalizations {
   /// **'Season'**
   String get settingsSectionSeason;
 
+  /// 07 §14.3 row 4. The ewe cycle length, which the lambing spread reads to say how many lambed in the first cycle. The DEFAULT IS THE SHEPHERD'S, not the app's: 17 days is what onCreate seeds and this row is how they change it. Read by Season Summary (N28, v1.1.0); the value is stored now because the season it describes is happening now.
+  ///
+  /// In en, this message translates to:
+  /// **'CYCLE {days} DAYS'**
+  String settingsSeasonCycleDays({required String days});
+
+  /// One day off the cycle. A word rather than a stepper's minus: indelible.md §6 has no icon set, and hold-to-repeat is a banned gesture — one press, one day.
+  ///
+  /// In en, this message translates to:
+  /// **'SHORTER'**
+  String get settingsSeasonCycleShorter;
+
+  /// One day on. See SHORTER.
+  ///
+  /// In en, this message translates to:
+  /// **'LONGER'**
+  String get settingsSeasonCycleLonger;
+
+  /// 07 §14.3 row 4. WHICH percentage — there are four honest definitions and they give different numbers off the same flock, so the app states which one it is using rather than picking. Read by Season Summary (N28, v1.1.0).
+  ///
+  /// In en, this message translates to:
+  /// **'LAMBING PERCENTAGE'**
+  String get settingsSeasonPercentage;
+
   /// 07 §14.3 section 5. Renaming and deactivating pens, and the turn-out threshold.
   ///
   /// In en, this message translates to:
@@ -2184,6 +2560,12 @@ abstract class AppLocalizations {
   /// **'Data'**
   String get settingsSectionData;
 
+  /// 07 §14.3 row 11, Settings ▸ Data. The only row in this section in v1.0.0 — the two deletes are v1.1.0. Caps because it is a word button, and the word is `restore` because the vocabulary has exactly one word for this act: never import, never load, never merge — there is no merge.
+  ///
+  /// In en, this message translates to:
+  /// **'RESTORE FROM BACKUP'**
+  String get settingsDataRestore;
+
   /// 07 §14.3 section 12. The version, the licences, and the offline statement.
   ///
   /// In en, this message translates to:
@@ -2208,11 +2590,41 @@ abstract class AppLocalizations {
   /// **'OBSERVE'**
   String get eweCardActionObserve;
 
+  /// The general note on an animal. `addNote` landed at N15-T04 and had no caller — the one verb for a fact the schema has no column for, with nowhere to write it.
+  ///
+  /// In en, this message translates to:
+  /// **'NOTE'**
+  String get eweCardActionNote;
+
+  /// The note field's label, and the same words the lambing screen uses for its own note (indelible.md §8 screen 4). One phrase per concept — a second wording would read as a second kind of note.
+  ///
+  /// In en, this message translates to:
+  /// **'ANYTHING ELSE'**
+  String get eweCardNoteHeading;
+
+  /// The note sheet's dismiss word.
+  ///
+  /// In en, this message translates to:
+  /// **'CLOSE'**
+  String get eweCardNoteClose;
+
+  /// Spoken hint on the note sheet's dismiss target.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the note'**
+  String get eweCardNoteCloseHint;
+
   /// Writes ewe_seasons.status = 'barren' for the current season (R42). NOT a status change and NOT an observation — three different columns, three different facts. The app never infers it: no lambing recorded is NOT RECORDED, which is a different thing.
   ///
   /// In en, this message translates to:
   /// **'BARREN'**
   String get eweCardActionBarren;
+
+  /// indelible-marks-and-strikes §9: the per-verb undo label for a foster. It writes a COMPENSATING event rather than editing the original — nothing is removed from this book, so the foster stays in the timeline and the correction sits beside it.
+  ///
+  /// In en, this message translates to:
+  /// **'CORRECT THIS'**
+  String get timelineCorrectFoster;
 
   /// Sets ewes.status = 'culled', which is what releases the tag (03 §6 item 4). There is no undo verb (R41): the previous value is recoverable from the record's own context, not from a history row.
   ///
@@ -2345,6 +2757,179 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close this sheet. Nothing is written until you confirm.'**
   String get flockAddCloseHint;
+
+  /// The 44 pt sticky page header, naming what the book is filtered to (indelible.md 7.16). It carries the NIGHT rather than the event time, because the event time is printed in the margin cell of the first row and a number printed twice is a number two readers disagree about. The separator lives here rather than in Dart so a translator can move it; the caps are the design system's and are applied at the render site, because Flutter has no text-transform.
+  ///
+  /// In en, this message translates to:
+  /// **'{title} · {night}'**
+  String lambingEntryPageHeader({required String title, required String night});
+
+  /// indelible.md 8's footer sentence, printed at the HEAD of the optional cells rather than at the foot of them - the sentence says 'below', and a line printed underneath what it describes refers to nothing. It is the permission to walk away mid-lambing: the tally is the record and everything after it is detail, so a shepherd who puts the phone in a pocket after one stroke has lost nothing and must be told so before they reach the cells, not after.
+  ///
+  /// In en, this message translates to:
+  /// **'Every cell below may be left blank. A blank cell prints as a gap, not as an error.'**
+  String get lambingEntryBlankCells;
+
+  /// indelible.md 7.9's Selected row: the description prints beside the chosen button and nowhere else. Five sentences printed at once is what pushed every other cell on this screen below the fold - the five buttons carry the digits, and the sentence carries the meaning of the one that was pressed. The words are the shepherd's own vocab_terms label when they have set one, so they are printed verbatim and never re-cased.
+  ///
+  /// In en, this message translates to:
+  /// **'Ease {ordinal} · {description}'**
+  String lambingEaseSelected({required int ordinal, required String description});
+
+  /// indelible.md §8 Screen 1's sticky page header, which the screen shipped without. The count is the filtered count — what is on the page, not what is in the notebook — because the line names what the page is filtered to. THE NOUN IS A PLACEHOLDER (10 §8.5): it is fed from termEwePlural today and from the terminology overlay when N29 lands. The date arrives pre-formatted from lib/core/ui/formatters.dart so it is never all-numeric (R60) and there is one formatting authority rather than two.
+  ///
+  /// In en, this message translates to:
+  /// **'Flock · {count} {term} · {date}'**
+  String flockPageHeader({required int count, required String term, required String date});
+
+  /// The same header while the list statement has not returned. The count is OMITTED rather than rendered as 0 (#58): 'Flock · 0 ewes' on the frame before the rows land tells a shepherd with four hundred animals that they have none, and it is the frame they see on every cold open.
+  ///
+  /// In en, this message translates to:
+  /// **'Flock · {date}'**
+  String flockPageHeaderCounting({required String date});
+
+  /// indelible.md §7.4's trailing state word, BOXED — a state of the animal (§7.7). She carries a live withdrawal, or one whose period nobody recorded: unknown is never clear (spec §12.1, ruling N1), and the stamp reads the same either way because the row does not know which and must not guess. It states the state and never a number of days.
+  ///
+  /// In en, this message translates to:
+  /// **'WITHDRAWAL'**
+  String get flockStampWithdrawal;
+
+  /// indelible.md §8 Screen 1's boxed stamp. ewe_seasons.status = 'barren' (R42) — a recorded ANSWER, not the absence of a lambing. 'barren', never 'empty' or 'not in lamb' (CONVENTIONS §5.1).
+  ///
+  /// In en, this message translates to:
+  /// **'BARREN'**
+  String get flockStampBarren;
+
+  /// indelible.md §8 Screen 1 draws this stamp as 'TO LAMB'. The words here are the FILTER's words instead, and deliberately: one word per concept means the stamp and the filter that selects it must read the same, and 'TO LAMB' also carries a domain noun as a literal, which 10 §8.5 forbids and the gate catches. She is in lamb and still waiting — a different fact from barren.
+  ///
+  /// In en, this message translates to:
+  /// **'NOT YET LAMBED'**
+  String get flockStampNotYetLambed;
+
+  /// An open pen_occupancies row. 'penned', never 'housed' (CONVENTIONS §5.1). §8 prints the pen label and the hours penned in this cell — 'Pen 4 · 31h' — and the flock list statement returns neither, so the row says the one thing it knows.
+  ///
+  /// In en, this message translates to:
+  /// **'PENNED'**
+  String get flockStampPenned;
+
+  /// indelible.md §6.2's dagger, in §4.3's margin cell, for §7.4's Warning row state. A printer's mark rather than an icon — §1.3 bans the icon set, not the six marks — and it is never the sole channel: the doubled rule beneath the row and the QUERIED stamp in the trailing cell carry the same fact without colour.
+  ///
+  /// In en, this message translates to:
+  /// **'†'**
+  String get flockRowWarningMark;
+
+  /// The sticky page header, from indelible.md 8 screen 7: THE PENS · 27 JULY 04:12 · 5 OCCUPIED · 2 OVER †. ShedPageHeader capitalises it, so it is written in sentence case here - the caps are a typographic decision the design system owns and Flutter has no text-transform. The date and time arrive pre-formatted from formatters.dart, never numeric-only (R60). The zero arm says 'none over' rather than '0 over' and drops the dagger: a dagger printed when nothing needs attention is a mark that stops meaning anything.
+  ///
+  /// In en, this message translates to:
+  /// **'The pens · {date} {time} · {occupied} occupied · {over, plural, =0{none over} =1{1 over †} other{{over} over †}}'**
+  String penBoardPageHeader({
+    required String date,
+    required String time,
+    required int occupied,
+    required int over,
+  });
+
+  /// The in-stream word button that restores physical order - for when the shepherd is walking the row of pens rather than answering the board. The board opens sorted by hours descending, because the pens that need you are the pens you can already see.
+  ///
+  /// In en, this message translates to:
+  /// **'SORT BY PEN NUMBER'**
+  String get penBoardSortByPen;
+
+  /// The same button once physical order is showing. It returns the board to its default. Two words rather than one toggle labelled SORT, because at 03:20 a control has to say what it will do, not what is currently true.
+  ///
+  /// In en, this message translates to:
+  /// **'SORT BY HOURS'**
+  String get penBoardSortByHours;
+
+  /// The bottom-left navigation anchor on the pen board, 96x64. It is the ONLY navigation affordance in the app - there is no back chevron anywhere (decision record 7.0a). SAME WORD AS quickEntryIndex AND THAT IS ONE KEY TOO MANY: R87 moved the band into lib/core/ui/components/, so the label belongs to the band rather than to a screen, and the two keys should collapse into one shed-wide key. That rename touches Quick Entry and is not this task's to make.
+  ///
+  /// In en, this message translates to:
+  /// **'INDEX'**
+  String get penBoardIndex;
+
+  /// The whole board when the flock has made no pens at all. One printed line where a row would be, and the + PEN slab in the thumb band is the one act - an empty ruled page looks broken and a wizard is a decision at 03:20 nobody wants. Distinct from penTileEmpty, which is one empty pen among others.
+  ///
+  /// In en, this message translates to:
+  /// **'No pens yet.'**
+  String get penBoardNoPens;
+
+  /// SAFETY REQUIREMENT, safety rule 12.1. It is printed beside REPEAT LAST, permanently, never behind a tap and never scrolled away from the control it qualifies. indelible.md 8 screen 8 and 9 both spell it verbatim: repeat-last copies product, dose, route and batch and explicitly leaves the withdrawal days blank, printing this where the value would be. The reason is the NADIS finding behind decision #51 — a withdrawal period can CHANGE for the same medicine and DIFFER between products with the same active ingredient — so the previous bottle's figure is not evidence about this bottle. Do not shorten it, do not soften READ THE BOTTLE into a suggestion, and never render the repeat control without it.
+  ///
+  /// In en, this message translates to:
+  /// **'DAYS NOT COPIED — READ THE BOTTLE'**
+  String get treatmentsDaysNotCopied;
+
+  /// The ruled section line over the countdown segment, from the screen 8 mockup. The count is one line per TARGET, not per treatment — a product printing a meat figure and a milk figure is two countdowns. The sibling treatmentsModeCountdown forbids the word 'active' for the SEGMENT, where the question is what a withdrawal does (it runs); this names what the filter let through and is the mockup's own wording.
+  ///
+  /// In en, this message translates to:
+  /// **'ACTIVE WITHDRAWALS · {count}'**
+  String treatmentsSectionRunning({required String count});
+
+  /// The ruled section line over the book segment, from the screen 8 mockup. THE SEASON WAS STRUCK BEFORE IT SHIPPED. The mockup prints MEDICINE BOOK · 2026 and the first build followed it — but TreatmentRepository.watchTreatments applies no season filter, so the line stated a scope the list below it does not have: a shepherd reading MEDICINE BOOK · 2026 on a view they hand to a vet would be reading every treatment ever recorded. Naming a filter that is not applied is worse on this screen than on any other in the app. Restoring the season means filtering the statement, which is a data change and a ruling of its own.
+  ///
+  /// In en, this message translates to:
+  /// **'MEDICINE BOOK'**
+  String get treatmentsSectionBook;
+
+  /// The corner slab, 160 x 140, bottom right — the screen's primary act and the only way a treatment is recorded. It opens the new-treatment sheet; it never writes, because the withdrawal control inside that sheet is where safety rule 12.1's three explicit choices are made. A word, not an icon: there is no icon set (indelible.md 1.3).
+  ///
+  /// In en, this message translates to:
+  /// **'+ DOSE'**
+  String get treatmentsSlab;
+
+  /// The label above the kg/lb line, in indelible.md §7.12's shape: the label states what is set, the control sits on the rule under it. It names the quantity rather than the section, because 07 §14.3 row 1 rules OUT a second unit (°C/°F) rather than omitting it — so a row that named only its section would become ambiguous the day a temperature column ships. Uppercased by the widget, not here.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight'**
+  String get settingsUnitsWeightLabel;
+
+  /// The label above the three palette words. Appearance holds two independent controls — the palette and high contrast (07 §14.3 row 6) — so neither row may rely on the section heading to say which one it is. Uppercased by the widget, not here.
+  ///
+  /// In en, this message translates to:
+  /// **'Palette'**
+  String get settingsPaletteLabel;
+
+  /// The value a boolean setting prints on its rule. indelible.md §7.12 puts the label above and the VALUE on the rule; the button used to print the setting's name with the state carried only by the selected fill, so nothing on the line ever said on or off. The spoken form is the settings*StateOn message, which names the setting too — the visible word is the value alone because the label above already names it.
+  ///
+  /// In en, this message translates to:
+  /// **'ON'**
+  String get settingsStateOn;
+
+  /// The off value of a boolean setting. Never rendered as a disabled or dimmed control: indelible.md §7.13 has no disabled state, and an off setting is a value rather than an absence.
+  ///
+  /// In en, this message translates to:
+  /// **'OFF'**
+  String get settingsStateOff;
+
+  /// indelible.md §8 prints this directly beneath the theme buttons, and nothing in the app had ever rendered it. It is NOT §8's own sentence: that one reads 'if it is serif, it happened; if it is sans, it is a thing you can press', written when two faces were planned. P7 (2026-08-02) closed that — one family ships, Atkinson Hyperlegible Next, which is a sans — and §1.2 rule 2 was amended to the axis that actually shipped. Printing the serif sentence would be the app describing a typeface it does not have.
+  ///
+  /// In en, this message translates to:
+  /// **'Sentence case means it happened. Capitals mean it is a thing you can press.'**
+  String get settingsAppearanceVoices;
+
+  /// indelible.md §3.5 rule 5, and §3.5 requires it to be documented HERE, beside the two-voices line, 'because an unexplained exception is a bug'. The shepherd is matching a digit on a key against a digit already printed in the recents list and in the row above: same shape, same width, no translation step.
+  ///
+  /// In en, this message translates to:
+  /// **'One exception: the keypad digits are set in the record voice, so the digit you press is the shape that prints.'**
+  String get settingsAppearanceKeypadVoice;
+
+  /// The line above the seven read-only terms. The section used to print a heading over nothing, on the reading that editing is N29-T03 and ships in v1.1.0 — but docs/RELEASE-SCOPE.md is explicit that the authored defaults ship in v1.0.0 and only the editing waits, so the words themselves are not deferred and the section can say what it is currently using. AND IN EVERY EXPORT WAS STRUCK BEFORE IT SHIPPED: it was not true. No export path reads the terminology — the CSV writer emits stable column keys and the backup emits table columns, neither of which is a printed noun — so the sentence claimed a behaviour the build does not have. The second sentence is the deferral stated plainly rather than a promise about a date: it says what is true today and nothing about when it changes.
+  ///
+  /// In en, this message translates to:
+  /// **'These are the words this app prints on screen. They cannot be changed on this version.'**
+  String get settingsTerminologyNote;
+
+  /// One class's two words on one ruled line. BOTH forms, because a plural is never derived by appending an s (10 §8.5) — '3 sheeps' is the cheap example and tup/tups against ox/oxen is why no rule works. The separator is here rather than composed in Dart so a translator can move it. The words themselves arrive from terminologyProvider or from the term<Class>Singular/Plural defaults; this message carries no noun of its own. The placeholders are named singularTerm and pluralTerm rather than singular and plural — `plural` is an ICU keyword and a placeholder that shadows it stops parsing on the next gen-l10n release, which l10n_bootstrap_test.dart catches and which nAnimals already obeys.
+  ///
+  /// In en, this message translates to:
+  /// **'{singularTerm} · {pluralTerm}'**
+  String settingsTerminologyPair({required String singularTerm, required String pluralTerm});
+
+  /// The margin stamp on the definition the app is currently using, and on the season tonight's records are written into. A WORD, because indelible.md §1.2 rule 3 carries meaning by form first and hue never alone — the stamp, the row's position and the heavier text role are three channels, none of them a colour, so the row survives the OS grayscale filter. It is never the sole carrier of its meaning, which is what keeps §3.4's sub-18px stamp exemption valid here.
+  ///
+  /// In en, this message translates to:
+  /// **'IN USE'**
+  String get settingsSeasonPercentageInUse;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

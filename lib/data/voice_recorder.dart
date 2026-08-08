@@ -71,6 +71,15 @@ final class VoiceRecorder {
 
   /// dBFS, **not the plugin's `Amplitude`** — no plugin type crosses the
   /// boundary. The level meter is the only consumer.
+  /// **THE FLOOR BELOW WHICH THE RECORDER IS HEARING NOTHING USEFUL.**
+  ///
+  /// −50 dBFS is quiet-room noise on a phone microphone: below it the meter is
+  /// reporting its own hiss, and above it there is a voice. It is a property of
+  /// the hardware rather than a judgement about the recording, which is why it
+  /// lives beside the stream that produces the number and not in the widget
+  /// that prints a word from it.
+  static const double silenceDbfs = -50;
+
   Stream<double> levelDbfs(Duration interval) =>
       _recorder.onAmplitudeChanged(interval).map((Amplitude a) => a.current);
 }

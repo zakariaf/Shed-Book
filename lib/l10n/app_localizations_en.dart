@@ -225,19 +225,57 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get tonightEmpty => 'NOTHING RECORDED TONIGHT';
+
+  @override
+  String tonightRow({required String tag, required String count}) {
+    return '$tag · $count';
+  }
+
+  @override
+  String get tonightUntagged => 'UNTAGGED';
+
+  @override
+  String get tonightStruck => 'STRUCK';
+
+  @override
   String get quickEntryStampAuto => 'AUTO';
 
   @override
   String get quickEntryIndex => 'INDEX';
 
   @override
+  String get indexTonight => 'TONIGHT';
+
+  @override
+  String get indexFlock => 'FLOCK';
+
+  @override
+  String get indexPens => 'THE PENS';
+
+  @override
+  String get indexMedicineBook => 'MEDICINE BOOK';
+
+  @override
+  String get indexExport => 'EXPORT';
+
+  @override
+  String get indexSettings => 'SETTINGS';
+
+  @override
+  String get indexClose => 'CLOSE';
+
+  @override
+  String get indexCloseHint => 'Close the index';
+
+  @override
+  String get quickEntryStampEntered => 'ENTERED';
+
+  @override
+  String get quickEntryStampEdited => 'EDITED';
+
+  @override
   String get quickEntrySlabTagFirst => 'Tag first';
-
-  @override
-  String get quickEntryPennedEmpty => 'Nothing penned yet.';
-
-  @override
-  String get quickEntryRecentsEmpty => 'No recent animals.';
 
   @override
   String get quickEntryDeckUnavailable => 'The deck could not be read.';
@@ -258,17 +296,93 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get quickEntryEventTreatment => 'Treatment';
+
+  @override
+  String get quickEntryEventNote => 'Note';
+
+  @override
+  String get quickEntryEventDeath => 'Death';
+
+  @override
+  String get quickEntryEventMovePen => 'Move pen';
+
+  @override
+  String get quickEntryEventLine => 'What happened';
+
+  @override
+  String quickEntrySlabAddLamb({required String term}) {
+    return '+ $term';
+  }
+
+  @override
+  String get quickEntryTagCell => 'Choose an animal';
+
+  @override
+  String get quickEntryTagPrompt => 'TAG';
+
+  @override
+  String quickEntryTagSheetHeading({required int count}) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Tag · $count matches',
+      one: 'Tag · 1 match',
+      zero: 'Tag · no matches',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String quickEntryTagSheetCreate({required String tag}) {
+    return 'No such tag — write $tag into the book';
+  }
+
+  @override
+  String get quickEntryTagSheetCreateEmpty => 'Type a tag, or press one above';
+
+  @override
+  String get quickEntryTagSheetPennedFirst => 'In the pens first';
+
+  @override
+  String quickEntryTagSheetInPen({required String pen}) {
+    return 'In $pen';
+  }
+
+  @override
+  String get quickEntryTagSheetSeenRecently => 'Seen recently';
+
+  @override
+  String get quickEntryTagSheetReading => 'Reading the book…';
+
+  @override
+  String get quickEntryTagSheetNoAnimals => 'No animals in the book yet';
+
+  @override
+  String get quickEntryTagSheetClose => 'Close';
+
+  @override
+  String get quickEntryTagSheetCloseHint => 'Close the tag sheet';
+
+  @override
+  String get quickEntryDerivedSingle => 'Single';
+
+  @override
+  String get quickEntryDerivedTwin => 'Twin';
+
+  @override
+  String get quickEntryDerivedTriplet => 'Triplet';
+
+  @override
+  String quickEntryDerivedMultiple({required int count, required String term}) {
+    return '$count $term';
+  }
+
+  @override
+  String get quickEntryDerivedStamp => 'COUNTED';
+
+  @override
   String get quickEntryLambing => 'Lambing';
-
-  @override
-  String quickEntryConfirmCreate({required String tag}) {
-    return 'Create $tag';
-  }
-
-  @override
-  String quickEntryConfirmUse({required String tag}) {
-    return 'Use $tag';
-  }
 
   @override
   String get quickEntryStrike => 'STRIKE';
@@ -304,7 +418,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lambingEntryTitle => 'Lambing';
 
   @override
-  String get lambingEntryLambs => 'Lambs';
+  String lambingEntryLambs({required String term}) {
+    return '$term';
+  }
 
   @override
   String get lambingEntryCare => 'Care';
@@ -517,6 +633,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailNote => 'ANYTHING ELSE';
 
   @override
+  String get lambingEntryPhoto => 'PHOTO';
+
+  @override
+  String get lambingEntryVoiceStart => 'VOICE NOTE';
+
+  @override
+  String get lambingEntryVoiceStop => 'STOP';
+
+  @override
+  String get lambingEntryVoiceHearing => 'HEARING YOU';
+
+  @override
+  String get lambingEntryVoiceSilent => 'NOT HEARING ANYTHING';
+
+  @override
+  String get lambingEntryPhotoFailed => 'The camera did not open. Nothing was written.';
+
+  @override
+  String get lambingEntryVoiceFailed => 'The recording did not start. Nothing was written.';
+
+  @override
+  String get lambingEntryVoiceNoPermission => 'The microphone is not available.';
+
+  @override
   String get detailUnset => 'NOT RECORDED · SKIPPABLE';
 
   @override
@@ -681,6 +821,26 @@ class AppLocalizationsEn extends AppLocalizations {
   String get penBoardAddPen => '+ PEN';
 
   @override
+  String get penSheetPenAnimal => 'WHICH ANIMAL';
+
+  @override
+  String get penSheetTurnOut => 'TURN OUT';
+
+  @override
+  String get penSheetMove => 'MOVE PEN';
+
+  @override
+  String get penSheetCorrectTime => 'CORRECT THE TIME';
+
+  @override
+  String penSheetMoveTo({required String label}) {
+    return 'MOVE TO PEN $label';
+  }
+
+  @override
+  String get penSheetEmpty => 'THIS PEN IS EMPTY';
+
+  @override
   String get penBoardAddPenSemantics => 'Add a pen';
 
   @override
@@ -740,6 +900,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exportCsvAll => 'EXPORT ALL THREE';
+
+  @override
+  String get exportBackup => 'SAVE A BACKUP';
+
+  @override
+  String get exportBackupWhat =>
+      'A backup holds everything, in the form this app reads back. The three files above hold what a spreadsheet reads. Keep a backup somewhere other than this phone.';
 
   @override
   String exportCounts({
@@ -840,8 +1007,10 @@ class AppLocalizationsEn extends AppLocalizations {
     required int treatments,
     required String date,
     required String version,
+    required String eweTerm,
+    required String lambTerm,
   }) {
-    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments. Made on $date by Shed Book $version.';
+    return '$seasons seasons, $ewes $eweTerm, $lambs $lambTerm, $treatments treatments. Made on $date by Shed Book $version.';
   }
 
   @override
@@ -850,8 +1019,10 @@ class AppLocalizationsEn extends AppLocalizations {
     required int ewes,
     required int lambs,
     required int treatments,
+    required String eweTerm,
+    required String lambTerm,
   }) {
-    return '$seasons seasons, $ewes ewes, $lambs lambs, $treatments treatments.';
+    return '$seasons seasons, $ewes $eweTerm, $lambs $lambTerm, $treatments treatments.';
   }
 
   @override
@@ -895,6 +1066,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get treatmentsVoid => 'VOID THIS';
+
+  @override
   String treatmentsClears({required String date}) {
     return 'CLEARS $date';
   }
@@ -924,6 +1098,32 @@ class AppLocalizationsEn extends AppLocalizations {
   String get treatmentsRepeatLast => 'REPEAT LAST';
 
   @override
+  String get treatmentNewTitle => 'NEW TREATMENT';
+
+  @override
+  String get treatmentNewAnimal => 'WHICH ANIMAL';
+
+  @override
+  String treatmentNewOnto({required String tag}) {
+    return 'Treat $tag';
+  }
+
+  @override
+  String get treatmentNewProduct => 'PRODUCT';
+
+  @override
+  String get treatmentNewDose => 'DOSE';
+
+  @override
+  String get treatmentNewBatch => 'BATCH NUMBER';
+
+  @override
+  String get treatmentNewRoute => 'ROUTE';
+
+  @override
+  String get treatmentNewCommit => 'RECORD THIS TREATMENT';
+
+  @override
   String treatmentsRepeatOnto({required String tag}) {
     return 'ONTO $tag';
   }
@@ -942,11 +1142,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flockUnavailable => 'The flock could not be read.';
-
-  @override
-  String flockRowSummary({required int seasons, required int lambings}) {
-    return '$seasons seasons · $lambings lambings';
-  }
 
   @override
   String flockRowLabel({required String tag}) {
@@ -1195,6 +1390,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSeasonNone => 'No season started.';
 
   @override
+  String get settingsSeasonStart => 'START A SEASON';
+
+  @override
   String get settingsSeasonCapRefused =>
       'The free notebook holds one season. Unlock to start another.';
 
@@ -1298,6 +1496,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionSeason => 'Season';
 
   @override
+  String settingsSeasonCycleDays({required String days}) {
+    return 'CYCLE $days DAYS';
+  }
+
+  @override
+  String get settingsSeasonCycleShorter => 'SHORTER';
+
+  @override
+  String get settingsSeasonCycleLonger => 'LONGER';
+
+  @override
+  String get settingsSeasonPercentage => 'LAMBING PERCENTAGE';
+
+  @override
   String get settingsSectionPens => 'Pens';
 
   @override
@@ -1319,6 +1531,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsSectionData => 'Data';
 
   @override
+  String get settingsDataRestore => 'RESTORE FROM BACKUP';
+
+  @override
   String get settingsSectionAbout => 'About';
 
   @override
@@ -1331,7 +1546,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get eweCardActionObserve => 'OBSERVE';
 
   @override
+  String get eweCardActionNote => 'NOTE';
+
+  @override
+  String get eweCardNoteHeading => 'ANYTHING ELSE';
+
+  @override
+  String get eweCardNoteClose => 'CLOSE';
+
+  @override
+  String get eweCardNoteCloseHint => 'Close the note';
+
+  @override
   String get eweCardActionBarren => 'BARREN';
+
+  @override
+  String get timelineCorrectFoster => 'CORRECT THIS';
 
   @override
   String get eweCardActionCull => 'CULL';
@@ -1416,4 +1646,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flockAddCloseHint => 'Close this sheet. Nothing is written until you confirm.';
+
+  @override
+  String lambingEntryPageHeader({required String title, required String night}) {
+    return '$title · $night';
+  }
+
+  @override
+  String get lambingEntryBlankCells =>
+      'Every cell below may be left blank. A blank cell prints as a gap, not as an error.';
+
+  @override
+  String lambingEaseSelected({required int ordinal, required String description}) {
+    return 'Ease $ordinal · $description';
+  }
+
+  @override
+  String flockPageHeader({required int count, required String term, required String date}) {
+    return 'Flock · $count $term · $date';
+  }
+
+  @override
+  String flockPageHeaderCounting({required String date}) {
+    return 'Flock · $date';
+  }
+
+  @override
+  String get flockStampWithdrawal => 'WITHDRAWAL';
+
+  @override
+  String get flockStampBarren => 'BARREN';
+
+  @override
+  String get flockStampNotYetLambed => 'NOT YET LAMBED';
+
+  @override
+  String get flockStampPenned => 'PENNED';
+
+  @override
+  String get flockRowWarningMark => '†';
+
+  @override
+  String penBoardPageHeader({
+    required String date,
+    required String time,
+    required int occupied,
+    required int over,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      over,
+      locale: localeName,
+      other: '$over over †',
+      one: '1 over †',
+      zero: 'none over',
+    );
+    return 'The pens · $date $time · $occupied occupied · $_temp0';
+  }
+
+  @override
+  String get penBoardSortByPen => 'SORT BY PEN NUMBER';
+
+  @override
+  String get penBoardSortByHours => 'SORT BY HOURS';
+
+  @override
+  String get penBoardIndex => 'INDEX';
+
+  @override
+  String get penBoardNoPens => 'No pens yet.';
+
+  @override
+  String get treatmentsDaysNotCopied => 'DAYS NOT COPIED — READ THE BOTTLE';
+
+  @override
+  String treatmentsSectionRunning({required String count}) {
+    return 'ACTIVE WITHDRAWALS · $count';
+  }
+
+  @override
+  String get treatmentsSectionBook => 'MEDICINE BOOK';
+
+  @override
+  String get treatmentsSlab => '+ DOSE';
+
+  @override
+  String get settingsUnitsWeightLabel => 'Weight';
+
+  @override
+  String get settingsPaletteLabel => 'Palette';
+
+  @override
+  String get settingsStateOn => 'ON';
+
+  @override
+  String get settingsStateOff => 'OFF';
+
+  @override
+  String get settingsAppearanceVoices =>
+      'Sentence case means it happened. Capitals mean it is a thing you can press.';
+
+  @override
+  String get settingsAppearanceKeypadVoice =>
+      'One exception: the keypad digits are set in the record voice, so the digit you press is the shape that prints.';
+
+  @override
+  String get settingsTerminologyNote =>
+      'These are the words this app prints on screen. They cannot be changed on this version.';
+
+  @override
+  String settingsTerminologyPair({required String singularTerm, required String pluralTerm}) {
+    return '$singularTerm · $pluralTerm';
+  }
+
+  @override
+  String get settingsSeasonPercentageInUse => 'IN USE';
 }

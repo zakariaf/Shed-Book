@@ -1,4 +1,11 @@
-// lib/features/quick_entry/widgets/quick_entry_page_header.dart
+// lib/core/ui/components/shed_page_header.dart
+//
+// **MOVED FROM `lib/features/quick_entry/widgets/` AT R87, AND THE MOVE IS A FIX
+// RATHER THAN A TIDY-UP.** `layer.sibling` forbids one feature importing another,
+// so a page component in a feature folder is a component only that feature can
+// ever have. Measured: Quick Entry was the ONLY screen in the app with a spine, a
+// margin cell or a ruled header — six screens rendered as a bare column because
+// the parts were in a room they could not reach.
 //
 // indelible.md §7.16's sticky header, naming what the page is filtered to.
 // NEVER collapses, never parallaxes, never changes height — it is one of the
@@ -14,8 +21,21 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
-class QuickEntryPageHeader extends StatelessWidget {
-  const QuickEntryPageHeader({required this.text, required this.height, super.key});
+class ShedPageHeader extends StatelessWidget {
+  const ShedPageHeader({
+    required this.text,
+    required this.height,
+    super.key,
+    this.boxKey = const Key('quick_entry.page_header'),
+  });
+
+  /// **THE KEY IS A PARAMETER BECAUSE R87 MADE THIS SHARED.** It was written for
+  /// Quick Entry and hard-coded `Key('quick_entry.page_header')` on its own box;
+  /// the moment a second screen used it, Settings and Treatments each began
+  /// publishing a widget keyed for a screen they are not. The default keeps the
+  /// rect anchor and the geometric gate pinned to exactly what they were pinned
+  /// to before; every other screen names its own header.
+  final Key boxKey;
 
   /// Already formatted and already localised. `d MMM y`, never all-numeric
   /// (R60, decision #108) — the formatting authority is
@@ -29,7 +49,7 @@ class QuickEntryPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     return SizedBox(
-      key: const Key('quick_entry.page_header'),
+      key: boxKey,
       height: height,
       child: Align(
         alignment: AlignmentDirectional.centerStart,

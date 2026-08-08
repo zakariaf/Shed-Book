@@ -435,7 +435,9 @@ Everything between them is one scrolling ruled page.
 
 **Left-handed mirror** (`[data-hand="left"]`): the slab moves to bottom-left, `INDEX` to bottom-right. **The spine does not move.** The record column narrows on the other side. Set in Settings, no gesture.
 
-**Minimum target audit.** Every interactive element in the system, at 100% scale: corner slab 160 × 140 · keypad key 117 × 84 · record row 393 × 64 · ewe row 393 × 88 · pen row 393 × 88 · ease button 64 × 64 · stepper ± 64 × 64 · stepper value 88 × 64 · check control 393 × 64 (its right half a 64 × 64 target) · word button min 64 × 64 (12px inline padding, min-width 64px so `ALL` is still a legal target) · margin cell 68 × 64 · recents line 393 × 64 · index line 393 × 64 · sheet `CLOSE` 88 × 64. **The smallest target in the app is 64 × 64.** The spec floor is 60.
+**Minimum target audit.** Every interactive element in the system, at 100% scale: corner slab 160 × 140 · keypad key **123 × 84** · record row 393 × 64 · ewe row 393 × 88 · pen row 393 × 88 · ease button **72 × 72** · stepper ± 64 × 64 · stepper value 88 × 64 · check control 393 × 64 (its right half a 64 × 64 target) · word button min 64 × 64 (12px inline padding, min-width 64px so `ALL` is still a legal target) · margin cell 68 × 64 · recents line 393 × 64 · index line 393 × 64 · sheet `CLOSE` 88 × 64. **The smallest target in the app is 64 × 64.** The spec floor is 60.
+
+**Two numbers moved at N33-T03 (R86)** and both moved **up**: the keypad key from 117 to 123 and the ease button from 64 to 72. Closing the 8px gaps those two controls were built on gave the width back to the keys, which is the part of that ruling worth remembering — the separation floor did not cost a millimetre of target, it bought some.
 
 ---
 
@@ -586,7 +588,9 @@ Its verb changes with what the page is:
 
 ### 7.2 Keypad key
 
-`117 × 84px`. Grid of 3 × 4 inside the sheet: `117 × 3 + 8 × 2 = 367`, plus 12px sheet padding each side and 2px of slack = 393. Row gap 8px, total keypad height `84 × 4 + 8 × 3 = 360px`.
+`123 × 84px`. Grid of 3 × 4 inside the sheet, **sharing edges**: `123 × 3 = 369`, plus 12px sheet padding each side = 393. No row gap; total keypad height `84 × 4 = 336px`.
+
+**Amended at N33-T03 (R86), and the arithmetic is what decided it** — the original grid was `117 × 3 + 8 × 2 = 367` with 8px gaps. Widening those to 16 gives `117 × 3 + 16 × 2 = 383` plus 24px of sheet padding = **407 in a 393px viewport**, and shrinking a key to fit breaks the 60pt floor. Gap 0 is the only arithmetic that works, it is this design's own idiom (§7.3: *"rows share edges; there is no top border and no gap — the ruling is continuous, like a ledger"*), and it makes each key **larger**: 123px against 117.
 
 Digit in **`--face-record`** (the documented exception, §3.5) at `--t-tag` 32px, tabular, `--w-record-strong`, `--ink-full`. Fill `--slab`, 2px `--rule` border, 2px radius.
 
@@ -704,7 +708,9 @@ Tapping the **value** opens the keypad sheet for direct entry — because steppi
 
 ### 7.9 Segmented choice
 
-**Lambing ease 1–5.** Five buttons, `64 × 64` each, 8px gaps: `64 × 5 + 8 × 4 = 352`, inside the 361px available. Digits in `--face-record` (a recorded value) at `--t-tag` 32px tabular.
+**Lambing ease 1–5.** Five buttons, `72 × 72` each, **sharing edges**: `72 × 5 = 360`, inside the 361px available.
+
+**Amended at N33-T03 (R86).** They were `64 × 64` with 8px gaps — `64 × 5 + 8 × 4 = 352`. At 16px gaps the group is `64 × 5 + 16 × 4 = 384` and does not fit the 361px available at all, let alone the 301px record column. Sharing edges is what makes them fit, and it raises every ease button from 64 to `tapPrimary` 72 for free. Digits in `--face-record` (a recorded value) at `--t-tag` 32px tabular.
 
 | State | Rendering |
 |---|---|
@@ -892,7 +898,7 @@ Three taps. About six seconds. Well inside the fifteen.
 
 **Then the crucial part: the row stays open.** A lambing is a forty-minute window, not a form-filling event. You put the phone in your pocket, deliver the second lamb, take the phone out again, and **press the same slab without reselecting anyone.** A second stroke prints. The derived type re-prints as `TWIN (COUNTED)`. Ten minutes later, a third: `TRIPLET (COUNTED)`. **Nobody ever chooses "triplet" from a list.** The birth type is a count of things that happened, labelled as derived, which is exactly what safety rule 4 asks for — turned from a validation routine into the structure of the interaction. The row closes on its own at the season's configured window (default 90 minutes of no strokes) or when you press `CLOSE ROW`, and closing is itself a printed, timestamped line.
 
-**Everything else is optional and prints as a visible gap.** Below the live row, inside the thumb band, sit the optional cells as 64px inline targets: the ease group (five 64 × 64 buttons), sex per lamb, the four care checks, the assistance detail, the note. Unset cells print a dotted rule and a `NOT RECORDED · SKIPPABLE` label — the record is honest about its own thinness instead of nagging you to fill it. A footer line beneath prints: `EVERY CELL BELOW MAY BE LEFT BLANK. A BLANK CELL PRINTS AS A GAP, NOT AS AN ERROR.`
+**Everything else is optional and prints as a visible gap.** Below the live row, inside the thumb band, sit the optional cells as 64px inline targets: the ease group (five 72 × 72 buttons, sharing edges — R86), sex per lamb, the four care checks, the assistance detail, the note. Unset cells print a dotted rule and a `NOT RECORDED · SKIPPABLE` label — the record is honest about its own thinness instead of nagging you to fill it. A footer line beneath prints: `EVERY CELL BELOW MAY BE LEFT BLANK. A BLANK CELL PRINTS AS A GAP, NOT AS AN ERROR.`
 
 **The event buttons** — `LAMBING · TREATMENT · NOTE · DEATH · MOVE PEN` — are five in-stream word buttons on a single 64px ruled line directly above the live row, at the top of the thumb band. Lambing is pre-selected on tonight's page because that is what tonight is; pressing another changes what the open row *is*, and the change is printed, not silent.
 
@@ -958,7 +964,7 @@ The book filtered to one animal: `EWE 412 · ALL SEASONS`. The one-line summary 
 
 ### Screen 4 — Lambing Entry · ewe 412
 
-Not a screen. **The live row from screen 3, expanded in place**, still welded to the bottom of tonight's page, with the previous rows still visible above it. The margin prints `03:20` over `AUTO`, and tapping it re-prints as `07:02 †edited` / `event 03:20 as entered`. Birth type is not a control: it prints as `TRIPLET (COUNTED)` beside three tally marks, with `COUNTED` as an unboxed stamp, and it changes only by pressing the slab again. Ease is the five 64 × 64 buttons with `3` selected — filled `--slab`, 2px `--ink-full` border, madder underline, and `EASE 3 · SOME ASSISTANCE` printed to the right. The three lambs print as three indented 64px sub-rows under the parent row, each with its own margin time, each carrying sex, status and weight as inline 64px cells: `LAMB 1 · EWE LAMB · ALIVE · 4.1kg`, `LAMB 2 · RAM LAMB · ALIVE · 3.8kg`, `LAMB 3 · RAM LAMB · DEAD` — with `DEAD` as a word in full ink and **no colour whatsoever**. The four care checks are 64px lines that stamp a time when pressed: `NAVEL DIPPED · DONE 03:26`. Assistance detail and the note are text fields with the label above and a dotted rule below. Every unset cell prints its gap and its `NOT RECORDED · SKIPPABLE` label, and the section footer prints the sentence about blank cells. There is no Save button anywhere on this screen and nothing to lose.
+Not a screen. **The live row from screen 3, expanded in place**, still welded to the bottom of tonight's page, with the previous rows still visible above it. The margin prints `03:20` over `AUTO`, and tapping it re-prints as `07:02 †edited` / `event 03:20 as entered`. Birth type is not a control: it prints as `TRIPLET (COUNTED)` beside three tally marks, with `COUNTED` as an unboxed stamp, and it changes only by pressing the slab again. Ease is the five 72 × 72 buttons with `3` selected — filled `--slab`, 2px `--ink-full` border, madder underline, and `EASE 3 · SOME ASSISTANCE` printed to the right. The three lambs print as three indented 64px sub-rows under the parent row, each with its own margin time, each carrying sex, status and weight as inline 64px cells: `LAMB 1 · EWE LAMB · ALIVE · 4.1kg`, `LAMB 2 · RAM LAMB · ALIVE · 3.8kg`, `LAMB 3 · RAM LAMB · DEAD` — with `DEAD` as a word in full ink and **no colour whatsoever**. The four care checks are 64px lines that stamp a time when pressed: `NAVEL DIPPED · DONE 03:26`. Assistance detail and the note are text fields with the label above and a dotted rule below. Every unset cell prints its gap and its `NOT RECORDED · SKIPPABLE` label, and the section footer prints the sentence about blank cells. There is no Save button anywhere on this screen and nothing to lose.
 
 ### Screen 5 — Lamb Card
 
@@ -995,12 +1001,12 @@ Ruled rows, one setting per row, every control a word button or a text field. Un
 | Spec §5 rule | The mechanism in Indelible |
 |---|---|
 | **One thumb, one hand** | Two pinned thumb anchors and nothing else: the 160 × 140 slab bottom-right, `INDEX` 96 × 64 bottom-left, both mirrorable. The live row is welded 152px above the bottom edge so the page reads *upward* into history while the thumb only ever works at the bottom. Binding rule: nothing above 560px from the bottom is ever required to complete an event (§4.5) |
-| **Gloves, wet hands, phone in a bag — min 60 × 60pt** | Smallest target in the entire app is **64 × 64**. Slab 160 × 140, keypad key 117 × 84, every row 64 or 88, word buttons min-width 64 with 12px padding, the 68 × 64 margin cell is itself a target. Audited component by component in §4.5 |
+| **Gloves, wet hands, phone in a bag — min 60 × 60pt** | Smallest target in the entire app is **64 × 64**. Slab 160 × 140, keypad key 123 × 84, every row 64 or 88, word buttons min-width 64 with 12px padding, the 68 × 64 margin cell is itself a target. Audited component by component in §4.5 |
 | **Banned: swipe-to-delete** | **There is no delete.** Not banned — absent. Striking is a visible word button that draws a line. The concept of erasure does not exist in the product (§1.1, Rule 1) |
 | **Banned: drag** | No drag anywhere. Fostering is two taps on a cell chooser, not a drag between ewes. Moving a pen is two taps on a list. The bottom sheet has **no drag handle** and closes via an 88 × 64 `CLOSE` button |
 | **Banned: long-press-only** | No long-press is bound to anything. The stepper explicitly has **no repeat-on-hold** — one press, one step |
 | **Banned: pinch / force touch** | The chart has no zoom because it has no scale — one block is one birth at all times. No force-touch bindings exist |
-| **Cold fingers, poor capacitance** | No sliders anywhere; the stepper replaces every one. No small drag handles (no handles at all). 8–12px minimum gaps between adjacent targets. Targets never shrink on press — the press state is a **fill change only**, no scale, no ripple, because a target that shrinks under a cold thumb is a target you miss |
+| **Cold fingers, poor capacitance** | No sliders anywhere; the stepper replaces every one. No small drag handles (no handles at all). **Adjacent targets inside one grouped control share a 2px rule and no gap; independent targets are ≥ 16px apart** — ruled at N33-T03 (`CONVENTIONS §6` R86), superseding this row's original *"8–12px minimum gaps"*. Decision #100 fixes the interaction floor and outranks a visual direction on it; 8px is ≈1.3mm of separation on a wet screen through a glove, which is not separation. The published gate had already forbidden it — `06 §6.3` reads `anyOf(equals(0.0), greaterThanOrEqualTo(16.0))`, so *touching* is legal, *≥ 16* is legal, and 8 sits squarely in the band between. Targets never shrink on press — the press state is a **fill change only**, no scale, no ripple, because a target that shrinks under a cold thumb is a target you miss |
 | **Head torch or total darkness; dark is default** | Dark is the only default; there is no light theme and no system-follow. `--page` `#0A0A0B`, one step off black to limit halation for the ~47% of adults with some astigmatism. **The first painted frame is the page colour** — no splash, no logo, no white flash on either platform (§5.2) |
 | **High-contrast type, min 18pt body** | Record body **20px**, control floor **19px**, absolute floor 18px, everything measured: **every text pair ≥ 4.5:1**, with `--ink-full` at 16.19:1 and `--ink-mid` at 7.80:1 on the page (both AAA). Rules raised from 1px to **2px** because a hairline shimmers or vanishes on a mid-range Android at low brightness and the ruling here is load-bearing |
 | **Optional red-shift mode** | A six-value override (§2.6). It is nearly a no-op *by construction* — nothing was ever encoded by hue, so switching themes breaks nothing. Every red-shift text pair is ≥ 4.5:1; `--ink-full` is AAA on all five surfaces. Where the hue channel disappears, the strike line **doubles** so form takes over from colour |

@@ -22,6 +22,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/ewe_status.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
+import 'package:shed_book/features/flock/widgets/note_sheet.dart';
 import 'package:shed_book/features/flock/widgets/observation_sheet.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -67,6 +68,20 @@ class EweCardActions extends ConsumerWidget {
                   dismissSemanticLabel: l10n.eweCardObserveCloseHint,
                   barrierLabel: l10n.eweCardObserveHeading,
                   child: ObservationSheet(eweId: eweId),
+                ),
+              ),
+              // **THE GENERAL NOTE** — the one verb for a fact the schema has
+              // no column for. `addNote` had no caller anywhere in `lib/`.
+              ShedWordButton(
+                key: const Key('ewe_card.action.note'),
+                label: l10n.eweCardActionNote,
+                selected: false,
+                onTap: () => showShedBottomSheet<void>(
+                  context,
+                  dismissLabel: l10n.eweCardNoteClose,
+                  dismissSemanticLabel: l10n.eweCardNoteCloseHint,
+                  barrierLabel: l10n.eweCardNoteHeading,
+                  child: NoteSheet(eweId: eweId),
                 ),
               ),
               // R42 — a season participation outcome, not a status and not an

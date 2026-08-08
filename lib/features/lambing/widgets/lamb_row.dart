@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -58,6 +59,29 @@ class LambRow extends StatelessWidget {
     final ShedTokens t = context.tokens;
     final TextTheme text = Theme.of(context).textTheme;
 
+    // **THE RULED ROW SUPPLIES THE INDENT, AND THAT REPLACED A LOCAL PADDING.**
+    // The earlier note here weighed `gapMin` against a 32 pt step and settled on
+    // 16 because `ShedTokens` publishes nothing between — and it recorded that
+    // *"if 16 does not read as a sub-row on a real device, the fix is a token,
+    // not a multiplier."* On a real device it did not: 16 pt of nothing does not
+    // read as belonging to anything. R87's answer is neither a token nor a
+    // multiplier but the grid — `§4.3`'s record column starts at x=76, past the
+    // margin cell and past the spine, so every lamb row is already indented
+    // under the row that owns it, by the same 76 as every other record on the
+    // page. The indent is now a fact about the document rather than a number in
+    // this file.
+    //
+    // **THE TARGET IS OUTSIDE THE RULED ROW, AND `getSemantics` IS WHY.** The
+    // row is not the ruled row's own target — `onTap` is null on this screen,
+    // because a lamb opens from the Lamb Card and not from here, and
+    // `ShedRuledRow` deliberately contributes no semantics node when it is not
+    // one. The label has to be the outermost thing this widget's key names, or
+    // `WidgetTester.getSemantics` walks straight past it to the page's node and
+    // reads an empty string on a row that announces perfectly to a real screen
+    // reader. Measured on the first run of R87's second screen.
+    //
+    // It also keeps the whole line as ONE utterance, which is the point of the
+    // joined `Text` below.
     return ShedTapTarget(
       semanticLabel: labels.semanticLabel,
       // 64, NOT THE 60 pt FLOOR, and the test asserts the same. A case written
@@ -66,50 +90,41 @@ class LambRow extends StatelessWidget {
       // trap the keypad case documents.
       minSize: t.tapIndelible,
       onTap: onTap,
-      child: Padding(
-        // INDENTED FROM THE LEFT. The indent is what says "this belongs to the
-        // lambing above".
-        //
-        // ONE gapMin either side, plus a leading gap inside the row.
-        // indelible.md's four-based scale has a 32 pt step that would indent
-        // more decisively, but `ShedTokens` exposes `gapMin` and
-        // `gapDestructive` and nothing between — and `gapDestructive` means
-        // "clearance from a destructive control", which a lamb row is not.
-        // Doubling `gapMin` here would be a literal wearing arithmetic as a
-        // disguise (06 §1). If 16 does not read as a sub-row on a real device,
-        // the fix is a token, not a multiplier.
-        padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-        child: ExcludeSemantics(
-          // ONE Text, NOT A ROW OF CELLS, AND THE OVERFLOW MATRIX RULED IT.
-          //
-          // It was five Flexible cells with four middot separators between them.
-          // Flex lays out the NON-FLEXIBLE children first and shares what is
-          // left, so at textScaler 2.0 the four separators alone claimed more
-          // than the row had — 92 px over at Device.small, measured across six
-          // matrix cells. Making the separators flexible too would let a middot
-          // ellipsise into nothing, which is worse than either.
-          //
-          // One line, one ellipsis, at the end where it belongs: the ordinal and
-          // the sex survive on the narrowest phone at the largest text, and the
-          // tag is what gives way — which is the right order, because the tag is
-          // the one thing a lamb does not have yet at 03:20.
-          //
-          // The separator's spaces are in the string for the same reason as
-          // before: the gap either side of a middot is typographic.
-          child: Text(
-            <String>[
-              labels.ordinal,
-              labels.sex,
-              labels.status,
-              labels.weight,
-              if (labels.tag.isNotEmpty) labels.tag,
-            ].join(' · '),
-            style: text.bodyMedium,
-            maxLines: 1,
-            // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned (10
-            // §4.4): shrinking this line is how an 18 pt floor becomes 9 pt on
-            // the one device whose owner turned the text up.
-            overflow: TextOverflow.ellipsis,
+      child: ExcludeSemantics(
+        child: ShedRuledRow(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            // ONE Text, NOT A ROW OF CELLS, AND THE OVERFLOW MATRIX RULED IT.
+            //
+            // It was five Flexible cells with four middot separators between them.
+            // Flex lays out the NON-FLEXIBLE children first and shares what is
+            // left, so at textScaler 2.0 the four separators alone claimed more
+            // than the row had — 92 px over at Device.small, measured across six
+            // matrix cells. Making the separators flexible too would let a middot
+            // ellipsise into nothing, which is worse than either.
+            //
+            // One line, one ellipsis, at the end where it belongs: the ordinal and
+            // the sex survive on the narrowest phone at the largest text, and the
+            // tag is what gives way — which is the right order, because the tag is
+            // the one thing a lamb does not have yet at 03:20.
+            //
+            // The separator's spaces are in the string for the same reason as
+            // before: the gap either side of a middot is typographic.
+            child: Text(
+              <String>[
+                labels.ordinal,
+                labels.sex,
+                labels.status,
+                labels.weight,
+                if (labels.tag.isNotEmpty) labels.tag,
+              ].join(' · '),
+              style: text.bodyMedium,
+              maxLines: 1,
+              // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned (10
+              // §4.4): shrinking this line is how an 18 pt floor becomes 9 pt on
+              // the one device whose owner turned the text up.
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ),
       ),

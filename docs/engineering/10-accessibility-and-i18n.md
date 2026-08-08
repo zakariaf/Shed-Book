@@ -518,7 +518,13 @@ Three rules that fall out of the table and are easy to get wrong:
 ### 5.3 The gate
 
 - **Grayscale.** Turn on the OS grayscale filter and read the board. If you cannot, it fails. This is a per-release manual pass (§7.2 row 6), because no automated check exists for it.
-- **Non-text contrast (WCAG 1.4.11, 3:1)** for tile outlines, status glyphs and chart bars. `06-design-system.md` §3.5's `test/design/contrast_test.dart` covers text; non-text carriers are checked against the palette table by hand **unless** the 3.44 in-framework evaluation is public. **UNVERIFIED:** the 3.44 release notes list new evaluations in `packages/flutter/lib/src/widgets/_accessibility_evaluations.dart` — non-text colour contrast (`kMinimumRatioNonText = 3.0`), `UnlabeledLeafNodeEvaluation`, title evaluation — but the leading underscore means they may still be private. **Action before writing any hand-rolled non-text contrast check: grep the installed SDK for `kMinimumRatioNonText` and for exported `AccessibilityGuideline` constants.** If public, wire them into the `test/design/` loop and delete the manual step. If private, keep measuring by hand and re-check on every SDK bump.
+- **Non-text contrast (WCAG 1.4.11, 3:1)** for tile outlines, status glyphs and chart bars. `06-design-system.md` §3.5's `test/design/contrast_test.dart` covers text.
+
+  **CLOSED 2026-08-04 (N33-T04), by grepping the installed 3.44.8 SDK rather than by reading the release notes.** The constant is **private and doubly so**: `_kMinimumRatioNonText = 3.0` sits at `packages/flutter/lib/src/widgets/_accessibility_evaluations.dart:525`, a leading underscore on the identifier *and* on the file, and it is not re-exported by `widgets.dart`. `UnlabeledLeafNodeEvaluation` is private on the same terms. So there is no `nonTextContrastGuideline` to reach for and there will not be one on this pin.
+
+  **What is public is `CustomMinimumContrastGuideline`** in `package:flutter_test/src/accessibility.dart` — `{required Finder finder, double minimumRatio = 4.5, double tolerance = 0.01}` — which renders the tree to an image and measures real pixels. Passing `minimumRatio: 3.0` with a finder over the non-text carrier gives the 1.4.11 check with **no hand-rolled arithmetic**, which is the outcome this note was holding out for: `12 §1.4` bans re-implementing a rule as a `RegExp` inside a `test()`, and re-deriving a contrast formula that already exists twice in this repo is the same mistake in colour.
+
+  **The manual step is therefore deleted for measured carriers and kept for grayscale.** They are different claims — 3:1 is arithmetic on two colours and a machine does it better; *"can you read this screen with the hue channel gone"* is a judgement and `§7.2` row 6 keeps it as a per-release pass. Re-check `CustomMinimumContrastGuideline`'s signature on the next SDK bump; it is public API, so it will be a deprecation rather than a surprise.
 
 ---
 
@@ -584,17 +590,35 @@ Why every action needs a plain button somewhere, in one sentence: Switch Control
 
 Declare a feature **only** when all seven common tasks (§1.1) complete with it. Re-evaluate every release; put it in the release checklist, not in someone's memory.
 
-| Feature | Declare? | What must be true | Evidence |
-|---|---|---|---|
-| **VoiceOver** | Yes | Every task completable eyes-closed; every tap surface named; chart has a text alternative; headings navigable; the save receipt announces | §7.2 row 7 on 14 variants + `test/design/` guideline runs |
-| **Voice Control** | Yes | Every visible control's spoken name matches its visible words; no gesture-only action | §7.2 row 8 |
-| **Larger Text** | Yes | No clamp anywhere; readable and operable at AX5 / Android 200% + largest display size | §7.2 row 2 + the 252-cell overflow matrix |
-| **Dark Interface** | Yes | The app is dark-only and correct in it; no white flash at any launch layer | §7.2 row 1 + `06-design-system.md` §9.4 |
-| **Differentiate Without Color Alone** | Yes | §5.2's table holds in grayscale, on every screen | §7.2 row 6 |
-| **Sufficient Contrast** | Yes | Measured ratios, not eyeballed; re-checked with Bold Text, Increase Contrast and Reduce Transparency on | `test/design/contrast_test.dart` + §7.2 rows 1, 3, 5 |
-| **Reduced Motion** | Yes | Both platform flags honoured; no meaning carried only by motion | §7.2 row 4 + the two-branch unit test |
-| **Captions** | **No** | — | See below |
-| **Audio Descriptions** | **No** | — | No video anywhere in the app |
+> **AMENDED 2026-08-05 (N33-T06): the table below is no longer the declaration.**
+> [`docs/store/accessibility-nutrition-label.md`](../store/accessibility-nutrition-label.md) is, on
+> [`offline-honesty.md`](../store/offline-honesty.md)'s precedent — a public claim is authored in one
+> file a test can read, and `test/policy/accessibility_label_test.dart` walks it claim-by-claim,
+> asserting that every cited test file exists and every cited test **name appears verbatim inside
+> it**. A renamed test unholds its claim loudly instead of silently.
+>
+> What changed materially, and it is not a formatting move: **three of these rows are `pending`
+> there, not `Yes`.** VoiceOver, Voice Control and Differentiate Without Color Alone are held partly
+> by §7.2's hand pass, and that pass has not been run — it is an evening on two physical phones in a
+> dark room and it cannot move onto a laptop. `Yes` in a table nobody executes is how a claim about
+> accessibility becomes the same defect as a claim about privacy with no gate behind it. The
+> declaration file carries `pending`, refuses to let it be read as a soft yes, and names
+> `/shed-release` (N34-T04) as the task that moves it.
+>
+> The rows below are kept as the **requirement** — *what must be true* — which is this document's
+> job. The Declare and Evidence columns are the store file's.
+
+| Feature | What must be true | Where §7.2 proves it |
+|---|---|---|
+| **VoiceOver** | Every task completable eyes-closed; every tap surface named; chart has a text alternative; headings navigable; the save receipt announces | row 7 on every variant + `test/design/` guideline runs |
+| **Voice Control** | Every visible control's spoken name matches its visible words; no gesture-only action | row 8 |
+| **Larger Text** | No clamp anywhere; readable and operable at AX5 / Android 200% + largest display size | row 2 + the overflow matrix |
+| **Dark Interface** | The app is dark-only and correct in it; no white flash at any launch layer | row 1 + `06-design-system.md` §9.4 |
+| **Differentiate Without Color Alone** | §5.2's table holds in grayscale, on every screen | row 6 |
+| **Sufficient Contrast** | Measured ratios, not eyeballed; re-checked with Bold Text, Increase Contrast and Reduce Transparency on | `test/design/contrast_test.dart` + rows 1, 3, 5 |
+| **Reduced Motion** | Both platform flags honoured; no meaning carried only by motion | row 4 + the two-branch unit test |
+| **Captions** | — | See below |
+| **Audio Descriptions** | — | No video anywhere in the app |
 
 **Captions is left undeclared, and the reason is a consequence of an earlier decision.** The app records voice notes (`record` 7.1.1, AAC-LC `.m4a`) and cannot transcribe them: on-device speech recognition was cut from v1 because the recognizer runs in another process whose network access our manifest cannot constrain (owner ruling §7.0 #6). An untranscribed recording is inaccessible to a deaf user **and** to the shepherd's own future self reading the season back. So the rule is a design constraint rather than a caption track:
 
@@ -671,7 +695,14 @@ expect(resolve(const [Locale('en', 'GB')]), const Locale('en', 'GB'));
 expect(resolve(const [Locale('en', 'US')]), const Locale('en'));
 expect(resolve(const [Locale('fr', 'FR')]), const Locale('en'));
 
-// test/policy/arb_has_no_domain_noun_test.dart — §8.5's rule, as an assertion.
+// test/policy/arb_completeness_test.dart — §8.5's rule as a self-test, plus the
+// other two properties of the same file. **Amended at N33-T05: this section
+// published the name `arb_has_no_domain_noun_test.dart`, which describes ONE of
+// the three and would have meant parsing the same JSON three times and keeping
+// three copies of §8.7's exception list.** The rule itself is
+// `copy.arb_domain_noun` in the one gate; the test proves it fires and proves it
+// does not fire on the `term<Class>*` messages, which are the source the
+// placeholder is fed from.
 ```
 
 Write every new semantics matcher with **`isSemantics`**; `containsSemantics` was deprecated in 3.41 and blog snippets still use it.
@@ -1051,7 +1082,7 @@ Three notes on scope, because each is a real edge:
 
 - **`copy.literal_text` is scoped to `lib/features/` only.** `lib/core/ui/` components take their strings as parameters, `feedback.dart` builds its label from a `SaveReceipt`, and `night_error_panel.dart` must contain literal English. Those are reviewed by hand, and none of them needs an `[exempt]` line — the day-one allowlist stays at CONVENTIONS R56's **four** entries.
 - **`copy.arb_domain_noun` is scoped to `lib/l10n/` and must skip the `term*Singular` / `term*Plural` messages**, which are the *only* place those words legitimately appear. Implement the skip in the rule, not in the allowlist.
-- **Two driver amendments are required, and `01-architecture.md` must accept them.** (a) **The walker does not currently reach the ARB at all.** 01 §3.2's `main()` skips every file that does not end `.dart`, so `copy.arb_domain_noun` — and `05-domain-correctness.md` §7.3's `ContentPolicy` scan, which claims to cover "message values in `lib/l10n/*.arb`" — have nothing to run against. The amendment is one reader that walks `lib/l10n/*.arb`, decodes the JSON, and yields each non-`@`-prefixed message value as a string. It is a *separate* reader from the Dart one: JSON has no adjacent-string-literal problem, so 05's join-before-matching rule applies to the `.dart` half only and must not be copied onto the ARB half, where it would silently concatenate unrelated messages. (b) The generated `lib/l10n/app_localizations*.dart` must be added to the skip list alongside `*.g.dart` and `*.drift.dart`: it is generated, it is committed, its name matches neither existing skip pattern, and every rule that fires on it is firing on the ARB twice.
+- **Two driver amendments are required, and `01-architecture.md` must accept them. Both were made at N31-T02 and N33-T05; `01 §3.2` carries the amended walker.** (a) **The walker does not currently reach the ARB at all.** 01 §3.2's `main()` skips every file that does not end `.dart`, so `copy.arb_domain_noun` — and `05-domain-correctness.md` §7.3's `ContentPolicy` scan, which claims to cover "message values in `lib/l10n/*.arb`" — have nothing to run against. The amendment is one reader that walks `lib/l10n/*.arb`, decodes the JSON, and yields each non-`@`-prefixed message value as a string. It is a *separate* reader from the Dart one: JSON has no adjacent-string-literal problem, so 05's join-before-matching rule applies to the `.dart` half only and must not be copied onto the ARB half, where it would silently concatenate unrelated messages. (b) The generated `lib/l10n/app_localizations*.dart` must be added to the skip list alongside `*.g.dart` and `*.drift.dart`: it is generated, it is committed, its name matches neither existing skip pattern, and every rule that fires on it is firing on the ARB twice.
 
 ---
 
@@ -1160,7 +1191,7 @@ Tick every line before calling this area finished.
 - [ ] §7.1 #11 — whether a temperature field ships at all, and therefore whether °C/°F formatting exists.
 - [ ] §7.1 #15 — lambing ease 5 or 6, and therefore 40 or 41 vocabulary messages.
 - [ ] §7.1 #18 — the voice-note cap, which bounds the Captions gap in §7.1.
-- [ ] **UNVERIFIED:** whether 3.44's in-framework accessibility evaluations are public API (§5.3).
+- [x] ~~**UNVERIFIED:** whether 3.44's in-framework accessibility evaluations are public API (§5.3).~~ **Closed 2026-08-04 at N33-T04: they are private, and `CustomMinimumContrastGuideline` is the public route. See §5.3.**
 - [x] **VERIFIED 2026-08-01 (N09-T09):** `HapticFeedback.successNotification()` — and `warningNotification()` and `errorNotification()` — exist on Flutter 3.44.8. Read off `packages/flutter/lib/src/services/haptic_feedback.dart` in the installed SDK. The `heavyImpact()` fallback is not needed and nothing in this document changes.
 
 **Cross-document defects this document raises — live**

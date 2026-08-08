@@ -17,6 +17,24 @@ const String _workflow = '.github/workflows/ci.yml';
 const String _makefile = 'Makefile';
 const String _fvmrc = '.fvmrc';
 
+/// The macOS job, landed at N33-T09.
+///
+/// `00-PLAN-CRITIQUE` moved it out of E30 with one line: E28 *"generates PNGs
+/// that nothing in CI verifies until E30-T06 adds `goldens.yml`."* Binary
+/// artefacts with no machine looking at them for two epics are artefacts nobody
+/// would notice going stale.
+const String _goldens = '.github/workflows/goldens.yml';
+
+/// The pin assert's first line, as it appears in every workflow.
+///
+/// **Held as a constant so the cases that check it check the same string**, and
+/// so a change to the assert fails in one place rather than in three.
+const String kFvmrcPattern =
+    "'"
+    r'"flutter": *"[^"]*"'
+    "'";
+const String kFvmrcGrep = 'grep -o $kFvmrcPattern .fvmrc';
+
 /// Both become required status checks. Renaming one silently un-requires it and
 /// every subsequent pull request goes green on nothing.
 const List<String> jobNames = <String>['gate', 'test'];
@@ -274,5 +292,192 @@ void main() {
         reason: 'coverage that gates is coverage that gets gamed',
       );
     }
+  });
+  test('goldens.yml runs on tags and workflow_dispatch only, never on push or pull_request', () {
+    // **THREE SEPARATE ASSERTIONS, BECAUSE "THE TRIGGERS ARE WRONG" DOES NOT
+    // TELL YOU WHICH.** Each of the three failures costs something different
+    // and two of them are silent.
+    final List<String> body = File(
+      _goldens,
+    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('#')).toList();
+
+    final int on = body.indexWhere((String l) => l.trimRight() == 'on:');
+    expect(on, greaterThanOrEqualTo(0), reason: 'no `on:` block at all');
+
+    final List<String> triggers = body
+        .skip(on + 1)
+        .takeWhile((String l) => l.startsWith(' ') || l.trim().isEmpty)
+        .toList();
+
+    // 1 — `push.branches` and `push.tags` are ORed, NOT ANDed. A `branches:`
+    // key beside the tag filter turns this into a per-push macOS build at a
+    // 10x multiplier and burns the month's quota in a week.
+    expect(
+      triggers.any((String l) => l.trim() == "tags: ['v*']"),
+      isTrue,
+      reason: 'the tag filter is gone — this now builds on every push',
+    );
+    expect(
+      triggers.any((String l) => l.trim().startsWith('branches:')),
+      isFalse,
+      reason: 'push.branches is ORed with push.tags, not ANDed — this is a per-push macOS build',
+    );
+
+    // 2 — `workflow_dispatch` must be a TOP-LEVEL key of `on:`. Misindented
+    // under `push:` it silently never registers and the manual button never
+    // appears in the Actions tab, so the only way to run the goldens is to cut
+    // a tag.
+    expect(
+      triggers.any((String l) => l == '  workflow_dispatch:'),
+      isTrue,
+      reason: 'workflow_dispatch is missing or misindented — there is no manual button',
+    );
+
+    // 3 — and never a pull request (#116).
+    expect(
+      File(_goldens).readAsStringSync(),
+      isNot(
+        contains(
+          'pull_'
+          'request',
+        ),
+      ),
+      reason: '#116: goldens are not a per-PR gate',
+    );
+  });
+
+  test('goldens.yml pins the time zone, and the Makefile pins the same one', () {
+    // **N33-T07's FINDING, AS A GATE.** Every golden carries a local time.
+    // `pumpApp` pins the locale and `atFixed` pins the instant, but
+    // `Instant.local` reads the PROCESS zone — so a London re-baseline at 03:20
+    // renders 02:20 on a UTC runner, which is what a GitHub runner is, and
+    // every image diffs with no code change.
+    //
+    // Both places, because pinning only CI is worse than pinning neither: the
+    // first local re-baseline after that would move every image and read as a
+    // design change.
+    expect(
+      File(_goldens).readAsStringSync(),
+      contains('TZ=Europe/London flutter test --tags golden'),
+      reason: 'the runner is UTC and every golden carries a local time',
+    );
+
+    expect(
+      RegExp(
+        r'TZ=Europe/London \$\(FLUTTER\) test --tags golden',
+      ).allMatches(File(_makefile).readAsStringSync()).length,
+      2,
+      reason: 'goldens and goldens-update must both pin it, or they disagree with CI',
+    );
+  });
+
+  test('goldens.yml asserts the pin and runs on macOS with a timeout', () {
+    final String yml = File(_goldens).readAsStringSync();
+
+    // `13 §1.1` calls this the workflow people forget, *"because it is the only
+    // macOS job and the only one that never runs on a PR"* — and the one where
+    // the pin matters most, since a golden diff caused by a version bump reads
+    // as a design regression and costs an hour of looking at the wrong thing.
+    expect(yml, contains('subosito/flutter-action'));
+    expect(yml, contains(kFvmrcGrep), reason: 'a version bump would read as a design regression');
+
+    expect(yml, contains('runs-on: macos-latest'));
+    expect(
+      yml,
+      contains('timeout-minutes:'),
+      reason: 'a hung macOS job at a 10x multiplier is the expensive kind of hang',
+    );
+
+    // **NEVER `--update-goldens` ON CI** (`12 §8.4` rule 4). A job that
+    // re-baselines is a job that agrees with whatever it just rendered.
+    expect(
+      yml,
+      isNot(
+        contains(
+          '--update-'
+          'goldens',
+        ),
+      ),
+      reason: 'CI verifies, never re-baselines',
+    );
+  });
+
+  test('goldens.yml FLUTTER_VERSION equals the version in .fvmrc', () {
+    final RegExpMatch? env = RegExp(
+      r"FLUTTER_VERSION: '([^']+)'",
+    ).firstMatch(File(_goldens).readAsStringSync());
+    final RegExpMatch? pinned = RegExp(
+      r'"flutter": *"([^"]+)"',
+    ).firstMatch(File(_fvmrc).readAsStringSync());
+
+    expect(env, isNotNull);
+    expect(env!.group(1), pinned!.group(1));
+    expect(env.group(1), isNot('stable'));
+  });
+
+  test('the golden failure artefact points at the directory the images land in', () {
+    // `13 §4.5` writes the path as a wide glob. `LocalFileComparator` writes
+    // `failures/` beside its BASEDIR, and the basedir is `test/features/` — so
+    // the wide form matches nothing extra and hides where to look, at exactly
+    // the moment somebody is downloading the artefact to find out why a golden
+    // failed.
+    final String yml = File(_goldens).readAsStringSync();
+    expect(yml, contains('test/features/failures/**'));
+    expect(yml, contains('if: failure()'));
+  });
+  test('no workflow runs integration_test, and the absence is the design', () {
+    // **RULING 2 OF N33-T08, HELD BY A MACHINE AFTER EVERYBODY HAS FORGOTTEN
+    // WHY.** The old plan called the journeys *"a reported-not-blocking CI
+    // step"*, and `13 §4.2` is explicit that no such step can exist: a
+    // `schedule:` trigger cannot drive a real device, hosted emulators run debug
+    // mode only, and Firebase Test Lab wants an account and an upload — the
+    // exact posture this product rejects (#117).
+    //
+    // And `continue-on-error: true` is a named anti-pattern (`13 §4.6`): *if it
+    // is not worth failing on, delete it.* So the journeys are not a GitHub job
+    // at all, and "nightly" in #117's words means a scheduled job on the
+    // developer's own machine. The recipe is in README.md.
+    for (final FileSystemEntity f in Directory('.github/workflows').listSync()) {
+      if (f is! File) {
+        continue;
+      }
+      final String yml = f.readAsStringSync();
+      expect(
+        yml,
+        isNot(
+          contains(
+            'integration'
+            '_test',
+          ),
+        ),
+        reason: '${f.path} runs the journeys — they need a real device (13 §4.2)',
+      );
+      // Comments stripped first: `ci.yml` names the anti-pattern in order to
+      // say it is not there, and a scan of the raw text fires on the sentence
+      // that documents the rule. The fifteenth time this project has caught a
+      // prohibition matching itself.
+      expect(
+        yml.split('\n').where((String l) => !l.trimLeft().startsWith('#')).join('\n'),
+        isNot(contains('continue-on-error')),
+        reason: '\${f.path}: if it is not worth failing on, delete it (13 §4.6)',
+      );
+    }
+  });
+
+  test('make integration exists and refuses to run without DEVICE', () {
+    final String makefile = File(_makefile).readAsStringSync();
+
+    expect(makefile, contains('integration:'));
+    expect(makefile, contains(r'test integration_test -d $(DEVICE)'));
+
+    // **THE GUARD, AND IT IS NOT TIDINESS.** An unguarded run picks an
+    // arbitrary attached device — on a laptop with a simulator running, that is
+    // the simulator, and journey 1's *fresh install* then proves nothing about
+    // a phone.
+    expect(
+      makefile,
+      contains(r'@[ -n "$(DEVICE)" ]'),
+      reason: 'an unguarded run picks a simulator and journey 1 stops meaning anything',
+    );
   });
 }

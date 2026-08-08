@@ -25,6 +25,7 @@ import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/features/settings/settings_write_controller.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class UnitsSection extends ConsumerWidget {
@@ -40,11 +41,21 @@ final class UnitsSection extends ConsumerWidget {
     // `AsyncValue` for a value that is always present.
     final WeightUnit current = ref.watch(unitsProvider);
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Wrap(
-        spacing: t.gapMin / 2,
-        runSpacing: t.gapMin / 2,
+    // **LABELLED `WEIGHT`, NOT LEFT TO THE SECTION HEAD.** The heading says
+    // `UNITS`, plural, and `§14.3` row 1 is explicit that a second unit — the
+    // °C/°F line `§8`'s mockup draws — is ruled out rather than missing. A row
+    // that names what it sets is a row a temperature line could sit beside
+    // without either of them becoming ambiguous.
+    return SettingRow(
+      label: l10n.settingsUnitsWeightLabel,
+      control: Wrap(
+        // **`gapMin`, NOT HALF OF IT — R86.** These were 8, which is the exact
+        // middle of the band the separation rule forbids: touching is legal,
+        // 16 is legal, and 8 is a thumb landing between two settings and
+        // getting whichever one the hit test reached first. Six Settings cells
+        // of N33-T03's geometric sweep said so.
+        spacing: t.gapMin,
+        runSpacing: t.gapMin,
         children: <Widget>[
           for (final ({WeightUnit unit, String label, String spoken}) choice
               in <({WeightUnit unit, String label, String spoken})>[

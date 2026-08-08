@@ -22,6 +22,7 @@ import 'package:shed_book/domain/time/instant.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/core/ui/components/shed_tally.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_text_field.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/lambing_entry_screen.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
@@ -47,6 +48,85 @@ Future<SeasonId> _seedSeason(AppDatabase db) async {
     AppSettingsCompanion(currentSeason: Value<int?>(id)),
   );
   return SeasonId(id);
+}
+
+/// Every `TextField` in the tree sits inside a [ShedTextField].
+///
+/// **THIS REPLACED THREE `expect(find.byType(TextField), findsNothing)` LINES,
+/// AND THE REPLACEMENT IS STRONGER RATHER THAN WEAKER.**
+///
+/// Those three read *there is no text field on this screen at all, which is the
+/// strongest available form of `no placeholder`: a field with no `hintText`
+/// could grow one, and a screen with no field cannot.* That was true while the
+/// screen had no text entry — and it was asserting the absence of an unbuilt
+/// feature as if it were a safety property. `indelible.md §8` screen 4 has
+/// always specified three of them: *"Assistance detail and the note are text
+/// fields with the label above and a dotted rule below."*
+///
+/// The two real properties both survive, and this one assertion holds both:
+///
+/// - **Decision #57** — numeric entry is the keypad or nothing. A raw
+///   `TextField` for a volume or a time fails here.
+/// - **§7.12** — no placeholder. `ShedTextField`'s API has no `hintText`, no
+///   `initialValue` and no `InputDecoration`, and `components_test.dart` asserts
+///   that against its source text. A field that cannot express a placeholder is
+///   a stronger guarantee than a screen that happens to have no field.
+void expectEveryFieldIsOurs(WidgetTester tester) {
+  for (final Element e in find.byType(TextField).evaluate()) {
+    bool ours = false;
+    e.visitAncestorElements((Element a) {
+      if (a.widget is ShedTextField) {
+        ours = true;
+        return false;
+      }
+      return true;
+    });
+    expect(
+      ours,
+      isTrue,
+      reason: 'a raw TextField — decision #57 is the keypad or nothing, and §7.12 has no hint',
+    );
+  }
+}
+
+/// The finder for one of the five ease buttons.
+///
+/// **THE BUTTON IS A DIGIT AND THE SENTENCE IS ITS SPOKEN LABEL — CHANGED AT
+/// R87, AND THE OLD SHAPE WAS A LAYOUT DEFECT RATHER THAN A CHOICE.**
+///
+/// Every case below used to press `find.text('Considerable assistance needed')`,
+/// because `EaseRow` handed `ShedChoiceRow` the five authored sentences as its
+/// button labels. `ShedTapTarget` centres its child, `Center` expands to the
+/// width it is offered, and the result on a real phone was five full-bleed rows
+/// of prose where `indelible.md §7.9` draws five 72 × 72 buttons reading
+/// `1 2 3 4 5`. §8 screen 4 is explicit: *"Ease is the five 72 × 72 buttons with
+/// 3 selected … and `EASE 3 · SOME ASSISTANCE` printed to the right."*
+///
+/// So the sentences moved to two places that are both stronger than a label:
+/// each button's `semanticLabel`, where a screen reader reads the whole of it,
+/// and the description line under the group, printed for the SELECTED value
+/// only. The assertions follow them — the vocabulary cases below still bind the
+/// authored words to the screen, they just read them where the design puts them.
+///
+/// **SCOPED TO THE GROUP, DELIBERATELY.** A bare `find.text('3')` would also
+/// match any other bare digit the page grows later, and a case that passes
+/// against the wrong widget is the failure this file has drilled twice already.
+Finder easeButton(int ordinal) => find.descendant(
+  of: find.byKey(const Key('lambing_entry.ease')),
+  matching: find.text('$ordinal'),
+);
+
+/// Presses one of the five, scrolling to it first.
+///
+/// The page scrolls, and the ease group sits below the lamb rows on a real
+/// phone — a case that tapped without scrolling would be testing a layout no
+/// shepherd has.
+Future<void> tapEase(WidgetTester tester, int ordinal) async {
+  final Finder cell = easeButton(ordinal);
+  await tester.ensureVisible(cell);
+  await tester.pumpAndSettle();
+  await tester.tap(cell);
+  await tester.pumpAndSettle();
 }
 
 void main() {
@@ -441,6 +521,12 @@ void main() {
     // ITS AUTHORED DESCRIPTION — the string comes from the seeded vocabulary
     // through the ARB, not from a Dart literal. The next case is what makes
     // that binding, by renaming the term and watching the screen follow.
+    //
+    // **THE PRESS IS ON THE DIGIT AND THE DESCRIPTION IS READ BACK OFF THE
+    // PAGE** (R87 — see `easeButton`). Both clauses of the anchor survive: the
+    // press still writes with no Save button, and the authored sentence is
+    // still asserted to be on screen — it now prints under the group, for the
+    // value that was pressed, which is where §7.9 puts it.
     final AppDatabase db = testDatabase();
     await _seedSeason(db);
     final EweId ewe = await seedEwe(db, tag: '412');
@@ -449,13 +535,18 @@ void main() {
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Considerable assistance needed'));
-    await tester.pumpAndSettle();
+    await tapEase(tester, 3);
 
     final Lambing row = await (db.select(
       db.lambings,
     )..where(($LambingsTable t) => t.id.equals(lambing.value))).getSingle();
     expect(row.ease, 3, reason: 'in the database, with nothing saved');
+
+    expect(
+      find.textContaining('Considerable assistance needed'),
+      findsOneWidget,
+      reason: 'the authored sentence, printed for the value that was pressed',
+    );
 
     await tester.closeApp();
   });
@@ -484,8 +575,15 @@ void main() {
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
-    expect(find.text('Had to get the ropes'), findsOneWidget);
-    expect(find.text('Considerable assistance needed'), findsNothing);
+    // **EASE 3 IS PRESSED FIRST, AND THE PRESS IS PART OF THE CLAIM NOW.** The
+    // description prints for the selected value only (§7.9 — see `easeButton`),
+    // so an unpressed group carries the shepherd's word in the five spoken
+    // labels and nowhere on the glass. Pressing is what puts it on the page, and
+    // `textContaining` is what reads it out of `EASE 3 · …`.
+    await tapEase(tester, 3);
+
+    expect(find.textContaining('Had to get the ropes'), findsOneWidget);
+    expect(find.textContaining('Considerable assistance needed'), findsNothing);
 
     // AND BACK. Clearing the override returns the shipped word — no app update
     // and no locale change was involved in either direction.
@@ -494,8 +592,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Considerable assistance needed'), findsOneWidget);
-    expect(find.text('Had to get the ropes'), findsNothing);
+    expect(find.textContaining('Considerable assistance needed'), findsOneWidget);
+    expect(find.textContaining('Had to get the ropes'), findsNothing);
 
     // AN EMPTY LABEL IS THE SHEPHERD'S EDIT, NOT AN ABSENT ONE, and this is the
     // clause that distinguishes `userLabel ?? shipped` from
@@ -511,7 +609,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Considerable assistance needed'),
+      find.textContaining('Considerable assistance needed'),
       findsNothing,
       reason: 'blank is what they typed; the app does not overrule it',
     );
@@ -528,9 +626,19 @@ void main() {
     final EweId ewe = await seedEwe(db, tag: '412');
     final LambingId lambing = await seedLambing(db, ewe);
 
+    final SemanticsHandle handle = tester.ensureSemantics();
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
+    // **FIVE DIGITS ON THE GLASS, FIVE SENTENCES IN THE VOICE** (R87 — see
+    // `easeButton`). The case used to look for the five sentences as button
+    // labels; §7.9's buttons carry `1 2 3 4 5`, so the digits are asserted on
+    // screen and the authored sentences are asserted on the nodes — which is the
+    // stronger of the two, because a button whose label is a digit and whose
+    // node says nothing is exactly the regression this file exists to catch.
+    for (int ordinal = 1; ordinal <= 5; ordinal++) {
+      expect(easeButton(ordinal), findsOneWidget, reason: 'ease $ordinal');
+    }
     for (final String shipped in <String>[
       'No assistance',
       'Slight assistance by hand',
@@ -538,10 +646,28 @@ void main() {
       'Veterinary assistance needed',
       'Caesarean section',
     ]) {
-      expect(find.text(shipped), findsOneWidget, reason: shipped);
+      expect(
+        tester
+            .getSemantics(
+              find.ancestor(of: easeButton(1), matching: find.byType(ShedTapTarget)).first,
+            )
+            .label,
+        isNotEmpty,
+        reason: 'the buttons announce something',
+      );
+      expect(
+        find.bySemanticsLabel(RegExp(RegExp.escape(shipped))),
+        findsOneWidget,
+        reason: shipped,
+      );
     }
     expect(kEaseKeys, hasLength(5));
 
+    // AND NO SIXTH. The five cells are the whole group: `lambings.ease` carries
+    // `CHECK (ease IS NULL OR ease BETWEEN 1 AND 5)` in a frozen schema.
+    expect(easeButton(6), findsNothing);
+
+    handle.dispose();
     await tester.closeApp();
   });
 
@@ -596,8 +722,9 @@ void main() {
 
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Caesarean section'));
-    await tester.pumpAndSettle();
+    // Ease 5, pressed on the digit — R87 moved the sentences off the buttons and
+    // onto the nodes (see `easeButton`).
+    await tapEase(tester, 5);
 
     final Lambing after = await (db.select(
       db.lambings,
@@ -633,10 +760,9 @@ void main() {
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('No assistance'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Veterinary assistance needed'));
-    await tester.pumpAndSettle();
+    // Ease 1 then ease 4, pressed on the digits (R87 — see `easeButton`).
+    await tapEase(tester, 1);
+    await tapEase(tester, 4);
 
     final Lambing row = await (db.select(
       db.lambings,
@@ -662,7 +788,12 @@ void main() {
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
 
-    final Finder ease2 = find.text('Slight assistance by hand');
+    // The digit, not the sentence (R87 — see `easeButton`). `ensureVisible`
+    // happens BEFORE the pair of taps and there is still no pump between them,
+    // which is the whole shape of the case.
+    final Finder ease2 = easeButton(2);
+    await tester.ensureVisible(ease2);
+    await tester.pumpAndSettle();
     await tester.tap(ease2);
     await tester.tap(ease2, warnIfMissed: false);
     await tester.pumpAndSettle();
@@ -704,12 +835,17 @@ void main() {
     // THE FLOOR SURVIVES THE WRAP. This is the half a wrap usually breaks: the
     // buttons get narrower to fit, and the narrowest one falls under the target
     // size on the smallest phone.
-    for (final String shipped in <String>['No assistance', 'Caesarean section']) {
+    //
+    // **AND THE FLOOR IS 72 NOW, NOT 64** (R86, §7.9 as amended): the five cells
+    // share edges, and sharing edges is what raised them from 64 to `tapPrimary`
+    // for free. The first and last are measured because a `Wrap` reflows at both
+    // ends — 4 + 1 on the reference viewport, 3 + 2 here.
+    for (final int ordinal in <int>[1, 5]) {
       final Size size = tester.getSize(
-        find.ancestor(of: find.text(shipped), matching: find.byType(ShedTapTarget)).first,
+        find.ancestor(of: easeButton(ordinal), matching: find.byType(ShedTapTarget)).first,
       );
-      expect(size.height, greaterThanOrEqualTo(64.0), reason: shipped);
-      expect(size.width, greaterThanOrEqualTo(64.0), reason: shipped);
+      expect(size.height, greaterThanOrEqualTo(72.0), reason: 'ease $ordinal');
+      expect(size.width, greaterThanOrEqualTo(72.0), reason: 'ease $ordinal');
     }
 
     await tester.closeApp();
@@ -729,19 +865,21 @@ void main() {
 
     await tester.pumpApp(LambingEntryScreen(lambingId: lambing), db: db);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Considerable assistance needed'));
-    await tester.pumpAndSettle();
+    await tapEase(tester, 3);
 
+    // The node is found through the DIGIT now (R87 — see `easeButton`), and the
+    // sentence it announces is exactly what the case is about: the label says
+    // the ordinal and the description and stops.
     final SemanticsNode node = tester.getSemantics(
-      find
-          .ancestor(
-            of: find.text('Considerable assistance needed'),
-            matching: find.byType(ShedTapTarget),
-          )
-          .first,
+      find.ancestor(of: easeButton(3), matching: find.byType(ShedTapTarget)).first,
     );
 
     expect(node.label, contains('Ease 3'));
+    expect(
+      node.label,
+      contains('Considerable assistance needed'),
+      reason: 'the sentence a screen reader hears on a button the eye reads as 3',
+    );
     for (final String stateWord in <String>['selected', 'Selected', 'chosen', 'active']) {
       expect(node.label, isNot(contains(stateWord)), reason: stateWord);
     }
@@ -1041,7 +1179,7 @@ void main() {
     await tester.tap(colostrum);
     await tester.pumpAndSettle();
 
-    expect(find.byType(TextField), findsNothing, reason: 'decision #57 — the keypad or nothing');
+    expectEveryFieldIsOurs(tester);
 
     final Text field = tester.widget<Text>(
       find.descendant(
@@ -1470,7 +1608,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('quick_entry.keypad')), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expectEveryFieldIsOurs(tester);
     expect(find.byType(Dialog), findsNothing);
 
     await tester.closeApp();
@@ -1635,9 +1773,10 @@ void main() {
     // has neither". Asserted against the four Material chip types by name.
     //
     // NO PLACEHOLDER: `indelible.md §7.12` — in the dark a grey placeholder is
-    // indistinguishable from an entered value. There is no text field on this
-    // screen at all, which is the strongest available form of that: a field with
-    // no `hintText` could grow one, and a screen with no field cannot.
+    // indistinguishable from an entered value. **Amended 2026-08-05:** this said
+    // *there is no text field on this screen at all*, which was asserting the
+    // absence of an unbuilt feature — §8 screen 4 has always specified three of
+    // them. See `expectEveryFieldIsOurs`.
     final AppDatabase db = testDatabase();
     await _seedSeason(db);
     final EweId ewe = await seedEwe(db, tag: '412');
@@ -1650,7 +1789,7 @@ void main() {
     expect(find.byType(FilterChip), findsNothing);
     expect(find.byType(ActionChip), findsNothing);
     expect(find.byType(InputChip), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    expectEveryFieldIsOurs(tester);
 
     // AND THE UNSET LINE SAYS SKIPPABLE, in as many words, because a shepherd
     // at 03:20 needs to know they may walk away.

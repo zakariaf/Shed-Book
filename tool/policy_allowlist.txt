@@ -57,6 +57,8 @@ logging                               # the diagnostics log. There is no telemet
 # property layer was deleted, not the pin. Do not add the package. (Seven lines
 # appear below because flutter_test is the SDK package and is not one of §5.2's.)
 flutter_test                          # SDK. `test` is NEVER a direct dependency (#4).
+integration_test                      # SDK, #117. Four journeys on a real device, reported not
+                                      # blocking — and never a GitHub job at all (13 §4.2).
 drift_dev                             # the only generator.
 build_runner                          # ">=2.15.0 <2.15.2" — it does not resolve at ^2.15.2.
 flutter_lints                         # 6.0.0. Sets no analyzer language modes, which is why
@@ -75,6 +77,20 @@ golden_screenshot                     # belongs to tool/, not test/ (§5.2).
 # This section is the one people are tempted to "tidy". Do not. A transitive
 # package that disappears from this list is a package that entered the graph
 # unreviewed the next time somebody runs pub get.
+#
+# **FIVE LINES BELOW ARRIVE UNDER `integration_test`, AND TWO OF THEM OPEN
+# SOCKETS.** The header's instruction — read the pubspec, confirm it opens no
+# socket — was written for a graph reachable from `lib/`. `flutter_driver` pulls
+# `webdriver`, which pulls `sync_http`; the first speaks the W3C WebDriver
+# protocol and the second is a synchronous HTTP client. Writing "confirm it
+# opens no socket" beside an HTTP client would be a lie in the one file this
+# project keeps for not telling them.
+#
+# So the lines say what is true: they open sockets, they are `dev_dependency`
+# only, they are in no shipped artefact, and **G1 is what proves it** — the
+# permission set is asserted on the shipped `.aab`, never on the resolved graph.
+# Measured 2026-08-05 at N33-T08 and recorded against decision #117, which
+# approved `integration_test` without recording this cost.
 _fe_analyzer_shared                   # via build_runner, drift_dev
 analyzer                              # via build_runner, drift_dev
 args                                  # via build_runner, drift_dev, drift_flutter, flutter_local_notifications, path_provider, share_plus, wakelock_plus
@@ -190,9 +206,14 @@ record_web                            # via record
 record_windows                        # via record
 riverpod                              # via flutter_riverpod
 share_plus_platform_interface         # via share_plus
+flutter_driver                        # via integration_test (#117). SDK. Dev-only.
+fuchsia_remote_debug_protocol         # via flutter_driver. SDK. Dev-only.
+process                               # via flutter_driver. Dev-only.
 shelf                                 # via build_runner
 shelf_web_socket                      # via build_runner
 sky_engine                            # SDK. Appears as transitive with source: sdk.
+sync_http                             # via webdriver. **OPENS SOCKETS** — a synchronous HTTP
+                                      # client. Dev-only; see this section's header and #117.
 source_gen                            # via drift_dev
 source_span                           # via accessibility_tools, build_runner, drift, drift_dev, drift_flutter, file_selector, flutter_local_notifications, flutter_test, golden_screenshot, image_picker, mocktail, path_provider, share_plus, sqlite3, timezone, wakelock_plus
 sqlcipher_flutter_libs                # via drift_flutter
@@ -219,6 +240,8 @@ watcher                               # via build_runner, drift_dev
 web                                   # via build_runner, device_info_plus, drift, drift_dev, drift_flutter, file_selector, flutter_image_compress, flutter_local_notifications, golden_screenshot, image_picker, record, share_plus, sqlite3, timezone, wakelock_plus
 web_socket                            # via build_runner
 web_socket_channel                    # via build_runner
+webdriver                             # via flutter_driver. **OPENS SOCKETS** — the W3C WebDriver
+                                      # protocol. Dev-only; see this section's header and #117.
 win32                                 # via device_info_plus, share_plus, wakelock_plus
 win32_registry                        # via device_info_plus
 xdg_directories                       # via drift_flutter, flutter_local_notifications, path_provider, share_plus

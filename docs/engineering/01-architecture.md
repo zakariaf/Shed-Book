@@ -359,6 +359,19 @@ Why a script and not an analyzer plugin: a package boundary expresses rule 1 and
 
 It subsumes four gates that the research notes proposed separately: layer rules, banned text, design tokens, and the dependency allowlist (decision #10). Every other document in this set **adds rows to its rule tables**; no document adds a second script.
 
+**Two walkers, not one — amended at N31-T02 and N33-T05.** As first published, `main()` skipped
+every file not ending `.dart`, so `10-accessibility-and-i18n.md` §10's `copy.arb_domain_noun` and
+`05-domain-correctness.md` §7.3's `ContentPolicy` ARB half had **nothing to run against** — both
+claimed to cover `lib/l10n/*.arb` and both scanned zero bytes. The gate now carries a second reader
+that decodes `lib/l10n/*.arb` and yields each non-`@`-prefixed message value.
+
+It is deliberately a *separate* reader. JSON has no adjacent-string-literal problem, so 05's
+join-before-matching rule belongs to the Dart half alone; copying it onto the ARB half would
+concatenate unrelated messages and match across the join. And the generated
+`lib/l10n/app_localizations*.dart` is in the skip list beside `*.g.dart` and `*.drift.dart` — it is
+generated, it is committed, its name matches neither existing pattern, and every rule that fires on
+it is firing on the ARB a second time.
+
 **Rule tables.** These are the file's first hundred lines and they are the file's documentation. Adding a rule is adding a row; nothing else in the file changes:
 
 ```dart
@@ -1186,7 +1199,7 @@ Twenty lines of body, no `async`, no `await`, no `overrides`.
 
 ### 6.3 What happens after the first frame
 
-The first frame is a static dark Quick Entry shell: a **fully interactive keypad and no data**. Because every theme is dark, a wrong first frame is a dark first frame, which is why the palette can be resolved after `runApp()` at no cost. The recents strip and "in the pens" list render fixed-height dark placeholders at frame 1 — the same box the content will occupy, so nothing shifts.
+The first frame is a static dark Quick Entry shell: **no data and every target on it live** — tonight's records, the five event words, the TAG cell, `INDEX` and the slab (**P16** struck the *fully interactive keypad*: the keypad is in the tag sheet, which is closed on frame 1). Because every theme is dark, a wrong first frame is a dark first frame, which is why the palette can be resolved after `runApp()` at no cost. Tonight's page renders fixed-height dark rows at frame 1 — the same boxes the content will occupy, so nothing shifts. (The recents and the "in the pens" list moved into the tag sheet at **P16**.)
 
 `app.dart` holds the boot kick:
 

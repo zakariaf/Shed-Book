@@ -16,16 +16,19 @@ final class QuickEntryState {
     required this.index,
     required this.matches,
     required this.selected,
+    required this.openLambing,
   });
 
   factory QuickEntryState({
     String query = '',
     List<TagIndexEntry> index = const <TagIndexEntry>[],
     EweId? selected,
+    LambingId? openLambing,
   }) => QuickEntryState._(
     query: query,
     index: index,
     selected: selected,
+    openLambing: openLambing,
     // STORED, NEVER A GETTER (`02 §4.4`). A getter that allocates a new List
     // runs the filter once per equality check AND once per build, which is
     // strictly worse than no `.select` at all. Computed once per transition.
@@ -36,6 +39,20 @@ final class QuickEntryState {
   final List<TagIndexEntry> index;
   final List<TagIndexEntry> matches;
   final EweId? selected;
+
+  /// The row the slab is writing into, or `null` if the next press must open one.
+  ///
+  /// **THE ROW STAYS OPEN, AND THAT IS THE PRODUCT** (`indelible.md §8`): *"A
+  /// lambing is a forty-minute window, not a form-filling event. You put the
+  /// phone in your pocket, deliver the second lamb, take the phone out again, and
+  /// press the same slab without reselecting anyone."* Without this field every
+  /// press of the slab would begin a new lambing, and a set of triplets would be
+  /// filed as three singles.
+  ///
+  /// **It is an id, never a count and never a copy of the row.** How many strokes
+  /// have been pressed is read from `tonightProvider` — the committed rows are the
+  /// only honest answer, and a counter held here would be a draft of one.
+  final LambingId? openLambing;
 }
 
 final class QuickEntryController extends Notifier<QuickEntryState> {
@@ -45,6 +62,7 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
   // two pens over, a cull — wipes the digits they just typed.
   String _query = '';
   EweId? _selected;
+  LambingId? _openLambing;
 
   @override
   QuickEntryState build() {
@@ -52,7 +70,12 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
       AsyncData<List<TagIndexEntry>>(value: final List<TagIndexEntry> v) => v,
       _ => const <TagIndexEntry>[],
     };
-    return QuickEntryState(query: _query, index: index, selected: _selected);
+    return QuickEntryState(
+      query: _query,
+      index: index,
+      selected: _selected,
+      openLambing: _openLambing,
+    );
   }
 
   /// **No debounce, and that is `02 §10.3` rule 8**: debouncing a
@@ -61,7 +84,7 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
   /// note search and on free-text fields; a third is a defect.
   void appendDigit(String digit) {
     _query = '$_query$digit';
-    state = QuickEntryState(query: _query, index: state.index, selected: _selected);
+    state = _rebuilt();
   }
 
   void backspace() {
@@ -69,7 +92,7 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
       return;
     }
     _query = _query.substring(0, _query.length - 1);
-    state = QuickEntryState(query: _query, index: state.index, selected: _selected);
+    state = _rebuilt();
   }
 
   /// Clears the selection **and** the digits. The two are one act: "wrong ewe"
@@ -77,13 +100,35 @@ final class QuickEntryController extends Notifier<QuickEntryState> {
   void clearSelection() {
     _query = '';
     _selected = null;
+    // **THE OPEN ROW CLOSES WITH THE SELECTION**, because "new tag" at 03:20
+    // means the animal in front of you is not the one on screen — and a slab
+    // press after that must not land another lamb on the previous ewe's row.
+    _openLambing = null;
     state = QuickEntryState(index: state.index);
   }
 
+  /// Selecting an animal closes whatever row was open on the previous one.
   void select(EweId ewe) {
+    if (_selected != ewe) {
+      _openLambing = null;
+    }
     _selected = ewe;
-    state = QuickEntryState(query: _query, index: state.index, selected: _selected);
+    state = _rebuilt();
   }
+
+  /// The row the slab just opened, so the next press adds a lamb to it rather
+  /// than starting a second lambing.
+  void openedLambing(LambingId lambing) {
+    _openLambing = lambing;
+    state = _rebuilt();
+  }
+
+  QuickEntryState _rebuilt() => QuickEntryState(
+    query: _query,
+    index: state.index,
+    selected: _selected,
+    openLambing: _openLambing,
+  );
 }
 
 /// **keepAlive, not autoDispose**: this is the hub screen, re-entered constantly

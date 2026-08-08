@@ -129,7 +129,19 @@ void main() {
 
     expect(find.byKey(const Key('lambing_entry.query.declared_type')), findsOneWidget);
 
-    final Finder ease = find.text('Considerable assistance needed');
+    // **THE DIGIT, NOT THE SENTENCE — AND THE CONTROL CHANGED, NOT THE CLAIM.**
+    // `§7.9` gives lambing ease five 72 pt buttons reading `1 2 3 4 5`; until the
+    // R87 rebuild it rendered five full-width sentences, so this test tapped
+    // *"Considerable assistance needed"*. The sentence is now the button's spoken
+    // label and the digit is its face, which is what the section asks for: the
+    // ordinal on screen is the ordinal in the column.
+    //
+    // What this test proves is untouched — a query mark gates nothing, a write
+    // beside it lands, and the contradiction survives both.
+    final Finder ease = find.descendant(
+      of: find.byKey(const Key('lambing_entry.ease')),
+      matching: find.text('3'),
+    );
     await tester.ensureVisible(ease);
     await tester.pumpAndSettle();
     await tester.tap(ease);

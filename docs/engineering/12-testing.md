@@ -839,6 +839,8 @@ The 3am test is a set of prose claims: legible at 18 pt, 60 pt targets, one thum
 
 **14 × 3 devices × 3 text scales × 2 bold-text states = 252.** The arithmetic follows the variant list; it is not a remembered number (R58). Decision #114's 216 was 12 × 18 and predates variants 13 and 14.
 
+**In `v1.0.0` the table has eleven rows and the matrix is 198 cells** — amended at N33-T01, and it is the release boundary, not a reduction. Variants **9, 10 and 13** are `v1.1.0` screens (`docs/RELEASE-SCOPE.md`, ruling P15) and no screen stands behind them in this build; a variant pumping a screen that does not exist is eighteen cells that pass having rendered nothing. The rule above is what makes this safe to state: the count is derived, so it returns to 252 on its own when the three land. What was **added** rather than removed is `overflow_matrix_test.dart`'s assertion that the routes with no variant are *exactly* those three — the failure mode of a shrinking matrix is a screen quietly left out, and that assertion is the thing that catches it.
+
 ### 6.2 The test
 
 **The table lives in `test/support/harness.dart`, not in this file.** Four files iterate it — the overflow matrix here, `semantics_gate_test.dart` and `tap_target_test.dart` (§7.4), `contrast_test.dart` (§7.6) — and a table copied four times is four tables that stop agreeing the first time a screen is added. `kPumpableVariants` is declared once, beside `Device`, and its self-check below is the only place the count is derived rather than remembered.
@@ -969,6 +971,30 @@ testWidgets('Quick Entry: the confirm key is on screen without scrolling, banner
 ```
 
 That vacuous-filter trap is worth more than the one line it costs. A reachability assertion that cannot fail is worse than no reachability assertion, because it occupies the slot where a real one would go — and this is the screen the whole 15-second claim rests on.
+
+**AMENDED 2026-08-04 (N33-T04): the `isEmpty` above becomes a claim about the CHROME, not about the page.** As printed it asserts that no `ScrollableState` on the screen has a scroll extent, and with the banner armed it is red on its first run — the record column reports `0..432` in a 96 pt viewport. That is not a defect. N21-T08 put the export banner **inside** the record column's scroll view deliberately, because above it the banner takes height from a `Column` whose other children are fixed and overflowed by **665 px** at textScaler 2.0 on the 375 × 667 device. The record column has been a scrolling surface ever since, and the form above forbids the layout the screen already has.
+
+What `07 §5.3` claims is that *the keypad, the confirm bar and the recents strip never give up anything* — a statement about the fixed chrome, which is checkable exactly and can still fail:
+
+```dart
+// The confirm key is not inside a Scrollable at all. Move the confirm bar into
+// the record column and this goes red; leave the record column scrolling, which
+// it must, and it stays green.
+bool insideAScrollable(Finder f) {
+  var found = false;
+  tester.element(f).visitAncestorElements((a) {
+    if (a.widget is Scrollable) { found = true; return false; }
+    return true;
+  });
+  return found;
+}
+expect(insideAScrollable(confirm), isFalse, reason: '07 §5.3');
+```
+
+Two further corrections the first run earned, both of them the same lesson — **an assertion is only worth its line if you have seen it fail**:
+
+- **The canary must push the action below the fold, and padding does not.** `Padding(top: 200)` around the screen leaves 467 pt for the `Scaffold`, which lays out into 467 and puts the confirm bar at the bottom of *that* — above the home indicator, so the canary passed while claiming to prove the assertion could fail. Unbounded height is what actually reproduces it: the screen at 867 pt inside a 667 pt viewport, which is what a primary action under a long scrolling page is.
+- **`closeApp()` belongs in a `finally`, not in a tear-down and not at the end of the body.** At the end of the body a failing assertion skips it, the provider container is never disposed, and the case sits until flutter_test's **ten-minute** timeout — the first red arrives as a `TimeoutException` with the real failure scrolled off the top. From a tear-down it runs after `_verifyInvariants` and the case fails on *"A Timer is still pending"* — `minuteTick`'s, for the reason §5.1 already records at `closeApp`: an `UncontrolledProviderScope` does not own its container.
 
 ---
 
@@ -1163,9 +1189,16 @@ Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   await _loadAppFonts();
 
   // basedir resolves off the file URI, so golden keys are written relative to
-  // test/features/ — which is where golden_test.dart and goldens/ both live.
+  // test/features/ — which is where goldens_test.dart and goldens/ both live.
+  //
+  // **AMENDED 2026-08-05 (N33-T07): the literal below said `golden_test.dart`,
+  // singular, and no such file has ever existed.** The BEHAVIOUR was right —
+  // only the directory part of the URI is read, so golden keys resolved
+  // correctly regardless — but a path literal naming a file that is not there
+  // is a lie the next reader has to disprove before they can trust the line
+  // above it.
   goldenFileComparator = TolerantFileComparator(
-    Uri.parse('${Directory.current.path}/test/features/golden_test.dart'),
+    Uri.parse('${Directory.current.path}/test/features/goldens_test.dart'),
     tolerance: 0.005,   // 0.5% of pixels may differ
   );
 
@@ -1238,14 +1271,18 @@ The two targets are in §11.4, and the split between them matters: `make goldens
 
 An app with no network and no login has very little integration-shaped risk, which is precisely why the set is small and fixed at four (decision #117). Each one exercises **wiring** that unit and widget tests structurally cannot, and the justification for each is that specific gap — not "end-to-end coverage", which is not a thing this app needs.
 
-| # | File | Journey | The wiring only it exercises |
+**AMENDED 2026-08-05 (N33-T08): four `group()`s in ONE file, `integration_test/journeys_test.dart`, keeping the names below as the group names.** Each extra file under `integration_test/` is another full build-install-launch cycle on the device — four files is four builds, four installs and four cold starts, on a suite whose whole shape is *a desk with a phone plugged in*. One entry file is what the SDK's tooling is fastest with. The File column below is kept as the **group** column.
+
+| # | Group | Journey | The wiring only it exercises |
 |---|---|---|---|
-| 1 | `first_run_journey_test.dart` | Fresh install → the first frame → a saved lambing for a **new** ewe, without opening Settings | The real `openAppDatabase()` — which the widget harness deliberately never runs, because it asserts it is not under `flutter_test`. Also the real `onCreate` seed (decision #42): without it, `current_season` is null and the first keypad tap cannot insert a lambing. That is a first-launch-only defect that no in-memory test can reproduce |
-| 2 | `create_on_the_fly_journey_test.dart` | Type an unknown tag → one confirm creates the ewe → straight into Lambing Entry | Routing *and* insert ordering across two repositories in one flow. Spec §7.1: "never block an entry to make the user go and set something up first." The failure mode is an ordering bug that only appears when the tag index has not resolved yet (07 §5.3) |
-| 3 | `foster_journey_test.dart` | One tap on the Foster screen reassigns a lamb | The `BEFORE UPDATE` trigger that makes `birth_dam` immutable, running against a real file, plus the compensating-event undo. Assert that `birth_dam` is unchanged, that a `FosterEvent` row exists, and that the rearing-dam **view** now returns the new ewe. Spec §7.3 names this the flow most likely to be abandoned |
-| 4 | `backup_restore_journey_test.dart` | Export a full JSON backup to a temp file (bypassing the share sheet) → wipe → restore → the flock reads identically, provenance included | The only recovery path the product has, on a real filesystem with real permissions and the real atomic path swap. `RestoreService` writes a **new** file beside the live one and swaps; a sentinel that survives a crash mid-swap is not testable in memory |
+| 1 | `first run` | Fresh install → the first frame → a saved lambing for a **new** ewe, without opening Settings | The real `openAppDatabase()` — which the widget harness deliberately never runs, because it asserts it is not under `flutter_test`. Also the real `onCreate` seed (decision #42): without it, `current_season` is null and the first keypad tap cannot insert a lambing. That is a first-launch-only defect that no in-memory test can reproduce |
+| 2 | `create on the fly` | Type an unknown tag → one confirm creates the ewe → straight into Lambing Entry | Routing *and* insert ordering across two repositories in one flow. Spec §7.1: "never block an entry to make the user go and set something up first." The failure mode is an ordering bug that only appears when the tag index has not resolved yet (07 §5.3) |
+| 3 | `foster` | One tap on the Foster screen reassigns a lamb | The `BEFORE UPDATE` trigger that makes `birth_dam` immutable, running against a real file, plus the compensating-event undo. Assert that `birth_dam` is unchanged, that a `FosterEvent` row exists, and that the rearing-dam **view** now returns the new ewe. Spec §7.3 names this the flow most likely to be abandoned |
+| 4 | `backup and restore` | Export a full JSON backup to a temp file (bypassing the share sheet) → wipe → restore → the flock reads identically, provenance included | The only recovery path the product has, on a real filesystem with real permissions and the real atomic path swap. `RestoreService` writes a **new** file beside the live one and swaps; a sentinel that survives a crash mid-swap is not testable in memory |
 
 They run **nightly on a real device, reported and not blocking** (decision #121). A device-attached job on a merge gate is how you manufacture a flaky CI.
+
+**And "nightly" is not a GitHub job — ruled 2026-08-05 (N33-T08).** `13 §4.2` rules it out three ways: a `schedule:` trigger cannot drive a real device, hosted emulators run debug mode only, and Firebase Test Lab wants an account and an upload, which is the exact posture #117 rejects. `continue-on-error: true` cannot rescue it either — `13 §4.6` names it an anti-pattern: *if it is not worth failing on, delete it.* So #117's "nightly" means **a scheduled job on the developer's own machine**, `launchd` or `cron` running `make integration DEVICE=…`; the recipe is in `README.md` and `test/policy/ci_jobs_test.dart` asserts no workflow runs `integration_test`.
 
 ```bash
 flutter test integration_test

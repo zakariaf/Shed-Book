@@ -48,6 +48,22 @@ import 'package:shed_book/domain/time/local_date.dart';
 /// of its own and nothing else in their setup creates one.
 Future<SeasonId> seedSeason(AppDatabase db) => _season(db);
 
+/// A season **and** `app_settings.current_season`, which is what a fresh
+/// notebook has after the shepherd presses `START A SEASON`.
+///
+/// **[seedSeason] DOES NOT SET `current_season`, AND THAT IS THE DIFFERENCE
+/// THIS HELPER EXISTS FOR.** Most tests want a season row to hang records off;
+/// the 3am path wants the column, because `LambingRepository._currentSeason()`
+/// reads the column and refuses to invent one. A test that seeds the row and
+/// asserts a lambing lands is a test that passes for the wrong reason.
+Future<SeasonId> seedSeasonForFreshNotebook(AppDatabase db) async {
+  final SeasonId season = await _season(db);
+  await db
+      .update(db.appSettings)
+      .write(AppSettingsCompanion(currentSeason: Value<int?>(season.value)));
+  return season;
+}
+
 Future<SeasonId> _season(AppDatabase db) async {
   final List<Season> existing = await db.select(db.seasons).get();
   if (existing.isNotEmpty) {
@@ -139,7 +155,21 @@ Future<LambingId> seedLambing(AppDatabase db, EweId ewe, {Instant? occurredAt}) 
 Future<TreatmentId> seedTreatment(
   AppDatabase db, {
   required String product,
-  required int withdrawalDays,
+
+  /// **NULLABLE, AND `null` MEANS NO ROW AT ALL** (`03 §5.8`, safety rule
+  /// §12.1). A withdrawal is a child table, 0..n rows per treatment: *not
+  /// recorded* is the ABSENCE of a row, never a written placeholder, because
+  /// `0` is a real label value and a nullable `days` column could not tell
+  /// *the label says zero* from *I did not look*.
+  ///
+  /// Widened from `required int` at N33-T04, which could seed only one of the
+  /// three states this seeder now has to produce.
+  required int? withdrawalDays,
+
+  /// `kind: 'not_applicable'` — a row that exists, with no days. Somebody read
+  /// the bottle and it said none applies, which is a different fact from
+  /// nobody having looked. Ignored when [withdrawalDays] is non-null.
+  bool notApplicable = false,
   EweId? ewe,
   Instant? administeredAt,
 }) async {
@@ -167,20 +197,28 @@ Future<TreatmentId> seedTreatment(
         ),
       );
 
-  await db
-      .into(db.treatmentWithdrawals)
-      .insert(
-        TreatmentWithdrawalsCompanion.insert(
-          treatment: id,
-          target: 'meat',
-          kind: 'days',
-          days: Value<int?>(withdrawalDays),
-          clearDate: Value<LocalDate?>(LocalDate.of(at).plusDays(withdrawalDays)),
-          uid: newUid(),
-          createdAt: at,
-          updatedAt: at,
-        ),
-      );
+  // NO ROW IS THE THIRD STATE, and writing one here to "represent" it is the
+  // exact confusion the child table's shape exists to prevent.
+  if (withdrawalDays != null || notApplicable) {
+    await db
+        .into(db.treatmentWithdrawals)
+        .insert(
+          TreatmentWithdrawalsCompanion.insert(
+            treatment: id,
+            target: 'meat',
+            // The schema's own CHECK is `(kind = 'days') = (days IS NOT NULL)`,
+            // so these two fields can never disagree about which state this is.
+            kind: withdrawalDays == null ? 'not_applicable' : 'days',
+            days: Value<int?>(withdrawalDays),
+            clearDate: Value<LocalDate?>(
+              withdrawalDays == null ? null : LocalDate.of(at).plusDays(withdrawalDays),
+            ),
+            uid: newUid(),
+            createdAt: at,
+            updatedAt: at,
+          ),
+        );
+  }
 
   return TreatmentId(id);
 }

@@ -68,6 +68,36 @@ One more thing that looks like a hook failure and is not: **`flutter test` runs 
 can still fail offline on the first run after a resolution, with *"Got socket error trying to find
 package …"* or an advisories URL in the message. `--no-pub` isolates it.
 
+## The four integration journeys never run in GitHub Actions
+
+**That absence is the design, not a gap.** `13 §4.2`: a `schedule:` trigger cannot drive a real
+device, hosted runners' emulators are debug-mode only, and Firebase Test Lab wants an account and an
+upload — the exact posture this product rejects (decision #117). And `continue-on-error: true` is a
+named anti-pattern (`13 §4.6`): *if it is not worth failing on, delete it.* So there is no workflow,
+and `test/policy/ci_jobs_test.dart` asserts there is none, because a rule everybody has forgotten the
+reason for is a rule somebody helpfully reverses.
+
+**"Nightly" in #117's words means a scheduled job on your own machine**, against a phone that is
+plugged in anyway:
+
+```bash
+make integration DEVICE=<id>      # flutter devices, for the id
+```
+
+`DEVICE` is required and the target refuses without it: an unguarded run picks an arbitrary attached
+device, and on a laptop with a simulator running that is the simulator — at which point journey 1's
+*fresh install* proves nothing about a phone.
+
+To run it nightly, a `launchd` agent on macOS (`~/Library/LaunchAgents/`, `StartCalendarInterval` at
+an hour the phone is on the desk) or one `cron` line elsewhere:
+
+```cron
+0 2 * * *  cd /path/to/E01 && make integration DEVICE=<id> >> /tmp/shed-journeys.log 2>&1
+```
+
+Reported, never blocking. An integration suite in the blocking set is a suite that gets deleted the
+first week it is flaky.
+
 So: on a fresh clone, run `fvm flutter test` once — and `fvm flutter build appbundle --release` too
 if you need Android — with a network, before you get on the plane. **A build-hook failure in plane
 mode is `pub get` and a download, not a regression in the offline claim.** Every row above is about

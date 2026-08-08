@@ -13,6 +13,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 final class ShedCornerSlab extends StatelessWidget {
@@ -58,7 +59,17 @@ final class ShedCornerSlab extends StatelessWidget {
             child: Center(
               // VERBATIM, and nothing shrinks it to fit: the label is the one
               // string on this screen that must survive 200% text intact.
-              child: Text(label, style: Theme.of(context).textTheme.headlineSmall),
+              child: Text(
+                // **CAPITALS AT `--t-slab`'s 0.06em** (§7.1). The slab is the
+                // largest target in the app and the one pressed without looking,
+                // so it is the one place the control voice matters most.
+                controlCase(label),
+                style: controlStyle(
+                  context,
+                  Theme.of(context).textTheme.headlineSmall,
+                  track: kTrackSlab,
+                ),
+              ),
             ),
           ),
         ),

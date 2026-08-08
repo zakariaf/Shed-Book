@@ -12,7 +12,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// What one care line knows about itself.
@@ -51,47 +51,47 @@ class CareLine extends StatelessWidget {
     final ShedTokens t = context.tokens;
     final TextTheme text = Theme.of(context).textTheme;
 
-    return ShedTapTarget(
+    // **A RULED ROW, AND THE WHOLE ROW IS THE TARGET** (`§7.10`: a full-width
+    // 64 px ruled line). Before R87 this was a bare `ShedTapTarget` with no rule
+    // under it and no margin gutter, so four care lines read as four floating
+    // words — the *"small word with just one line behind it"* the owner
+    // described. The line behind it is now the ledger's, and it is continuous
+    // with the rows above and below.
+    return ShedRuledRow(
       semanticLabel: state.semanticLabel,
-      minSize: t.tapIndelible,
       onTap: onPressed,
-      child: ExcludeSemantics(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          child: Row(
-            children: <Widget>[
-              // THE LABEL IS THE STATE'S FIRST CHANNEL. Unset it sits in the
-              // secondary ink under a dotted rule; done it lifts to the primary
-              // ink over a solid one. `10 §5.2`: colour is never one of the
-              // three channels on its own.
-              // FLEXIBLE, NOT EXPANDED, AND MEASURED. Expanded takes ALL the
-              // remaining width before the stamps are laid out, so the two
-              // stamps of the Undone state — `D̶O̶N̶E̶ ̶0̶3̶:̶2̶4̶ · UNDONE 03:31` —
-              // overflowed the row by 74 px. Flexible lets the label give way
-              // instead, which is the right one to lose: the stamps carry the
-              // times, and the label is the one thing the shepherd already
-              // knows because it never changes.
-              Flexible(
-                child: _UnderlinedLabel(
-                  label: state.label,
-                  done: _isDone,
-                  style: (_isDone ? text.titleMedium : text.bodyMedium)?.copyWith(
-                    color: _isDone ? t.textPrimary : t.textSecondary,
-                  ),
-                  t: t,
-                ),
+      child: Row(
+        children: <Widget>[
+          // THE LABEL IS THE STATE'S FIRST CHANNEL. Unset it sits in the
+          // secondary ink under a dotted rule; done it lifts to the primary
+          // ink over a solid one. `10 §5.2`: colour is never one of the
+          // three channels on its own.
+          // FLEXIBLE, NOT EXPANDED, AND MEASURED. Expanded takes ALL the
+          // remaining width before the stamps are laid out, so the two
+          // stamps of the Undone state — `D̶O̶N̶E̶ ̶0̶3̶:̶2̶4̶ · UNDONE 03:31` —
+          // overflowed the row by 74 px. Flexible lets the label give way
+          // instead, which is the right one to lose: the stamps carry the
+          // times, and the label is the one thing the shepherd already
+          // knows because it never changes.
+          Flexible(
+            child: _UnderlinedLabel(
+              label: state.label,
+              done: _isDone,
+              style: (_isDone ? text.titleMedium : text.bodyMedium)?.copyWith(
+                color: _isDone ? t.textPrimary : t.textSecondary,
               ),
-              if (state.doneAt case final String at)
-                Flexible(
-                  child: _Stamp(at: at, struck: state.undoneAt != null),
-                ),
-              if (state.undoneAt case final String at) ...<Widget>[
-                Text(' · ', style: text.bodySmall),
-                Flexible(child: _Stamp(at: at, struck: false, undone: true)),
-              ],
-            ],
+              t: t,
+            ),
           ),
-        ),
+          if (state.doneAt case final String at)
+            Flexible(
+              child: _Stamp(at: at, struck: state.undoneAt != null),
+            ),
+          if (state.undoneAt case final String at) ...<Widget>[
+            Text(' · ', style: text.bodySmall),
+            Flexible(child: _Stamp(at: at, struck: false, undone: true)),
+          ],
+        ],
       ),
     );
   }

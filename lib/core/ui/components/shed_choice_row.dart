@@ -60,38 +60,76 @@ final class ShedChoiceRow extends StatelessWidget {
           // A Wrap, NOT a Row. At 200% five cells of tapPrimary do not share one
           // line, and a Row overflows where a Wrap reflows to two. Decision #99
           // forbids clamping the text, so the layout is what gives way.
+          //
+          // **THE CELLS SHARE EDGES, AND R86 IS WHY THE NUMBER IS 0.** §7.9 as
+          // amended: five 72 pt cells need 360, and at `gapMin` the group is
+          // `72 × 5 + 16 × 4 = 424`, which fits no record column on any
+          // supported device. Sharing edges is `§7.3`'s own idiom — *"rows share
+          // edges; there is no top border and no gap — the ruling is continuous,
+          // like a ledger"* — and `06 §6.3`'s gate has always read
+          // `anyOf(equals(0.0), greaterThanOrEqualTo(16.0))`, so touching is one
+          // of the two legal separations rather than an exception to them.
           Wrap(
-            spacing: t.gapMin,
-            runSpacing: t.gapMin,
+            spacing: 0,
+            runSpacing: 0,
             children: <Widget>[
               for (final ({int ordinal, String label, String semanticLabel}) c in choices)
-                ShedTapTarget(
-                  onTap: () => onSelected(c.ordinal),
-                  semanticLabel: c.semanticLabel,
-                  minSize: t.tapPrimary,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        // The non-colour channel: a selected cell carries a
-                        // heavier underline. A border colour alone would be
-                        // invisible to a reader who cannot separate the inks.
-                        bottom: BorderSide(
-                          color: selected == c.ordinal ? t.textPrimary : t.outline,
-                          width: selected == c.ordinal ? t.outlineWidth * 2 : t.outlineWidth,
+                // **`IntrinsicWidth`, AND WITHOUT IT THE GROUP WAS FIVE
+                // FULL-WIDTH ROWS.** `ShedTapTarget` wraps its child in a
+                // `Center`, and `Center` expands to the maximum width it is
+                // offered — inside a `Wrap` that is the whole record column, so
+                // every cell claimed a line of its own and the five 72 pt
+                // buttons the design draws were never on screen. Seen on the
+                // running app on 2026-08-06; it is the same defect
+                // `ShedWordButton` records, and the same one-line fix.
+                IntrinsicWidth(
+                  child: ShedTapTarget(
+                    onTap: () => onSelected(c.ordinal),
+                    semanticLabel: c.semanticLabel,
+                    minSize: t.tapPrimary,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        // §7.9's *Selected* fill. It is the fourth channel, not
+                        // the first: the border weight, the ink and the type
+                        // weight all say the same thing without it.
+                        color: selected == c.ordinal ? t.surfaceFill : null,
+                        border: Border(
+                          // The non-colour channel: a selected cell carries a
+                          // heavier underline. A border colour alone would be
+                          // invisible to a reader who cannot separate the inks.
+                          bottom: BorderSide(
+                            color: selected == c.ordinal ? t.textPrimary : t.outline,
+                            width: selected == c.ordinal ? t.outlineWidth * 2 : t.outlineWidth,
+                          ),
+                          // THE DIVISION BETWEEN TWO TOUCHING CELLS, drawn on
+                          // one side only. Two cells that each drew a full box
+                          // would put 4 pt of rule between them and turn a
+                          // ledger's ruling into a table's gridlines.
+                          right: BorderSide(color: t.outline, width: t.outlineWidth),
                         ),
                       ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        c.label,
-                        // BOTH WEIGHTS ARE EXPLICIT. `selected ? w700 : null`
-                        // was the first attempt and distinguishes nothing:
-                        // labelLarge is ALREADY w700, so the null branch
-                        // inherits the same weight and the channel is a no-op.
-                        // Naming both ends is what makes it a real second
-                        // channel beside the heavier underline.
-                        style: text.labelLarge?.copyWith(
-                          fontWeight: selected == c.ordinal ? FontWeight.w700 : FontWeight.w500,
+                      child: Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: t.gapMin / 2),
+                          child: Text(
+                            c.label,
+                            // **THE RECORD FACE AT 32 pt TABULAR** (§7.9). The
+                            // digit is a value that was recorded, not a word on
+                            // a button — Rule 2, and `headlineLarge` is the one
+                            // role carrying both the size and the tabular
+                            // figures.
+                            //
+                            // BOTH WEIGHTS ARE EXPLICIT. `selected ? w700 :
+                            // null` was the first attempt and distinguishes
+                            // nothing: the role is ALREADY w700, so the null
+                            // branch inherits the same weight and the channel is
+                            // a no-op. Naming both ends is what makes it a real
+                            // second channel beside the heavier underline.
+                            style: text.headlineLarge?.copyWith(
+                              color: selected == c.ordinal ? t.textPrimary : t.textSecondary,
+                              fontWeight: selected == c.ordinal ? FontWeight.w700 : FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
                     ),

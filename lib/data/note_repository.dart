@@ -68,6 +68,30 @@ final class NoteRepository {
         );
   });
 
+  /// The body of a note that is being typed.
+  ///
+  /// **THE ROW IS CREATED ON THE FIRST KEYSTROKE, NOT ON EXIT**, which is the
+  /// same rule Quick Entry's `beginLambing` holds: *"the row is created on
+  /// screen entry, not on exit"*, and every field after that is its own
+  /// committed write. Without this verb a note field could only insert, and a
+  /// shepherd typing *limping* would leave seven notes reading `l`, `li`,
+  /// `lim`… Batching the keystrokes instead would be a draft wearing a
+  /// different name, and there are no drafts in this product.
+  ///
+  /// **IT DOES NOT TOUCH THE PROVENANCE QUAD, AND THAT IS DELIBERATE.** The
+  /// quad is about WHEN the note happened, and typing more of it does not
+  /// change that — the note still belongs to the moment it was started.
+  /// `RecordedTime.edited` is for a corrected effective **time**, and marking
+  /// every keystroke as an edit would make `EDITED` mean nothing on the one
+  /// stamp §12.5 rests on. `updated_at` moves, which is what it is for.
+  Future<WriteOutcome> editNoteBody(NoteId note, String body) => _write(() async {
+    final Instant now = appNow();
+    await (_db.update(_db.notes)..where(($NotesTable t) => t.id.equals(note.value))).write(
+      NotesCompanion(body: Value<String>(body), updatedAt: Value<Instant>(now)),
+    );
+    return note.value;
+  });
+
   /// `04 §4.6`. **EXACTLY one subject** — `media_assets`' CHECK is `= 1`, unlike
   /// `notes`', because a photo of two animals is a photo the shepherd cannot
   /// find again from either card.
@@ -149,22 +173,12 @@ final class NoteRepository {
   /// record that a photo existed, and Indelible Rule 1 does not stop applying
   /// because the bytes did. A media asset the app quietly forgot is a photo the
   /// shepherd remembers taking and cannot find.
-  Future<WriteOutcome> markMediaMissing(String relativePath) => _write(() async {
-    final Instant now = appNow();
-    return (_db.update(
-      _db.mediaAssets,
-    )..where(($MediaAssetsTable t) => t.relativePath.equals(relativePath))).write(
-      MediaAssetsCompanion(missingSince: Value<Instant?>(now), updatedAt: Value<Instant>(now)),
-    );
-  });
+  // **`markMediaMissing` WAS DELETED HERE ON 2026-08-05.**
+  // `MediaSweeper.sweepMissingFiles` writes `missing_since` itself and CLEARS
+  // it when the file comes back (`04 §5.2`) — two writers for one column, and
+  // only one of them knows how to un-write it. The manual route had no caller
+  // and could only ever have disagreed with the sweep.
 
-  /// One transaction, one `shedFailureFrom`.
-  ///
-  /// A CHECK violation arrives as `SQLITE_CONSTRAINT` and correctly falls
-  /// through to `UnexpectedFailure`: it is a programmer error — a subject that
-  /// is null when it must not be, a body that is blank — and dressing it as a
-  /// known failure would give the shepherd a sentence about a thing they did
-  /// not do.
   Future<WriteOutcome> _write(Future<int> Function() body) async {
     try {
       final int rows = await _db.transaction(body);

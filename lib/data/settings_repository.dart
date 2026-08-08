@@ -11,6 +11,8 @@
 // interface, EVENT VERBS returning `WriteOutcome`, one transaction each, and no
 // `Clock` parameter — a repository that knows the time is a repository that
 // cannot be tested without controlling it.
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:shed_book/core/db/database.dart';
 import 'package:shed_book/core/write_outcome.dart';
@@ -76,6 +78,46 @@ final class SettingsRepository {
   /// which is the honest reading of a check that could not complete.
   Future<bool> checkDatabase() => _db.quickCheck();
 
+  /// The two numbers `13 §8.5` prints beside the integrity check.
+  ///
+  /// **RECORDS AND ANIMALS, NOT ROWS AND EWES.** A shepherd sending a
+  /// diagnostics note needs a size, not a schema: *"1,240 records · 87 animals"*
+  /// tells whoever reads it whether the file is a test flock or four seasons of
+  /// work. `records` is every append-only fact — lambings, lambs, treatments,
+  /// notes — and deliberately not a table count, which would mean nothing to
+  /// either of them.
+  ///
+  /// Through the repository because two layer rules say so: `lib/features/` may
+  /// not import `lib/core/db/`, and the raw statement is confined to
+  /// `lib/core/db/` besides.
+  Future<({int records, int animals})> diagnosticCounts() async {
+    final int lambings = (await _db.select(_db.lambings).get()).length;
+    final int lambs = (await _db.select(_db.lambs).get()).length;
+    final int treatments = (await _db.select(_db.treatments).get()).length;
+    final int notes = (await _db.select(_db.notes).get()).length;
+    final int ewes = (await _db.select(_db.ewes).get()).length;
+    return (records: lambings + lambs + treatments + notes, animals: ewes + lambs);
+  }
+
+  /// A copy of the records file, written where it can be shared from.
+  ///
+  /// **`VACUUM INTO`, WHICH IS THE ONE WAY THIS PROJECT COPIES A DATABASE**
+  /// (`09 §6.2`) — the same verb the restore path uses, so there is one answer
+  /// to *how do you copy it* rather than two that drift.
+  ///
+  /// **THE WORD IS `snapshot` AND IT IS NEVER `backup`** (`CLAUDE.md`): a backup
+  /// is the JSON a shepherd restores from, and a snapshot is a `.sqlite` file
+  /// for somebody debugging. Swapping them is how a shepherd sends the wrong one
+  /// and cannot restore it.
+  Future<File> writeSnapshot(Directory into) async {
+    final File out = File('${into.path}/shed-book-diagnostics.sqlite');
+    if (out.existsSync()) {
+      out.deleteSync();
+    }
+    await _db.snapshotInto(out.path);
+    return out;
+  }
+
   Future<WriteOutcome> setWeightUnit(WeightUnit unit) =>
       _write(AppSettingsCompanion(weightUnit: Value<String>(unit.key)));
 
@@ -103,6 +145,19 @@ final class SettingsRepository {
   Future<WriteOutcome> setTurnOutThresholdHours(int hours) =>
       _write(AppSettingsCompanion(turnOutThresholdHours: Value<int>(hours)));
 
+  /// Read by Season Summary's `lambingSpread` (N28, `v1.1.0`) and by nothing in
+  /// `v1.0.0`.
+  ///
+  /// **THEY WERE DELETED ON 2026-08-05 AND RESTORED THE SAME DAY**, and the
+  /// round trip is worth the four lines it costs. The reasoning that removed
+  /// them was the project's own — *the epic that writes the class adds it in the
+  /// same commit* — and it was wrong here for a reason the deletion surfaced:
+  /// their callers are the cases in `settings_repository_test.dart` that assert
+  /// these columns **round-trip**, which is exactly what has to be true for a
+  /// `v1.0.0` backup to restore into `v1.1.0` unchanged (P15, all 21 tables
+  /// whole).
+  ///
+  /// A verb whose only caller is the test that states a rule is not dead code.
   Future<WriteOutcome> setCycleDays(int days) =>
       _write(AppSettingsCompanion(cycleDays: Value<int>(days)));
 
@@ -111,8 +166,13 @@ final class SettingsRepository {
 
   // -- season pointer — N28 reads it, N23's restore rewrites it --------------
 
-  Future<WriteOutcome> setCurrentSeason(SeasonId? season) =>
-      _write(AppSettingsCompanion(currentSeason: Value<int?>(season?.value)));
+  // **`setCurrentSeason` WAS DELETED HERE ON 2026-08-05, AND ITS ABSENCE IS
+  // THE RULE.** `03 §5.14` assigns `app_settings.current_season` to
+  // `SeasonRepository`, which owns it through `switchSeason` — a verb that also
+  // checks the season exists before pointing at it. This one wrote the column
+  // raw, from a second class, and had no caller: a second writer for one column
+  // is `layer.single_writer` waiting to happen, and keeping it "for later" is
+  // how the second one eventually gets used.
 
   // -- the export banner's three columns — N21 (critique defect S6) ----------
 
@@ -131,10 +191,23 @@ final class SettingsRepository {
   Future<WriteOutcome> dismissExportPromptForSeason(SeasonId season) =>
       _write(AppSettingsCompanion(exportPromptDismissedForSeason: Value<int?>(season.value)));
 
-  /// Written by `ReminderReconciler.reconcile()` in the same transaction that
-  /// records the projection (R40) — N24.
-  Future<WriteOutcome> recordReconcileScheduled(Instant at) =>
-      _write(AppSettingsCompanion(lastReconcileScheduled: Value<Instant>(at)));
+  // **`recordReconcileScheduled` WAS DELETED ON 2026-08-05, AND IT IS THE ONE
+  // VERB IN THIS REPOSITORY WHOSE CALLER GENUINELY COULD NOT EXIST YET.**
+  //
+  // It would have been written by `ReminderReconciler.reconcile()` in the same
+  // transaction that records the projection (R40) — and nothing in `v1.0.0`
+  // reconciles: no notification channel is created, and `13 §11`'s freeze is
+  // why reminders are N24's. The column's own doc says *never reconciled* is a
+  // real state, so a verb writing it here would have claimed a projection
+  // nobody made, which is the shape §12.5 exists to prevent.
+  //
+  // It survived two hours on the argument that its caller was the case
+  // asserting the column round-trips. That property is real and it is a
+  // property of the **format** rather than of this class, so it moved to
+  // `backup_format_test.dart`'s end-to-end case: every `app_settings` column
+  // survives a round trip **including the ones nothing sets**. That holds for a
+  // column whose setter does not exist, which is stronger than what it
+  // replaced. N24 adds the verb back beside the reconciler that calls it.
 
   /// One transaction, one `shedFailureFrom`.
   ///

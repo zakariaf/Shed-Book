@@ -32,6 +32,10 @@ import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/export/export_controller.dart';
+import 'package:shed_book/core/failure.dart';
+import 'package:shed_book/core/ui/feedback.dart';
+import 'package:shed_book/core/write_action.dart';
+import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/export/export_write_controller.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
@@ -153,6 +157,30 @@ class ExportScreen extends ConsumerWidget {
                   onTap: () => unawaited(_share(context, ref, counts)),
                 ),
               ),
+              // **THE BACKUP, WHICH THIS SCREEN DID NOT OFFER.** Three CSVs and
+              // no way to make the one file a restore reads: `writeBackup`
+              // landed at N22, was tested at its own tier, and had no caller
+              // anywhere in `lib/`. So the restore path wired the same week had
+              // nothing to restore from.
+              Padding(
+                padding: EdgeInsets.all(t.gapMin),
+                child: ShedPrimaryButton(
+                  key: const Key('export.backup'),
+                  label: l10n.exportBackup,
+                  semanticLabel: l10n.exportBackup,
+                  onTap: () => unawaited(_shareBackup(context, ref)),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+                child: Text(
+                  l10n.exportBackupWhat,
+                  key: const Key('export.backup_what'),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(color: t.textSecondary),
+                ),
+              ),
+              SizedBox(height: t.gapMin),
+
               if (counts != null)
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: t.gapMin),
@@ -197,6 +225,38 @@ class ExportScreen extends ConsumerWidget {
   /// `RenderBox` at the moment of the tap. `share_plus` needs it on iPad, where
   /// the sheet is a popover that has to point at something — and a zero rect
   /// puts it in the top-left corner over the heading.
+  /// The backup. **No `counts` guard**, and that is the difference from
+  /// [_share]: the CSVs are per-season and cannot be built before a season
+  /// exists, but a backup of an empty notebook is a valid backup of an empty
+  /// notebook — and a shepherd who has just set the app up and wants to know the
+  /// backup works should be able to find out then rather than in March.
+  Future<void> _shareBackup(BuildContext context, WidgetRef ref) async {
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    final Rect origin = box == null ? Rect.zero : box.localToGlobal(Offset.zero) & box.size;
+
+    ref.read(exportControllerProvider.notifier).building('export.backup');
+    try {
+      await ref
+          .read(exportWriteControllerProvider.notifier)
+          .shareBackup(origin: origin, appVersion: kAppVersion);
+    } finally {
+      ref.read(exportControllerProvider.notifier).idle();
+    }
+
+    if (!context.mounted) {
+      return;
+    }
+    if (ref.read(exportWriteControllerProvider) case WriteDone(
+      outcome: WriteFailed(failure: final ShedFailure failure),
+    )) {
+      final AppLocalizations l10n = AppLocalizations.of(context);
+      showFailure(
+        context,
+        '${l10n.exportFailed(artefact: l10n.exportBackup)} ${failure.userMessage}',
+      );
+    }
+  }
+
   Future<void> _share(BuildContext context, WidgetRef ref, ExportCounts? counts) async {
     if (counts == null) {
       return;
@@ -230,6 +290,32 @@ class ExportScreen extends ConsumerWidget {
           );
     } finally {
       ref.read(exportControllerProvider.notifier).idle();
+    }
+
+    // **A FAILED EXPORT SAID NOTHING, ON THE ONE SCREEN WHOSE JOB IS GETTING
+    // RECORDS OFF THE PHONE.** This screen had no outcome handling at all — no
+    // `ref.listen`, no `WriteFailed` arm — so a disk-full or a read-only volume
+    // ran the spinner, cleared it, and left the shepherd looking at a button
+    // they had just pressed with no idea whether anything had gone.
+    //
+    // Found by N33-T05's ARB orphan sweep: `exportFailed` was written and never
+    // rendered.
+    //
+    // **THE ARTEFACT IS NAMED, WHICH IS WHY THE MESSAGE TAKES A PLACEHOLDER.**
+    // *Something could not be built* sends a shepherd nowhere; *the treatments
+    // CSV could not be built* tells them the rest of the export is fine and
+    // which one to try again.
+    if (!context.mounted) {
+      return;
+    }
+    if (ref.read(exportWriteControllerProvider) case WriteDone(
+      outcome: WriteFailed(failure: final ShedFailure failure),
+    )) {
+      showFailure(
+        context,
+        '${AppLocalizations.of(context).exportFailed(artefact: AppLocalizations.of(context).exportCsvAll)} '
+        '${failure.userMessage}',
+      );
     }
   }
 
@@ -288,7 +374,17 @@ class _ArtefactRow extends StatelessWidget {
     final TextTheme text = Theme.of(context).textTheme;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
+      // **`gapMin / 2` PER SIDE, WHICH IS `gapMin` BETWEEN TWO ROWS — R86.**
+      // It was `gapMin / 4`, so two adjacent CSV choices sat **8 pt** apart:
+      // the exact middle of the band the separation rule forbids, on a screen
+      // where the wrong tap shares the wrong file.
+      //
+      // Found by N33-T03's geometric sweep only after N33-T07 loaded the real
+      // font into the test engine — under Ahem the rows were far enough apart
+      // that the pair was never compared. Which is the argument for the font
+      // loader in one line: a gate measuring tofu is measuring the wrong
+      // layout.
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
       child: ShedTapTarget(
         key: Key(id),
         semanticLabel: l10n.exportSemantics(label: label, count: count ?? 0),

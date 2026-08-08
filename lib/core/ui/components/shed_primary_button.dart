@@ -7,6 +7,7 @@ import 'dart:ui' show PathMetric;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// The states of indelible.md §7.1.
@@ -103,7 +104,12 @@ final class ShedPrimaryButton extends StatelessWidget {
             // labelLarge, never a constructed TextStyle. 06 §5.4: building a
             // fresh TextStyle instead of using the role drops fontFeatures, and
             // the numerals start jittering.
-            child: Text(label, style: Theme.of(context).textTheme.labelLarge),
+            child: Text(
+              // **THE CONTROL VOICE** (§3.1, ruling P7): capitals are a thing
+              // you press, sentence case is a thing that happened.
+              controlCase(label),
+              style: controlStyle(context, Theme.of(context).textTheme.labelLarge),
+            ),
           ),
         ),
       ),

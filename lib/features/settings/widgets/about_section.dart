@@ -18,8 +18,8 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/log/local_log.dart' show kAppVersion;
-import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/domain/policy/disclaimers.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class AboutSection extends StatelessWidget {
@@ -27,38 +27,33 @@ final class AboutSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final TextTheme text = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Text(
-            // `kAppVersion` is a `--dart-define`, so a build that forgot to set
-            // it reads `0.1.0` and says so rather than claiming a release number
-            // it does not have.
-            l10n.settingsAboutVersion(version: kAppVersion),
-            key: const Key('settings.about.version'),
-            style: text.bodyMedium,
-          ),
-          SizedBox(height: t.gapMin),
-          Text(
-            Disclaimers.offlineStatement,
-            key: const Key('settings.about.offline'),
-            style: text.bodyMedium,
-          ),
-          SizedBox(height: t.gapMin),
-          Text(
-            Disclaimers.exportFooter,
-            key: const Key('settings.about.disclaimer'),
-            style: text.bodyMedium,
-          ),
-        ],
-      ),
+    // **THREE PRINTED LINES, EACH IN THE RULING.** They were three `Text`s with
+    // 16 pt of nothing between them at the foot of a page with no rules on it,
+    // which is where the two paragraphs a shepherd may one day hand to a vet were
+    // hardest to tell apart from chrome. Ruled, they read as the closing lines of
+    // the same document — which is what they are.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SettingLine(
+          // `kAppVersion` is a `--dart-define`, so a build that forgot to set
+          // it reads `0.1.0` and says so rather than claiming a release number
+          // it does not have.
+          text: l10n.settingsAboutVersion(version: kAppVersion),
+          textKey: const Key('settings.about.version'),
+        ),
+        SettingLine(
+          text: Disclaimers.offlineStatement,
+          textKey: const Key('settings.about.offline'),
+        ),
+        SettingLine(
+          text: Disclaimers.exportFooter,
+          textKey: const Key('settings.about.disclaimer'),
+        ),
+      ],
     );
   }
 }

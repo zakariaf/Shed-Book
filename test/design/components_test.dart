@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_pen_tile.dart';
 import 'package:shed_book/core/ui/components/shed_photo.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
@@ -35,6 +36,7 @@ import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/palettes.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -828,9 +830,21 @@ void main() {
       ),
     );
 
-    expect(tester.widget<Text>(find.text('One')).style!.fontSize, theme.titleLarge!.fontSize);
-    expect(tester.widget<Text>(find.text('Two')).style!.fontSize, theme.titleMedium!.fontSize);
+    // **THE GLYPHS ARE CAPITALS NOW, AND THE CLAIM IS UNCHANGED.** A section
+    // line is a heading in the control voice, so `ShedSectionHeading` renders
+    // `controlCase(label)` (§3.1, ruling P7). What this case asserts is the SIZE
+    // ladder — level 1 is `titleLarge`, level 2 is `titleMedium`, and the floor
+    // is 18 — and none of that moved.
+    expect(tester.widget<Text>(find.text('ONE')).style!.fontSize, theme.titleLarge!.fontSize);
+    expect(tester.widget<Text>(find.text('TWO')).style!.fontSize, theme.titleMedium!.fontSize);
     expect(theme.titleMedium!.fontSize, greaterThanOrEqualTo(18.0));
+
+    // **AND THE TRACKING CAME WITH THEM.** Capitals without tracking are one
+    // rectangle; §3.4 gives the head role 0.10em, and it is asserted as a
+    // fraction of the rendered size rather than as a pixel count so a palette
+    // that changes the base size cannot quietly change the tracking with it.
+    final Text one = tester.widget<Text>(find.text('ONE'));
+    expect(one.style!.letterSpacing! / one.style!.fontSize!, closeTo(kTrackHead, 0.001));
   });
 
   testWidgets('ShedAnimalRow is tapPrimary tall standard and tapHero tall tall', (
@@ -1635,7 +1649,7 @@ void main() {
     final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
     expect(height, greaterThan(viewport * 9 / 16));
-    expect(ShedBottomSheet.viewportFraction, 0.6);
+    expect(ShedBottomSheet.defaultViewportFraction, 0.6);
   });
 
   testWidgets('a chooser sheet is content-height', (WidgetTester tester) async {
@@ -1643,7 +1657,7 @@ void main() {
     final double height = tester.getSize(find.byType(ShedBottomSheet)).height;
     final double viewport = tester.view.physicalSize.height / tester.view.devicePixelRatio;
 
-    expect(height, lessThan(viewport * ShedBottomSheet.viewportFraction));
+    expect(height, lessThan(viewport * ShedBottomSheet.defaultViewportFraction));
   });
 
   testWidgets('the sheet renders at textScale 2.0 with boldText with no overflow', (
@@ -2125,7 +2139,12 @@ void main() {
         // "settling" is not news — every penned ewe is settling — and a word
         // that says nothing crowds out the number that does.
         ShedPenTileStatus.settling => (word: '4h', mark: null),
-        ShedPenTileStatus.ready => (word: 'READY', mark: 'pen_tile.dagger'),
+        // `ready` IS THE ROW `indelible.md §8` CALLS **OVER** — settled past
+        // the shepherd's own turn-out threshold. The word in the product moved
+        // from `READY` to `OVER` when the board was built; this case passes its
+        // own string in, so what it pins is that the component PRINTS the word
+        // it is handed, not which word the ARB holds.
+        ShedPenTileStatus.ready => (word: 'OVER', mark: 'pen_tile.dagger'),
         ShedPenTileStatus.attention => (word: 'CLEAR 14 JUL', mark: 'pen_tile.badge'),
         ShedPenTileStatus.loss => (word: 'DEAD', mark: null),
         ShedPenTileStatus.empty => (word: '— empty —', mark: null),
@@ -2155,13 +2174,25 @@ void main() {
         reason: '${status.name} must say something',
       );
 
-      // 2 — A SHAPE CHANNEL, on every status without exception. The rule under
-      // the row is single, doubled, dashed or dotted, and none of those needs an
-      // ink to be told from the others.
+      // 2 — THE SHAPE CHANNEL, AND IT IS NOW ONE MARK THAT MEANS ONE THING.
+      //
+      // **WHAT CHANGED AND WHY.** This used to assert that a private
+      // `pen_tile.rule` painter was present on every status, drawing single /
+      // doubled / dashed / dotted — one shape per status, from `10 §5.2`'s
+      // tiles. `indelible.md §8` outranks that document and gives the board a
+      // single geometric channel: *"the rule beneath the row **doubles**"*, and
+      // only for over-threshold, because what is legible from across the shed
+      // is the presence of a second line, not a dash against a dot at 2 px.
+      //
+      // So the assertion is stronger rather than weaker: the doubled rule is
+      // present exactly when the row is over, and absent on the other four.
+      // `ShedRuledRow.doubled` owns it — `§7.4` gives the flock row's warning
+      // state the identical mark, and the same fact wears the same clothes
+      // wherever it appears.
       expect(
-        find.byKey(const Key('pen_tile.rule')),
-        findsOneWidget,
-        reason: '${status.name} must carry a rule',
+        find.byKey(const Key('shed_ruled_row.doubled')),
+        status == ShedPenTileStatus.ready ? findsOneWidget : findsNothing,
+        reason: '${status.name}: the doubled rule is the over-threshold mark and nothing else',
       );
 
       // 3 — AND THE STATUSES THAT HAVE A MARK CARRY IT.
@@ -2179,16 +2210,20 @@ void main() {
     }
   });
 
-  testWidgets('a pen tile draws lambs as strokes and clears two tap-primaries square', (
+  testWidgets('a pen row draws lambs as strokes and is a full-width 88 pt ruled line', (
     WidgetTester tester,
   ) async {
     // TALLY STROKES, NEVER A DIGIT (`indelible.md §8` screen 7). Four lambs is
     // four marks a shepherd counts at a glance from a metre away; `4` is a glyph
     // they have to read.
     //
-    // AND THE SIZE IS MEASURED, not read back from the constant that was passed
-    // in. A tile is aimed at from a metre away with a gloved thumb, which is a
-    // different act from hitting a key on a pad held at arm's length.
+    // **THE 144 × 144 SQUARE WENT WITH THE TILES.** This asserted two
+    // tap-primaries square, which was right for a grid cell and is the wrong
+    // shape for what `§8` actually specifies: *"the pen board is twelve ruled
+    // rows, one per pen, 88px each"*, full width, sharing edges. The floor that
+    // still matters is `kRuledRowTall` on the short axis — comfortably over the
+    // 60 pt contract — and the full page width on the long one, because a row
+    // whose ruling stops short of the page edge is not a ledger line.
     await _pumpComponent(
       tester,
       ShedPenTile(
@@ -2203,8 +2238,12 @@ void main() {
     expect(find.text('4'), findsNothing, reason: 'strokes, not a digit');
 
     final Size size = tester.getSize(find.byType(ShedPenTile));
-    expect(size.width, greaterThanOrEqualTo(144.0));
-    expect(size.height, greaterThanOrEqualTo(144.0));
+    expect(
+      size.width,
+      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+      reason: 'a ruled line runs the full width of the page',
+    );
+    expect(size.height, greaterThanOrEqualTo(kRuledRowTall));
   });
 
   testWidgets('an empty pen tile is still a target', (WidgetTester tester) async {

@@ -27,6 +27,7 @@ Future<T?> showShedBottomSheet<T>(
   required String dismissSemanticLabel,
   required String barrierLabel,
   bool fillsViewport = false,
+  double? viewportFraction,
 }) {
   final ShedTokens t = context.tokens;
   return showModalBottomSheet<T>(
@@ -46,6 +47,7 @@ Future<T?> showShedBottomSheet<T>(
       dismissLabel: dismissLabel,
       dismissSemanticLabel: dismissSemanticLabel,
       fillsViewport: fillsViewport,
+      viewportFraction: viewportFraction,
       child: child,
     ),
   );
@@ -58,6 +60,7 @@ final class ShedBottomSheet extends StatelessWidget {
     required this.dismissSemanticLabel,
     super.key,
     this.fillsViewport = false,
+    this.viewportFraction,
   }) : assert(dismissLabel != 'Cancel', "07 §15.5: 'Cancel' is not a verb here"),
        assert(dismissLabel != 'Save', 'indelible.md §11 test 7');
 
@@ -69,14 +72,27 @@ final class ShedBottomSheet extends StatelessWidget {
   final String dismissSemanticLabel;
   final bool fillsViewport;
 
+  /// How much of the viewport this sheet takes, when [fillsViewport].
+  ///
+  /// **`indelible.md §7.14`'s 60% IS THE KEYPAD'S FIGURE, NOT EVERY SHEET'S**,
+  /// and the tag sheet is the case that proves it: `§8` puts a heading, the typed
+  /// digits, a match list AND the create line above those same twelve keys.
+  /// Measured at P16 on the reference viewport, 60% overflowed by **87 px** with
+  /// the match list already at zero rows — so a sheet that obeyed §7.14 could not
+  /// render §8's own contents.
+  ///
+  /// Callers that need more say so and say why. The default is unchanged, so
+  /// every other sheet in the app is where it was.
+  final double? viewportFraction;
+
   /// indelible.md §7.14: 60% of the viewport for the keypad.
-  static const double viewportFraction = 0.6;
+  static const double defaultViewportFraction = 0.6;
 
   @override
   Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     final double? height = fillsViewport
-        ? MediaQuery.sizeOf(context).height * viewportFraction
+        ? MediaQuery.sizeOf(context).height * (viewportFraction ?? defaultViewportFraction)
         : null;
 
     return DecoratedBox(

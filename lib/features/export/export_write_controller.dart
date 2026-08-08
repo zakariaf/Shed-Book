@@ -89,6 +89,50 @@ final class ExportWriteController extends WriteController {
 
     return WriteCommitted(insertedId: artifacts.length);
   });
+
+  /// The JSON backup — **the only file a restore can read.**
+  ///
+  /// **IT HAD NO CALLER ANYWHERE IN `lib/`.** `ExportRepository.writeBackup`
+  /// landed at N22 and was tested at its own tier; the export screen offered
+  /// three CSVs and no backup. So a shepherd could get their records *out* in a
+  /// form a spreadsheet reads and never in the form this app reads back — and
+  /// N23's whole restore path, wired on 2026-08-05, had nothing to restore
+  /// from. Found by the uncalled-verb sweep on the same day.
+  ///
+  /// **A CSV IS NOT A BACKUP AND THE TWO ARE NOT INTERCHANGEABLE.** The CSVs are
+  /// three flattened views for somebody else's software; the backup is all 21
+  /// tables including the empty ones (P15), with the provenance quad, the
+  /// withdrawal child rows and the strikes. Restoring from a CSV would lose
+  /// every one of those silently, which is why there is no such path.
+  Future<void> shareBackup({required Rect origin, required String appVersion}) => guard(() async {
+    final Instant now = appNow(); // ONE instant, and it dates the envelope
+    final Directory dir = await ref.read(mediaStoreProvider).exportScratch();
+    final ExportRepository repo = await ref.read(exportRepositoryProvider.future);
+
+    final ExportArtifact artefact = await repo.writeBackup(
+      envelope: ExportEnvelope.standard(now: now, appVersion: appVersion),
+      outputDir: dir,
+    );
+
+    final ShareOutcome outcome = await ref
+        .read(shareServiceProvider)
+        .shareFiles(
+          paths: <String>[artefact.path],
+          fileNames: <String>[artefact.shareName],
+          origin: origin,
+        );
+
+    // **STAMPED, AND ON THE SAME TWO OUTCOMES AS THE CSVs.** A backup that left
+    // the phone is the strongest form of *exported* there is, so the end-of-day
+    // prompt goes quiet for exactly the right reason. `dismissed` means nothing
+    // left, and stamping it would silence the prompt for somebody who has
+    // backed up nothing.
+    if (outcome != ShareOutcome.dismissed) {
+      await ref.read(settingsRepositoryProvider).recordExported(now);
+    }
+
+    return WriteCommitted(insertedId: artefact.byteSize);
+  });
 }
 
 /// **Always `.autoDispose`** for a write controller (`CONVENTIONS §3.4`).

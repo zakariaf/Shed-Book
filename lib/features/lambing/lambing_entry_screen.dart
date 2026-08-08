@@ -1,8 +1,18 @@
 // lib/features/lambing/lambing_entry_screen.dart
 //
-// The shell. The header, the lambs region and the care region are empty regions
-// today; T02 onward fills them. It exists now because the anchor test has to
-// pump something, and because the route helper needs a destination.
+// **`indelible.md §8` SCREEN 4: NOT A SCREEN — THE LIVE ROW FROM SCREEN 3,
+// EXPANDED IN PLACE, STILL WELDED TO THE BOTTOM OF TONIGHT'S PAGE.**
+//
+// Measured against the running app on 2026-08-06: this was a `Column` of `Text`
+// on a dark background. No spine, no margin gutter, no sticky header, no ruled
+// rows, no thumb band — every fact left-aligned at x=16 in one undifferentiated
+// stack, and the act the screen exists for four regions down a scroll. It was
+// not a different filter on the same document; it was a different document.
+//
+// R87 put the chrome where any screen can reach it, and this file is now what
+// §8 says it is: `ShedPage` with a header, a stream of `ShedRuledRow`s, and the
+// two thumb anchors. Every write, every route and every widget key is the one it
+// had before — the layout changed and nothing else did.
 //
 // It watches ONE provider. lib/features/ may not import package:drift or
 // lib/core/db/ at all (layer rule 5), which is why LambingEntryData is declared
@@ -10,18 +20,25 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_section_heading.dart';
+import 'package:shed_book/core/ui/components/shed_page.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
+import 'package:shed_book/core/ui/components/shed_text_field.dart';
+import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/data/providers.dart';
+import 'package:shed_book/data/voice_recorder.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/sex.dart';
 import 'package:shed_book/domain/stats/season_counts.dart';
+import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/domain/units/weight_unit.dart';
 import 'package:shed_book/core/write_action.dart';
 import 'package:shed_book/core/write_outcome.dart';
 import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
+import 'package:shed_book/features/lambing/photo_controller.dart';
+import 'package:shed_book/features/lambing/voice_controller.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/domain/birth_type.dart';
@@ -33,14 +50,16 @@ import 'package:shed_book/domain/time/recorded_time.dart';
 import 'package:shed_book/domain/validation/warning.dart';
 import 'package:shed_book/features/lambing/widgets/colostrum_detail.dart';
 import 'package:shed_book/features/lambing/widgets/declare_type_sheet.dart';
+import 'package:shed_book/features/lambing/widgets/lambing_entry_band.dart';
 import 'package:shed_book/features/lambing/widgets/provenance_header.dart';
 import 'package:shed_book/features/lambing/widgets/query_mark.dart';
-import 'package:shed_book/features/lambing/widgets/time_editor_sheet.dart';
+import 'package:shed_book/core/ui/components/shed_time_editor.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/features/lambing/widgets/detail_rows.dart';
 import 'package:shed_book/features/lambing/widgets/ease_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_row.dart';
 import 'package:shed_book/features/lambing/widgets/lamb_tally_row.dart';
+import 'package:shed_book/routing/routes.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 class LambingEntryScreen extends ConsumerWidget {
@@ -50,7 +69,6 @@ class LambingEntryScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
     final AsyncValue<LambingEntryData> data = ref.watch(lambingEntryProvider(lambingId));
 
@@ -75,44 +93,86 @@ class LambingEntryScreen extends ConsumerWidget {
       }
     });
 
-    return Scaffold(
-      backgroundColor: t.surfaceBase,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Padding(
-              padding: EdgeInsets.all(t.gapMin),
-              child: ShedSectionHeading(label: l10n.lambingEntryTitle.toUpperCase(), level: 1),
-            ),
-            Expanded(
-              child: switch (data) {
-                AsyncData<LambingEntryData>(value: final LambingEntryData d) => _Regions(
-                  data: d,
-                  lambsLabel: l10n.lambingEntryLambs,
-                  careLabel: l10n.lambingEntryCare,
-                  units: ref.watch(unitsProvider),
-                  // RECOMPUTED ON EVERY EMISSION, NEVER STORED. Decision #54
-                  // closes the `warnings` column permanently.
-                  warnings: ref.watch(lambingWarningsProvider(lambingId)),
-                  // THE SAME APP-LEVEL SINGLETON THE EASE ROW READS (R81). One
-                  // watch, four consumers, no second content statement.
-                  vocab: ref.watch(vocabProvider).value ?? <VocabEntry>[],
-                ),
-                // NO SPINNER (07 §1.4): loading is a fixed-height placeholder or
-                // it is nothing. A spinner on a screen the shepherd reached by
-                // committing a row says the row might not be there.
-                _ => const SizedBox.expand(),
-              },
-            ),
-          ],
-        ),
+    // **THE HEADER IS THE NIGHT, NOT THE EVENT TIME**, and the two are printed
+    // in different places on purpose: `§7.16`'s header says what the book is
+    // filtered to, and `§4.3`'s margin cell says when the record happened. A
+    // time printed in both is a time two readers argue about after an edit.
+    //
+    // **IT DOES NOT NAME THE EWE, AND THAT IS A GAP RATHER THAN A CHOICE.** §8
+    // heads this page `EWE 412`; `LambingHeaderRow` carries `EweId` and no tag,
+    // because `07 §6.2`'s statement — printed verbatim in the repository and not
+    // to be re-derived — does not join `ewes`. A second read for the tag would
+    // be a second content statement and `07 §1.2` allows one. Reported rather
+    // than invented.
+    final String header = switch (data) {
+      AsyncData<LambingEntryData>(value: final LambingEntryData d) => l10n.lambingEntryPageHeader(
+        title: l10n.lambingEntryTitle,
+        night: formatShedDate(LocalDate.of(d.lambing.time.effective), context.localeName),
       ),
+      // The header box never changes size and never waits: on the one frame
+      // before the statement lands it says what the page is and stops.
+      _ => l10n.lambingEntryTitle,
+    };
+
+    return ShedPage(
+      header: header,
+      scrollKey: const Key('lambing_entry.record_column'),
+      // **THE TWO THUMB ANCHORS** (`§4.5`). The slab is the act; the word beside
+      // it names where you land. Rendered at every state including the loading
+      // frame, because `§8`'s slab *"is never disabled — pressing it does
+      // something, because a dead key under a cold thumb is indistinguishable
+      // from a missed tap"*, and a band that appeared one frame late would move
+      // under a thumb already travelling.
+      band: LambingEntryBand(
+        backLabel: l10n.indexTonight,
+        // The caps are the design system's and Flutter has no text-transform,
+        // so they are applied here rather than stored in the copy catalogue —
+        // the same arrangement `ShedPageHeader` records.
+        slabLabel: l10n.lambingAddLamb(animal: l10n.termLambSingular).toUpperCase(),
+        slabSemanticLabel: l10n.lambingAddLamb(animal: l10n.termLambSingular),
+        onBack: () => Routes.popToQuickEntry(context),
+        onSlab: () => ref.read(lambingWriteControllerProvider.notifier).addLamb(lambingId).ignore(),
+      ),
+      children: switch (data) {
+        AsyncData<LambingEntryData>(value: final LambingEntryData d) => _Regions(
+          data: d,
+          // **THE SHEPHERD'S OWN PLURAL, IN TITLE CASE.**
+          // `copy.arb_domain_noun` found this heading hard-coded as
+          // *Lambs* at N33-T05 — a shepherd who renamed the term read
+          // somebody else's noun on the screen they use most.
+          //
+          // The capital is presentation, not derivation: `10 §8.5` bans
+          // deriving a PLURAL from a singular, because that is a fact
+          // about the word. Which case a heading renders in is a fact
+          // about the heading, and every other one in this system is
+          // capitalised.
+          lambsLabel: l10n.lambingEntryLambs(term: _titleCase(l10n.termLambPlural)),
+          careLabel: l10n.lambingEntryCare,
+          units: ref.watch(unitsProvider),
+          // RECOMPUTED ON EVERY EMISSION, NEVER STORED. Decision #54
+          // closes the `warnings` column permanently.
+          warnings: ref.watch(lambingWarningsProvider(lambingId)),
+          // THE SAME APP-LEVEL SINGLETON THE EASE ROW READS (R81). One
+          // watch, four consumers, no second content statement.
+          vocab: ref.watch(vocabProvider).value ?? <VocabEntry>[],
+        ).rows(context, ref),
+        // NO SPINNER (07 §1.4): loading is an empty stream or it is nothing. A
+        // spinner on a screen the shepherd reached by committing a row says the
+        // row might not be there.
+        _ => const <Widget>[],
+      },
     );
   }
 }
 
-class _Regions extends ConsumerWidget {
+/// The stream's rows, top to bottom.
+///
+/// **A ROW BUILDER, NOT A WIDGET, AND `ShedPage` IS WHY.** The page takes a
+/// `List<Widget>` and owns the scroll; the old `_Regions` widget existed only to
+/// hold a `SingleChildScrollView` of its own, and two scrollables in one page is
+/// the shape that gives a screen two places to be scrolled from.
+@immutable
+final class _Regions {
   const _Regions({
     required this.data,
     required this.lambsLabel,
@@ -149,148 +209,244 @@ class _Regions extends ConsumerWidget {
   List<Warning> _warningsOn(String fieldPath) =>
       warnings.where((Warning w) => w.fieldPath == fieldPath).toList(growable: false);
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  /// One document under one filter: every fact on this screen is a ruled row.
+  ///
+  /// **VERTICAL SCROLLING IS THE ONE TRACKED GESTURE** (`06 §7` — the gate's own
+  /// words, and every swipe ACTION stays banned). `ShedPage` owns it now; before
+  /// R87 this method returned its own `SingleChildScrollView`, added when the
+  /// ease group overflowed a plain `Column` by a measured 148 px.
+  ///
+  /// A `ListView` would be the reflex and it is wrong here: the regions are a
+  /// fixed handful, not a list, and a `ListView` would add lazy building and a
+  /// scroll controller for nothing.
+  List<Widget> rows(BuildContext context, WidgetRef ref) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
     final TextTheme text = Theme.of(context).textTheme;
     final ShedTokens t = context.tokens;
+    final List<Warning> declaredTypeWarnings = _warningsOn('birth_type');
 
-    // SCROLLABLE FROM T04, AND VERTICAL SCROLLING IS THE ONE TRACKED GESTURE
-    // (06 §7 — the gate's own words, and every swipe ACTION stays banned).
-    //
-    // It was a plain Column until the ease group landed, and the ease group is
-    // what made it overflow: five 72 pt buttons with their descriptions do not
-    // fit under the tally on a small phone, and at 150% text scale they re-lay
-    // as 3 + 2 and take another row. The measured overflow was 148 px.
-    //
-    // A ListView would be the reflex and it is wrong here: the regions are a
-    // fixed handful, not a list, and a ListView would add lazy building and a
-    // scroll controller for nothing. The trailing Expanded filler goes with the
-    // change — nothing may be Expanded inside an unbounded scrollable.
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          // THE MARGIN CELL OVER THE RECORD (T07). It replaces the bare
-          // provenance line: the time, the stamp, the dagger when edited, and a
-          // second line saying what it was edited FROM.
-          ProvenanceHeader(
-            time: data.lambing.time,
-            labels: _provenanceLabels(context, data.lambing.time),
-            onCorrect: () => _openTimeEditor(context, ref, data.lambing.id),
-          ),
-          Padding(
-            padding: EdgeInsets.all(t.gapMin),
-            child: Text(
-              '$lambsLabel ${data.lambs.length}',
-              key: const Key('lambing_entry.lambs'),
-              style: text.bodyMedium,
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: LambTallyRow(lambingId: data.lambing.id, lambs: data.lambs),
-          ),
-          // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the
-          // repository already returns and the order the tally beside it counts
-          // in. 10 §5.2 groups by status on the lists that are ABOUT lambs; here
-          // the ordinal must agree with the marks, and re-sorting the dead to the
-          // bottom would print LAMB 3 second. If that is disputed it is a screens
-          // question for N17/N27, not a local choice.
-          //
-          // A Column and not a ListView: a lambing is single, twins or triplets
-          // in almost every case, and quintPlus is the tail. A scrollable here
-          // would add a scroll gesture to a screen whose whole point is that a
-          // cold thumb hits big fixed things.
-          for (int i = 0; i < data.lambs.length; i++)
-            LambRow(
-              key: Key('lambing_entry.lamb.${data.lambs[i].id.value}'),
-              labels: _labelsFor(context, data.lambs[i], i + 1),
-            ),
-          // UNDER THE LAMBS, ABOVE CARE. Ease is about the lambing rather than
-          // about any one lamb, so it sits below the list it describes.
-          // THE MARK SITS BESIDE THE TALLY, WHICH IS THE OFFENDING CELL: the
-          // contradiction is between the declared type and the counted strokes,
-          // and the strokes are what is on screen.
-          //
-          // THE KEY SAYS `declared_type`, NOT THE ABOLISHED SEGMENT, AND R80a
-          // MADE IT DO SO. That rule bans the segment from every widget key
-          // under `lib/`, because such a key is the chooser coming back
-          // somewhere nobody is looking — and it fired on the first run of this
-          // task. The rename is the honest one anyway: this cell is about the
-          // DECLARATION, which is a different fact from the counted type the
-          // tally prints, and the two should not share a name.
-          if (_warningsOn('birth_type') case final List<Warning> found when found.isNotEmpty)
+    return <Widget>[
+      // THE TIME AND ITS PROVENANCE, IN THE MARGIN AND THE RECORD COLUMN (T07):
+      // the time, the stamp, the dagger when edited, and a second line saying
+      // what it was edited FROM.
+      ProvenanceHeader(
+        time: data.lambing.time,
+        labels: _provenanceLabels(context, data.lambing.time),
+        onCorrect: () => _openTimeEditor(context, ref, data.lambing.id),
+      ),
+      // THE SUBJECT ROW: the derived birth type, the strokes, and the query mark
+      // in the margin when a declaration contradicts them.
+      //
+      // **THE MARK SITS IN THE MARGIN OF THE OFFENDING ROW** (`indelible.md
+      // §6.2`), which it did not before: it was a bare `Row` two regions below
+      // the tally, so the `?` pointed at nothing in particular.
+      //
+      // THE KEY SAYS `declared_type`, NOT THE ABOLISHED SEGMENT, AND R80a MADE
+      // IT DO SO. That rule bans the segment from every widget key under `lib/`,
+      // because such a key is the chooser coming back somewhere nobody is
+      // looking. The rename is the honest one anyway: this cell is about the
+      // DECLARATION, which is a different fact from the counted type the tally
+      // prints, and the two should not share a name.
+      LambTallyRow(
+        lambs: data.lambs,
+        margin: declaredTypeWarnings.isEmpty
+            ? null
+            : QueryMark(
+                key: const Key('lambing_entry.query.declared_type'),
+                semanticLabel: l10n.queryMarkSemantics(finding: declaredTypeWarnings.first.message),
+                onTap: () => _openDeclareType(context, ref, data.lambing.id, declaredTypeWarnings),
+              ),
+      ),
+      _countRow(
+        context,
+        key: const Key('lambing_entry.lambs'),
+        label: '$lambsLabel ${data.lambs.length}',
+      ),
+      // ONE ROW PER LAMB, IN `l.id ASC` — STROKE ORDER, which is the order the
+      // repository already returns and the order the tally above it counts in.
+      // 10 §5.2 groups by status on the lists that are ABOUT lambs; here the
+      // ordinal must agree with the marks, and re-sorting the dead to the bottom
+      // would print LAMB 3 second. If that is disputed it is a screens question
+      // for N17/N27, not a local choice.
+      for (int i = 0; i < data.lambs.length; i++)
+        LambRow(
+          key: Key('lambing_entry.lamb.${data.lambs[i].id.value}'),
+          labels: _labelsFor(context, data.lambs[i], i + 1),
+        ),
+      // **THE PERMISSION TO WALK AWAY, PRINTED BEFORE THE CELLS IT IS ABOUT.**
+      // `§8`'s sentence reads *"every cell BELOW may be left blank"*, so a
+      // footer printed underneath them refers to nothing. Everything from here
+      // down is optional and each cell prints its own gap; the record above this
+      // line is already complete and already on disk.
+      _footerRow(context),
+      // UNDER THE LAMBS. Ease is about the lambing rather than about any one
+      // lamb, so it sits below the list it describes.
+      EaseRow(lambingId: data.lambing.id, ease: data.lambing.ease),
+      // THE FOUR CARE LINES. On this screen every care event is written
+      // against the LAMBING — the lamb arm is for care given to one lamb,
+      // which is N17's per-lamb detail. `CareSubject` is sealed so neither
+      // arm can be forgotten at a call site.
+      for (final CareKind kind in CareKind.values)
+        CareLine(
+          key: Key('lambing_entry.care.${kind.key}'),
+          state: _careState(context, kind),
+          onPressed: () {
+            final CareEntryRow? existing = _liveCare(kind);
+            final LambingWriteController write = ref.read(lambingWriteControllerProvider.notifier);
+            // A SECOND PRESS UNDOES, AND UNDOING IS A STRIKE. It does not
+            // revert the line to unset: both stamps stay on the page.
+            if (existing != null) {
+              write.removeCare(existing.id);
+            } else if (kind == CareKind.colostrum) {
+              // COLOSTRUM OPENS ITS DETAIL SHEET; THE OTHER THREE DO NOT.
+              // Volume and method exist only for colostrum, and putting a
+              // sheet in front of a navel dip would add a decision to a
+              // one-tap act at 03:20 for a field that does not exist.
+              _openColostrumDetail(context, write, data.lambing.id);
+            } else {
+              write.addCare(CareForLambing(data.lambing.id), kind: kind);
+            }
+          },
+        ),
+      _countRow(
+        context,
+        key: const Key('lambing_entry.care'),
+        label:
+            '$careLabel ${data.lambs.fold<int>(0, (int n, LambEntryRow l) => n + l.care.length) + data.lambingCare.length}',
+      ),
+      // **THE PHOTO AND THE VOICE NOTE, WHOSE WHOLE CHAINS HAD NO CALLER.**
+      // `pick`, `newRelativePath`, `writePhoto` and `attachPhoto` each landed
+      // with tests and fakes; nothing joined them up.
+      _PhotoRow(lambing: data.lambing.id),
+      _VoiceRow(lambing: data.lambing.id),
+      // THE ASSISTANCE DETAIL (T08). Every field here is SKIPPABLE and each
+      // commits on its own — four narrow verbs, never one wide write, because a
+      // wide write is how a second edit clobbers the first.
+      //
+      // **THE THREE DETAIL FIELDS, WHICH THE DESIGN SPECIFIES AND NOBODY
+      // BUILT.** `indelible.md §8` screen 4: *"Assistance detail and the note
+      // are text fields with the label above and a dotted rule below."*
+      // `setAssistedBy`, `setPresentationNote` and `setNote` all existed on the
+      // controller and the repository, with tests, and had no caller — because
+      // until `ShedTextField` landed there was no way to enter free text
+      // anywhere in the app.
+      //
+      // **EVERY KEYSTROKE COMMITS.** There is no Save button and no draft: each
+      // `onChanged` is its own write, which is the same contract the ease
+      // buttons and the care checks hold to.
+      ShedRuledRow(
+        height: kRuledRowTall,
+        child: ShedTextField(
+          key: const Key('lambing_entry.assisted_by'),
+          label: l10n.detailAssistedBy,
+          value: data.lambing.assistedBy,
+          semanticLabel: l10n.detailAssistedBy,
+          onChanged: (String? v) => ref
+              .read(lambingWriteControllerProvider.notifier)
+              .setAssistedBy(data.lambing.id, v)
+              .ignore(),
+        ),
+      ),
+      // THE PICKER'S LABEL SITS ABOVE IT IN THE SAME ROW, never inside the
+      // control: a label that becomes a placeholder is a label that disappears
+      // the moment the field is filled (`§7.12`).
+      ShedRuledRow(
+        height: kRuledRowTall,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Row(
-                children: <Widget>[
-                  QueryMark(
-                    key: const Key('lambing_entry.query.declared_type'),
-                    semanticLabel: AppLocalizations.of(
-                      context,
-                    ).queryMarkSemantics(finding: found.first.message),
-                    onTap: () => _openDeclareType(context, ref, data.lambing.id, found),
-                  ),
-                ],
+              padding: EdgeInsets.symmetric(vertical: t.gapMin / 2),
+              child: Text(
+                l10n.detailPresentation,
+                style: text.labelMedium?.copyWith(color: t.textSecondary),
               ),
             ),
-          EaseRow(lambingId: data.lambing.id, ease: data.lambing.ease),
-          // THE FOUR CARE LINES. On this screen every care event is written
-          // against the LAMBING — the lamb arm is for care given to one lamb,
-          // which is N17's per-lamb detail. `CareSubject` is sealed so neither
-          // arm can be forgotten at a call site.
-          for (final CareKind kind in CareKind.values)
-            CareLine(
-              key: Key('lambing_entry.care.${kind.key}'),
-              state: _careState(context, kind),
-              onPressed: () {
-                final CareEntryRow? existing = _liveCare(kind);
-                final LambingWriteController write = ref.read(
-                  lambingWriteControllerProvider.notifier,
-                );
-                // A SECOND PRESS UNDOES, AND UNDOING IS A STRIKE. It does not
-                // revert the line to unset: both stamps stay on the page.
-                if (existing != null) {
-                  write.removeCare(existing.id);
-                } else if (kind == CareKind.colostrum) {
-                  // COLOSTRUM OPENS ITS DETAIL SHEET; THE OTHER THREE DO NOT.
-                  // Volume and method exist only for colostrum, and putting a
-                  // sheet in front of a navel dip would add a decision to a
-                  // one-tap act at 03:20 for a field that does not exist.
-                  _openColostrumDetail(context, write, data.lambing.id);
-                } else {
-                  write.addCare(CareForLambing(data.lambing.id), kind: kind);
-                }
-              },
-            ),
-          // THE ASSISTANCE DETAIL (T08). Every field below is SKIPPABLE and
-          // each commits on its own — four narrow verbs, never one wide write,
-          // because a wide write is how a second edit clobbers the first.
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 4),
-            child: Text(AppLocalizations.of(context).detailPresentation, style: text.labelMedium),
-          ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: PresentationPicker(
+            PresentationPicker(
               key: const Key('lambing_entry.presentation'),
               choices: _presentationChoices(context),
-              unsetLabel: AppLocalizations.of(context).detailUnset,
-              groupSemanticLabel: AppLocalizations.of(context).detailPresentationSemantics,
+              unsetLabel: l10n.detailUnset,
+              groupSemanticLabel: l10n.detailPresentationSemantics,
               onSelected: (String? key) => ref
                   .read(lambingWriteControllerProvider.notifier)
                   .setPresentation(data.lambing.id, key),
             ),
+            SizedBox(height: t.gapMin),
+          ],
+        ),
+      ),
+      ShedRuledRow(
+        height: kRuledRowTall,
+        child: ShedTextField(
+          key: const Key('lambing_entry.presentation_note'),
+          label: l10n.detailPresentationNote,
+          value: data.lambing.presentationNote,
+          semanticLabel: l10n.detailPresentationNote,
+          onChanged: (String? v) => ref
+              .read(lambingWriteControllerProvider.notifier)
+              .setPresentationNote(data.lambing.id, v)
+              .ignore(),
+        ),
+      ),
+      ShedRuledRow(
+        height: kRuledRowTall,
+        child: ShedTextField(
+          key: const Key('lambing_entry.note'),
+          label: l10n.detailNote,
+          value: data.lambing.note,
+          semanticLabel: l10n.detailNote,
+          onChanged: (String? v) => ref
+              .read(lambingWriteControllerProvider.notifier)
+              .setNote(data.lambing.id, v)
+              .ignore(),
+        ),
+      ),
+    ];
+  }
+
+  /// A count line — `Lambs 2`, `Care 1`.
+  ///
+  /// **A ROW, NOT A HEADING** (`10 §3.4`): Lambing Entry deliberately has no
+  /// level-2 headings, because it is one task and a heading stop would add
+  /// navigation to a screen whose whole purpose is not having any. It names the
+  /// region for the eye and reads as an ordinary line to a screen reader.
+  Widget _countRow(BuildContext context, {required Key key, required String label}) => ShedRuledRow(
+    child: Align(
+      alignment: AlignmentDirectional.centerStart,
+      child: Text(
+        label,
+        key: key,
+        style: Theme.of(
+          context,
+        ).textTheme.labelMedium?.copyWith(color: context.tokens.textSecondary),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+    ),
+  );
+
+  /// `EVERY CELL BELOW MAY BE LEFT BLANK…`
+  ///
+  /// The caps are the design system's decision and Flutter has no
+  /// text-transform, so they are applied here rather than shouted into the copy
+  /// catalogue — the same arrangement `ShedPageHeader` records.
+  Widget _footerRow(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    return ShedRuledRow(
+      height: kRuledRowTall,
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: t.gapMin / 2),
+          child: Text(
+            AppLocalizations.of(context).lambingEntryBlankCells.toUpperCase(),
+            key: const Key('lambing_entry.blank_cells'),
+            // The control voice: this is the app talking about the page, not a
+            // fact that was recorded (Rule 2).
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(color: t.textSecondary),
           ),
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: Text(
-              '$careLabel ${data.lambs.fold<int>(0, (int n, LambEntryRow l) => n + l.care.length) + data.lambingCare.length}',
-              key: const Key('lambing_entry.care'),
-              style: text.bodyMedium,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -353,6 +509,16 @@ class _Regions extends ConsumerWidget {
           ? null
           : formatShedTime(time.originalEffective!, locale),
       wasPrefix: l10n.provenanceWasPrefix,
+      // THE MARGIN'S FOUR LETTERS, EXHAUSTIVELY. The same three words
+      // `tonight_rows.dart` prints, from the same ARB messages — one spelling of
+      // the stamp across the whole app, so a shepherd learns `AUTO` once. A
+      // fourth `TimeSource` fails to compile here rather than printing nothing
+      // in the one cell §12.5 depends on.
+      stamp: switch (time.source) {
+        TimeSource.autoCaptured => l10n.quickEntryStampAuto,
+        TimeSource.userEntered => l10n.quickEntryStampEntered,
+        TimeSource.userEdited => l10n.quickEntryStampEdited,
+      },
       // THE PROVENANCE IS IN THE SPOKEN LABEL TOO. A time read aloud without its
       // source would be the one place §12.5's claim goes silent, and it is
       // `provenanceLabel` itself rather than a second spelling of it.
@@ -378,7 +544,7 @@ class _Regions extends ConsumerWidget {
         dismissSemanticLabel: l10n.colostrumSheetCloseSemantics,
         barrierLabel: l10n.timeEditorHeading,
         fillsViewport: true,
-        child: TimeEditorSheet(
+        child: ShedTimeEditor(
           labels: (
             heading: l10n.timeEditorHeading,
             hint: l10n.timeEditorHint,
@@ -638,6 +804,214 @@ class _Regions extends ConsumerWidget {
       // reader says "middle dot" and another says nothing at all, and neither
       // is what the row means.
       sentence: (List<String> parts) => l10n.lambRowSemantics(parts: parts.join(', ')),
+    );
+  }
+}
+
+/// First letter up, the rest as the shepherd typed it.
+///
+/// **NOT `toUpperCase()` AND NOT A LOOKUP.** A term they entered as `Ewe Lambs`
+/// keeps its second capital; one they entered as `hoggs` gains one and nothing
+/// else. Deriving anything more than the first character would be editing their
+/// word.
+String _titleCase(String s) => s.isEmpty ? s : s[0].toUpperCase() + s.substring(1);
+
+/// The voice note's two words and its one sentence.
+///
+/// **START AND STOP ARE TWO WORDS, NOT A TOGGLE.** At 03:20 a control that means
+/// two things depending on a state you cannot see is a control that records
+/// nothing or never stops — so `STOP` appears only while recording, and it is a
+/// different word in a different place from the one that started it.
+class _VoiceRow extends ConsumerStatefulWidget {
+  const _VoiceRow({required this.lambing});
+
+  final LambingId lambing;
+
+  @override
+  ConsumerState<_VoiceRow> createState() => _VoiceRowState();
+}
+
+class _VoiceRowState extends ConsumerState<_VoiceRow> {
+  /// The path being recorded to, or `null` when nothing is.
+  String? _recording;
+
+  /// **THE REFUSAL IS A SENTENCE, NOT A PROMPT.** The OS permission dialog is
+  /// another process and appears once, on first use; this line says what is
+  /// true when the answer was no, and asks for nothing.
+  bool _refused = false;
+  bool _failed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    final String? recording = _recording;
+
+    // A RULED ROW LIKE EVERY OTHER CELL. The word sits in the record column at
+    // x=76 with the ledger's rule beneath it, and the two failure sentences
+    // print under the word inside the same row — the row grows, the grid does
+    // not move (`§3.6`).
+    return ShedRuledRow(
+      height: kRuledRowTall,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Align(
+            alignment: Alignment.centerLeft,
+            child: ShedWordButton(
+              key: const Key('lambing_entry.voice'),
+              label: recording == null ? l10n.lambingEntryVoiceStart : l10n.lambingEntryVoiceStop,
+              semanticLabel: recording == null
+                  ? l10n.lambingEntryVoiceStart
+                  : l10n.lambingEntryVoiceStop,
+              selected: false,
+              onTap: recording == null ? _start : () => _stop(recording),
+            ),
+          ),
+          // **THE LEVEL, AS A WORD.** `VoiceRecorder.levelDbfs` had no caller,
+          // so a shepherd recording through a coat pocket had no way to know the
+          // microphone was muffled until they played it back in the morning.
+          //
+          // A word rather than a waveform: `indelible.md §6` has six marks and
+          // none of them is a meter, and *no new mark may be added without
+          // deleting one*. The threshold is the recorder's own noise floor
+          // rather than a number this file invents.
+          if (recording != null)
+            StreamBuilder<double>(
+              stream: ref.read(voiceRecorderProvider).levelDbfs(const Duration(milliseconds: 300)),
+              builder: (BuildContext context, AsyncSnapshot<double> snapshot) => Padding(
+                padding: EdgeInsets.only(top: t.gapMin / 2),
+                child: Text(
+                  (snapshot.data ?? VoiceRecorder.silenceDbfs) > VoiceRecorder.silenceDbfs
+                      ? l10n.lambingEntryVoiceHearing
+                      : l10n.lambingEntryVoiceSilent,
+                  key: const Key('lambing_entry.voice.level'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+                ),
+              ),
+            ),
+          if (_refused)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryVoiceNoPermission,
+                key: const Key('lambing_entry.voice.no_permission'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+          // **DISTINCT FROM `_refused`, DELIBERATELY.** *No microphone* is
+          // answerable — the OS prompt appears once, on first use. *It did not
+          // start* is not, and collapsing the two would send a shepherd to a
+          // settings screen that cannot help them.
+          if (_failed)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryVoiceFailed,
+                key: const Key('lambing_entry.voice.failed'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+          SizedBox(height: t.gapMin / 2),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _start() async {
+    final VoiceAttempt attempt = await startVoiceNote(ref, widget.lambing);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _refused = attempt is VoiceNoPermission;
+      // **`VoiceFailed` HAD NO ARM AND SO HAD NO PIXELS.** The switch set
+      // `_refused` from one variant and `_recording` from another, and the third
+      // fell through both: the recorder threw, the row was already open, and the
+      // screen showed exactly what it showed before the press. A shepherd cannot
+      // tell that from a button that does not work.
+      _failed = attempt is VoiceFailed;
+      _recording = attempt is VoiceRecording ? attempt.relativePath : null;
+    });
+  }
+
+  Future<void> _stop(String path) async {
+    await stopVoiceNote(ref, path);
+    if (!mounted) {
+      return;
+    }
+    // **THE ROW IS ALREADY WRITTEN**, so there is nothing to confirm here:
+    // `beginVoiceNote` landed it before the first byte, and `completeVoiceNote`
+    // has just filled in what the row could not know at the start.
+    setState(() => _recording = null);
+  }
+}
+
+/// The `PHOTO` word and, when the camera could not be reached, one line saying
+/// so.
+///
+/// **IT EXISTS BECAUSE `.ignore()` DID NOT.** The button called
+/// `attachPhotoTo(...).ignore()`, which discards all three outcomes — so a
+/// camera that threw, a camera that failed and a shepherd who backed out were
+/// pixel-identical: nothing. Reported from a simulator on 2026-08-06, where
+/// there is no camera at all and the press did visibly nothing.
+///
+/// **BACKING OUT STILL SAYS NOTHING**, and that is not an oversight. `§8`'s
+/// optional cells print as visible gaps; a decision to not take a photo is not
+/// an error, and rendering it as one tells somebody they did something wrong
+/// when they did not.
+class _PhotoRow extends ConsumerStatefulWidget {
+  const _PhotoRow({required this.lambing});
+
+  final LambingId lambing;
+
+  @override
+  ConsumerState<_PhotoRow> createState() => _PhotoRowState();
+}
+
+class _PhotoRowState extends ConsumerState<_PhotoRow> {
+  bool _failed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    final AppLocalizations l10n = AppLocalizations.of(context);
+
+    // A RULED ROW, for the same reason as the voice line: a word on a dark page
+    // with nothing under it is what read as unfinished, and the rule is what
+    // makes it a cell in a book.
+    return ShedRuledRow(
+      height: kRuledRowTall,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          ShedWordButton(
+            key: const Key('lambing_entry.photo'),
+            label: l10n.lambingEntryPhoto,
+            semanticLabel: l10n.lambingEntryPhoto,
+            selected: false,
+            onTap: () async {
+              final PhotoAttempt attempt = await attachPhotoTo(ref, widget.lambing);
+              if (!mounted) {
+                return;
+              }
+              setState(() => _failed = attempt is PhotoFailed);
+            },
+          ),
+          if (_failed)
+            Padding(
+              padding: EdgeInsets.only(top: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEntryPhotoFailed,
+                key: const Key('lambing_entry.photo.failed'),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
+              ),
+            ),
+          SizedBox(height: t.gapMin / 2),
+        ],
+      ),
     );
   }
 }

@@ -341,6 +341,64 @@ final class PenRepository {
             ..where(($PenOccupanciesTable t) => t.pen.equals(pen.value) & t.exitedAt.isNull()))
           .getSingleOrNull();
 
+  /// Turn out whatever is in [pen]. **`null` occupancy is not a failure** — a
+  /// pen that is already empty is the commonest state before lambing starts,
+  /// and a screen that reported it as an error would be reporting the shed.
+  ///
+  /// **THE OCCUPANCY ID NEVER CROSSES INTO `lib/features/`, AND THAT IS WHY
+  /// THIS VERB EXISTS.** `openOccupancyFor` returns `PenOccupancy`, a drift row
+  /// class, and `layer.features` forbids the screen from naming it. A verb
+  /// keyed on the pen is the seam: the board knows which pen was pressed and
+  /// nothing else, which is all it should know.
+  Future<WriteOutcome> turnOutFrom(PenId pen) async {
+    final PenOccupancy? open = await openOccupancyFor(pen);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    return exitPen(PenOccupancyId(open.id), reason: PenExitReason.turnedOut);
+  }
+
+  /// Move whatever is in [from] to [to]. Same seam, same reason.
+  ///
+  /// **`moved` IS ITS OWN EXIT REASON AND NOT A TURN-OUT.** A ewe moved to a
+  /// bigger pen has not been turned out, and the pen board's hours-since-penned
+  /// is the number a shepherd reads to decide — `movePen` carries the entered
+  /// time forward rather than restarting it.
+  Future<WriteOutcome> movePenFrom(PenId from, PenId to) async {
+    final PenOccupancy? open = await openOccupancyFor(from);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    return movePen(PenOccupancyId(open.id), to: to);
+  }
+
+  /// Correct the penning time of whatever is in [pen], keeping its day.
+  ///
+  /// **THE DAY COMES OFF THE RECORD, NEVER OFF THE CLOCK.** A shepherd
+  /// correcting at 03:47 means *it was 03:20 that night*; taking the day from
+  /// `appNow()` would move a 3am penning across a date boundary the moment they
+  /// corrected it after midnight. Lambing Entry's time editor does the same
+  /// thing for the same reason, and doing it here rather than in the screen is
+  /// what stops the two drifting apart.
+  ///
+  /// Same seam as [turnOutFrom]: the occupancy id never crosses into
+  /// `lib/features/`.
+  Future<WriteOutcome> correctEnteredAtFrom(
+    PenId pen, {
+    required int hour,
+    required int minute,
+  }) async {
+    final PenOccupancy? open = await openOccupancyFor(pen);
+    if (open == null) {
+      return const WriteCommitted();
+    }
+    final DateTime day = open.enteredAt.local;
+    return correctEnteredAt(
+      PenOccupancyId(open.id),
+      Instant.fromDateTime(DateTime(day.year, day.month, day.day, hour, minute).toUtc()),
+    );
+  }
+
   Future<SeasonId> _currentSeason() async {
     final AppSetting settings = await (_db.select(
       _db.appSettings,

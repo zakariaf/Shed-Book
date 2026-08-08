@@ -58,7 +58,7 @@ in this plan rather than by a skill on its own authority; the sixth is calendar-
 | **P1** | `struck` / `struck_at` on every table — **schema-irreversible** | **E00-T04**, before the freeze. It gates `shed-drift-schema` and `shed-export-and-restore` |
 | **P3** | Navigation: `02`'s Navigator stack and twelve push helpers vs Indelible §7.17's *"no stack, no back button"* | E10-T01 |
 | **P7** | 390 / 420 / 520 / 600 weights need `FontVariation`; `06 §5.2` records the Atkinson axis as 500–700 | E08-T05 |
-| **P9** | Tap separation — `00-README` step 19's ≥ 16 pt vs Indelible §4.5's 8–12 px. An executable gate asserts one of them | E28-T03 |
+| ~~**P9**~~ | ~~Tap separation — `00-README` step 19's ≥ 16 pt vs Indelible §4.5's 8–12 px~~ **RULED 2026-08-04 at N33-T03, `CONVENTIONS §6` R86: 16 pt wins, and the gate's two legal values are 0 or ≥ `gapMin`.** The sentence is in Indelible **§9**, not §4.5 — §4.5 is the reach-zone and minimum-target audit, which the ruling also touches. Three reasons: decision #100 outranks a visual direction on the interaction floor; `06 §6.3`'s published assertion already forbade the 8–16 band; and at 16px gaps neither the keypad nor the ease group fits its viewport, so gap **0** — this design's own ledger idiom — is the only arithmetic that works, and it makes both controls larger | N33-T03 |
 | **P10** | Four haptics (`06`'s definition of done) vs five (Indelible §5.4); `HapticFeedback.successNotification()` unverified | E08-T09 |
 | **P14** | `NightErrorPanel`'s `#0B0D0E` vs Indelible's `--page` `#0A0A0B`, on the **first painted frame** | E09-T04 |
 

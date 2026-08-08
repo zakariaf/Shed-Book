@@ -1,4 +1,11 @@
-// lib/features/quick_entry/widgets/quick_entry_margin_cell.dart
+// lib/core/ui/components/shed_margin_cell.dart
+//
+// **MOVED FROM `lib/features/quick_entry/widgets/` AT R87, AND THE MOVE IS A FIX
+// RATHER THAN A TIDY-UP.** `layer.sibling` forbids one feature importing another,
+// so a page component in a feature folder is a component only that feature can
+// ever have. Measured: Quick Entry was the ONLY screen in the app with a spine, a
+// margin cell or a ruled header — six screens rendered as a bare column because
+// the parts were in a room they could not reach.
 //
 // The 68 x 64 margin cell: the auto-captured time, the AUTO stamp, and space for
 // the dagger and query marks a later epic adds.
@@ -10,8 +17,8 @@
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
-class QuickEntryMarginCell extends StatelessWidget {
-  const QuickEntryMarginCell({
+class ShedMarginCell extends StatelessWidget {
+  const ShedMarginCell({
     required this.time,
     required this.stampAuto,
     required this.width,

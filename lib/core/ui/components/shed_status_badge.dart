@@ -1,5 +1,6 @@
 // lib/core/ui/components/shed_status_badge.dart
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// indelible.md §7.7's two lists, and **the boundary between them is the whole
@@ -73,13 +74,21 @@ final class ShedStatusBadge extends StatelessWidget {
     final Color ink = t.textPrimary;
 
     final Widget word = Text(
-      label,
+      // **A STAMP IS ALWAYS CAPITALS, AT `--t-stamp`'s 0.14em** (§6) — the
+      // widest tracking in the system, because the smaller the caps the more
+      // they need: a stamp is ≤ 12 characters and read at a glance, and
+      // untracked capitals at this size are one rectangle.
+      controlCase(label),
       // titleSmall is the floor role — 18 at scale 1.0. The Indelible artefact
       // sets stamps at 14 px, and 02 §4.4 defect 2 rules that four of them are
       // never the sole carrier of their meaning and must clear 18. Rather than
       // split the set, every stamp takes the floor: a stamp worth showing at
       // 03:20 is worth 18 px.
-      style: Theme.of(context).textTheme.titleSmall?.copyWith(color: ink),
+      style: controlStyle(
+        context,
+        Theme.of(context).textTheme.titleSmall?.copyWith(color: ink),
+        track: kTrackStamp,
+      ),
       maxLines: 1,
     );
 

@@ -835,13 +835,27 @@ jobs:
           flutter --version | grep -q "Flutter $FLUTTER_VERSION"
 
       - run: flutter pub get
-      - run: flutter test --tags golden --reporter github
+
+      # **`TZ` IS PINNED — ADDED 2026-08-05 AT N33-T09, AND THE PUBLISHED FORM
+      # DID NOT HAVE IT.** Every golden carries a local time. `pumpApp` pins the
+      # locale and `atFixed` pins the instant, but `Instant.local` reads the
+      # PROCESS zone — so a London re-baseline at 03:20 renders 02:20 on a UTC
+      # runner, which is what a GitHub runner is, and every image diffs with no
+      # code change. The Makefile's two golden targets pin the same zone, so a
+      # local re-baseline and this job agree.
+      - run: TZ=Europe/London flutter test --tags golden --reporter github
+
+      # **NARROWED FROM `test/**/failures/**`, SAME COMMIT.**
+      # `LocalFileComparator` writes `failures/` beside its BASEDIR, and the
+      # basedir is `test/features/`. The wide glob matches nothing extra and
+      # hides where the images land — at exactly the moment somebody is
+      # downloading the artefact to find out why a golden failed.
       - uses: actions/upload-artifact@v7
         if: failure()
-        with: { name: golden-failures, path: test/**/failures/** }
+        with: { name: golden-failures, path: test/features/failures/** }
 ```
 
-Eight images, dark theme, pinned to one runner and one exact Flutter version (#116); [`12-testing.md`](12-testing.md) §8.2 owns the list and `ci-golden` is its `dart_test.yaml` preset. They change only on deliberate re-baseline commits, so per-PR macOS is pure cost. Re-baseline locally with `make goldens-update`, look at every changed pixel, commit.
+**`v1.0.0` ships five of the eight** — the three lambing-spread shapes are Season Summary's, and Season Summary is `v1.1.0` (N33-T07). Dark theme, pinned to one runner and one exact Flutter version (#116); [`12-testing.md`](12-testing.md) §8.2 owns the list and `ci-golden` is its `dart_test.yaml` preset. They change only on deliberate re-baseline commits, so per-PR macOS is pure cost. Re-baseline locally with `make goldens-update`, look at every changed pixel, commit.
 
 ### 4.6 What is deliberately not automated
 
@@ -978,9 +992,9 @@ Levers, in the order they matter: ship an AAB not a fat APK; `--obfuscate --spli
 
 ### 6.2 Startup
 
-**The budget:** an interactive keypad **at the first frame**, and the first Flutter frame **≤ 400 ms after `main()`** on the oldest target device. The 400 ms figure is Apple's published launch-time goal; Android vitals treats a cold start as *excessive* at ≥ 5 s, which is the "your app is bad" line and not a target.
+**The budget:** an interactive page **at the first frame** (**P16**: the keypad is a sheet away), and the first Flutter frame **≤ 400 ms after `main()`** on the oldest target device. The 400 ms figure is Apple's published launch-time goal; Android vitals treats a cold start as *excessive* at ≥ 5 s, which is the "your app is bad" line and not a target.
 
-The second half of the budget is the one that matters. The spec's 15-second median (§15) is dominated by the human, not the machine: even a 1.6 s launch spends 11% of it. What kills you is a spinner between the tap and the first digit. That is why `main()` awaits nothing and the first frame is a static dark Quick Entry shell with a fully interactive keypad and no data ([`01-architecture.md`](01-architecture.md) §6).
+The second half of the budget is the one that matters. The spec's 15-second median (§15) is dominated by the human, not the machine: even a 1.6 s launch spends 11% of it. What kills you is a spinner between the tap and the first digit. That is why `main()` awaits nothing and the first frame is a static dark Quick Entry shell with no data and every target on it live ([`01-architecture.md`](01-architecture.md) §6). What must not sit behind a spinner is the *page*; **P16** puts the first digit one tap further away and the fifteen-second budget still holds, because that tap is the TAG cell and it was always in the count.
 
 Working targets, to be replaced by measurements:
 

@@ -110,7 +110,7 @@ Spec §5 bans onboarding after first run. The reading that ships: **there is no 
 
 ### 2.1 What actually happens on the very first launch
 
-1. `main()` awaits nothing; the first frame is the dark Quick Entry shell with a **fully interactive keypad and no data** (decision #21).
+1. `main()` awaits nothing; the first frame is the dark Quick Entry shell with **no data and every target on it live** — tonight's records, the five event words, the TAG cell, `INDEX` and the slab (**P16** struck the *fully interactive keypad*: the keypad is in the tag sheet, which is closed on frame 1) (decision #21).
 2. The database opens on the first post-frame callback. Its `onCreate` inserts one `Season` from the device clock — `year = now.year`, `label = "<year> lambing"`, `startDate = today` — and sets `app_settings.current_season` to it **in the same transaction** (decision #42). The user is asked nothing.
 3. Pens do not exist yet. They are created lazily on first use (§9.5).
 4. **No permission is requested.** Not notifications (§11.5), not camera or microphone (first photo/voice tap), not billing (Unlock/Restore only).
@@ -1512,7 +1512,8 @@ Rows over the cap are real rows. On unlock, `unlocked = 1` and every `over_free_
 | `test/features/no_monetization_test.dart` | pumps Quick Entry, Lambing Entry, Lamb Card, Foster and Pen Board with `unlocked: false, ewesInCurrentSeason: 99` and finds no upgrade widget |
 | tap targets | `MinimumTapTargetGuideline(size: Size(60, 60), …)` **plus** a geometric gate that catches edge-flush and semantics-free nodes. Every run begins `final handle = tester.ensureSemantics(); addTearDown(handle.dispose);` — without a live handle the guideline throws instead of checking |
 | double-tap | one `tester.tap(); tester.tap();` per committing action |
-| goldens (~8) | Quick Entry, Pen Board at three data shapes, the spread chart at three data shapes, the withdrawal control. Dark theme, tagged `golden`, one runner, one pinned Flutter version, not a per-PR gate |
+| goldens (8) | **Amended at N33-T07 — `12 §8.2` owns the golden policy and this row adopts its list.** Quick Entry (default, **text scale 2.0**, **deep red**), Pen Board at twelve pens, the withdrawal control at all three states, and the spread chart at decision #70's three data shapes. The two images that were a second and third Pen Board data shape are spent on the text scale and the palette instead: a pen board with different data is a picture of the same layout, whereas AX5 and a luminance-dropping palette are the two states in which a layout that reads on a desk stops reading in a shed. Dark theme, tagged `golden`, one runner, one pinned Flutter version, **not a per-PR gate** (#116) |
+| | **`v1.0.0` ships five of the eight.** The three spread-chart shapes are Season Summary's, and Season Summary is `v1.1.0` (N28) — a golden of a screen that does not exist is a PNG of an error. `goldens_test.dart` names all three and derives the count, so it returns to eight on its own |
 | `test/policy/` | spec §12 as executable assertions, including "no numeric default reaches a withdrawal field" and "every export artifact carries the footer" |
 
 Widget tests use `DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true)` — real SQLite, never a mock. Forget `closeStreamsSynchronously` and every stream-touching widget test fails with a pending-timer error.

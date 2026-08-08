@@ -689,7 +689,9 @@ spellings only. Production has zero overrides.
 | `settingsRepositoryProvider` | `FutureProvider<SettingsRepository>` | keepAlive | |
 | `entitlementRepositoryProvider` | `FutureProvider<EntitlementRepository>` | keepAlive | |
 | `exportRepositoryProvider` | `FutureProvider<ExportRepository>` | keepAlive | |
-| `restoreServiceProvider` | `FutureProvider<RestoreService>` | keepAlive | |
+| `tonightProvider` | `StreamProvider<List<TonightRow>>` | keepAlive | **Added 2026-08-06.** The record column's source. It had none: the column drew twelve empty `SizedBox`es, so *the confirmation is the committed row* had no row to be |
+| `restoreServiceProvider` | `FutureProvider<RestoreService>` | keepAlive | Holds the application-support `Directory` the service may not look up itself (`layer.path_provider`) |
+| `restorePlannerProvider` | `Provider<RestorePlanner>` | keepAlive | **Added 2026-08-05 when the restore flow was finally wired.** A seam, not a convenience: `lib/features/` may not import `lib/core/db/`, and the restore controller needs live counts without ever holding a database handle |
 | `mediaSweeperProvider` | `FutureProvider<MediaSweeper>` | keepAlive | |
 | `reminderReconcilerProvider` | `FutureProvider<ReminderReconciler>` | keepAlive | needs the DB **and** the notification seam |
 | `notificationSchedulerProvider` | `FutureProvider<NotificationScheduler>` | keepAlive | async: plugin `initialize()` |
@@ -1580,6 +1582,16 @@ one place a shared widget would hide one. 06 widens them.
 `lib/features/`, and `integration_test` is the directory name the SDK package requires.
 07's three files become `test/features/{overflow_matrix,tap_budget,no_monetization}_test.dart`;
 its first-run journey becomes `integration_test/first_run_journey_test.dart`.
+
+> **AMENDED 2026-08-05 (N33-T08).** The four journeys are **four `group()`s in one file**,
+> `integration_test/journeys_test.dart`, keeping `12 §9`'s names as the group names. The tree is
+> unchanged — `integration_test/` is still a top-level sibling of `test/` — and what changed is the
+> count of files inside it, because **each additional file there is another full
+> build-install-launch cycle on the device**: four files is four builds, four installs and four cold
+> starts on a suite that runs against a phone on a desk. `12 §9`'s File column is amended in the same
+> commit, and `test/policy/ci_jobs_test.dart` gained the two cases that keep the second half of the
+> ruling true — the journeys are **not a GitHub job at all** (`13 §4.2`), and `make integration`
+> refuses to run without `DEVICE`.
 **Files:** 01 (§2.2 mkdir — add `design`, `support`), 07 (§1.3, §21.2, §2.1).
 
 ### R58 — The overflow matrix is 252 cells over 14 variants
@@ -1590,6 +1602,22 @@ Decision #114 says 216 (12 screens × 18); 07 adds note search and the export-ba
 arithmetic must follow the variant list, not a remembered number. 12 must carry the same figure, and
 the decision record's 216 is superseded with the reason stated.
 **Files:** 12 (new), and a one-line note in 01/06 wherever 216 is quoted.
+
+> **AMENDED 2026-08-04 (N33-T01), and it is the release boundary rather than a
+> change of mind.** 252 over 14 is the **finished product**, and three of those
+> fourteen — `reminders` (N24, N25), `season_summary` (N28), `note_search`
+> (N26-T05/T06) — are `v1.1.0` per `docs/RELEASE-SCOPE.md` and ruling **P15**.
+> No screen stands behind them in `v1.0.0`, and a variant pumping a screen that
+> does not exist is eighteen cells that pass having rendered nothing — the exact
+> failure the matrix is for.
+>
+> `v1.0.0` is therefore **eleven variants and 198 cells**, and this rule is
+> unchanged by that: *the arithmetic follows the variant list.* Nothing was
+> weakened, because `overflow_matrix_test.dart` now also asserts that the routes
+> with **no** variant are exactly those three — so a `v1.1.0` screen that is
+> built and whose variant is forgotten fails in the file whose job is covering
+> every screen, rather than shrinking the matrix quietly. That assertion did not
+> exist while the count was a promise about the future.
 
 ### R59 — Widget key format
 
@@ -2193,3 +2221,92 @@ provenance quad. Writing on open and updating on close would make the second wri
 which is the shape this project exists to avoid. Dismissing the sheet still writes the event with both
 fields null: the shepherd pressed COLOSTRUM, so they gave colostrum, and the sheet asks for detail
 rather than for permission.
+
+### R86 — P9 ruled: tap separation is 0 or ≥ 16 pt, and the 8 px controls are re-spaced
+
+`00-README` §8 step 19 and decision **#100** both say **≥ 16 pt** between any two targets, and
+`06 §6.1` publishes it as the `gapMin` token. `indelible.md` **§9**'s 3am compliance table said
+*"8–12px minimum gaps between adjacent targets"*, and three components were built on 8: the keypad
+(§7.2), the ease group (§7.9) and the stepper (§7.8). `00-PLAN.md` §2 cited the sentence as §4.5; it
+is in §9.
+
+**Ruling, 2026-08-04 (N33-T03). 16 pt wins, and the gate's two legal values are `0` or `≥ gapMin`.**
+
+1. **Decision #100 outranks a visual direction.** `06 §1` fixes what a direction may change and the
+   interaction floor is not on the list. `06 §6.1` gives the measured argument: Parhi, Karlson &
+   Bederson's 9.2/9.6 mm is the *ideal-conditions optimum for a bare, warm, dry thumb*, not a margin
+   over it, and 8 px is ≈1.3 mm on a wet screen through a glove.
+2. **The published assertion already forbade it.** `06 §6.3`'s gate reads
+   `anyOf(equals(0.0), greaterThanOrEqualTo(16.0))` — touching is legal, ≥ 16 is legal, and 8 sits in
+   the band between. The ruling adopts a constraint the design system had already published rather
+   than inventing one.
+3. **The arithmetic decides it, and gap 0 is the only value that works.** The ease group at 16 px is
+   `64 × 5 + 16 × 4 = 384` in 361 px available; the keypad is `117 × 3 + 16 × 2 = 383` plus 24 px of
+   sheet padding = 407 in a 393 px viewport. Gap 0 is `indelible.md` §7.3's own idiom — *"rows share
+   edges; there is no top border and no gap — the ruling is continuous, like a ledger"* — and it makes
+   both controls **larger**: the keypad key goes 117 → 123 and the ease button 64 → 72.
+
+**The gate is `test/design/tap_target_test.dart`'s 66-run geometric sweep**, reading `t.gapMin` off
+the pumped tree — never a typed `16.0`, because the whole value of a ruling is that changing it
+changes one place. Two refinements the first run earned, both narrowing what *adjacent* means rather
+than what the number is:
+
+- **Only reachable targets are compared.** `07 §16.2` puts the export banner inside the record
+  column's scroll view; its actions lay below the `ClipRect`, and `getRect` reports an unclipped
+  layout rect for a target no thumb can reach. Hit-testing is the honest test of *can this be pressed
+  where it is*, and it catches `06 §6.2` rule 2's silently-undroppable target for free.
+- **Only targets sharing a scroll context are compared.** The corner slab floats over a scrolling
+  list, and every gap between 0 and one row height occurs as it scrolls — so a static rule can never
+  be satisfied there, at any number. Same scrollable is a gap a designer chose; an overlay against
+  the row beneath it is where the list happened to stop, and the overlay is opaque and on top, so the
+  tap it receives is never ambiguous.
+
+**Files:** `docs/design/indelible.md` §4.5, §7.2, §7.8, §7.9, §9 · `epics/00-PLAN.md` §2 (P9 struck)
+· `test/design/wcag.dart` (`gapBetween`, `couldBeAdjacent`) · `test/design/tap_target_test.dart` ·
+`test/design/gate_inventory_test.dart` · and the four `lib/` sites the sweep found at 8 pt or less:
+`units_section.dart`, `appearance_section.dart`, `season_section.dart`, `lambing_entry_screen.dart`.
+
+### R87 — the page chrome is four `Shed*` components in `lib/core/ui/components/`
+
+**Ruled 2026-08-06 (P16's follow-on, after the owner asked for the remaining five screens).**
+
+`indelible.md §8`'s first sentence is that there is **one** scrolling ruled document and the twelve
+screens are that document under a filter. The chrome that makes it one document — the spine, the
+page header, the margin cell and the bottom band — was built as four widgets in
+`lib/features/quick_entry/widgets/`, prefixed `QuickEntry*`.
+
+**That is not a naming inconsistency, it is a structural one.** `layer.sibling` forbids one feature
+importing another, so a page component living in a feature folder is a component **only that feature
+can ever have** — and the measurement bears it out: Quick Entry is the only screen in the app with a
+spine, a margin cell or a ruled header. Six screens render as a bare column because the parts were
+in a room they could not reach.
+
+| Was | Is | File |
+|---|---|---|
+| `QuickEntrySpine` | **`ShedSpine`** | `lib/core/ui/components/shed_spine.dart` |
+| `QuickEntryPageHeader` | **`ShedPageHeader`** | `lib/core/ui/components/shed_page_header.dart` |
+| `QuickEntryMarginCell` | **`ShedMarginCell`** | `lib/core/ui/components/shed_margin_cell.dart` |
+| `QuickEntryBottomBand` | **`ShedBottomBand`** | `lib/core/ui/components/shed_bottom_band.dart` |
+
+Two more are **new**, because six screens had each been hand-rolling them badly or not at all:
+
+| New | Job | File |
+|---|---|---|
+| **`ShedPage`** | The document: `SafeArea` → spine → sticky header → scrolling stream → band. Every screen is this with a different stream. | `lib/core/ui/components/shed_page.dart` |
+| **`ShedRuledRow`** | `§7.3`'s 64/88 pt row: margin cell, spine gutter, record column, rows **sharing edges**. | `lib/core/ui/components/shed_ruled_row.dart` |
+
+**`ShedBottomBand` loses its Riverpod dependency in the move.** The Quick Entry band watches the
+selection to swap `TAG FIRST` for `+ LAMB`; `layer.core_ui` forbids `lib/core/ui/` importing
+`lib/data/`, and a shared component that watched a provider would be a component with one screen's
+state baked in. The band takes a `slabLabel` string, and Quick Entry keeps a thin feature-local
+`ConsumerWidget` that supplies it — which is where the watching belonged anyway.
+
+**The keys do not move.** `quick_entry.spine`, `quick_entry.page_header`, `quick_entry.margin_cell`,
+`quick_entry.bottom_band`, `quick_entry.index` and `quick_entry.slab` are pinned by the rect anchor
+and by the geometric gate, and a shared component takes its key from the caller so each screen can
+name its own boxes.
+
+**Files:** `lib/core/ui/components/shed_{spine,page_header,margin_cell,bottom_band,page,ruled_row}.dart`
+(new) · `lib/features/quick_entry/` (the four old files deleted, the screen and `live_row.dart`
+re-pointed) · `docs/engineering/06-design-system.md` §12's component table · the five screens that
+adopt them.

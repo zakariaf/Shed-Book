@@ -1,34 +1,43 @@
 // lib/features/lambing/widgets/lamb_tally_row.dart
 //
-// The screen-side row: the tally in its fixed column, the derived type cell,
-// and the slab on the right.
+// The subject row: the derived birth type in the record column, the strokes in
+// the trailing column, and the query mark in the margin when the declaration
+// disagrees with them.
 //
 // ONE PRESS IS ONE STROKE AND ONE COMMITTED LAMB ROW. There is no confirmation
 // step, because the row IS the confirmation — indelible.md §9's three presses.
+//
+// **THE PRESS MOVED TO THE CORNER SLAB AT R87, AND THE KEY MOVED WITH IT.**
+// `indelible.md §7.1` puts the primary action at 160 × 140 in the bottom corner,
+// inside `§4.5`'s thumb band; this row had it as an 88 pt cell at the right-hand
+// end of a scrolling row, which is the one place `§4.5` says nothing required to
+// record an event may sit. `lambing_entry.tally.stroke` is named in the decision
+// record (P8) and pinned by four tests, so it travelled with the target rather
+// than being renamed — the key is the ACT, not the widget it was drawn in.
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_tally.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/lambing_repository.dart';
 import 'package:shed_book/domain/birth_type.dart';
-import 'package:shed_book/domain/ids.dart';
-import 'package:shed_book/features/lambing/lambing_entry_controller.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
-/// The tally's own column is fixed so the type cell never moves as strokes
-/// land — a cell that shifted under the thumb at stroke five is a cell the
-/// shepherd mis-taps at stroke six.
-const double _tallyColumn = 132;
+class LambTallyRow extends StatelessWidget {
+  const LambTallyRow({required this.lambs, super.key, this.margin});
 
-class LambTallyRow extends ConsumerWidget {
-  const LambTallyRow({required this.lambingId, required this.lambs, super.key});
-
-  final LambingId lambingId;
   final List<LambEntryRow> lambs;
 
+  /// The query mark, when the declaration contradicts the strokes.
+  ///
+  /// **IT SITS IN THE MARGIN OF THE OFFENDING ROW** (`indelible.md §6.2`), which
+  /// is this one: the contradiction is between the declared type and the counted
+  /// strokes, and the strokes are what is on screen here. It arrives as a widget
+  /// rather than as a flag because deciding whether a warning exists is the
+  /// screen's job — this row renders what it is handed.
+  final Widget? margin;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
 
@@ -51,48 +60,35 @@ class LambTallyRow extends ConsumerWidget {
         ? l10n.lambingTypeCountedMany(count: live, animals: 'lambs')
         : l10n.lambingTypeCounted(type: counted.name);
 
-    return Row(
-      children: <Widget>[
-        SizedBox(
-          width: _tallyColumn,
-          child: ShedTally(
-            key: const Key('lambing_entry.tally'),
-            count: lambs.length,
-            struck: struck,
-            semanticLabel: l10n.lambingTallySemantics(
-              count: live,
-              animal: 'lamb',
-              animals: 'lambs',
-            ),
-          ),
+    return ShedRuledRow(
+      // TALL, BECAUSE THIS IS THE SUBJECT ROW. `§4.4` gives 88 to the row that
+      // carries a large figure over a summary; the derived type is the largest
+      // thing this screen can honestly print, because the ewe's tag is not on
+      // the statement that feeds it.
+      height: kRuledRowTall,
+      margin: margin,
+      trailing: Padding(
+        padding: EdgeInsets.symmetric(vertical: t.gapMin),
+        child: ShedTally(
+          key: const Key('lambing_entry.tally'),
+          count: lambs.length,
+          struck: struck,
+          semanticLabel: l10n.lambingTallySemantics(count: live, animal: 'lamb', animals: 'lambs'),
         ),
-        Expanded(
-          child: Text(
-            typeLabel,
-            key: const Key('lambing_entry.counted_type'),
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
+      ),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          typeLabel,
+          key: const Key('lambing_entry.counted_type'),
+          // **THE RECORD FACE, LARGE.** §8 screen 4: birth type *"prints as
+          // `TRIPLET (COUNTED)` beside three tally marks"* and is not a control
+          // — so it is set as a value that happened, not as a thing to press.
+          style: Theme.of(context).textTheme.titleLarge,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
         ),
-        ShedTapTarget(
-          key: const Key('lambing_entry.tally.stroke'),
-          semanticLabel: l10n.lambingAddLamb(animal: 'lamb'),
-          minSize: t.tapHero,
-          onTap: () =>
-              ref.read(lambingWriteControllerProvider.notifier).addLamb(lambingId).ignore(),
-          child: ExcludeSemantics(
-            child: SizedBox(
-              width: t.tapHero,
-              height: t.tapHero,
-              child: Center(
-                child: Text(
-                  l10n.lambingAddLamb(animal: 'lamb'),
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }

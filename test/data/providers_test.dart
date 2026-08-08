@@ -215,6 +215,19 @@ void main() {
       'exportRepositoryProvider',
       // N23-T03 — both directions, and it deletes nothing but a `.part`
       'mediaSweeperProvider',
+      // **THE RECORD COLUMN'S SOURCE, AND IT HAD NONE.** Quick Entry drew
+      // twelve empty boxes where tonight's page should be — found by running
+      // the app, not by any test here.
+      'tonightProvider',
+      // **N23-T02 STEP 4, LANDED 2026-08-05 — TWO YEARS OF EPICS AFTER THE REST
+      // OF N23.** Until then `SettingsSectionId.data` fell through to an empty
+      // widget list and the only recovery path this product has had no caller
+      // anywhere in `lib/`.
+      'restoreServiceProvider',
+      // A SEAM, NOT A CONVENIENCE: `lib/features/` may not import
+      // `lib/core/db/`, and the restore controller needs the live counts
+      // without ever holding a database handle.
+      'restorePlannerProvider',
     });
   });
 

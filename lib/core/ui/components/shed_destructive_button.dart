@@ -1,6 +1,7 @@
 // lib/core/ui/components/shed_destructive_button.dart
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// Two steps, and **the first one is not a dialog**.
@@ -92,10 +93,17 @@ class _ShedDestructiveButtonState extends State<ShedDestructiveButton> {
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
             child: Center(
               child: Text(
-                confirming ? widget.confirmLabel : widget.label,
-                style: Theme.of(
+                // **THE CONTROL VOICE** (§3.1, ruling P7). The two honest
+                // deletes wear this button, and neither their copy nor their
+                // typed-confirmation requirement changes here — only how the
+                // word is set.
+                controlCase(confirming ? widget.confirmLabel : widget.label),
+                style: controlStyle(
                   context,
-                ).textTheme.labelLarge?.copyWith(color: confirming ? t.statusLoss : t.textPrimary),
+                  Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: confirming ? t.statusLoss : t.textPrimary,
+                  ),
+                ),
               ),
             ),
           ),

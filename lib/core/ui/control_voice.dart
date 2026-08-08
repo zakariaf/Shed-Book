@@ -89,10 +89,30 @@ String controlCase(String label) => label.toUpperCase();
 ///
 /// Returns `null` for a null style so a caller can pass a `TextTheme` role
 /// straight through without a bang.
-TextStyle? controlStyle(TextStyle? style, {double track = kTrackControl}) => style?.copyWith(
-  // **A FRACTION OF THE SIZE, NEVER A FIXED NUMBER OF PIXELS.** §3.4 states the
-  // tracking in `em` for a reason: at 200% text scale a fixed 0.2 pt of tracking
-  // is invisible, and the caps close back up on exactly the device whose owner
-  // turned the text up because they were struggling to read it.
-  letterSpacing: (style.fontSize ?? 0) * track,
-);
+///
+/// **IT TAKES A `BuildContext` BECAUSE `letterSpacing` DOES NOT SCALE, AND THAT
+/// IS MEASURED RATHER THAN ASSUMED.** The first draft of this function computed
+/// `fontSize * track` and its comment claimed the fraction was what made the
+/// tracking survive 200% text scale. It is not. `TextScaler` scales `fontSize`
+/// and leaves `letterSpacing` exactly as authored:
+///
+/// | textScaler | `ABCDE` at 20 pt, 0.2 px tracking |
+/// |---|---|
+/// | 1.0 | 101.0 px — 5 × 20 glyphs + 5 × 0.2 tracking |
+/// | 2.0 | 201.0 px — 5 × 40 glyphs + 5 × **0.2** tracking |
+///
+/// So an authored 0.01 em renders as 0.005 em at 200%: the tracking halves on
+/// exactly the device whose owner turned the text up because they were
+/// struggling to read it, and capitals without tracking are one rectangle.
+///
+/// Multiplying by the scaler restores it. The `fontSize` term is still needed
+/// and is a separate fact — `ShedTokens.bodySize` is 18 in `night` and 20 in the
+/// night-shift palettes (#98), so a pixel constant would be a different em in
+/// each palette.
+TextStyle? controlStyle(BuildContext context, TextStyle? style, {double track = kTrackControl}) {
+  if (style == null) {
+    return null;
+  }
+  final double size = style.fontSize ?? 0;
+  return style.copyWith(letterSpacing: MediaQuery.textScalerOf(context).scale(size) * track);
+}

@@ -33,6 +33,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// A word with a rule under it. **Not a chip, not a segmented control** —
@@ -118,9 +119,21 @@ final class ShedWordButton extends StatelessWidget {
                 padding: EdgeInsets.symmetric(horizontal: t.gapMin),
                 child: Center(
                   child: Text(
-                    label,
-                    // THE THIRD CHANNEL: weight, not just ink.
-                    style: selected ? text.titleMedium : text.bodyMedium,
+                    // **THE CONTROL VOICE** (§3.1, ruling P7): capitals say
+                    // *this is a thing you can press*, sentence case says *this
+                    // happened*. Two typefaces used to carry that; one family
+                    // ships, so case and weight carry it instead.
+                    //
+                    // Capitals cost 16–32% of label width against this face —
+                    // measured with the real TTF, because `flutter_test` renders
+                    // every glyph as a square and shows only the tracking.
+                    // Nothing overflows: every call site is a `Wrap` or a
+                    // stretched `Column`, so the ellipsis below absorbs it.
+                    controlCase(label),
+                    // THE THIRD CHANNEL: weight, not just ink. It goes on
+                    // carrying SELECTED-vs-unselected while the capitals carry
+                    // control-vs-record — two axes, and neither is hue.
+                    style: controlStyle(context, selected ? text.titleMedium : text.bodyMedium),
                     maxLines: 1,
                     // ELLIPSISED, NEVER SHRUNK. A shrink-to-fit widget is banned
                     // (`10 §4.4`): shrinking a legend is how an 18 pt floor

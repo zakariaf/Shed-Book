@@ -36,6 +36,7 @@ import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/palettes.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/theme.dart';
 import 'package:shed_book/domain/time/instant.dart';
@@ -829,9 +830,21 @@ void main() {
       ),
     );
 
-    expect(tester.widget<Text>(find.text('One')).style!.fontSize, theme.titleLarge!.fontSize);
-    expect(tester.widget<Text>(find.text('Two')).style!.fontSize, theme.titleMedium!.fontSize);
+    // **THE GLYPHS ARE CAPITALS NOW, AND THE CLAIM IS UNCHANGED.** A section
+    // line is a heading in the control voice, so `ShedSectionHeading` renders
+    // `controlCase(label)` (§3.1, ruling P7). What this case asserts is the SIZE
+    // ladder — level 1 is `titleLarge`, level 2 is `titleMedium`, and the floor
+    // is 18 — and none of that moved.
+    expect(tester.widget<Text>(find.text('ONE')).style!.fontSize, theme.titleLarge!.fontSize);
+    expect(tester.widget<Text>(find.text('TWO')).style!.fontSize, theme.titleMedium!.fontSize);
     expect(theme.titleMedium!.fontSize, greaterThanOrEqualTo(18.0));
+
+    // **AND THE TRACKING CAME WITH THEM.** Capitals without tracking are one
+    // rectangle; §3.4 gives the head role 0.10em, and it is asserted as a
+    // fraction of the rendered size rather than as a pixel count so a palette
+    // that changes the base size cannot quietly change the tracking with it.
+    final Text one = tester.widget<Text>(find.text('ONE'));
+    expect(one.style!.letterSpacing! / one.style!.fontSize!, closeTo(kTrackHead, 0.001));
   });
 
   testWidgets('ShedAnimalRow is tapPrimary tall standard and tapHero tall tall', (

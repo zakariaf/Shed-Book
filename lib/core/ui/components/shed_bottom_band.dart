@@ -22,6 +22,7 @@
 // to indelible.md, so there is no back chevron anywhere (decision record §7.0a).
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// **IT WATCHES NOTHING, AND THAT IS R87'S CONDITION FOR THE MOVE.**
@@ -109,7 +110,14 @@ class ShedBottomBand extends StatelessWidget {
         child: SizedBox(
           width: indexWidth,
           height: indexHeight,
-          child: Center(child: Text(indexLabel, style: Theme.of(context).textTheme.labelMedium)),
+          child: Center(
+            // **THE CONTROL VOICE** (§3.1, ruling P7). `INDEX` is the app's one
+            // navigation affordance and one of its two thumb anchors.
+            child: Text(
+              controlCase(indexLabel),
+              style: controlStyle(context, Theme.of(context).textTheme.labelMedium),
+            ),
+          ),
         ),
       ),
     );
@@ -132,9 +140,21 @@ class ShedBottomBand extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.all(t.gapMin / 2),
               child: Text(
-                slabLabel,
+                // **THE SLAB'S OWN WORD, AT `--t-slab`'s 0.06em** (§7.1).
+                //
+                // **AND THIS BAND DRAWS ITS OWN SLAB RATHER THAN USING
+                // `ShedCornerSlab`, WHICH IS A REPORTED DUPLICATE.** Two
+                // renderings of the app's largest target now exist and they will
+                // disagree the first time one of them moves. Collapsing them is
+                // a geometry change, so it is named here rather than made in a
+                // typographic pass.
+                controlCase(slabLabel),
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelLarge,
+                style: controlStyle(
+                  context,
+                  Theme.of(context).textTheme.labelLarge,
+                  track: kTrackSlab,
+                ),
               ),
             ),
           ),

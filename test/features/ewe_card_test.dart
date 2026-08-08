@@ -1200,12 +1200,32 @@ void main() {
     await tester.tap(find.byKey(const Key('ewe_card.action.observe')));
     await tester.pumpAndSettle();
 
+    // **CAPITALS, BECAUSE THE PICKER'S ROWS ARE CONTROLS** (§3.1, ruling P7) —
+    // and this is the one place in the app the control voice is applied to text
+    // the app did not author.
+    //
+    // **RECORDED AS AN OPEN QUESTION RATHER THAN SETTLED HERE.** A shepherd who
+    // renames `obs_prolapse` to their own phrase now sees it shouted back, and
+    // `v1.1.0`'s terminology editor will show them their sentence case in a field
+    // beside the shouted button, which can read as the app disagreeing with them.
+    //
+    // The rule is applied as written because the alternative is worse: a voice
+    // that shouts our nouns and whispers theirs is a voice that cannot be relied
+    // on to mean *this is pressable*, which is the only reason it exists. Nothing
+    // stored changes, §12.4 is untouched (no write, no correction), and the
+    // spoken label stays as they typed it.
+    //
+    // The claim this case makes is unchanged: the picker reads the DATABASE
+    // rather than a literal.
     expect(
-      find.text('Pushed her lamb bed out'),
+      find.text('PUSHED HER LAMB BED OUT'),
       findsOneWidget,
       reason: 'the picker rendered a shipped default over the shepherd own label',
     );
-    expect(find.text('Prolapse'), findsNothing);
+    // **THE SHIPPED DEFAULT, IN THE FORM IT WOULD NOW RENDER.** Asserting
+    // `find.text('Prolapse')` would pass for the wrong reason after this change —
+    // absent because the case changed, not because the overlay won.
+    expect(find.text('PROLAPSE'), findsNothing);
 
     await tester.tap(find.byKey(const Key('ewe_card.observe.obs_prolapse')));
     await tester.pumpAndSettle();

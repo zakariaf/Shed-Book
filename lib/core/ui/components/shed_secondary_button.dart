@@ -1,6 +1,7 @@
 // lib/core/ui/components/shed_secondary_button.dart
 import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// indelible.md §7.13's two forms.
@@ -59,7 +60,13 @@ final class ShedSecondaryButton extends StatelessWidget {
           ),
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-            child: Center(child: Text(label, style: Theme.of(context).textTheme.labelLarge)),
+            child: Center(
+              // **THE CONTROL VOICE** (§3.1, ruling P7).
+              child: Text(
+                controlCase(label),
+                style: controlStyle(context, Theme.of(context).textTheme.labelLarge),
+              ),
+            ),
           ),
         ),
         ShedSecondaryButtonForm.inStream => DecoratedBox(
@@ -68,7 +75,13 @@ final class ShedSecondaryButton extends StatelessWidget {
               bottom: BorderSide(color: ink, width: t.outlineWidth),
             ),
           ),
-          child: Text(label, style: Theme.of(context).textTheme.labelLarge?.copyWith(color: ink)),
+          child: Text(
+            controlCase(label),
+            style: controlStyle(
+              context,
+              Theme.of(context).textTheme.labelLarge?.copyWith(color: ink),
+            ),
+          ),
         ),
       },
     );

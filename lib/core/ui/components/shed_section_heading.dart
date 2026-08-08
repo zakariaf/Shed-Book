@@ -1,5 +1,6 @@
 // lib/core/ui/components/shed_section_heading.dart
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/control_voice.dart';
 
 /// A heading, with its level exposed to assistive technology.
 ///
@@ -27,8 +28,16 @@ final class ShedSectionHeading extends StatelessWidget {
     return Semantics(
       headingLevel: level,
       child: Text(
-        label,
-        style: level == 1 ? text.titleLarge : text.titleMedium,
+        // **A SECTION LINE IS A HEADING IN THE CONTROL VOICE**, and it takes the
+        // page header's own tracking: §7.16 gives `--t-head` 0.10em, and this is
+        // that header's sibling one level down. The heading SEMANTICS are
+        // untouched — `10 §3.4` builds the screen-reader rotor out of them.
+        controlCase(label),
+        style: controlStyle(
+          context,
+          level == 1 ? text.titleLarge : text.titleMedium,
+          track: kTrackHead,
+        ),
         // ELLIPSISED, ADDED WHEN THE FIVE HAND-ROLLED HEADINGS MIGRATED IN.
         // Four Quick Entry matrix cells failed at textScaler 2.0 the moment they
         // did: `titleLarge` is a long way above the `labelMedium` they had been

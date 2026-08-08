@@ -109,11 +109,16 @@ class ShedBottomBand extends StatelessWidget {
       child: ExcludeSemantics(
         // **A MINIMUM, NOT A FIXED BOX — AND THE GOLDEN IS WHAT CAUGHT IT.**
         //
-        // `SizedBox(width: 96, height: 64)` clipped its own word at 200% text
-        // scale: `quick_entry_scale_2_0` rendered the app's ONE navigation
-        // affordance as `INDE`. `§7.17`'s 96 × 64 is the FLOOR that makes it a
-        // legal target, exactly as `§4.3`'s 68 × 64 is the margin cell's, and
-        // `§3.6` is the rule both follow — *rows grow, the grid does not move*.
+        // A fixed box clipped its own word at 200% text scale:
+        // `quick_entry_scale_2_0` rendered the app's ONE navigation affordance as
+        // `INDE`. `§7.17`'s index dimensions are the FLOOR that makes it a legal
+        // target, exactly as `§4.3`'s are the margin cell's, and `§3.6` is the
+        // rule both follow — *rows grow, the grid does not move*.
+        //
+        // (The forbidden form is not spelled out here on purpose: `token.magic_size`
+        // scans this file including its comments, and quoting the thing a comment
+        // forbids is how a prohibition fires on the paragraph explaining it. The
+        // seventh time this project has caught that.)
         //
         // Growing costs nothing here: the band is a `spaceBetween` row, so the
         // index takes the width it needs from the empty middle and the slab stays

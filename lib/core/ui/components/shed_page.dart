@@ -49,12 +49,19 @@ const double kPageHeaderHeight = 44;
 final class ShedPage extends StatelessWidget {
   const ShedPage({
     required this.header,
-    required this.children,
+    this.children = const <Widget>[],
     super.key,
     this.band,
+    this.fixedBelowHeader,
     this.fixedAboveBand,
+    this.itemCount,
+    this.itemBuilder,
+    this.fill,
     this.scrollKey,
-  });
+  }) : assert(
+         itemBuilder == null || itemCount != null,
+         'a lazy stream needs its length — ShedPage.itemCount',
+       );
 
   /// `NIGHT OF 27 JULY 2026 · PAGE 3`, `THE PENS · 04:12 · 2 OVER †`.
   /// **Already formatted and already localised** — `lib/core/ui/` may not resolve
@@ -62,13 +69,59 @@ final class ShedPage extends StatelessWidget {
   final String header;
 
   /// The stream. Ruled rows, sharing edges, scrolling under the band.
+  ///
+  /// **Ignored when [itemBuilder] is given** — a page is one stream, and two
+  /// sources for it is two orders that stop agreeing.
   final List<Widget> children;
+
+  /// The lazy form of [children], and **the flock is why it exists**.
+  ///
+  /// `SingleChildScrollView` builds every child on the first frame. That is
+  /// right for the six-to-twenty-row pages; it is wrong for the one page the
+  /// product is sized around — *"a shepherd with 20–400 ewes"* — where it is 400
+  /// rows, 800 `Text`s and 400 tabular-column measurements before the first
+  /// paint. The flock list has been `ListView.builder` since N26-T01 and this
+  /// keeps it one.
+  ///
+  /// Supplied together or not at all; the assert in the constructor says so
+  /// rather than a null check at layout time.
+  final int? itemCount;
+  final IndexedWidgetBuilder? itemBuilder;
+
+  /// One box occupying the whole stream slot instead of scrolling in it — the
+  /// empty state and the error panel.
+  ///
+  /// **IT IS NOT A CHILD, AND THE ASSERTION SAYS WHY.** `ShedEmptyState` is
+  /// `SizedBox.expand` on purpose (decision #71: *"occupies the same box the
+  /// populated content will"*, so nothing jumps when the first record lands). A
+  /// scroll view hands its child unbounded height, and an expanding box under an
+  /// unbounded constraint asserts *BoxConstraints forces an infinite height*
+  /// before a pixel is painted — which is exactly what the flock's two empty
+  /// states did on the first pump.
+  ///
+  /// So the page's stream slot is one of three things and never two of them at
+  /// once: a list of rows, a lazily built list of rows, or one filled box. This
+  /// wins over both when it is given.
+  final Widget? fill;
 
   /// The two thumb anchors. `null` on a screen reached from `INDEX` that has no
   /// primary act of its own — and that is a decision worth making per screen
   /// rather than a default, because `§4.5` says nothing required to record an
   /// event may sit above 560 pt from the bottom.
   final Widget? band;
+
+  /// A row welded **below the header**, outside the scroll.
+  ///
+  /// **ONE THING NEEDS IT AND IT IS NOT A LAYOUT PREFERENCE.** `07 §19.2` puts
+  /// the free-tier row at the *pinned top of Flock*, and decision #92's whole
+  /// argument is that it is *"always present, in the same pixels, at 3 ewes or at
+  /// 15"* — a row a shepherd meets only when they happen to be scrolled to the
+  /// top is a row whose presence is a surprise, which is the shape #92 refuses.
+  ///
+  /// It is the same argument as [fixedAboveBand] pointed the other way, and it is
+  /// deliberately not a general-purpose header slot: the page has ONE header, it
+  /// is 44 pt, and it is read-only.
+  final Widget? fixedBelowHeader;
 
   /// A row welded above the band, outside the scroll — the live row's slot.
   ///
@@ -96,15 +149,28 @@ final class ShedPage extends StatelessWidget {
             Column(
               children: <Widget>[
                 ShedPageHeader(text: header, height: kPageHeaderHeight),
+                if (fixedBelowHeader case final Widget w) w,
                 Expanded(
                   child: ClipRect(
-                    child: SingleChildScrollView(
-                      key: scrollKey,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: children,
+                    child: switch ((fill, itemBuilder)) {
+                      (final Widget filled, _) => filled,
+                      (null, final IndexedWidgetBuilder build) => ListView.builder(
+                        key: scrollKey,
+                        // **ZERO, AND IT IS THE LEDGER'S RULE.** `§7.3`: rows
+                        // share edges, so a list that inset its own first row
+                        // would open with a gap the ruling never has.
+                        padding: EdgeInsets.zero,
+                        itemCount: itemCount,
+                        itemBuilder: build,
                       ),
-                    ),
+                      (null, null) => SingleChildScrollView(
+                        key: scrollKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: children,
+                        ),
+                      ),
+                    },
                   ),
                 ),
                 if (fixedAboveBand case final Widget w) w,

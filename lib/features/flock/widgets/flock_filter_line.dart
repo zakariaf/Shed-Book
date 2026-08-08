@@ -1,8 +1,21 @@
 // lib/features/flock/widgets/flock_filter_line.dart
 //
-// `indelible.md §8` Screen 1: *"a single horizontally scrolling 64px ruled line
-// of words with counts printed after them"*. Words, never icons — this system
-// has no icon set and every action is a word (§1.3).
+// `indelible.md §8` Screen 1: printed words with their counts after them — never
+// chips, because *"a chip is a container with a radius, and this system has
+// neither"*. Words, never icons — there is no icon set and every action is a
+// word (§1.3).
+//
+// **IT WRAPS ONTO RULED LINES; IT DOES NOT SCROLL SIDEWAYS.** §8's own caption
+// gives the reason in one sentence: *"a horizontally scrolling strip needs a
+// swipe and swipe is banned at 3am."* The line shipped as a horizontal
+// `ListView` and clipped mid-word — seen on a simulator on 2026-08-07 reading
+// `IN TH…` — so two of the five filters were behind a gesture this app does not
+// have. `mockups/indelible.html` builds it as one ruled row whose record column
+// holds a wrapping word line, and that is what this is now.
+//
+// **R86: EXACTLY 0 OR AT LEAST 16.** `spacing: gapMin` between words on a run,
+// `runSpacing: 0` between runs, so the words either touch or clear a thumb —
+// there is nothing in between, which is the whole of the ruling.
 //
 // **SELECTED IS AN UNDERLINE, NOT A COLOUR** (`indelible.md §7.13`): a 2px
 // `--ink-full` rule under the chosen word while its siblings sit at `--ink-mid`.
@@ -10,12 +23,11 @@
 // fully desaturated, which is the monochrome acceptance test.
 //
 // **THE LINE IS IN THE REACH BAND AND NOTHING IN IT IS REQUIRED** (`§4.5`).
-// Filtering is a daylight act; the shed path never needs it, and a horizontal
-// scroll is legal here only because no action hides behind it — every filter is
-// also reachable by scrolling, and none of them is the only way to do anything.
+// Filtering is a daylight act; the shed path never needs it.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/features/flock/flock_controller.dart';
@@ -55,15 +67,18 @@ class FlockFilterLine extends StatelessWidget {
     final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
 
-    return SizedBox(
-      height: t.tapMin,
-      child: ListView(
-        // **THE ONE PERMITTED TRACKED GESTURE IS SCROLLING** (`06 §7`), and this
-        // is the horizontal case Indelible explicitly allows for this line. No
-        // action is reachable ONLY behind it: `ALL` sits first and clearing is
-        // always one tap on a word that is always on screen.
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+    // **A RULED ROW WITH AN EMPTY MARGIN CELL.** The filters are not a record,
+    // so nothing prints in the gutter — but the gutter is still reserved, which
+    // is what keeps the spine straight past this row instead of the page opening
+    // with a jog in it.
+    return ShedRuledRow(
+      child: Wrap(
+        spacing: t.gapMin,
+        // **0, NOT A GAP** (`§7.3`, R86). Two runs of words share an edge exactly
+        // as two rows do; a 4 pt or 8 pt run gap is the one separation the tap
+        // ruling forbids, because a 9 mm contact patch centred on it resolves to
+        // neither word.
+        runSpacing: 0,
         children: <Widget>[
           _word(
             context,
@@ -105,43 +120,53 @@ class FlockFilterLine extends StatelessWidget {
     required bool selected,
     required Key widgetKey,
     required VoidCallback onTap,
-  }) => Padding(
-    padding: EdgeInsets.only(right: t.gapMin),
-    child: ShedTapTarget(
-      key: widgetKey,
-      // **STATE GOES IN `selected:`, NEVER IN THE LABEL** (`10 §3.2` rule 2).
-      // "Barren, selected" spoken as one string is a label that no longer
-      // matches the visible text, which is rule 3 of the same section.
-      semanticLabel: label,
-      selected: selected,
-      minSize: t.tapMin,
-      onTap: onTap,
-      child: ExcludeSemantics(
-        child: Container(
-          alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-          decoration: BoxDecoration(
-            // **ABSENT, NOT TRANSPARENT.** The first draft painted a transparent
-            // Material rule under every unselected word, and
-            // `token.material_color` failed the build — rightly: every colour in
-            // this app comes from `ShedTokens`, and there is no transparent token
-            // because a rule that is not there is not a colour at all. The 2px
-            // rule never scales either; it is a mark, not type (`§3.6`).
-            border: selected
-                ? Border(
-                    bottom: BorderSide(color: t.textPrimary, width: t.outlineWidth),
-                  )
-                : null,
-          ),
-          child: Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(color: selected ? t.textPrimary : t.textSecondary),
-            maxLines: 1,
+  }) =>
+      // **NO PADDING AROUND THE TARGET.** The `Wrap` owns the separation now, and
+      // a padded target inside a spaced `Wrap` is 16 + 16 between two words on
+      // one run and 16 between the runs — two different gaps for one rule.
+      //
+      // **`IntrinsicWidth`, AND WITHOUT IT THE LINE IS NOT A LINE.** Measured:
+      // six full-width stacked rows, 360 pt tall, filling the page — because
+      // `ShedTapTarget` wraps its child in `Center` and `Center` expands to the
+      // maximum width offered, so each word claimed a whole run of the `Wrap`.
+      // The identical bug was fixed in `ShedWordButton` at P16 and this is the
+      // one target in the app that does not go through it.
+      IntrinsicWidth(
+        child: ShedTapTarget(
+          key: widgetKey,
+          // **STATE GOES IN `selected:`, NEVER IN THE LABEL** (`10 §3.2` rule 2).
+          // "Barren, selected" spoken as one string is a label that no longer
+          // matches the visible text, which is rule 3 of the same section.
+          semanticLabel: label,
+          selected: selected,
+          minSize: t.tapMin,
+          onTap: onTap,
+          child: ExcludeSemantics(
+            child: Container(
+              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
+              decoration: BoxDecoration(
+                // **ABSENT, NOT TRANSPARENT.** The first draft painted a transparent
+                // Material rule under every unselected word, and
+                // `token.material_color` failed the build — rightly: every colour in
+                // this app comes from `ShedTokens`, and there is no transparent token
+                // because a rule that is not there is not a colour at all. The 2px
+                // rule never scales either; it is a mark, not type (`§3.6`).
+                border: selected
+                    ? Border(
+                        bottom: BorderSide(color: t.textPrimary, width: t.outlineWidth),
+                      )
+                    : null,
+              ),
+              child: Text(
+                label,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(color: selected ? t.textPrimary : t.textSecondary),
+                maxLines: 1,
+              ),
+            ),
           ),
         ),
-      ),
-    ),
-  );
+      );
 }

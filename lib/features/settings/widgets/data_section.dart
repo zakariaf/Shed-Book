@@ -17,9 +17,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_word_button.dart';
-import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/backup_format.dart';
 import 'package:shed_book/features/settings/restore_controller.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class DataSection extends ConsumerStatefulWidget {
@@ -99,47 +99,42 @@ class _DataSectionState extends ConsumerState<DataSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final TextTheme text = Theme.of(context).textTheme;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: ShedWordButton(
-              key: const Key('settings.data.restore'),
-              label: l10n.settingsDataRestore,
-              semanticLabel: l10n.settingsDataRestore,
-              // **NOT `selected`, EVER.** A word button's selected state is a
-              // filter's, and this one is an act — a restore row that looked
-              // chosen would read as a restore that had already happened.
-              selected: false,
-              // **NEVER `null`, EVEN WHILE BUSY.** A dead control is
-              // indistinguishable from a missed tap at 03:20, and this row is
-              // read in daylight by somebody who has just lost a phone. The
-              // guard is in `_restore`, which returns immediately.
-              onTap: () {
-                if (!_busy) {
-                  _restore();
-                }
-              },
-            ),
+    // **NO DOUBLE RULE AND NO `THIS IS THE ONLY DELETE IN SHED BOOK` SENTENCE.**
+    // `indelible.md §8` prints both at the foot of this section, above `DELETE
+    // SEASON 2026` and `DELETE EVERYTHING` — and those two are N29-T06, which
+    // ships in `v1.1.0`. The sentence is a statement ABOUT two controls; printed
+    // over an empty space it would describe something that is not there, which is
+    // the same defect as a heading with nothing under it, one line lower down.
+    // It lands with the deletes, in the commit that makes it true.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SettingRow(
+          control: ShedWordButton(
+            key: const Key('settings.data.restore'),
+            label: l10n.settingsDataRestore,
+            semanticLabel: l10n.settingsDataRestore,
+            // **NOT `selected`, EVER.** A word button's selected state is a
+            // filter's, and this one is an act — a restore row that looked
+            // chosen would read as a restore that had already happened.
+            selected: false,
+            // **NEVER `null`, EVEN WHILE BUSY.** A dead control is
+            // indistinguishable from a missed tap at 03:20, and this row is
+            // read in daylight by somebody who has just lost a phone. The
+            // guard is in `_restore`, which returns immediately.
+            onTap: () {
+              if (!_busy) {
+                _restore();
+              }
+            },
           ),
-          if (_said case final String said) ...<Widget>[
-            SizedBox(height: t.gapMin),
-            Text(
-              said,
-              key: const Key('settings.data.said'),
-              style: text.bodyMedium?.copyWith(color: t.textSecondary),
-            ),
-          ],
-        ],
-      ),
+        ),
+        if (_said case final String said)
+          SettingLine(text: said, textKey: const Key('settings.data.said'), muted: true),
+      ],
     );
   }
 }

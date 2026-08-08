@@ -69,7 +69,14 @@ void main() {
     await tester.pumpApp(const SettingsScreen(), db: db);
     await tester.pumpAndSettle();
 
-    expect(tester.getSemantics(find.text('Settings')).headingLevel, 1);
+    // **`SETTINGS`, NOT `Settings`, SINCE THE SCREEN BECAME A `ShedPage`.** The
+    // title now goes through `ShedPageHeader`, which applies `toUpperCase()`
+    // itself — *"the caps are a typographic decision owned by the design system
+    // and Flutter has no text-transform; storing them in the copy catalogue
+    // loses that the first time somebody edits the string."* The ARB message is
+    // unchanged and still sentence case, and the heading level is still 1: the
+    // assertion this case exists for is untouched, only the glyphs moved.
+    expect(tester.getSemantics(find.text('SETTINGS')).headingLevel, 1);
 
     // **ORDER IS PART OF THE CONTRACT.** `07 §14.3` numbers its sections, and a
     // shepherd told *"it is under Appearance, third from the bottom"* is being

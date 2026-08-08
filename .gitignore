@@ -101,3 +101,6 @@ app.*.map.json
 # of the failure, not of the screen. Re-baselining is `make goldens-update`,
 # alone, in its own commit.
 test/features/failures/
+
+# Workflow worktrees — transient, and each is a git repo of its own.
+.claude/worktrees/

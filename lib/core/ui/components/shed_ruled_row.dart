@@ -18,6 +18,24 @@
 // **NOT A CARD, NOT A LIST TILE.** No radius, no fill, no shadow, no elevation,
 // no leading icon slot (`§1.3`: there is no icon set). A row is a rule and the
 // space above it.
+//
+// ---------------------------------------------------------------------------
+// THE FIRST DRAFT OF THIS FILE CRASHED EVERY SCREEN THAT ADOPTED IT
+// ---------------------------------------------------------------------------
+//
+// It used `CrossAxisAlignment.stretch` with no height bound. Inside `ShedPage`'s
+// scrolling stream the incoming max height is **infinite**, and `stretch` hands
+// that straight down as a tight constraint: *"BoxConstraints forces an infinite
+// height"*, then a cascade of `hasSize` assertions, then a page that painted
+// nothing at all.
+//
+// **Four independent rebuilds found it and four proposed the same fix**, which is
+// as close to a specification as this project gets: keep the stretch — it is what
+// makes the 68 pt margin cell the full height of its row, which is `§4.3`'s
+// 68 × 64 target — and bound it with `IntrinsicHeight` so there is a finite
+// number to stretch to. It costs one extra layout pass on a handful of rows per
+// screen. Dropping to `center` was the other candidate and it is worse: the
+// margin cell stops being a full-height cell and `§4.3`'s target goes with it.
 library;
 
 import 'package:flutter/material.dart';
@@ -47,9 +65,11 @@ final class ShedRuledRow extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.semanticLabel,
+    this.onTapHint,
     this.height = kRuledRowHeight,
     this.selected,
     this.struck = false,
+    this.doubled = false,
   });
 
   /// The record column's content, from x=76.
@@ -68,6 +88,9 @@ final class ShedRuledRow extends StatelessWidget {
 
   final String? semanticLabel;
 
+  /// What the tap DOES, for a screen reader, where the label alone is a noun.
+  final String? onTapHint;
+
   /// [kRuledRowHeight] or [kRuledRowTall]. **A minimum, not a fixed height**
   /// (`§3.6`: rows grow, the grid does not move).
   final double height;
@@ -81,27 +104,51 @@ final class ShedRuledRow extends StatelessWidget {
   /// content.
   final bool struck;
 
+  /// `§5`'s **doubled rule**: a total, a boundary, a threshold crossed.
+  ///
+  /// Two 2 px lines **3 px apart**, and the 3 px is the spec's own figure rather
+  /// than a rounding of it — the gap is what makes the pair read as one heavier
+  /// mark in peripheral vision from across the shed, which is the whole job.
+  ///
+  /// **Painted as a `Positioned` layer, never as a second child in a column**, so
+  /// `§4.4`'s row heights cannot move: a threshold row must sit on exactly the
+  /// same grid as the rows around it or the board stops scanning.
+  final bool doubled;
+
   @override
   Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
 
     final Widget row = Padding(
       padding: EdgeInsets.only(right: t.gapMin),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          SizedBox(width: kRuledMarginWidth, child: margin),
-          // The 8 pt gutter between the spine at x=68 and the record column at
-          // x=76. It is not a gap between targets — the spine is painted behind
-          // the whole page — so it is not R86's business.
-          SizedBox(width: t.gapMin / 2),
-          Expanded(child: child),
-          if (trailing case final Widget w) w,
-        ],
+      // See this file's header: `stretch` without a bound is an infinite-height
+      // crash inside a scroll view, and dropping the stretch costs `§4.3`'s
+      // full-height margin cell.
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            SizedBox(width: kRuledMarginWidth, child: margin),
+            // The 8 pt gutter between the spine at x=68 and the record column at
+            // x=76. It is not a gap between targets — the spine is painted behind
+            // the whole page — so it is not R86's business.
+            SizedBox(width: t.gapMin / 2),
+            Expanded(child: child),
+            if (trailing case final Widget w) w,
+          ],
+        ),
       ),
     );
 
-    return DecoratedBox(
+    // **THE RULE, AS A DECORATION AROUND THE ROW.**
+    Widget ruled(Widget inner) => DecoratedBox(
+      // **KEYED, BECAUSE A RULE IS A CHANNEL AND A CHANNEL MUST BE ASSERTABLE.**
+      // `10 §5.2`'s redundancy table asserts that every pen row carries a rule
+      // beneath it — *"the channel that survives when the word is truncated and
+      // the glyph is absent"*. That used to be `pen_tile.rule`, a painter inside
+      // the tile; the tile is a `ShedRuledRow` now and the rule is this one, so
+      // the assertion moves here rather than lapsing.
+      key: const Key('shed_ruled_row.rule'),
       // **BOTTOM ONLY. ROWS SHARE EDGES.** A top border would double every
       // interior rule to 4 pt and turn the ledger into a table.
       decoration: BoxDecoration(
@@ -114,22 +161,73 @@ final class ShedRuledRow extends StatelessWidget {
           ),
         ),
       ),
-      child: onTap == null
-          // **NOT WRAPPED IN A TARGET WHEN IT IS NOT ONE.** A `GestureDetector`
-          // with a null handler still contributes a semantics node the geometric
-          // gate then measures, and a read-only row measured as a target is how a
-          // 60 pt floor gets a false negative.
-          ? ConstrainedBox(
-              constraints: BoxConstraints(minHeight: height),
-              child: row,
+      child: doubled
+          ? Stack(
+              children: <Widget>[
+                inner,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  // 2 px rule + a 3 px gap, measured up from the row's own rule.
+                  bottom: t.outlineWidth + kDoubledRuleGap,
+                  child: SizedBox(
+                    // **KEYED, BECAUSE THE MARK IS WHAT THE GATE ASSERTS.** The
+                    // pen board's non-colour-channel test finds this line to
+                    // prove an over-threshold row carries a second channel; a
+                    // painted rule with no key can only be checked by a golden,
+                    // which is a PNG rather than a statement about the design.
+                    key: const Key('shed_ruled_row.doubled'),
+                    height: t.outlineWidth,
+                    child: ColoredBox(color: t.outline),
+                  ),
+                ),
+              ],
             )
-          : ShedTapTarget(
-              semanticLabel: semanticLabel ?? '',
-              selected: selected,
-              minSize: height,
-              onTap: onTap,
-              child: ExcludeSemantics(child: row),
-            ),
+          : inner,
+    );
+
+    if (onTap == null) {
+      // **NOT WRAPPED IN A TARGET WHEN IT IS NOT ONE.** A `GestureDetector` with
+      // a null handler still contributes a semantics node the geometric gate
+      // then measures, and a read-only row measured as a target is how a 60 pt
+      // floor gets a false negative.
+      return ruled(
+        ConstrainedBox(
+          constraints: BoxConstraints(minHeight: height),
+          child: row,
+        ),
+      );
+    }
+
+    // **THE TARGET IS THE OUTERMOST WIDGET, AND THAT IS A MEASURED FIX.**
+    //
+    // With the `DecoratedBox` outside, `ShedRuledRow`'s element resolved to a
+    // `RenderDecoratedBox` — which owns no semantics — so
+    // `tester.getSemantics(find.byKey(...))` walked PAST this row to whatever
+    // node enclosed it and came back with an empty label. Five assertions across
+    // the care lines and the provenance header failed on it, and every one of
+    // them was asserting something true.
+    //
+    // The first fix tried was to move the `DecoratedBox` inside `ShedTapTarget`.
+    // That put the row's rule inside the target's `Center`, so on every tappable
+    // row the ruling stopped at the content instead of running the width of the
+    // page — the ledger came apart exactly where it is most used.
+    //
+    // Both hold this way round: the keyed element owns the semantics node, and
+    // the explicit infinite width defeats the `Center` so the rule still spans
+    // the page.
+    return ShedTapTarget(
+      semanticLabel: semanticLabel ?? '',
+      onTapHint: onTapHint,
+      selected: selected,
+      minSize: height,
+      onTap: onTap,
+      child: ExcludeSemantics(
+        child: SizedBox(width: double.infinity, child: ruled(row)),
+      ),
     );
   }
 }
+
+/// `--rule-double-gap`: 3 px between the two lines of a doubled rule (`§5`).
+const double kDoubledRuleGap = 3;

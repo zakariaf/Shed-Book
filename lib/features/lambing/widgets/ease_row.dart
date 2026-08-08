@@ -15,6 +15,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/vocab_label.dart';
 import 'package:shed_book/data/providers.dart';
@@ -74,34 +75,113 @@ class EaseRow extends ConsumerWidget {
       return vocabLabel(userLabel, _shipped(key, l10n));
     }
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin),
-      child: ShedChoiceRow(
-        key: const Key('lambing_entry.ease'),
-        selected: ease?.code,
-        onSelected: (int ordinal) {
-          // ONE TAP IS ONE COMMITTED SCORE. No Save button, no draft, and the
-          // confirmation is the underline moving.
-          ref
-              .read(lambingWriteControllerProvider.notifier)
-              .setEase(lambingId, LambingEase(ordinal));
-        },
-        unsetLabel: l10n.lambingEaseUnset,
-        groupSemanticLabel: l10n.lambingEaseGroupSemantics,
-        choices: <({int ordinal, String label, String semanticLabel})>[
-          for (int i = 0; i < kEaseKeys.length; i++)
-            (
-              ordinal: i + 1,
-              label: describe(kEaseKeys[i]),
-              // NO STATE WORD. `10 §3.2` rule 2: the node carries `selected:`
-              // and a screen reader announces the state itself. "Ease 3,
-              // selected" is the doubled announcement users report as noise.
-              semanticLabel: l10n.lambingEaseValueSemantics(
-                ordinal: i + 1,
-                description: describe(kEaseKeys[i]),
+    final int? code = ease?.code;
+
+    // **THE RULED BLOCK, NOT A ROW OF SENTENCES.** Until R87 this widget handed
+    // `ShedChoiceRow` the five authored sentences as its button labels, and the
+    // component's `Center` then stretched each one to the full width — five
+    // full-bleed rows reading *No assistance*, *Slight assistance by hand*, and
+    // so on. `indelible.md §7.9` draws five 72 × 72 buttons carrying the DIGITS,
+    // *"with the description printed to the right"* for the selected one only.
+    //
+    // The sentences are not lost and they are not decoration: they are each
+    // button's spoken label, so a screen reader still hears *"Ease 3,
+    // Considerable assistance needed"* on a control the eye reads as a `3`.
+    return DecoratedBox(
+      // The block closes with the same rule every ruled row closes with, so the
+      // ruling stays continuous through a control that is not one row
+      // (`§7.3`).
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: t.outline, width: t.outlineWidth),
+        ),
+      ),
+      child: Padding(
+        // **`gapMin` VERTICALLY, AND R86 FIXES THE NUMBER.** The strip's top
+        // edge is a target edge, and the row above it is a target too: the two
+        // legal separations are 0 and >= 16, and there is nothing between them.
+        // Half a gap here would be the 8 pt the ruling struck out.
+        // **THE RECORD COLUMN STARTS AT 76, AND THE STRIP MAY NOT CROSS THE
+        // SPINE.** `§4.3`: the spine at x=68 *"does not break for headers,
+        // sheets, sections or the live row — if a component would interrupt it,
+        // that component is wrong."* So the group is laid inside the record
+        // column, which is 301 pt at the 393 reference viewport and 283 at
+        // `Device.small`. Five 72 pt cells need 360, so the strip re-lays as
+        // 4 + 1 and 3 + 2 — the same reflow `§3.6` already documents for 150%
+        // text, arriving one device earlier. §7.9's *"361px available"* is the
+        // PAGE width, and the spine is what this page spends the difference on.
+        padding: EdgeInsets.only(
+          left: kRuledMarginWidth + t.gapMin / 2,
+          right: t.gapMin,
+          bottom: t.gapMin,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: t.gapMin / 2),
+              child: Text(
+                l10n.lambingEaseHeading,
+                key: const Key('lambing_entry.ease.heading'),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: t.textSecondary),
               ),
             ),
-        ],
+            ShedChoiceRow(
+              key: const Key('lambing_entry.ease'),
+              selected: code,
+              onSelected: (int ordinal) {
+                // ONE TAP IS ONE COMMITTED SCORE. No Save button, no draft, and
+                // the confirmation is the underline moving.
+                ref
+                    .read(lambingWriteControllerProvider.notifier)
+                    .setEase(lambingId, LambingEase(ordinal));
+              },
+              unsetLabel: l10n.lambingEaseUnset,
+              groupSemanticLabel: l10n.lambingEaseGroupSemantics,
+              choices: <({int ordinal, String label, String semanticLabel})>[
+                for (int i = 0; i < kEaseKeys.length; i++)
+                  (
+                    ordinal: i + 1,
+                    // THE DIGIT IS THE BUTTON. `LambingEase` carries an ordinal
+                    // and nothing else, and the ordinal is what the column
+                    // stores — so the thing on screen and the thing on disk are
+                    // the same character.
+                    label: '${i + 1}',
+                    // NO STATE WORD. `10 §3.2` rule 2: the node carries
+                    // `selected:` and a screen reader announces the state
+                    // itself. "Ease 3, selected" is the doubled announcement
+                    // users report as noise.
+                    semanticLabel: l10n.lambingEaseValueSemantics(
+                      ordinal: i + 1,
+                      description: describe(kEaseKeys[i]),
+                    ),
+                  ),
+              ],
+            ),
+            // **THE DESCRIPTION PRINTS ONLY FOR THE SELECTED VALUE** (§7.9's
+            // *Selected* row: `EASE 3 · SOME ASSISTANCE`). Five sentences
+            // printed at once is the shape this widget had before, and it is
+            // what pushed every other cell on the screen below the fold.
+            //
+            // The words are the shepherd's — `describe` resolves the
+            // `vocab_terms` override first — so they are printed VERBATIM and
+            // never upper-cased: changing the case of a term they typed is
+            // editing their word.
+            if (code case final int ordinal)
+              Padding(
+                padding: EdgeInsets.only(top: t.gapMin / 2),
+                child: Text(
+                  l10n.lambingEaseSelected(
+                    ordinal: ordinal,
+                    description: describe(kEaseKeys[ordinal - 1]),
+                  ),
+                  key: const Key('lambing_entry.ease.description'),
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

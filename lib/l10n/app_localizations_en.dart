@@ -1144,11 +1144,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flockUnavailable => 'The flock could not be read.';
 
   @override
-  String flockRowSummary({required int seasons, required int lambings}) {
-    return '$seasons seasons · $lambings lambings';
-  }
-
-  @override
   String flockRowLabel({required String tag}) {
     return 'Tag $tag';
   }
@@ -1651,4 +1646,118 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get flockAddCloseHint => 'Close this sheet. Nothing is written until you confirm.';
+
+  @override
+  String lambingEntryPageHeader({required String title, required String night}) {
+    return '$title · $night';
+  }
+
+  @override
+  String get lambingEntryBlankCells =>
+      'Every cell below may be left blank. A blank cell prints as a gap, not as an error.';
+
+  @override
+  String lambingEaseSelected({required int ordinal, required String description}) {
+    return 'Ease $ordinal · $description';
+  }
+
+  @override
+  String flockPageHeader({required int count, required String term, required String date}) {
+    return 'Flock · $count $term · $date';
+  }
+
+  @override
+  String flockPageHeaderCounting({required String date}) {
+    return 'Flock · $date';
+  }
+
+  @override
+  String get flockStampWithdrawal => 'WITHDRAWAL';
+
+  @override
+  String get flockStampBarren => 'BARREN';
+
+  @override
+  String get flockStampNotYetLambed => 'NOT YET LAMBED';
+
+  @override
+  String get flockStampPenned => 'PENNED';
+
+  @override
+  String get flockRowWarningMark => '†';
+
+  @override
+  String penBoardPageHeader({
+    required String date,
+    required String time,
+    required int occupied,
+    required int over,
+  }) {
+    String _temp0 = intl.Intl.pluralLogic(
+      over,
+      locale: localeName,
+      other: '$over over †',
+      one: '1 over †',
+      zero: 'none over',
+    );
+    return 'The pens · $date $time · $occupied occupied · $_temp0';
+  }
+
+  @override
+  String get penBoardSortByPen => 'SORT BY PEN NUMBER';
+
+  @override
+  String get penBoardSortByHours => 'SORT BY HOURS';
+
+  @override
+  String get penBoardIndex => 'INDEX';
+
+  @override
+  String get penBoardNoPens => 'No pens yet.';
+
+  @override
+  String get treatmentsDaysNotCopied => 'DAYS NOT COPIED — READ THE BOTTLE';
+
+  @override
+  String treatmentsSectionRunning({required String count}) {
+    return 'ACTIVE WITHDRAWALS · $count';
+  }
+
+  @override
+  String get treatmentsSectionBook => 'MEDICINE BOOK';
+
+  @override
+  String get treatmentsSlab => '+ DOSE';
+
+  @override
+  String get settingsUnitsWeightLabel => 'Weight';
+
+  @override
+  String get settingsPaletteLabel => 'Palette';
+
+  @override
+  String get settingsStateOn => 'ON';
+
+  @override
+  String get settingsStateOff => 'OFF';
+
+  @override
+  String get settingsAppearanceVoices =>
+      'Sentence case means it happened. Capitals mean it is a thing you can press.';
+
+  @override
+  String get settingsAppearanceKeypadVoice =>
+      'One exception: the keypad digits are set in the record voice, so the digit you press is the shape that prints.';
+
+  @override
+  String get settingsTerminologyNote =>
+      'These are the words this app prints on screen. They cannot be changed on this version.';
+
+  @override
+  String settingsTerminologyPair({required String singularTerm, required String pluralTerm}) {
+    return '$singularTerm · $pluralTerm';
+  }
+
+  @override
+  String get settingsSeasonPercentageInUse => 'IN USE';
 }

@@ -11,10 +11,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shed_book/core/ui/components/shed_word_button.dart';
-import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/models.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/features/settings/unlock_controller.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class UnlockSection extends ConsumerStatefulWidget {
@@ -41,9 +41,7 @@ class _UnlockSectionState extends ConsumerState<UnlockSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final TextTheme text = Theme.of(context).textTheme;
 
     final bool unlocked = switch (ref.watch(entitlementProvider)) {
       AsyncData<Entitlement>(value: final Entitlement e) => e.unlocked,
@@ -56,38 +54,30 @@ class _UnlockSectionState extends ConsumerState<UnlockSection> {
       // (`11 §4.1`), because none of it changes what the shepherd may do and
       // each is a fact about their payment method in a file they may hand to a
       // vet.
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Text(
-            l10n.unlockUnlocked,
-            key: const Key('settings.unlock.unlocked'),
-            style: text.labelMedium,
-          ),
-        ),
-      );
+      return SettingLine(text: l10n.unlockUnlocked, textKey: const Key('settings.unlock.unlocked'));
     }
 
     final UnlockState state = ref.watch(unlockControllerProvider);
     final UnlockController controller = ref.read(unlockControllerProvider.notifier);
 
-    return Padding(
+    return Column(
+      // The key stays on the wrapper it was on: `11 §12.1`'s *"upgrade row 2"*
+      // is the whole group, not one of its buttons.
       key: const Key('settings.upgrade_row'),
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          // **RESTORE FIRST.** See the file header.
-          ShedWordButton(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        // **RESTORE FIRST.** See the file header.
+        SettingRow(
+          control: ShedWordButton(
             key: const Key('settings.unlock.restore'),
             label: l10n.unlockRestore,
             selected: false,
             onTap: () => controller.restore().ignore(),
           ),
-          SizedBox(height: t.gapMin / 2),
-          ShedWordButton(
+        ),
+        SettingRow(
+          control: ShedWordButton(
             key: const Key('settings.unlock.buy'),
             // **THE LABEL CHANGES; NO SPINNER IS ADDED.** The indeterminate
             // progress widget is refused under `lib/features/` outright, and it
@@ -110,13 +100,10 @@ class _UnlockSectionState extends ConsumerState<UnlockSection> {
             selected: false,
             onTap: () => controller.unlock().ignore(),
           ),
-          if (_message(l10n, state) case final String line)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 2),
-              child: Text(line, key: const Key('settings.unlock.state'), style: text.bodyMedium),
-            ),
-        ],
-      ),
+        ),
+        if (_message(l10n, state) case final String line)
+          SettingLine(text: line, textKey: const Key('settings.unlock.state')),
+      ],
     );
   }
 

@@ -81,7 +81,10 @@ const List<String> kWrittenAhead = <String>[
   'lambCardDeathCauseLabel',
   'lambCardDeathCauseUnattributed',
   'lambCardFeedsLabel',
-  'lambingEaseHeading',
+  // `lambingEaseHeading` CAME OFF THIS LIST AT THE R87 REBUILD, which is the
+  // list working exactly as intended: the ease group is now §7.9's five 72 pt
+  // digits under a printed heading, so the string that was written ahead is
+  // rendered and the gate said so on the first run.
   'quickEntryTitle',
   'quickEntryStruckAt',
   'keypadEnteredTag',

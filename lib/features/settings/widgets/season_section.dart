@@ -3,6 +3,20 @@
 // Section 4 of `07 §14.3`: which season the app is writing into, and starting
 // the next one.
 //
+// **IT WAS REPORTED AS A HEADING WITH NOTHING UNDER IT, AND IT NEVER WAS ONE.**
+// Pumped on 2026-08-08 against a fresh notebook, the section rendered *"No season
+// started."* and `START A SEASON`; against a seeded one it rendered the start
+// row, `CYCLE 17 DAYS` with its two words, all four percentage definitions and a
+// row per season. Every one of those was on the page.
+//
+// What made it read as empty was two things, and neither of them is in this file:
+// **Terminology and Reminders printed empty headings immediately above it**, so
+// three section heads ran together and the eye attached the content to the wrong
+// one; and until R87 every `ShedWordButton` drew its rule the full width of the
+// page, so a lone `START A SEASON` under a heading looked like a divider rather
+// than a control. Both are fixed in `settings_screen.dart` and in the component.
+// The change here is the ledger shape: every line is a `ShedRuledRow`.
+//
 // **SWITCHING SEASONS INVALIDATES NOTHING.** Every screen reads its season
 // through `settingsProvider`, a stream over `app_settings` — so writing that
 // column re-runs every dependent statement on its own. `ref.invalidate` here
@@ -13,6 +27,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/formatters.dart';
 import 'package:shed_book/core/ui/tokens.dart';
@@ -28,6 +43,7 @@ import 'package:shed_book/domain/terminology/term_label.dart';
 import 'package:shed_book/domain/ids.dart';
 import 'package:shed_book/domain/time/local_date.dart';
 import 'package:shed_book/features/settings/settings_write_controller.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class SeasonSection extends ConsumerStatefulWidget {
@@ -78,69 +94,51 @@ class _SeasonSectionState extends ConsumerState<SeasonSection> {
       //
       // A shepherd's first night with this app did nothing at all. `07 §14.3`
       // row 4 specified this row and it was never built.
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Text(
-              l10n.settingsSeasonNone,
-              key: const Key('settings.season.none'),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            SizedBox(height: t.gapMin),
-            _startRow(l10n, locale),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Column(
+      return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          // **THE ROW `07 §14.3` ROW 4 ASKED FOR AND NOBODY BUILT.** It is
-          // calm-gated — `EntryContext.calm` in the controller — because
-          // starting a season is daylight work and the one other place the free
-          // tier may honestly refuse.
-          Align(alignment: Alignment.centerLeft, child: _startRow(l10n, locale)),
-          if (_refused case final String said)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 2, bottom: t.gapMin),
-              child: Text(
-                said,
-                key: const Key('settings.season.refused'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: t.textSecondary),
-              ),
-            ),
-          SizedBox(height: t.gapMin),
+          SettingLine(text: l10n.settingsSeasonNone, textKey: const Key('settings.season.none')),
+          SettingRow(control: _startRow(l10n, locale)),
+        ],
+      );
+    }
 
-          // **THE CYCLE, AND THE DEFAULT IS THE SHEPHERD'S RATHER THAN THE
-          // APP'S.** `lambingSpread` reads `cycle_days` to say how many ewes
-          // lambed in the first cycle, and its own doc is blunt that the
-          // parameter *"has a default and the app must never use it"* — 17 is
-          // what `onCreate` seeds, and this row is how a shepherd whose tup
-          // ratio says otherwise changes it.
-          //
-          // **STORED NOW, READ IN JUNE.** Season Summary is `v1.1.0` (N28), and
-          // the season this number describes is happening now — a setting a
-          // shepherd cannot reach until after the season it applies to is a
-          // setting that arrives too late to be true.
-          //
-          // Two words rather than a stepper: `indelible.md §6` has no icon set,
-          // and hold-to-repeat is a banned gesture. One press, one day.
-          Padding(
-            padding: EdgeInsets.only(bottom: t.gapMin / 2),
-            child: Text(
-              l10n.settingsSeasonCycleDays(days: formatShedCount(settings.cycleDays, locale)),
-              key: const Key('settings.season.cycle'),
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ),
-          Wrap(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        // **THE ROW `07 §14.3` ROW 4 ASKED FOR AND NOBODY BUILT.** It is
+        // calm-gated — `EntryContext.calm` in the controller — because
+        // starting a season is daylight work and the one other place the free
+        // tier may honestly refuse.
+        SettingRow(control: _startRow(l10n, locale)),
+        if (_refused case final String said)
+          SettingLine(text: said, textKey: const Key('settings.season.refused'), muted: true),
+
+        // **THE CYCLE, AND THE DEFAULT IS THE SHEPHERD'S RATHER THAN THE
+        // APP'S.** `lambingSpread` reads `cycle_days` to say how many ewes
+        // lambed in the first cycle, and its own doc is blunt that the
+        // parameter *"has a default and the app must never use it"* — 17 is
+        // what `onCreate` seeds, and this row is how a shepherd whose tup
+        // ratio says otherwise changes it.
+        //
+        // **STORED NOW, READ IN JUNE.** Season Summary is `v1.1.0` (N28), and
+        // the season this number describes is happening now — a setting a
+        // shepherd cannot reach until after the season it applies to is a
+        // setting that arrives too late to be true.
+        //
+        // Two words rather than a stepper: `indelible.md §6` has no icon set,
+        // and hold-to-repeat is a banned gesture. One press, one day.
+        //
+        // **THE FIGURE IS THE ROW'S LABEL NOW, NOT A LINE ABOVE A GAP.**
+        // `§7.12`: the label states what is set and the control sits on the
+        // rule under it, so the count and the two words that change it are one
+        // 88 pt line instead of three loose ones.
+        SettingRow(
+          key: const Key('settings.season.cycle'),
+          label: l10n.settingsSeasonCycleDays(days: formatShedCount(settings.cycleDays, locale)),
+          control: Wrap(
             spacing: t.gapMin,
             runSpacing: t.gapMin,
             children: <Widget>[
@@ -166,75 +164,59 @@ class _SeasonSectionState extends ConsumerState<SeasonSection> {
                 ),
             ],
           ),
-          SizedBox(height: t.gapMin),
+        ),
 
-          // **WHICH PERCENTAGE, STATED RATHER THAN PICKED.** There are four
-          // honest definitions and they give different numbers off the same
-          // flock — *born alive per ewe to the ram* and *reared per ewe to the
-          // ram* can be twenty points apart in a hard year. The app does not
-          // choose; it says which one it is using, in the shepherd's own words,
-          // and the four sentences are the domain's rather than this file's.
-          Padding(
-            padding: EdgeInsets.only(bottom: t.gapMin / 2),
-            child: Text(
-              l10n.settingsSeasonPercentage,
-              key: const Key('settings.season.percentage'),
-              style: Theme.of(context).textTheme.labelMedium,
-            ),
+        // **WHICH PERCENTAGE, STATED RATHER THAN PICKED.** There are four
+        // honest definitions and they give different numbers off the same
+        // flock — *born alive per ewe to the ram* and *reared per ewe to the
+        // ram* can be twenty points apart in a hard year. The app does not
+        // choose; it says which one it is using, in the shepherd's own words,
+        // and the four sentences are the domain's rather than this file's.
+        //
+        // **FOUR WHOLE-ROW CHOICES, NOT FOUR STACKED WORD BUTTONS.** The
+        // definitions are sentences — *"lambs born incl. stillborn per ewe put
+        // to the ram"* — and a sentence inside a word button ellipsised at one
+        // line on every device, so three of the four choices read as the same
+        // truncated phrase. As ruled rows they have the record column's full
+        // width, they share edges (R86's other legal separation) and the row IS
+        // the target, which is 64 x the record width rather than 64 x the word.
+        _ChoiceHeading(label: l10n.settingsSeasonPercentage),
+        for (final LambingPercentageChoice choice in LambingPercentageChoice.values)
+          _PercentageChoiceRow(
+            key: Key('settings.season.percentage.${choice.key}'),
+            definition: choice.definition,
+            inUse: settings.percentageDefinition == choice.key,
+            inUseStamp: l10n.settingsSeasonPercentageInUse,
+            onTap: () =>
+                ref.read(settingsRepositoryProvider).setPercentageDefinition(choice).ignore(),
           ),
-          for (final LambingPercentageChoice choice in LambingPercentageChoice.values)
-            Padding(
-              padding: EdgeInsets.only(bottom: t.gapMin),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ShedWordButton(
-                  key: Key('settings.season.percentage.${choice.key}'),
-                  label: choice.definition,
-                  semanticLabel: choice.definition,
-                  selected: settings.percentageDefinition == choice.key,
-                  onTap: () =>
-                      ref.read(settingsRepositoryProvider).setPercentageDefinition(choice).ignore(),
-                ),
-              ),
-            ),
-          SizedBox(height: t.gapMin),
 
-          for (final Season season in seasons)
-            Padding(
-              // **`gapMin`, NOT HALF — R86.** These season buttons switch which
-              // season a night's records are written into, and they were 8 pt
-              // apart: the exact middle of the forbidden band, on the one
-              // control in Settings where the wrong tap misfiles a season.
-              padding: EdgeInsets.only(bottom: t.gapMin),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ShedWordButton(
-                  key: Key('settings.season.${season.id}'),
-                  // The current one prints its start date; the others print
-                  // their label alone, because a list of dates is a list nobody
-                  // reads at 9am.
-                  label: settings.currentSeason == season.id
-                      ? l10n.settingsSeasonCurrent(
-                          label: season.label,
-                          // **NEVER ALL-NUMERIC** (R60): `1 Jan 2026`, not
-                          // `01/01/2026`, which reads as a different day on two
-                          // sides of an ocean.
-                          date: formatShedDate(season.startDate, locale),
-                        )
-                      : l10n.settingsSeasonSwitch(label: season.label),
-                  selected: settings.currentSeason == season.id,
-                  // It names the CONSEQUENCE — which season tonight's records
-                  // land in — rather than the act.
-                  semanticLabel: l10n.settingsSeasonSwitchSemantics(label: season.label),
-                  onTap: () => ref
-                      .read(settingsWriteControllerProvider.notifier)
-                      .switchSeason(SeasonId(season.id))
-                      .ignore(),
-                ),
-              ),
-            ),
-        ],
-      ),
+        for (final Season season in seasons)
+          _SeasonChoiceRow(
+            key: Key('settings.season.${season.id}'),
+            // The current one prints its start date; the others print
+            // their label alone, because a list of dates is a list nobody
+            // reads at 9am.
+            label: settings.currentSeason == season.id
+                ? l10n.settingsSeasonCurrent(
+                    label: season.label,
+                    // **NEVER ALL-NUMERIC** (R60): `1 Jan 2026`, not
+                    // `01/01/2026`, which reads as a different day on two
+                    // sides of an ocean.
+                    date: formatShedDate(season.startDate, locale),
+                  )
+                : l10n.settingsSeasonSwitch(label: season.label),
+            current: settings.currentSeason == season.id,
+            inUseStamp: l10n.settingsSeasonPercentageInUse,
+            // It names the CONSEQUENCE — which season tonight's records
+            // land in — rather than the act.
+            semanticLabel: l10n.settingsSeasonSwitchSemantics(label: season.label),
+            onTap: () => ref
+                .read(settingsWriteControllerProvider.notifier)
+                .switchSeason(SeasonId(season.id))
+                .ignore(),
+          ),
+      ],
     );
   }
 
@@ -307,5 +289,139 @@ class _SeasonSectionState extends ConsumerState<SeasonSection> {
       RefusalReason.eweCap => l10n.capRefusedEweCap(cap: kFreeEweCap, term: term.plural),
       RefusalReason.secondSeason => l10n.capRefusedSecondSeason,
     };
+  }
+}
+
+/// The line that says what the rows under it are choosing between.
+///
+/// **A READ-ONLY RULED ROW, NOT A `ShedSectionHeading`.** `10 §3.4`'s heading
+/// table has exactly two levels and both are spoken for — the screen title is 1
+/// and every Settings section head is 2 — so a third heading inside a section
+/// would either invent a level 3 the component asserts against, or add a second
+/// level-2 stop that a screen-reader user would land on expecting a new section.
+final class _ChoiceHeading extends StatelessWidget {
+  const _ChoiceHeading({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    return ShedRuledRow(
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(color: t.textSecondary),
+        ),
+      ),
+    );
+  }
+}
+
+/// One lambing-percentage definition, as one ruled line.
+///
+/// **THE MARGIN CELL CARRIES THE STATE, AND IT IS A WORD** (`§1.2` rule 3 —
+/// meaning is carried by form first, hue never alone). The chosen definition
+/// takes an `IN USE` stamp in the 68 pt margin and its sentence goes to the
+/// heavier role; the others carry neither. Three channels — a word, a position
+/// and a weight — none of which is a colour, so the row survives the OS
+/// grayscale filter and a head torch equally.
+final class _PercentageChoiceRow extends StatelessWidget {
+  const _PercentageChoiceRow({
+    required this.definition,
+    required this.inUse,
+    required this.inUseStamp,
+    required this.onTap,
+    super.key,
+  });
+
+  final String definition;
+  final bool inUse;
+  final String inUseStamp;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return ShedRuledRow(
+      height: kRuledRowTall,
+      onTap: onTap,
+      // No state word in the label — the node carries `selected` and a screen
+      // reader announces it once (`10 §3.2` rule 2).
+      semanticLabel: definition,
+      selected: inUse,
+      margin: inUse ? _InUseStamp(label: inUseStamp) : null,
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          definition,
+          // **NOT ELLIPSISED, AND THAT IS WHY IT IS A ROW.** Three of the four
+          // definitions differ only in their last four words; a single clipped
+          // line would print the same phrase three times.
+          style: inUse ? text.titleMedium : text.bodyMedium,
+        ),
+      ),
+    );
+  }
+}
+
+/// One season, as one ruled line. Pressing it moves where tonight's records land.
+final class _SeasonChoiceRow extends StatelessWidget {
+  const _SeasonChoiceRow({
+    required this.label,
+    required this.current,
+    required this.inUseStamp,
+    required this.semanticLabel,
+    required this.onTap,
+    super.key,
+  });
+
+  final String label;
+  final bool current;
+  final String inUseStamp;
+  final String semanticLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextTheme text = Theme.of(context).textTheme;
+    return ShedRuledRow(
+      height: kRuledRowTall,
+      onTap: onTap,
+      semanticLabel: semanticLabel,
+      selected: current,
+      margin: current ? _InUseStamp(label: inUseStamp) : null,
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(label, style: current ? text.titleMedium : text.bodyMedium),
+      ),
+    );
+  }
+}
+
+/// The margin stamp. `§3.4` permits sub-18 px type only for a stamp, and only
+/// when it is never the sole carrier of its meaning — here the sentence beside it
+/// is also in the heavier role, so removing the stamp loses nothing.
+final class _InUseStamp extends StatelessWidget {
+  const _InUseStamp({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final ShedTokens t = context.tokens;
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: t.gapMin / 2),
+      child: Align(
+        alignment: AlignmentDirectional.centerStart,
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
   }
 }

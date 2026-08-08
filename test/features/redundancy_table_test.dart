@@ -121,11 +121,24 @@ void main() {
               expect(find.byKey(mark), findsOneWidget, reason: 'the second channel is missing');
             }
 
-            // **EVERY STATUS HAS A RULE UNDER IT, IN FOUR DISTINGUISHABLE
-            // STYLES** — single, doubled, dashed, dotted. It is the channel that
+            // **EVERY STATUS HAS A RULE UNDER IT.** It is the channel that
             // survives when the word is truncated and the glyph is absent, and
             // it is the one every row shares, so it is asserted on every row.
-            expect(find.byKey(const Key('pen_tile.rule')), findsOneWidget);
+            //
+            // **THE KEY MOVED AND THE FOUR SHAPES DID NOT SURVIVE.** `10 §5.2`
+            // gave the rule four distinguishable styles — single, doubled,
+            // dashed, dotted, one per status — painted inside the tile under
+            // `pen_tile.rule`. `indelible.md §8` gives the board ONE shape
+            // channel, the doubled rule, and only for over-threshold, for a
+            // reason the section states itself: what is legible from across the
+            // shed is the presence of a second line, not a dash against a dot at
+            // 2 px. `indelible.md` outranks `10`, so the vocabulary went.
+            //
+            // The pen row is a `ShedRuledRow` now, so the rule under it is the
+            // ledger's own — asserted here, on every status, exactly as before.
+            // The four-shape claim is the part that is gone, and it is gone
+            // deliberately rather than by omission.
+            expect(find.byKey(const Key('shed_ruled_row.rule')), findsOneWidget);
           } finally {
             await tester.closeApp();
           }

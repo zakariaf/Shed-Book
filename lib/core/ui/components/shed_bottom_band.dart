@@ -50,6 +50,9 @@ class ShedBottomBand extends StatelessWidget {
     required this.slabHeight,
     super.key,
     this.leftHanded = false,
+    this.indexKey = const Key('quick_entry.index'),
+    this.slabKey = const Key('quick_entry.slab'),
+    this.slabSemanticLabel,
   });
 
   final String indexLabel;
@@ -75,13 +78,30 @@ class ShedBottomBand extends StatelessWidget {
   /// Moves the SLAB, not the spine (indelible.md §4.3).
   final bool leftHanded;
 
+  /// **THE KEYS COME FROM THE CALLER, WHICH IS WHAT R87'S OWN COMMIT MESSAGE
+  /// SAID AND THE FIRST CUT DID NOT DO.** Quick Entry's `quick_entry.index` and
+  /// `quick_entry.slab` are pinned by the rect anchor and by the geometric gate,
+  /// so they are the DEFAULTS and that screen is untouched — but a second screen
+  /// rendering a slab keyed `quick_entry.slab` is a key that lies about which
+  /// page it is on, and its own test cannot find it. The pen board passes
+  /// `pen_board.add_pen`.
+  final Key indexKey;
+  final Key slabKey;
+
+  /// What the slab SAYS when the visible word cannot be read aloud. `+ PEN`
+  /// announces as *"plus pen"*; the pen board hands it *"Add a pen"*, which is
+  /// the reason `penBoardAddPenSemantics` exists. Defaults to [slabLabel],
+  /// because for `TAG FIRST` and `+ LAMB` the two are the same string and a
+  /// second one would be a second thing to keep in step.
+  final String? slabSemanticLabel;
+
   @override
   Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     final double safeBottom = MediaQuery.paddingOf(context).bottom;
 
     final Widget index = ShedTapTarget(
-      key: const Key('quick_entry.index'),
+      key: indexKey,
       semanticLabel: indexLabel,
       minSize: indexHeight,
       onTap: onIndex,
@@ -95,8 +115,8 @@ class ShedBottomBand extends StatelessWidget {
     );
 
     final Widget slab = ShedTapTarget(
-      key: const Key('quick_entry.slab'),
-      semanticLabel: slabLabel,
+      key: slabKey,
+      semanticLabel: slabSemanticLabel ?? slabLabel,
       minSize: slabHeight,
       onTap: onSlab,
       child: ExcludeSemantics(

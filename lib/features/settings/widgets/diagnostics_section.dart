@@ -18,10 +18,10 @@ import 'dart:io';
 import 'package:shed_book/core/log/local_log.dart';
 import 'package:shed_book/core/ui/components/shed_word_button.dart';
 import 'package:shed_book/core/ui/formatters.dart';
-import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/data/providers.dart';
 import 'package:shed_book/data/settings_repository.dart';
 import 'package:shed_book/data/share_service.dart';
+import 'package:shed_book/features/settings/widgets/setting_row.dart';
 import 'package:shed_book/l10n/app_localizations.dart';
 
 final class DiagnosticsSection extends ConsumerStatefulWidget {
@@ -48,9 +48,7 @@ class _DiagnosticsSectionState extends ConsumerState<DiagnosticsSection> {
 
   @override
   Widget build(BuildContext context) {
-    final ShedTokens t = context.tokens;
     final AppLocalizations l10n = AppLocalizations.of(context);
-    final TextTheme text = Theme.of(context).textTheme;
     final String locale = Localizations.localeOf(context).toLanguageTag();
 
     // **ALREADY REDACTED, BECAUSE REDACTION HAPPENS ON THE WAY IN** (`13 §8.4`).
@@ -59,93 +57,81 @@ class _DiagnosticsSectionState extends ConsumerState<DiagnosticsSection> {
     // them was improved.
     final List<String> recent = LocalLog.instance.recentRecords();
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: t.gapMin, vertical: t.gapMin / 2),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          ShedWordButton(
+    // **THE THREE ACTS ARE THREE ROWS, AND WHAT EACH ONE SAYS SITS UNDER IT.**
+    // They were three word buttons separated by 16 pt of nothing, with the
+    // verdict, the counts and the log preview floating between them — so the
+    // reader had to work out which line belonged to which press. Ruled, the
+    // answer is the position: a result line shares an edge with the row that
+    // produced it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        SettingRow(
+          control: ShedWordButton(
             key: const Key('settings.diagnostics.check'),
             label: l10n.settingsDiagnosticsCheck,
             selected: false,
             onTap: _runCheck,
           ),
-          if (_intact case final bool intact)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 2),
-              child: Text(
-                intact ? l10n.settingsDiagnosticsIntact : l10n.settingsDiagnosticsDamaged,
-                key: const Key('settings.diagnostics.result'),
-                style: text.bodyMedium,
-              ),
-            ),
-          // **THE SIZE, BESIDE THE VERDICT** (`13 §8.5`). Whoever reads a
-          // diagnostics note needs to know whether this is a test flock or four
-          // seasons of work, and *intact* alone does not say.
-          if (_counts case final ({int animals, int records}) c)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 4),
-              child: Text(
-                // **THROUGH `formatShedCount`, WHICH IS WHY THE PLACEHOLDERS
-                // ARE `String`.** A four-figure record count printed raw reads
-                // as `1240`; grouped it reads as a size. The ARB declares them
-                // as strings precisely so no call site can pass a bare `int`
-                // and skip the formatter.
-                l10n.settingsDiagnosticsCounts(
-                  records: formatShedCount(c.records, locale),
-                  ewes: formatShedCount(c.animals, locale),
-                ),
-                key: const Key('settings.diagnostics.counts'),
-                style: text.bodySmall?.copyWith(color: t.textSecondary),
-              ),
-            ),
-          SizedBox(height: t.gapMin),
-          Text(
-            recent.isEmpty
-                ? l10n.settingsDiagnosticsNoLog
-                : l10n.settingsDiagnosticsRecent(count: recent.length),
-            key: const Key('settings.diagnostics.recent_heading'),
-            style: text.labelMedium,
+        ),
+        if (_intact case final bool intact)
+          SettingLine(
+            text: intact ? l10n.settingsDiagnosticsIntact : l10n.settingsDiagnosticsDamaged,
+            textKey: const Key('settings.diagnostics.result'),
           ),
-          for (final String record in recent)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 4),
-              child: Text(record, style: text.bodySmall),
+        // **THE SIZE, BESIDE THE VERDICT** (`13 §8.5`). Whoever reads a
+        // diagnostics note needs to know whether this is a test flock or four
+        // seasons of work, and *intact* alone does not say.
+        if (_counts case final ({int animals, int records}) c)
+          SettingLine(
+            // **THROUGH `formatShedCount`, WHICH IS WHY THE PLACEHOLDERS
+            // ARE `String`.** A four-figure record count printed raw reads
+            // as `1240`; grouped it reads as a size. The ARB declares them
+            // as strings precisely so no call site can pass a bare `int`
+            // and skip the formatter.
+            text: l10n.settingsDiagnosticsCounts(
+              records: formatShedCount(c.records, locale),
+              ewes: formatShedCount(c.animals, locale),
             ),
+            textKey: const Key('settings.diagnostics.counts'),
+            muted: true,
+          ),
+        SettingLine(
+          text: recent.isEmpty
+              ? l10n.settingsDiagnosticsNoLog
+              : l10n.settingsDiagnosticsRecent(count: recent.length),
+          textKey: const Key('settings.diagnostics.recent_heading'),
+          muted: true,
+        ),
+        for (final String record in recent) SettingLine(text: record),
 
-          // **THE TWO SHARE ROWS, WHICH THIS FILE'S OWN HEADER ALREADY CLAIMED
-          // AND DID NOT HAVE.** *"The only way a problem travels — and it
-          // travels because the shepherd sent it, deliberately, through the
-          // system share sheet."* That was true of the design and not of the
-          // code: `13 §8.5`'s two rows had no widget, so the log and the file
-          // could be read on the phone and never got off it. Found by N33-T05's
-          // ARB orphan sweep.
-          SizedBox(height: t.gapMin),
-          ShedWordButton(
+        // **THE TWO SHARE ROWS, WHICH THIS FILE'S OWN HEADER ALREADY CLAIMED
+        // AND DID NOT HAVE.** *"The only way a problem travels — and it
+        // travels because the shepherd sent it, deliberately, through the
+        // system share sheet."* That was true of the design and not of the
+        // code: `13 §8.5`'s two rows had no widget, so the log and the file
+        // could be read on the phone and never got off it. Found by N33-T05's
+        // ARB orphan sweep.
+        SettingRow(
+          control: ShedWordButton(
             key: const Key('settings.diagnostics.share_log'),
             label: l10n.settingsDiagnosticsShareLog,
             selected: false,
             onTap: _shareLog,
           ),
-          SizedBox(height: t.gapMin),
-          ShedWordButton(
+        ),
+        SettingRow(
+          control: ShedWordButton(
             key: const Key('settings.diagnostics.share_snapshot'),
             label: l10n.settingsDiagnosticsShareSnapshot,
             selected: false,
             onTap: _shareSnapshot,
           ),
-          if (_said case final String said)
-            Padding(
-              padding: EdgeInsets.only(top: t.gapMin / 2),
-              child: Text(
-                said,
-                key: const Key('settings.diagnostics.said'),
-                style: text.bodySmall?.copyWith(color: t.textSecondary),
-              ),
-            ),
-        ],
-      ),
+        ),
+        if (_said case final String said)
+          SettingLine(text: said, textKey: const Key('settings.diagnostics.said'), muted: true),
+      ],
     );
   }
 

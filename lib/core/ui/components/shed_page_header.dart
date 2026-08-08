@@ -22,7 +22,20 @@ import 'package:flutter/material.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 class ShedPageHeader extends StatelessWidget {
-  const ShedPageHeader({required this.text, required this.height, super.key});
+  const ShedPageHeader({
+    required this.text,
+    required this.height,
+    super.key,
+    this.boxKey = const Key('quick_entry.page_header'),
+  });
+
+  /// **THE KEY IS A PARAMETER BECAUSE R87 MADE THIS SHARED.** It was written for
+  /// Quick Entry and hard-coded `Key('quick_entry.page_header')` on its own box;
+  /// the moment a second screen used it, Settings and Treatments each began
+  /// publishing a widget keyed for a screen they are not. The default keeps the
+  /// rect anchor and the geometric gate pinned to exactly what they were pinned
+  /// to before; every other screen names its own header.
+  final Key boxKey;
 
   /// Already formatted and already localised. `d MMM y`, never all-numeric
   /// (R60, decision #108) — the formatting authority is
@@ -36,7 +49,7 @@ class ShedPageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final ShedTokens t = context.tokens;
     return SizedBox(
-      key: const Key('quick_entry.page_header'),
+      key: boxKey,
       height: height,
       child: Align(
         alignment: AlignmentDirectional.centerStart,

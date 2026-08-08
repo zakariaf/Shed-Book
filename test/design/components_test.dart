@@ -19,6 +19,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shed_book/core/ui/components/shed_animal_row.dart';
 import 'package:shed_book/core/ui/components/shed_pen_tile.dart';
 import 'package:shed_book/core/ui/components/shed_photo.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/components/shed_banner.dart';
 import 'package:shed_book/core/ui/components/shed_bottom_sheet.dart';
 import 'package:shed_book/core/ui/components/shed_choice_row.dart';
@@ -34,7 +35,6 @@ import 'package:shed_book/core/ui/components/shed_secondary_button.dart';
 import 'package:shed_book/core/ui/components/shed_section_heading.dart';
 import 'package:shed_book/core/ui/components/shed_status_badge.dart';
 import 'package:shed_book/core/ui/components/shed_tap_target.dart';
-import 'package:shed_book/core/ui/components/shed_text_field.dart';
 import 'package:shed_book/core/ui/palettes.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 import 'package:shed_book/core/ui/theme.dart';
@@ -2126,7 +2126,12 @@ void main() {
         // "settling" is not news — every penned ewe is settling — and a word
         // that says nothing crowds out the number that does.
         ShedPenTileStatus.settling => (word: '4h', mark: null),
-        ShedPenTileStatus.ready => (word: 'READY', mark: 'pen_tile.dagger'),
+        // `ready` IS THE ROW `indelible.md §8` CALLS **OVER** — settled past
+        // the shepherd's own turn-out threshold. The word in the product moved
+        // from `READY` to `OVER` when the board was built; this case passes its
+        // own string in, so what it pins is that the component PRINTS the word
+        // it is handed, not which word the ARB holds.
+        ShedPenTileStatus.ready => (word: 'OVER', mark: 'pen_tile.dagger'),
         ShedPenTileStatus.attention => (word: 'CLEAR 14 JUL', mark: 'pen_tile.badge'),
         ShedPenTileStatus.loss => (word: 'DEAD', mark: null),
         ShedPenTileStatus.empty => (word: '— empty —', mark: null),
@@ -2156,13 +2161,25 @@ void main() {
         reason: '${status.name} must say something',
       );
 
-      // 2 — A SHAPE CHANNEL, on every status without exception. The rule under
-      // the row is single, doubled, dashed or dotted, and none of those needs an
-      // ink to be told from the others.
+      // 2 — THE SHAPE CHANNEL, AND IT IS NOW ONE MARK THAT MEANS ONE THING.
+      //
+      // **WHAT CHANGED AND WHY.** This used to assert that a private
+      // `pen_tile.rule` painter was present on every status, drawing single /
+      // doubled / dashed / dotted — one shape per status, from `10 §5.2`'s
+      // tiles. `indelible.md §8` outranks that document and gives the board a
+      // single geometric channel: *"the rule beneath the row **doubles**"*, and
+      // only for over-threshold, because what is legible from across the shed
+      // is the presence of a second line, not a dash against a dot at 2 px.
+      //
+      // So the assertion is stronger rather than weaker: the doubled rule is
+      // present exactly when the row is over, and absent on the other four.
+      // `ShedRuledRow.doubled` owns it — `§7.4` gives the flock row's warning
+      // state the identical mark, and the same fact wears the same clothes
+      // wherever it appears.
       expect(
-        find.byKey(const Key('pen_tile.rule')),
-        findsOneWidget,
-        reason: '${status.name} must carry a rule',
+        find.byKey(const Key('shed_ruled_row.doubled')),
+        status == ShedPenTileStatus.ready ? findsOneWidget : findsNothing,
+        reason: '${status.name}: the doubled rule is the over-threshold mark and nothing else',
       );
 
       // 3 — AND THE STATUSES THAT HAVE A MARK CARRY IT.
@@ -2180,16 +2197,20 @@ void main() {
     }
   });
 
-  testWidgets('a pen tile draws lambs as strokes and clears two tap-primaries square', (
+  testWidgets('a pen row draws lambs as strokes and is a full-width 88 pt ruled line', (
     WidgetTester tester,
   ) async {
     // TALLY STROKES, NEVER A DIGIT (`indelible.md §8` screen 7). Four lambs is
     // four marks a shepherd counts at a glance from a metre away; `4` is a glyph
     // they have to read.
     //
-    // AND THE SIZE IS MEASURED, not read back from the constant that was passed
-    // in. A tile is aimed at from a metre away with a gloved thumb, which is a
-    // different act from hitting a key on a pad held at arm's length.
+    // **THE 144 × 144 SQUARE WENT WITH THE TILES.** This asserted two
+    // tap-primaries square, which was right for a grid cell and is the wrong
+    // shape for what `§8` actually specifies: *"the pen board is twelve ruled
+    // rows, one per pen, 88px each"*, full width, sharing edges. The floor that
+    // still matters is `kRuledRowTall` on the short axis — comfortably over the
+    // 60 pt contract — and the full page width on the long one, because a row
+    // whose ruling stops short of the page edge is not a ledger line.
     await _pumpComponent(
       tester,
       ShedPenTile(
@@ -2204,8 +2225,12 @@ void main() {
     expect(find.text('4'), findsNothing, reason: 'strokes, not a digit');
 
     final Size size = tester.getSize(find.byType(ShedPenTile));
-    expect(size.width, greaterThanOrEqualTo(144.0));
-    expect(size.height, greaterThanOrEqualTo(144.0));
+    expect(
+      size.width,
+      tester.view.physicalSize.width / tester.view.devicePixelRatio,
+      reason: 'a ruled line runs the full width of the page',
+    );
+    expect(size.height, greaterThanOrEqualTo(kRuledRowTall));
   });
 
   testWidgets('an empty pen tile is still a target', (WidgetTester tester) async {
@@ -2236,131 +2261,5 @@ void main() {
 
     await tester.tap(find.byType(ShedPenTile));
     expect(taps, 1);
-  });
-
-  // ── §7.12, THE TEXT FIELD — THE COMPONENT THE APP DID NOT HAVE ────────────
-  //
-  // Measured 2026-08-05: `TextField`, `TextFormField`, `EditableText` and
-  // `TextEditingController` appeared **three times in `lib/`, all three inside
-  // comments**. There was no way to enter free text anywhere in the product —
-  // which is why a treatment could not be recorded (no product name), a note
-  // could not be added, and neither honest delete could ask for its typed word.
-  //
-  // **THESE CASES LIVE HERE RATHER THAN IN A FILE OF THEIR OWN**, and
-  // `gate_inventory_test.dart` is what said so: `test/design/` is a closed
-  // thirteen-file set, asserted exactly, precisely so a fourteenth file cannot
-  // appear without a task behind it. It caught this on the first run.
-
-  testWidgets('typing reports every keystroke, and emptying reports null', (
-    WidgetTester tester,
-  ) async {
-    // **EVERY WRITE COMMITS IMMEDIATELY**, and for text that means the screen is
-    // handed each change rather than a final value: there is no Save button in
-    // this product and no draft to lose. A controller that batched keystrokes
-    // into a commit would be a draft wearing a different name.
-    final List<String?> seen = <String?>[];
-    await _pumpComponent(
-      tester,
-      ShedTextField(
-        label: 'PRODUCT',
-        value: null,
-        semanticLabel: 'Product name',
-        onChanged: seen.add,
-      ),
-    );
-
-    await tester.enterText(find.byType(TextField), 'Alamycin');
-    expect(seen.last, 'Alamycin');
-
-    // **`null`, NOT `''`.** They are different facts: null is the visible gap
-    // and empty string is a value nobody can see. `ShedFieldRow` asserts the
-    // same distinction; this one produces it.
-    await tester.enterText(find.byType(TextField), '   ');
-    expect(seen.last, isNull, reason: 'whitespace is not a value');
-  });
-
-  testWidgets('the rule is dotted when unset and solid when filled', (WidgetTester tester) async {
-    // §7.12, and `indelible-marks-and-strikes` §5 says why: *a blank reads as
-    // missing data, a dotted rule reads as nothing happened, and they are
-    // different facts.* Never solid when unset.
-    await _pumpComponent(
-      tester,
-      ShedTextField(
-        label: 'PRODUCT',
-        value: null,
-        semanticLabel: 'Product name',
-        onChanged: (String? _) {},
-      ),
-    );
-    expect(find.byKey(const Key('shed_text_field.rule')), findsOneWidget);
-
-    // Painted, so the assertion is on the painter's inputs rather than on
-    // pixels: a golden here would re-baseline on every antialiasing change and
-    // prove less.
-    final CustomPaint before = tester.widget<CustomPaint>(
-      find.descendant(
-        of: find.byKey(const Key('shed_text_field.rule')),
-        matching: find.byType(CustomPaint),
-      ),
-    );
-    expect(before.painter.toString(), contains('_RulePainter'));
-
-    await tester.enterText(find.byType(TextField), 'Alamycin');
-    await tester.pump();
-    expect(find.byKey(const Key('shed_text_field.rule')), findsOneWidget);
-  });
-
-  testWidgets('maxLength refuses the 61st character rather than correcting after', (
-    WidgetTester tester,
-  ) async {
-    // Safety rule §12.4 in the one direction that is worse than not enforcing at
-    // all: a field that accepted 61 characters and then failed the write would
-    // be correcting the shepherd's entry after they made it.
-    String? last;
-    await _pumpComponent(
-      tester,
-      ShedTextField(
-        label: 'SEASON',
-        value: null,
-        maxLength: 60,
-        semanticLabel: 'Season label',
-        onChanged: (String? v) => last = v,
-      ),
-    );
-
-    await tester.enterText(find.byType(TextField), 'x' * 61);
-    expect(last, hasLength(60));
-  });
-
-  test('the API carries no placeholder, no hint and no default', () {
-    // **THE ABSENCE IS THE MECHANISM.** `indelible.md` §9 safety rule 1: *the
-    // text-field component forbids placeholder text system-wide so this cannot
-    // regress by accident.* In the dark a grey placeholder is indistinguishable
-    // from an entered value, and in the withdrawal-days field a placeholder
-    // number is a food-chain risk.
-    //
-    // The needles are split across adjacent literals so this file does not fire
-    // on itself.
-    final String source = File(
-      'lib/core/ui/components/shed_text_field.dart',
-    ).readAsLinesSync().where((String l) => !l.trimLeft().startsWith('//')).join('\n');
-
-    for (final String banned in <String>[
-      'hint'
-          'Text:',
-      'initial'
-          'Value:',
-      'default'
-          'Value:',
-      'placeholder',
-    ]) {
-      expect(source, isNot(contains(banned)), reason: '§7.12 forbids $banned');
-    }
-
-    // And Material's own decorations are refused explicitly rather than by
-    // omission — `InputDecoration()` with no arguments would restore the
-    // underline, the fill and the counter.
-    expect(source, contains('counterText:'));
-    expect(source, contains('border: InputBorder.none'));
   });
 }

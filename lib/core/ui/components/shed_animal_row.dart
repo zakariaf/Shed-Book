@@ -1,6 +1,21 @@
 // lib/core/ui/components/shed_animal_row.dart
+//
+// **§7.4's EWE ROW, NOW BUILT FROM §7.3's RULED ROW.**
+//
+// It drew its own bottom rule, its own padding and its own left edge at 16 px,
+// so it was a row that looked like the ledger's without being one: no margin
+// cell, no gutter, and the spine — painted at x=68 behind the page — ran
+// straight through the middle of the tag column. Measured against the running
+// app on 2026-08-07: the flock list was the only place in the product where the
+// spine crossed a numeral.
+//
+// The second half of the same defect: the summary sat BESIDE the tag, on one
+// line. `§7.4` puts it *"beneath"*, and `mockups/indelible.html` builds the row
+// as `mg | rec( line(tag, trail) , summary )` — the trailing state on the tag's
+// line, the summary spanning the whole record column under it. That is what
+// makes an 88 px row worth 88 px.
 import 'package:flutter/material.dart';
-import 'package:shed_book/core/ui/components/shed_tap_target.dart';
+import 'package:shed_book/core/ui/components/shed_ruled_row.dart';
 import 'package:shed_book/core/ui/tokens.dart';
 
 /// indelible.md §4.4's two ruled heights, **expressed as tokens rather than as
@@ -25,6 +40,7 @@ final class ShedAnimalRow extends StatelessWidget {
     required this.semanticLabel,
     required this.onTap,
     super.key,
+    this.margin,
     this.trailing,
     this.height = ShedAnimalRowHeight.tall,
     this.selected = false,
@@ -38,7 +54,7 @@ final class ShedAnimalRow extends StatelessWidget {
 
   /// `indelible.md §7.4`'s **Warning** state — over threshold, last withdrawal
   /// day, or a §12.4 contradiction. This draws the **doubled rule**, one of the
-  /// state's four channels (the margin `†` belongs to the page grid).
+  /// state's four channels (the margin `†` is [margin]'s).
   ///
   /// **THE GAP IS THE MARK, AND A THICK RULE IS NOT A DOUBLED ONE.** A first
   /// draft drew a single 6 px border and called it doubled in a comment; a
@@ -48,12 +64,22 @@ final class ShedAnimalRow extends StatelessWidget {
   /// which is what both earlier attempts got wrong.
   final bool warning;
 
+  /// The 68 pt margin cell (`§4.3`): a `†`, a query mark, a struck stamp. `null`
+  /// leaves the gutter **reserved and empty**, which is what keeps the tag column
+  /// on the same x on every row whether or not the animal is marked — the
+  /// alignment §7.4 exists for.
+  final Widget? margin;
+
   /// **One line.** `07 §4.2`: *"3 seasons · avg 2.0 · assisted twice"*. Composed
   /// by the screen from its own query, never assembled here.
   final String summary;
 
   /// The right-hand cell: a status word, a figure, or nothing. A `Widget` rather
   /// than a `String` because it is usually a `ShedStatusBadge`.
+  ///
+  /// **It sits on the TAG's line, not beside the whole row**, so the summary
+  /// beneath gets the full record column rather than being squeezed by a word it
+  /// is not next to (`mockups/indelible.html`, screen 1).
   final Widget? trailing;
 
   final String semanticLabel;
@@ -86,71 +112,80 @@ final class ShedAnimalRow extends StatelessWidget {
     )..layout();
     final double tagColumn = probe.width;
 
-    return ShedTapTarget(
+    final Widget row = ShedRuledRow(
+      height: rowHeight,
       onTap: onTap,
       semanticLabel: semanticLabel,
-      minSize: rowHeight,
-      child: DecoratedBox(
-        // ONE RULE, AT THE BOTTOM. Two rules per row is indelible.md §7.4's
-        // warning state and must never be the default — a list where every row
-        // is boxed reads as a list where every row needs attention.
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: t.outline, width: t.outlineWidth),
-          ),
-        ),
-        child: Stack(
-          children: <Widget>[
-            // The INNER rule of the pair, floated above the content. The outer
-            // one is the row's own bottom border; the gap between them is
-            // `--rule-double-gap`, and it is the thing that reads as *a
-            // boundary, a threshold crossed* from across the shed.
-            if (warning)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: t.outlineWidth * 2,
-                child: SizedBox(
-                  height: t.outlineWidth,
-                  child: ColoredBox(color: t.outline),
+      // CENTRED, NOT STRETCHED. `ShedRuledRow` stretches its cells to the row
+      // height so a margin rule can run the full 88 px; a `†` and a boxed stamp
+      // are marks, and a stamp stretched to 88 px is a box around nothing.
+      margin: margin == null ? null : Center(child: margin),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              SizedBox(
+                width: tagColumn,
+                child: Text(
+                  tag,
+                  // RIGHT-aligned: the units digit is what aligns, not the
+                  // first digit.
+                  textAlign: TextAlign.right,
+                  style: text.headlineLarge,
+                  maxLines: 1,
                 ),
               ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: t.gapMin),
-              child: Row(
-                children: <Widget>[
-                  SizedBox(
-                    width: tagColumn,
-                    child: Text(
-                      tag,
-                      // RIGHT-aligned: the units digit is what aligns, not the
-                      // first digit.
-                      textAlign: TextAlign.right,
-                      style: text.headlineLarge,
-                      maxLines: 1,
-                    ),
-                  ),
-                  SizedBox(width: t.gapMin),
-                  Expanded(
-                    child: Text(
-                      summary,
-                      style: text.bodyMedium?.copyWith(
-                        // The non-colour channel for selection: the summary carries
-                        // an underline when the row is selected, so the state
-                        // survives a reader who cannot tell the inks apart.
-                        decoration: selected ? TextDecoration.underline : TextDecoration.none,
-                        fontWeight: selected ? FontWeight.w700 : null,
-                      ),
-                      maxLines: 1,
-                    ),
-                  ),
-                  if (trailing != null) ...<Widget>[SizedBox(width: t.gapMin), trailing!],
-                ],
-              ),
+              // **A `Spacer`, WHICH IS `Expanded` AND THEREFORE TIGHT.** A
+              // `Flexible` here would take its share of the free space and give
+              // the rest back, leaving the trailing cell floating short of the
+              // right edge — the one place on this row where "nearly right"
+              // reads as a bug.
+              const Spacer(),
+              if (trailing case final Widget w) w,
+            ],
+          ),
+          Text(
+            summary,
+            // §7.4: 18 px `--ink-mid` (7.80:1). The tag is the identifier and
+            // carries full ink; the summary is what she did, one step back.
+            style: text.bodyMedium?.copyWith(
+              color: t.textSecondary,
+              // The non-colour channel for selection: the summary carries
+              // an underline when the row is selected, so the state
+              // survives a reader who cannot tell the inks apart.
+              decoration: selected ? TextDecoration.underline : TextDecoration.none,
+              fontWeight: selected ? FontWeight.w700 : null,
             ),
-          ],
-        ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
+    );
+
+    if (!warning) {
+      return row;
+    }
+
+    return Stack(
+      children: <Widget>[
+        row,
+        // The INNER rule of the pair, floated above the content. The outer
+        // one is the row's own bottom border; the gap between them is
+        // `--rule-double-gap`, and it is the thing that reads as *a
+        // boundary, a threshold crossed* from across the shed.
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: t.outlineWidth * 2,
+          child: SizedBox(
+            height: t.outlineWidth,
+            child: ColoredBox(color: t.outline),
+          ),
+        ),
+      ],
     );
   }
 }

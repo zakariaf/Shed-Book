@@ -563,7 +563,18 @@ class _StrikeAffordanceState extends State<_StrikeAffordance> {
       child: Row(
         children: <Widget>[
           Expanded(
-            child: Text(r.summary, style: Theme.of(context).textTheme.bodyMedium, maxLines: 1),
+            // **KEYED, BECAUSE THE TEST THAT READS IT WAS CLOCK-DEPENDENT.** The
+            // window is asserted from the constant rather than from a literal, so
+            // the finder searched for the digits of `kStrikeWindow.inSeconds` —
+            // and the margin cell one column left prints the time. At 14:20 that
+            // is two matches and a red suite; at 14:21 it is one and a green one.
+            // A test that passes or fails on the wall clock is worse than none.
+            child: Text(
+              r.summary,
+              key: const Key('quick_entry.strike.window'),
+              style: Theme.of(context).textTheme.bodyMedium,
+              maxLines: 1,
+            ),
           ),
           if (r.isOpenAt(appNow()))
             ShedTapTarget(

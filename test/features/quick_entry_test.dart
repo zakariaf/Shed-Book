@@ -639,17 +639,14 @@ void _writePathTests() {
     // HALF 1 — STATED IN SECONDS, read from the CONSTANT and never a literal, so
     // a changed constant changes the copy or this fails.
     expect(find.byKey(const Key('quick_entry.strike')), findsOneWidget);
-    // **SCOPED TO THE ROW, BECAUSE THE PAGE HEADER NOW PRINTS THE YEAR.** An
-    // unscoped `textContaining('20')` matched the strike summary *and*
-    // `NIGHT OF 6 AUG 2026`. The header was `NIGHT OF · PAGE 1` with the night
-    // left blank until P16 — a gap where the one line stating which night you are
-    // on should be — so the loose finder had been passing on an absence.
+    // **READ OFF THE KEYED WIDGET, NOT SEARCHED FOR ACROSS THE SCREEN.** The
+    // number is asserted from the constant rather than from a literal, so a text
+    // search for it also matched `NIGHT OF 6 AUG 2026` — and, once scoped to the
+    // row, the margin cell's own clock: at 14:20 two matches, at 14:21 one. A
+    // test that passes or fails on the wall clock is worse than no test.
     expect(
-      find.descendant(
-        of: find.byKey(const Key('quick_entry.live_row')),
-        matching: find.textContaining('${kStrikeWindow.inSeconds}'),
-      ),
-      findsOneWidget,
+      tester.widget<Text>(find.byKey(const Key('quick_entry.strike.window'))).data,
+      contains('${kStrikeWindow.inSeconds}'),
     );
 
     // The window is tied to the widget, not to a timer that outlives the screen.
